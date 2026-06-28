@@ -6,28 +6,28 @@ const ALL_LEVEL_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2", "B1"]);
 const ABOVE_GRADE_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
 const BASEMENT_SYNC_FLOORS = new Set<FloorId>(["B1", "B2"]);
 const STAIR_SYNC_FLOORS = ALL_LEVEL_SYNC_FLOORS;
-const REMOVED_WALL_IDS = new Set(["W-B1-016", "W-B1-017"]);
+const REMOVED_WALL_IDS = new Set(["W-B1-016"]);
 const WALL_SYNC_GROUPS = [
   {
     id: "all-level",
     label: "1F / 2F / B2 / B1",
     color: "#2563eb",
     floors: ALL_LEVEL_SYNC_FLOORS,
-    suffixes: new Set(["007", "003", "010"])
+    suffixes: new Set(["007", "003", "017"])
   },
   {
     id: "above-grade",
     label: "1F / 2F",
     color: "#16a34a",
     floors: ABOVE_GRADE_SYNC_FLOORS,
-    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "012", "018", "019", "020", "015", "013", "014", "016", "017"])
+    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "012", "018", "019", "020", "015", "013", "014", "016"])
   },
   {
     id: "basement",
     label: "B1 / B2",
     color: "#f97316",
     floors: BASEMENT_SYNC_FLOORS,
-    suffixes: new Set(["001", "002", "009"])
+    suffixes: new Set(["001", "002", "009", "010"])
   }
 ];
 
