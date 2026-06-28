@@ -70,7 +70,8 @@ function outdoor(id: string, floorId: FloorId, name: string, polygon: { x: numbe
 function fence(id: string, floorId: FloorId, name: string, start: { x: number; y: number }, end: { x: number; y: number }): HouseFence {
   return {
     ...createFence(id, floorId, start, end),
-    name
+    name,
+    material: "wood"
   };
 }
 
@@ -134,22 +135,24 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     windows: [windowObject("WIN-1F-001", "1F", "W-1F-001", 0.5, 1200), windowObject("WIN-1F-002", "1F", "W-1F-002", 0.72, 1200)],
     bayWindows: [bayWindow("BW-1F-001", "1F", "W-1F-015", 0.78, 1200)],
     outdoors: [
-      outdoor("OD-1F-NORTH-001", "1F", "北院 / 入户庭院", [{ x: 900, y: -1900 }, { x: 10650, y: -1900 }, { x: 10650, y: 250 }, { x: 900, y: 250 }]),
-      outdoor("OD-1F-SOUTH-001", "1F", "南院 / 生活庭院", [{ x: 900, y: 7900 }, { x: 10650, y: 7900 }, { x: 10650, y: 11150 }, { x: 900, y: 11150 }])
+      outdoor("OD-1F-NORTH-001", "1F", "北院 / 入户庭院 · 2m", [{ x: 950, y: -1650 }, { x: 9495, y: -1650 }, { x: 9495, y: 350 }, { x: 950, y: 350 }]),
+      outdoor("OD-1F-SOUTH-001", "1F", "南院 / 生活庭院 · 4m", [{ x: 950, y: 7800 }, { x: 9495, y: 7800 }, { x: 9495, y: 11800 }, { x: 950, y: 11800 }])
     ],
     fences: [
-      fence("FN-1F-NORTH-001", "1F", "北院围合", { x: 900, y: -1900 }, { x: 10650, y: -1900 }),
-      fence("FN-1F-NORTH-002", "1F", "北院东侧围合", { x: 10650, y: -1900 }, { x: 10650, y: 250 }),
-      fence("FN-1F-SOUTH-001", "1F", "南院围合", { x: 900, y: 11150 }, { x: 10650, y: 11150 }),
-      fence("FN-1F-SOUTH-002", "1F", "南院东侧围合", { x: 10650, y: 7900 }, { x: 10650, y: 11150 })
+      fence("FN-1F-NORTH-001", "1F", "北院北侧木篱笆", { x: 950, y: -1650 }, { x: 9495, y: -1650 }),
+      fence("FN-1F-NORTH-002", "1F", "北院西侧分户木篱笆", { x: 950, y: -1650 }, { x: 950, y: 350 }),
+      fence("FN-1F-NORTH-003", "1F", "北院东侧分户木篱笆", { x: 9495, y: -1650 }, { x: 9495, y: 350 }),
+      fence("FN-1F-SOUTH-001", "1F", "南院南侧木篱笆", { x: 950, y: 11800 }, { x: 9495, y: 11800 }),
+      fence("FN-1F-SOUTH-002", "1F", "南院西侧分户木篱笆", { x: 950, y: 7800 }, { x: 950, y: 11800 }),
+      fence("FN-1F-SOUTH-003", "1F", "南院东侧分户木篱笆", { x: 9495, y: 7800 }, { x: 9495, y: 11800 })
     ],
     outdoorSurfaces: [
-      surface("OS-1F-NORTH-001", "1F", "北院入户硬地", "hardscape", [{ x: 2700, y: -1500 }, { x: 6900, y: -1500 }, { x: 6900, y: -450 }, { x: 2700, y: -450 }]),
-      surface("OS-1F-NORTH-002", "1F", "北院引导小路", "path", [{ x: 5250, y: -450 }, { x: 5950, y: -450 }, { x: 5750, y: 250 }, { x: 5050, y: 250 }]),
-      surface("OS-1F-NORTH-003", "1F", "北院绿化带", "planting", [{ x: 930, y: -1750 }, { x: 2400, y: -1750 }, { x: 2400, y: 80 }, { x: 930, y: 80 }]),
-      surface("OS-1F-SOUTH-001", "1F", "南院会客平台", "hardscape", [{ x: 3900, y: 8150 }, { x: 7900, y: 8150 }, { x: 7900, y: 9600 }, { x: 3900, y: 9600 }]),
-      surface("OS-1F-SOUTH-002", "1F", "南院草坪", "planting", [{ x: 930, y: 8250 }, { x: 3600, y: 8250 }, { x: 3600, y: 10850 }, { x: 930, y: 10850 }]),
-      surface("OS-1F-SOUTH-003", "1F", "南院步道", "path", [{ x: 7900, y: 9300 }, { x: 9850, y: 9300 }, { x: 9850, y: 10000 }, { x: 7900, y: 10000 }])
+      surface("OS-1F-NORTH-001", "1F", "北院入户硬地", "hardscape", [{ x: 3150, y: -1400 }, { x: 7050, y: -1400 }, { x: 7050, y: -450 }, { x: 3150, y: -450 }]),
+      surface("OS-1F-NORTH-002", "1F", "北院引导小路", "path", [{ x: 5200, y: -450 }, { x: 5900, y: -450 }, { x: 5750, y: 300 }, { x: 5050, y: 300 }]),
+      surface("OS-1F-NORTH-003", "1F", "北院绿化带", "planting", [{ x: 1100, y: -1450 }, { x: 2700, y: -1450 }, { x: 2700, y: 150 }, { x: 1100, y: 150 }]),
+      surface("OS-1F-SOUTH-001", "1F", "南院会客平台", "hardscape", [{ x: 3900, y: 8200 }, { x: 7900, y: 8200 }, { x: 7900, y: 9800 }, { x: 3900, y: 9800 }]),
+      surface("OS-1F-SOUTH-002", "1F", "南院草坪", "planting", [{ x: 1100, y: 8250 }, { x: 3600, y: 8250 }, { x: 3600, y: 11550 }, { x: 1100, y: 11550 }]),
+      surface("OS-1F-SOUTH-003", "1F", "南院步道", "path", [{ x: 7900, y: 9400 }, { x: 9300, y: 9400 }, { x: 9300, y: 10100 }, { x: 7900, y: 10100 }])
     ],
     stairs: [stair("ST-1F-001", "1F", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
   }),

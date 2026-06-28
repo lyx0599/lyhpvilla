@@ -109,6 +109,7 @@ type Props = {
 const MIN_SCALE = 0.6;
 const MAX_SCALE = 3;
 const SCALE_STEP = 0.15;
+const STRUCTURE_LINE_SNAP_DISTANCE_MM = 420;
 
 type ObjectLabel = {
   id: string;
@@ -224,6 +225,10 @@ function avoidLabelOverlap(labels: ObjectLabel[], bounds = defaultPlanBounds) {
     placed.push(nextLabel);
     return nextLabel;
   });
+}
+
+function isClickDrawTool(tool: DrawTool): tool is ClickDrawTool {
+  return tool === "wall-straight" || tool === "wall-arc" || tool === "partition" || tool === "stair" || tool === "fence";
 }
 
 export function PlanCanvas({
@@ -599,6 +604,44 @@ export function PlanCanvas({
     ];
   }
 
+  function getStructureSnapSegments() {
+    const polygonSegments = (points: MmPoint[]) => points.length < 2
+      ? []
+      : points.map((point, index) => ({ start: point, end: points[(index + 1) % points.length] }));
+
+    return [
+      ...houseStructure.walls.flatMap((wall) => wall.kind === "straight" ? [{ start: wall.start, end: wall.end }] : []),
+      ...houseStructure.partitions.map((partition) => ({ start: partition.start, end: partition.end })),
+      ...houseStructure.stairs.map((stair) => ({ start: stair.start, end: stair.end })),
+      ...houseStructure.fences.map((fence) => ({ start: fence.start, end: fence.end })),
+      ...houseStructure.outdoors.flatMap((outdoor) => polygonSegments(outdoor.polygon)),
+      ...houseStructure.outdoorSurfaces.flatMap((surface) => polygonSegments(surface.polygon))
+    ];
+  }
+
+  function getStructureDrawPoint(rawPoint: MmPoint, origin?: MmPoint) {
+    const nearestEndpoint = getStructureSnapPoints()
+      .map((point) => ({ point, distance: getDistance(rawPoint, point) }))
+      .filter((candidate) => candidate.distance <= 220)
+      .sort((a, b) => a.distance - b.distance)[0]?.point;
+
+    if (nearestEndpoint) return nearestEndpoint;
+
+    const nearestLine = getStructureSnapSegments()
+      .map((segment) => projectPointToSegment(rawPoint, segment.start, segment.end))
+      .filter((projection) => projection.distance <= STRUCTURE_LINE_SNAP_DISTANCE_MM)
+      .sort((a, b) => a.distance - b.distance)[0]?.point;
+
+    if (nearestLine) {
+      return {
+        x: Math.round(nearestLine.x),
+        y: Math.round(nearestLine.y)
+      };
+    }
+
+    return origin ? snapPoint(rawPoint, [], origin) : rawPoint;
+  }
+
   function cancelClickDraw() {
     setClickDrawStart(null);
     setDrawPreview(null);
@@ -697,11 +740,13 @@ export function PlanCanvas({
     const rawPoint = getMmPosition(event);
     if (!rawPoint) return;
     const snapPoints = getStructureSnapPoints();
-    const point = clickDrawStart
-      ? snapPoint(rawPoint, snapPoints, clickDrawStart.start)
-      : snapPoint(rawPoint, snapPoints);
+    const point = isClickDrawTool(drawTool)
+      ? getStructureDrawPoint(rawPoint, clickDrawStart?.start)
+      : clickDrawStart
+        ? snapPoint(rawPoint, snapPoints, clickDrawStart.start)
+        : snapPoint(rawPoint, snapPoints);
 
-    if (drawTool === "wall-straight" || drawTool === "wall-arc" || drawTool === "partition" || drawTool === "stair" || drawTool === "fence") {
+    if (isClickDrawTool(drawTool)) {
       event.stopPropagation();
       const tool = drawTool;
       if (!clickDrawStart || clickDrawStart.tool !== tool) {
@@ -787,10 +832,10 @@ export function PlanCanvas({
   }
 
   function handleStructurePointerMove(event: PointerEvent<SVGSVGElement>) {
-    if (clickDrawStart && (drawTool === "wall-straight" || drawTool === "wall-arc" || drawTool === "partition" || drawTool === "stair" || drawTool === "fence")) {
+    if (clickDrawStart && isClickDrawTool(drawTool)) {
       const rawPoint = getMmPosition(event);
       if (!rawPoint) return;
-      const end = snapPoint(rawPoint, getStructureSnapPoints(), clickDrawStart.start);
+      const end = getStructureDrawPoint(rawPoint, clickDrawStart.start);
       setDrawPreview({ start: clickDrawStart.start, end });
       return;
     }
@@ -799,7 +844,7 @@ export function PlanCanvas({
     if (drag && drag.pointerId === event.pointerId) {
       const rawPoint = getMmPosition(event);
       if (!rawPoint) return;
-      const end = snapPoint(rawPoint, getWallEndpoints(houseStructure.walls), drag.start);
+      const end = getStructureDrawPoint(rawPoint, drag.start);
       setDrawPreview({ start: drag.start, end });
       return;
     }
@@ -1992,8 +2037,8 @@ export function PlanCanvas({
       }
       return (
         <g data-layer="SitePlanOverlay" pointerEvents="none">
-          <text x={1120} y={-1540} fill="#166534" fontSize={230} fontWeight={900}>北院 / 入户庭院</text>
-          <text x={1120} y={10720} fill="#166534" fontSize={230} fontWeight={900}>南院 / 生活庭院</text>
+          <text x={1120} y={-1180} fill="#166534" fontSize={230} fontWeight={900}>北院 / 入户庭院 2m</text>
+          <text x={1120} y={11280} fill="#166534" fontSize={230} fontWeight={900}>南院 / 生活庭院 4m</text>
           <line x1={0} y1={0} x2={STRUCTURE_WIDTH_MM} y2={0} stroke="#94a3b8" strokeDasharray="140 100" strokeWidth={28} />
           <line x1={0} y1={STRUCTURE_HEIGHT_MM} x2={STRUCTURE_WIDTH_MM} y2={STRUCTURE_HEIGHT_MM} stroke="#94a3b8" strokeDasharray="140 100" strokeWidth={28} />
         </g>
@@ -2239,6 +2284,10 @@ export function PlanCanvas({
     );
   }
 
+  function getStructureLabelPlacement(label: ObjectLabel) {
+    return label.y - planBounds.y < 1200 ? "below" : "above";
+  }
+
   function renderStructureLabelLayer(context: "2d" | "3d") {
     return (
       <g data-layer={`ObjectLabelLayer-${context}`} pointerEvents="none">
@@ -2257,12 +2306,13 @@ export function PlanCanvas({
             : mode === "hover"
               ? "border-slate-950 bg-slate-950 text-white ring-[3px] ring-white/95"
               : "border-slate-700 bg-white/95 text-slate-950 ring-2 ring-white/90";
+          const placement = getStructureLabelPlacement(label);
 
           return (
             <foreignObject
               key={`${context}-${label.id}`}
               x={label.x - 1450}
-              y={label.y - 980}
+              y={placement === "below" ? label.y + 180 : label.y - 980}
               width={2900}
               height={900}
               overflow="visible"
@@ -2298,15 +2348,16 @@ export function PlanCanvas({
             : mode === "hover"
               ? "border-slate-950 bg-slate-950 text-white ring-2 ring-white"
               : "border-slate-700 bg-white/95 text-slate-950 ring-1 ring-white";
+          const placement = getStructureLabelPlacement(label);
 
           return (
             <div
               key={`2d-html-${label.id}`}
-              className={`${responsiveClass} absolute w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-md border-2 px-3 py-2 text-center shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${toneClass}`}
+              className={`${responsiveClass} absolute w-max max-w-60 -translate-x-1/2 ${placement === "below" ? "translate-y-0" : "-translate-y-full"} rounded-md border-2 px-3 py-2 text-center shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${toneClass}`}
               style={{
                 left: `${labelPosition.x}%`,
                 top: `${labelPosition.y}%`,
-                marginTop: "-8px"
+                marginTop: placement === "below" ? "8px" : "-8px"
               }}
             >
               <div className={`${mode === "selected" ? "text-base" : "text-sm"} whitespace-nowrap font-extrabold leading-none`}>{label.id}</div>

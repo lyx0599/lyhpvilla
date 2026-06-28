@@ -21,7 +21,7 @@ import type {
 export const STRUCTURE_WIDTH_MM = 12000;
 export const STRUCTURE_HEIGHT_MM = 9000;
 export const SITE_PLAN_MIN_Y_MM = -2200;
-export const SITE_PLAN_MAX_Y_MM = 11600;
+export const SITE_PLAN_MAX_Y_MM = 12200;
 export const DEFAULT_WALL_THICKNESS_MM = 220;
 export const DEFAULT_WALL_HEIGHT_MM = 2800;
 export const DEFAULT_PARTITION_THICKNESS_MM = 90;

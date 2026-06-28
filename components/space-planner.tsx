@@ -30,7 +30,7 @@ type FloorHistory = {
 
 type RightPanelKey = "workflow" | "status" | "object" | "details" | "semantic";
 
-const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v2-confirmed-layout";
+const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 
 type PersistedWebWorkspace = {
   selectedFloorId: FloorId;
