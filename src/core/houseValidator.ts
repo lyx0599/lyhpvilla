@@ -1,4 +1,4 @@
-import { createFloorCoordinateSystem, generateRoomsFromWalls, getArcWallEndpoints, getDistance, getLineLength, getPolygonArea, projectPointToSegment, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
+import { createFloorCoordinateSystem, generateRoomsFromWalls, getArcWallEndpoints, getDistance, getLineLength, getPolygonArea, projectPointToSegment, SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
 import type { FloorId, Furniture, HousePartition, HouseRoom, HouseStructure, HouseWall, MmPoint, StraightHouseWall } from "@/types/space";
 
 export type HouseValidationIssueType = "wall" | "door" | "window" | "room" | "stair" | "outdoor" | "furniture" | "coordinate";
@@ -39,6 +39,11 @@ function isValidMmPoint(point: Partial<MmPoint> | undefined) {
 
 function isPointInsideFloor(point: MmPoint) {
   return point.x >= 0 && point.x <= STRUCTURE_WIDTH_MM && point.y >= 0 && point.y <= STRUCTURE_HEIGHT_MM;
+}
+
+function isPointInsideOutdoorBounds(floorId: FloorId, point: MmPoint) {
+  if (floorId !== "1F") return isPointInsideFloor(point);
+  return point.x >= 0 && point.x <= STRUCTURE_WIDTH_MM && point.y >= SITE_PLAN_MIN_Y_MM && point.y <= SITE_PLAN_MAX_Y_MM;
 }
 
 function isValidPercentPoint(point: { x?: number; y?: number } | undefined) {
@@ -139,6 +144,13 @@ function sanitizePoint(point: MmPoint): MmPoint {
   return {
     x: clamp(isFiniteNumber(point.x) ? point.x : 0, 0, STRUCTURE_WIDTH_MM),
     y: clamp(isFiniteNumber(point.y) ? point.y : 0, 0, STRUCTURE_HEIGHT_MM)
+  };
+}
+
+function sanitizeOutdoorPoint(floorId: FloorId, point: MmPoint): MmPoint {
+  return {
+    x: clamp(isFiniteNumber(point.x) ? point.x : 0, 0, STRUCTURE_WIDTH_MM),
+    y: clamp(isFiniteNumber(point.y) ? point.y : 0, floorId === "1F" ? SITE_PLAN_MIN_Y_MM : 0, floorId === "1F" ? SITE_PLAN_MAX_Y_MM : STRUCTURE_HEIGHT_MM)
   };
 }
 
@@ -333,17 +345,20 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
   const nextFences = structure.fences.map((fence) => ({
     ...fence,
     floorId,
-    start: sanitizePoint(fence.start),
-    end: sanitizePoint(fence.end),
+    start: sanitizeOutdoorPoint(floorId, fence.start),
+    end: sanitizeOutdoorPoint(floorId, fence.end),
     height: Math.max(1, isFiniteNumber(fence.height) ? fence.height : 1200),
     thickness: Math.max(1, isFiniteNumber(fence.thickness) ? fence.thickness : 80)
   }));
-  const nextOutdoorSurfaces = structure.outdoorSurfaces.map((surface) => ({
-    ...surface,
-    floorId,
-    polygon: surface.polygon.map(sanitizePoint),
-    area: getPolygonArea(surface.polygon.map(sanitizePoint))
-  }));
+  const nextOutdoorSurfaces = structure.outdoorSurfaces.map((surface) => {
+    const polygon = surface.polygon.map((point) => sanitizeOutdoorPoint(floorId, point));
+    return {
+      ...surface,
+      floorId,
+      polygon,
+      area: getPolygonArea(polygon)
+    };
+  });
 
   const nextStructureBase: HouseStructure = {
     ...structure,
@@ -399,7 +414,7 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
     outdoors: structure.outdoors.map((outdoor) => ({
       ...outdoor,
       floorId,
-      polygon: outdoor.polygon.map(sanitizePoint)
+      polygon: outdoor.polygon.map((point) => sanitizeOutdoorPoint(floorId, point))
     }))
   };
 
@@ -437,7 +452,7 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
 export function validateHouse(floorId: FloorId, structure: HouseStructure, furniture: Furniture[]): HouseValidationResult {
   const errors: HouseValidationIssue[] = [];
   const warnings: HouseValidationIssue[] = [];
-  const allowOpenBoundary = floorId === "YARD" || structure.outdoors.length > 0;
+  const allowOpenBoundary = floorId === "YARD";
 
   if (structure.floorId !== floorId) {
     errors.push({ type: "coordinate", id: structure.floorId, message: "结构楼层 ID 与当前校验楼层不一致。" });
@@ -553,8 +568,8 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       pushCoordinateError(errors, fence.id, "篱笆端点坐标存在非法值。");
       return;
     }
-    if (!isPointInsideFloor(fence.start) || !isPointInsideFloor(fence.end)) {
-      pushCoordinateError(errors, fence.id, "篱笆端点超出统一楼层坐标范围。");
+    if (!isPointInsideOutdoorBounds(floorId, fence.start) || !isPointInsideOutdoorBounds(floorId, fence.end)) {
+      pushCoordinateError(errors, fence.id, "篱笆端点超出当前图纸坐标范围。");
     }
     if (getLineLength(fence.start, fence.end) <= 0) {
       errors.push({ type: "outdoor", id: fence.id, message: "篱笆长度必须大于 0。" });
@@ -571,8 +586,8 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     if (surface.polygon.length < 3) {
       errors.push({ type: "outdoor", id: surface.id, message: "硬地/小路/绿化区域至少需要 3 个边界点。" });
     }
-    if (surface.polygon.some((point) => !isValidMmPoint(point) || !isPointInsideFloor(point))) {
-      pushCoordinateError(errors, surface.id, "硬地/小路/绿化区域存在非法坐标或超出楼层坐标范围。");
+    if (surface.polygon.some((point) => !isValidMmPoint(point) || !isPointInsideOutdoorBounds(floorId, point))) {
+      pushCoordinateError(errors, surface.id, "硬地/小路/绿化区域存在非法坐标或超出当前图纸坐标范围。");
     }
     if (!isFiniteNumber(surface.area) || surface.area <= 0) {
       errors.push({ type: "outdoor", id: surface.id, message: "硬地/小路/绿化区域必须有合法面积。" });

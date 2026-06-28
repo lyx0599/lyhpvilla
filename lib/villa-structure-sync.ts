@@ -2,12 +2,33 @@ import { createStair, generateRoomsFromWalls, getLineLength } from "@/lib/house-
 import type { FloorId, HouseStair, HouseStructure, HouseWall } from "@/types/space";
 
 const REFERENCE_FLOOR_ID: FloorId = "1F";
-const OUTER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2"]);
-const INNER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
-const OUTER_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008"]);
-const INNER_WALL_SUFFIXES = new Set(["017", "001", "011", "010", "012", "022"]);
-const LOCAL_ONLY_WALL_SUFFIXES = new Set(["014", "016", "017", "022"]);
-const LOCAL_ONLY_WALL_IDS = new Set(["W-B2-008", "W-B2-009"]);
+const ALL_LEVEL_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2", "B1"]);
+const ABOVE_GRADE_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
+const BASEMENT_SYNC_FLOORS = new Set<FloorId>(["B1", "B2"]);
+const STAIR_SYNC_FLOORS = ALL_LEVEL_SYNC_FLOORS;
+const WALL_SYNC_GROUPS = [
+  {
+    id: "all-level",
+    label: "1F / 2F / B2 / B1",
+    color: "#2563eb",
+    floors: ALL_LEVEL_SYNC_FLOORS,
+    suffixes: new Set(["007", "003", "012", "010"])
+  },
+  {
+    id: "above-grade",
+    label: "1F / 2F",
+    color: "#16a34a",
+    floors: ABOVE_GRADE_SYNC_FLOORS,
+    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "018", "019", "020", "015"])
+  },
+  {
+    id: "basement",
+    label: "B1 / B2",
+    color: "#f97316",
+    floors: BASEMENT_SYNC_FLOORS,
+    suffixes: new Set(["001", "002", "017", "016"])
+  }
+];
 
 type SyncOptions = {
   syncCrossFloor?: boolean;
@@ -17,17 +38,35 @@ function getWallSuffix(id: string) {
   return id.split("-").at(-1) ?? id;
 }
 
+export function getWallSyncRule(floorId: FloorId, wallId: string) {
+  const suffix = getWallSuffix(wallId);
+  return WALL_SYNC_GROUPS.find((group) => group.floors.has(floorId) && group.suffixes.has(suffix)) ?? null;
+}
+
+export function getWallSyncLegend() {
+  return WALL_SYNC_GROUPS.map((group) => ({
+    id: group.id,
+    label: group.label,
+    color: group.color,
+    suffixes: Array.from(group.suffixes).sort()
+  }));
+}
+
+export function getStairSyncRule() {
+  return {
+    id: "stair-all-level",
+    label: "楼梯：1F / 2F / B2 / B1",
+    color: "#7c3aed",
+    floors: Array.from(STAIR_SYNC_FLOORS)
+  };
+}
+
 function getSyncedWallId(floorId: FloorId, referenceWall: HouseWall) {
   return `W-${floorId}-${getWallSuffix(referenceWall.id)}`;
 }
 
 function getWallSyncFloors(wall: HouseWall) {
-  const suffix = getWallSuffix(wall.id);
-  if (LOCAL_ONLY_WALL_IDS.has(wall.id)) return null;
-  if (LOCAL_ONLY_WALL_SUFFIXES.has(suffix)) return null;
-  if (OUTER_WALL_SUFFIXES.has(suffix)) return OUTER_SYNC_FLOORS;
-  if (INNER_WALL_SUFFIXES.has(suffix)) return INNER_SYNC_FLOORS;
-  return null;
+  return getWallSyncRule(wall.floorId, wall.id)?.floors ?? null;
 }
 
 function refreshRooms(structure: HouseStructure): HouseStructure {
@@ -43,12 +82,12 @@ function copyReferenceWallToFloor(referenceWall: HouseWall, floorId: FloorId, ex
     return {
       ...referenceWall,
       ...(existingWall?.kind === "arc" ? {
-        name: existingWall.name,
         thickness: existingWall.thickness,
         height: existingWall.height
       } : {}),
       id,
       floorId,
+      name: referenceWall.name,
       center: { ...referenceWall.center },
       length: Math.round((Math.abs(referenceWall.endAngle - referenceWall.startAngle) * Math.PI * referenceWall.radius) / 180)
     };
@@ -60,12 +99,12 @@ function copyReferenceWallToFloor(referenceWall: HouseWall, floorId: FloorId, ex
   return {
     ...referenceWall,
     ...(existingStraight ? {
-      name: existingStraight.name,
       thickness: existingStraight.thickness,
       height: existingStraight.height
     } : {}),
     id,
     floorId,
+    name: referenceWall.name,
     start,
     end,
     length: getLineLength(start, end)
@@ -80,7 +119,7 @@ function copyReferenceStairsToFloor(referenceStairs: HouseStair[], floorId: Floo
       ...(existing ?? createStair(id, floorId, stair.start, stair.end)),
       id,
       floorId,
-      name: existing?.name ?? `Stair ${String(index + 1).padStart(3, "0")}`,
+      name: stair.name,
       start: { ...stair.start },
       end: { ...stair.end },
       width: stair.width,
@@ -96,8 +135,7 @@ export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, ta
 
   const syncedSourceWalls = sourceStructure.walls.filter((wall) => {
     const floors = getWallSyncFloors(wall);
-    const targetWallId = getSyncedWallId(targetStructure.floorId, wall);
-    return Boolean(floors?.has(sourceStructure.floorId) && floors.has(targetStructure.floorId) && !LOCAL_ONLY_WALL_IDS.has(targetWallId));
+    return Boolean(floors?.has(sourceStructure.floorId) && floors.has(targetStructure.floorId));
   });
   const syncedWallIds = new Set(syncedSourceWalls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
   const preservedLocalWalls = targetStructure.walls.filter((wall) => !syncedWallIds.has(wall.id));
@@ -107,7 +145,7 @@ export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, ta
     return copyReferenceWallToFloor(referenceWall, targetStructure.floorId, existingWall);
   });
   const walls = [...syncedWalls, ...preservedLocalWalls];
-  const shouldSyncStairs = OUTER_SYNC_FLOORS.has(sourceStructure.floorId) && OUTER_SYNC_FLOORS.has(targetStructure.floorId);
+  const shouldSyncStairs = STAIR_SYNC_FLOORS.has(sourceStructure.floorId) && STAIR_SYNC_FLOORS.has(targetStructure.floorId);
 
   return {
     ...targetStructure,

@@ -33,6 +33,8 @@ import {
   getLineLength,
   getWallEndpoints,
   projectPointToSegment,
+  SITE_PLAN_MAX_Y_MM,
+  SITE_PLAN_MIN_Y_MM,
   snapPoint,
   STRUCTURE_HEIGHT_MM,
   STRUCTURE_WIDTH_MM
@@ -45,6 +47,7 @@ import {
   getFloorPlanFilter,
   getRepairOverlayStyles
 } from "@/lib/floor-plan-cleanup";
+import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
 import type {
   CleanPatch,
   DrawTool,
@@ -66,6 +69,7 @@ import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
 
 type Props = {
   floor: Floor;
+  floors: Floor[];
   rooms: Room[];
   walls: Wall[];
   furniture: Furniture[];
@@ -84,6 +88,7 @@ type Props = {
   canRedo: boolean;
   onScaleChange: (scale: number) => void;
   onFocusModeChange: (focused: boolean) => void;
+  onSelectFloor: (floorId: Floor["id"]) => void;
   onActiveObjectChange: (objectId: string) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -111,7 +116,8 @@ type ObjectLabel = {
 };
 
 type LabelFilter = "all" | "walls" | "openings" | "rooms" | "outdoor" | "furniture";
-type PlanSheetMode = "structure" | "construction" | "furnishing" | "preview";
+type PlanSheetMode = "site" | "structure" | "sync" | "construction" | "furnishing" | "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "flooring" | "preview";
+type PlanBounds = { x: number; y: number; width: number; height: number };
 type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
 type StructureObjectRow = {
@@ -122,21 +128,74 @@ type StructureObjectRow = {
   detail: string;
 };
 
+const defaultPlanBounds: PlanBounds = { x: 0, y: 0, width: STRUCTURE_WIDTH_MM, height: STRUCTURE_HEIGHT_MM };
+
 const planSheetModeLabels: Record<PlanSheetMode, string> = {
+  site: "总平面",
   structure: "空白结构",
+  sync: "联动规则",
   construction: "施工标注",
   furnishing: "家具布置",
+  socket: "插座点位",
+  switch: "开关控制",
+  lighting: "灯光布置",
+  water: "给水路线",
+  drainage: "排水路线",
+  ceiling: "吊顶机电",
+  flooring: "地面铺装",
   preview: "效果预览"
 };
 
 const planSheetModeDescriptions: Record<PlanSheetMode, string> = {
+  site: "1F 建筑与南北庭院合并展示，作为所有图纸的总底盘。",
   structure: "只看墙、门窗、楼梯、院子等固定骨架。",
+  sync: "用颜色标出四层、双层、地下室和独立墙体的联动范围。",
   construction: "在结构模型上叠加尺寸，后续承载拆改和施工备注。",
   furnishing: "从同一模型显示家具对象，未来可导出采购清单。",
+  socket: "基于同一结构与家具模型布置强弱电插座点位。",
+  switch: "表达开关位置和灯具控制关系。",
+  lighting: "表达筒灯、射灯、灯带、吊灯和庭院灯的初步方案。",
+  water: "表达厨房、岛台、卫生间等给水点和管线方向。",
+  drainage: "表达水槽、地漏、马桶、台盆等排水点和主管方向。",
+  ceiling: "表达吊顶边界、灯槽、风口和检修口。",
+  flooring: "表达地面材质、铺装区域和庭院硬地/草坪关系。",
   preview: "未来承接 3D 白模、材质灯光和家人沟通效果。"
 };
 
-function avoidLabelOverlap(labels: ObjectLabel[]) {
+const planSheetModeFootnotes: Record<PlanSheetMode, string> = {
+  site: "同一 1F 模型：建筑 / 北院 / 南院",
+  structure: "结构对象：墙 / 门窗 / 楼梯 / 院子",
+  sync: "蓝=四层，绿=1F/2F，橙=B1/B2，灰=独立，紫=楼梯四层",
+  construction: "施工表达：尺寸 / 洞口 / 后续备注",
+  furnishing: "家具对象：尺寸 / 位置 / 朝向",
+  socket: "强弱电：插座 / 专用回路 / 防水点位",
+  switch: "控制关系：开关 / 双控 / 灯组",
+  lighting: "灯光：主灯 / 筒射灯 / 灯带 / 庭院灯",
+  water: "给水：冷水 / 热水 / 净水 / 预留点",
+  drainage: "排水：地漏 / 台盆 / 水槽 / 主管方向",
+  ceiling: "吊顶：边界 / 灯槽 / 风口 / 检修口",
+  flooring: "地面：室内铺装 / 庭院硬地 / 绿化",
+  preview: "展示表达：家具 / 语义 / 白模"
+};
+
+function getPlanBounds(floorId: Floor["id"]): PlanBounds {
+  if (floorId !== "1F") return defaultPlanBounds;
+  return {
+    x: 0,
+    y: SITE_PLAN_MIN_Y_MM,
+    width: STRUCTURE_WIDTH_MM,
+    height: SITE_PLAN_MAX_Y_MM - SITE_PLAN_MIN_Y_MM
+  };
+}
+
+function toPlanPercent(point: MmPoint, bounds: PlanBounds) {
+  return {
+    x: ((point.x - bounds.x) / bounds.width) * 100,
+    y: ((point.y - bounds.y) / bounds.height) * 100
+  };
+}
+
+function avoidLabelOverlap(labels: ObjectLabel[], bounds = defaultPlanBounds) {
   const placed: ObjectLabel[] = [];
   return labels.map((label) => {
     let y = label.y;
@@ -147,8 +206,8 @@ function avoidLabelOverlap(labels: ObjectLabel[]) {
     }
     const nextLabel = {
       ...label,
-      x: Math.min(STRUCTURE_WIDTH_MM - 1500, Math.max(1500, label.x)),
-      y: Math.min(STRUCTURE_HEIGHT_MM, Math.max(1000, y))
+      x: Math.min(bounds.x + bounds.width - 1500, Math.max(bounds.x + 1500, label.x)),
+      y: Math.min(bounds.y + bounds.height - 700, Math.max(bounds.y + 700, y))
     };
     placed.push(nextLabel);
     return nextLabel;
@@ -157,6 +216,7 @@ function avoidLabelOverlap(labels: ObjectLabel[]) {
 
 export function PlanCanvas({
   floor,
+  floors,
   rooms,
   walls,
   furniture,
@@ -175,6 +235,7 @@ export function PlanCanvas({
   canRedo,
   onScaleChange,
   onFocusModeChange,
+  onSelectFloor,
   onActiveObjectChange,
   onUndo,
   onRedo,
@@ -194,7 +255,7 @@ export function PlanCanvas({
   const [isCleanupPanelOpen, setIsCleanupPanelOpen] = useState(false);
   const [cleanupSelection, setCleanupSelection] = useState<CleanPatch["rect"] | null>(null);
   const [exportOptions, setExportOptions] = useState({ overlay: false, roomNames: false, furniture: false });
-  const [sheetMode, setSheetMode] = useState<PlanSheetMode>("structure");
+  const [sheetMode, setSheetMode] = useState<PlanSheetMode>("site");
   const [isPlanZoomSelected, setIsPlanZoomSelected] = useState(false);
   const [drawPreview, setDrawPreview] = useState<{ start: MmPoint; end: MmPoint } | null>(null);
   const [clickDrawStart, setClickDrawStart] = useState<{ tool: ClickDrawTool; start: MmPoint } | null>(null);
@@ -204,7 +265,7 @@ export function PlanCanvas({
   const [outdoorSurfaceDraft, setOutdoorSurfaceDraft] = useState<{ tool: OutdoorSurfaceDrawTool; points: MmPoint[] } | null>(null);
   const [selectedStructureId, setSelectedStructureId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
-  const [showObjectIds, setShowObjectIds] = useState(true);
+  const [showObjectIds, setShowObjectIds] = useState(false);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
   const [interactionState, setInteractionState] = useState(emptyInteractionState);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
@@ -216,6 +277,13 @@ export function PlanCanvas({
   const cleanupDragRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
+  const planBounds = useMemo(() => getPlanBounds(floor.id), [floor.id]);
+  const basePlanRect = useMemo(() => ({
+    left: `${((0 - planBounds.x) / planBounds.width) * 100}%`,
+    top: `${((0 - planBounds.y) / planBounds.height) * 100}%`,
+    width: `${(STRUCTURE_WIDTH_MM / planBounds.width) * 100}%`,
+    height: `${(STRUCTURE_HEIGHT_MM / planBounds.height) * 100}%`
+  }), [planBounds]);
 
   useEffect(() => {
     setScale(1);
@@ -292,8 +360,8 @@ export function PlanCanvas({
     const rect = planRef.current?.getBoundingClientRect();
     if (rect) {
       setPan({
-        x: (0.5 - label.x / STRUCTURE_WIDTH_MM) * rect.width * 1.45,
-        y: (0.5 - label.y / STRUCTURE_HEIGHT_MM) * rect.height * 1.45
+        x: (0.5 - (label.x - planBounds.x) / planBounds.width) * rect.width * 1.45,
+        y: (0.5 - (label.y - planBounds.y) / planBounds.height) * rect.height * 1.45
       });
     }
     setStructureMessage(`已定位校验对象 ${id}`);
@@ -366,9 +434,26 @@ export function PlanCanvas({
     const rect = planRef.current?.getBoundingClientRect();
     if (!rect) return null;
     return {
-      x: Math.round(Math.min(STRUCTURE_WIDTH_MM, Math.max(0, ((event.clientX - rect.left) / rect.width) * STRUCTURE_WIDTH_MM))),
-      y: Math.round(Math.min(STRUCTURE_HEIGHT_MM, Math.max(0, ((event.clientY - rect.top) / rect.height) * STRUCTURE_HEIGHT_MM)))
+      x: Math.round(Math.min(planBounds.x + planBounds.width, Math.max(planBounds.x, planBounds.x + ((event.clientX - rect.left) / rect.width) * planBounds.width))),
+      y: Math.round(Math.min(planBounds.y + planBounds.height, Math.max(planBounds.y, planBounds.y + ((event.clientY - rect.top) / rect.height) * planBounds.height)))
     };
+  }
+
+  function getFurniturePosition(event: PointerEvent<Element>) {
+    const point = getMmPosition(event);
+    if (!point) return null;
+    return {
+      x: Math.min(100, Math.max(0, (point.x / STRUCTURE_WIDTH_MM) * 100)),
+      y: Math.min(100, Math.max(0, (point.y / STRUCTURE_HEIGHT_MM) * 100))
+    };
+  }
+
+  function getFurnitureDisplayPosition(item: Furniture) {
+    const point = {
+      x: (item.position.x / 100) * STRUCTURE_WIDTH_MM,
+      y: (item.position.y / 100) * STRUCTURE_HEIGHT_MM
+    };
+    return toPlanPercent(point, planBounds);
   }
 
   function updateHouseStructure(nextStructure: HouseStructure) {
@@ -1307,8 +1392,8 @@ export function PlanCanvas({
       });
     });
 
-    return avoidLabelOverlap(labels);
-  }, [houseStructure]);
+    return avoidLabelOverlap(labels, planBounds);
+  }, [houseStructure, planBounds]);
   const filteredStructureLabels = useMemo(() => structureLabels.filter((label) => {
     if (labelFilter === "all") return true;
     if (labelFilter === "walls") return label.type === "Wall" || label.type === "Arc Wall" || label.type === "Partition" || label.type === "Stair" || label.type === "Fence";
@@ -1592,16 +1677,492 @@ export function PlanCanvas({
 
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
   const layerVisibility = floorPlanVisualSettings.layerVisibility;
+  const isSiteSheetMode = sheetMode === "site";
   const isStructureSheetMode = sheetMode === "structure";
+  const isSyncSheetMode = sheetMode === "sync";
   const isConstructionSheetMode = sheetMode === "construction";
-  const visibleBaseFloorPlan = !isStructureSheetMode && layerVisibility.baseFloorPlan;
-  const visibleCleanupPatch = !isStructureSheetMode && layerVisibility.cleanupPatch;
-  const visibleFurnitureOverlay = (sheetMode === "furnishing" || sheetMode === "preview") && layerVisibility.furnitureOverlay;
+  const isSystemSheetMode = ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
+  const visibleBaseFloorPlan = !isSiteSheetMode && !isStructureSheetMode && !isSyncSheetMode && !isSystemSheetMode && layerVisibility.baseFloorPlan;
+  const visibleCleanupPatch = !isSiteSheetMode && !isStructureSheetMode && !isSyncSheetMode && !isSystemSheetMode && layerVisibility.cleanupPatch;
+  const visibleStructureProjection = isSystemSheetMode;
+  const visibleFurnitureOverlay = (sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
   const visibleSemanticOverlay = sheetMode === "preview" && layerVisibility.semanticOverlay;
   const visibleDebugLayer = sheetMode === "preview" && layerVisibility.debug;
-  const showDimensionLayer = isStructureSheetMode || isConstructionSheetMode;
+  const showDimensionLayer = isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode;
   const cleanFillColor = getCleanupFillColor(floorPlanVisualSettings);
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
+
+  function renderSheetPoint(id: string, x: number, y: number, label: string, color: string, shape: "circle" | "square" = "circle") {
+    return (
+      <g key={id}>
+        {shape === "circle" ? (
+          <circle cx={x} cy={y} r={130} fill="#fff" stroke={color} strokeWidth={38} />
+        ) : (
+          <rect x={x - 125} y={y - 125} width={250} height={250} rx={38} fill="#fff" stroke={color} strokeWidth={38} />
+        )}
+        <text x={x + 180} y={y + 52} fill={color} fontSize={160} fontWeight={800}>{label}</text>
+      </g>
+    );
+  }
+
+  function renderSheetPolyline(id: string, points: MmPoint[], color: string, dashed = false) {
+    return (
+      <polyline
+        key={id}
+        points={points.map((point) => `${point.x},${point.y}`).join(" ")}
+        fill="none"
+        stroke={color}
+        strokeDasharray={dashed ? "140 110" : undefined}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={58}
+      />
+    );
+  }
+
+  function renderStructureProjectionLayer() {
+    if (!visibleStructureProjection) return null;
+
+    return (
+      <g data-layer="StructureProjectionLayer" pointerEvents="none">
+        {houseStructure.rooms.map((room) => (
+          <polygon
+            key={`projection-room-${room.id}`}
+            points={room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="rgba(148,163,184,0.12)"
+            stroke="rgba(71,85,105,0.18)"
+            strokeWidth={18}
+          />
+        ))}
+        {houseStructure.outdoorSurfaces.map((surface) => (
+          <polygon
+            key={`projection-surface-${surface.id}`}
+            points={surface.polygon.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill={surface.surfaceType === "planting" ? "rgba(22,101,52,0.10)" : "rgba(148,163,184,0.10)"}
+            stroke="rgba(71,85,105,0.16)"
+            strokeDasharray="120 90"
+            strokeWidth={24}
+          />
+        ))}
+        {houseStructure.walls.map((wall) => {
+          if (wall.kind === "arc") {
+            return (
+              <path
+                key={`projection-wall-${wall.id}`}
+                d={getArcPath(wall)}
+                fill="none"
+                stroke="#475569"
+                strokeLinecap="round"
+                strokeOpacity={0.2}
+                strokeWidth={wall.thickness + 90}
+              />
+            );
+          }
+          return (
+            <line
+              key={`projection-wall-${wall.id}`}
+              x1={wall.start.x}
+              y1={wall.start.y}
+              x2={wall.end.x}
+              y2={wall.end.y}
+              stroke="#475569"
+              strokeLinecap="square"
+              strokeOpacity={0.22}
+              strokeWidth={wall.thickness + 90}
+            />
+          );
+        })}
+        {houseStructure.partitions.map((partition) => (
+          <line
+            key={`projection-partition-${partition.id}`}
+            x1={partition.start.x}
+            y1={partition.start.y}
+            x2={partition.end.x}
+            y2={partition.end.y}
+            stroke="#0f766e"
+            strokeDasharray="150 110"
+            strokeLinecap="round"
+            strokeOpacity={0.16}
+            strokeWidth={partition.thickness + 60}
+          />
+        ))}
+        {houseStructure.stairs.map((stair) => (
+          <line
+            key={`projection-stair-${stair.id}`}
+            x1={stair.start.x}
+            y1={stair.start.y}
+            x2={stair.end.x}
+            y2={stair.end.y}
+            stroke="#7c3aed"
+            strokeLinecap="round"
+            strokeOpacity={0.16}
+            strokeWidth={stair.width}
+          />
+        ))}
+      </g>
+    );
+  }
+
+  function renderSyncRuleOverlay() {
+    if (!isSyncSheetMode) return null;
+
+    const wallRules = getWallSyncLegend();
+    const stairRule = getStairSyncRule();
+    const legendItems = [
+      ...wallRules.map((rule) => ({
+        id: rule.id,
+        color: rule.color,
+        title: rule.label,
+        detail: rule.suffixes.join(" / ")
+      })),
+      { id: "independent", color: "#94a3b8", title: "独立墙", detail: "未列入联动规则" },
+      { id: stairRule.id, color: stairRule.color, title: stairRule.label, detail: "所有楼梯同步位置与尺寸" }
+    ];
+    const legendX = planBounds.x + 520;
+    const legendY = planBounds.y + 520;
+
+    return (
+      <g data-layer="SyncRuleOverlay" pointerEvents="none">
+        <rect
+          x={legendX - 180}
+          y={legendY - 300}
+          width={4700}
+          height={legendItems.length * 360 + 430}
+          rx={180}
+          fill="rgba(255,255,255,0.9)"
+          stroke="rgba(148,163,184,0.45)"
+          strokeWidth={24}
+        />
+        <text x={legendX} y={legendY - 60} fill="#0f172a" fontSize={210} fontWeight={900}>墙体联动规则</text>
+        {legendItems.map((item, index) => {
+          const y = legendY + 290 + index * 360;
+          return (
+            <g key={item.id}>
+              <line x1={legendX} y1={y - 62} x2={legendX + 430} y2={y - 62} stroke={item.color} strokeLinecap="round" strokeWidth={86} />
+              <text x={legendX + 560} y={y - 112} fill="#0f172a" fontSize={165} fontWeight={900}>{item.title}</text>
+              <text x={legendX + 560} y={y + 90} fill="#64748b" fontSize={128} fontWeight={700}>{item.detail}</text>
+            </g>
+          );
+        })}
+        {houseStructure.walls.map((wall) => {
+          const rule = getWallSyncRule(floor.id, wall.id);
+          const color = rule?.color ?? "#94a3b8";
+          const label = rule?.label ?? "独立";
+          const point = getWallLabelPoint(wall);
+          return (
+            <g key={`sync-wall-${wall.id}`}>
+              {wall.kind === "arc" ? (
+                <path
+                  d={getArcPath(wall)}
+                  fill="none"
+                  stroke={color}
+                  strokeLinecap="round"
+                  strokeOpacity={0.82}
+                  strokeWidth={wall.thickness + 110}
+                />
+              ) : (
+                <line
+                  x1={wall.start.x}
+                  y1={wall.start.y}
+                  x2={wall.end.x}
+                  y2={wall.end.y}
+                  stroke={color}
+                  strokeLinecap="square"
+                  strokeOpacity={0.82}
+                  strokeWidth={wall.thickness + 110}
+                />
+              )}
+              <text x={point.x} y={point.y - 170} fill={color} fontSize={150} fontWeight={900} textAnchor="middle">{wall.id}</text>
+              <text x={point.x} y={point.y + 20} fill={color} fontSize={118} fontWeight={800} textAnchor="middle">{label}</text>
+            </g>
+          );
+        })}
+        {houseStructure.stairs.map((stair) => {
+          const point = {
+            x: (stair.start.x + stair.end.x) / 2,
+            y: (stair.start.y + stair.end.y) / 2
+          };
+          return (
+            <g key={`sync-stair-${stair.id}`}>
+              <line
+                x1={stair.start.x}
+                y1={stair.start.y}
+                x2={stair.end.x}
+                y2={stair.end.y}
+                stroke={stairRule.color}
+                strokeLinecap="round"
+                strokeOpacity={0.72}
+                strokeWidth={stair.width + 80}
+              />
+              <text x={point.x} y={point.y - 260} fill={stairRule.color} fontSize={150} fontWeight={900} textAnchor="middle">{stair.id}</text>
+              <text x={point.x} y={point.y - 70} fill={stairRule.color} fontSize={118} fontWeight={800} textAnchor="middle">楼梯四层</text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  }
+
+  function renderPlanSheetOverlay() {
+    if (!["site", "socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode)) return null;
+
+    if (sheetMode === "site") {
+      if (floor.id !== "1F") {
+        return (
+          <g data-layer="SitePlanOverlay" pointerEvents="none">
+            <text x={1120} y={980} fill="#475569" fontSize={230} fontWeight={900}>{floor.label} / 当前楼层结构底盘</text>
+            <text x={1120} y={1280} fill="#64748b" fontSize={150} fontWeight={700}>庭院总平面仅并入 1F，其他楼层保持本层结构表达。</text>
+          </g>
+        );
+      }
+      return (
+        <g data-layer="SitePlanOverlay" pointerEvents="none">
+          <text x={1120} y={-1540} fill="#166534" fontSize={230} fontWeight={900}>北院 / 入户庭院</text>
+          <text x={1120} y={10720} fill="#166534" fontSize={230} fontWeight={900}>南院 / 生活庭院</text>
+          <line x1={0} y1={0} x2={STRUCTURE_WIDTH_MM} y2={0} stroke="#94a3b8" strokeDasharray="140 100" strokeWidth={28} />
+          <line x1={0} y1={STRUCTURE_HEIGHT_MM} x2={STRUCTURE_WIDTH_MM} y2={STRUCTURE_HEIGHT_MM} stroke="#94a3b8" strokeDasharray="140 100" strokeWidth={28} />
+        </g>
+      );
+    }
+
+    if (sheetMode === "socket") {
+      if (floor.id === "2F") {
+        return (
+          <g data-layer="SocketPlanOverlay" pointerEvents="none">
+            {renderSheetPoint("socket-2f-bed-left", 2350, 6200, "床头五孔", "#dc2626", "square")}
+            {renderSheetPoint("socket-2f-bed-right", 3450, 6200, "床头五孔", "#dc2626", "square")}
+            {renderSheetPoint("socket-2f-desk", 6100, 6500, "书桌/网络", "#dc2626", "square")}
+            {renderSheetPoint("socket-2f-vanity", 8050, 4400, "卫浴防水", "#dc2626", "square")}
+            {renderSheetPolyline("socket-2f-run", [{ x: 950, y: 7800 }, { x: 2800, y: 7800 }, { x: 2800, y: 6200 }, { x: 6100, y: 6500 }, { x: 8050, y: 4400 }], "#dc2626", true)}
+          </g>
+        );
+      }
+      if (floor.id !== "1F") {
+        return (
+          <g data-layer="SocketPlanOverlay" pointerEvents="none">
+            {renderSheetPoint(`socket-${floor.id}-equipment`, 2500, 6400, "设备插座", "#dc2626", "square")}
+            {renderSheetPoint(`socket-${floor.id}-network`, 5200, 6100, "弱电/网络", "#dc2626", "square")}
+            {renderSheetPoint(`socket-${floor.id}-service`, 8200, 4550, "预留回路", "#dc2626", "square")}
+            {renderSheetPolyline(`socket-${floor.id}-run`, [{ x: 950, y: 7800 }, { x: 2500, y: 7800 }, { x: 2500, y: 6400 }, { x: 5200, y: 6100 }, { x: 8200, y: 4550 }], "#dc2626", true)}
+          </g>
+        );
+      }
+      return (
+        <g data-layer="SocketPlanOverlay" pointerEvents="none">
+          {renderSheetPoint("socket-tv", 3000, 6100, "电视/网络", "#dc2626", "square")}
+          {renderSheetPoint("socket-sofa", 2350, 5350, "沙发五孔", "#dc2626", "square")}
+          {renderSheetPoint("socket-fridge", 9000, 1700, "冰箱专线", "#dc2626", "square")}
+          {renderSheetPoint("socket-cooktop", 7850, 2050, "厨房专用", "#dc2626", "square")}
+          {renderSheetPoint("socket-island", 7200, 3820, "岛台地插", "#dc2626", "square")}
+          {renderSheetPoint("socket-yard", 8300, 8750, "南院防水", "#dc2626", "square")}
+          {renderSheetPolyline("socket-run", [{ x: 950, y: 7800 }, { x: 3000, y: 7800 }, { x: 3000, y: 6100 }, { x: 7200, y: 3820 }, { x: 9000, y: 1700 }], "#dc2626", true)}
+        </g>
+      );
+    }
+
+    if (sheetMode === "switch") {
+      if (floor.id === "2F") {
+        return (
+          <g data-layer="SwitchPlanOverlay" pointerEvents="none">
+            {renderSheetPoint("switch-2f-stair", 3850, 3140, "楼梯双控", "#7c3aed", "square")}
+            {renderSheetPoint("switch-2f-master", 1350, 5350, "主卧入口", "#7c3aed", "square")}
+            {renderSheetPoint("switch-2f-bath", 7750, 4300, "卫浴控制", "#7c3aed", "square")}
+            {renderSheetPolyline("switch-2f-control", [{ x: 3850, y: 3140 }, { x: 5200, y: 4300 }, { x: 7750, y: 4300 }], "#7c3aed", true)}
+          </g>
+        );
+      }
+      if (floor.id !== "1F") {
+        return (
+          <g data-layer="SwitchPlanOverlay" pointerEvents="none">
+            {renderSheetPoint(`switch-${floor.id}-stair`, 3850, 3140, "楼梯双控", "#7c3aed", "square")}
+            {renderSheetPoint(`switch-${floor.id}-main`, 1350, 5350, "主控", "#7c3aed", "square")}
+            {renderSheetPoint(`switch-${floor.id}-equipment`, 8200, 4550, "设备控制", "#7c3aed", "square")}
+            {renderSheetPolyline(`switch-${floor.id}-control`, [{ x: 3850, y: 3140 }, { x: 5200, y: 4300 }, { x: 8200, y: 4550 }], "#7c3aed", true)}
+          </g>
+        );
+      }
+      return (
+        <g data-layer="SwitchPlanOverlay" pointerEvents="none">
+          {renderSheetPoint("switch-entry", 3850, 3140, "入户双控", "#7c3aed", "square")}
+          {renderSheetPoint("switch-living", 1050, 5350, "客厅主控", "#7c3aed", "square")}
+          {renderSheetPoint("switch-kitchen", 9120, 3180, "餐厨控制", "#7c3aed", "square")}
+          {renderSheetPoint("switch-yard", 3920, 7860, "庭院灯", "#7c3aed", "square")}
+          {renderSheetPolyline("switch-control-1", [{ x: 3850, y: 3140 }, { x: 5300, y: 4300 }, { x: 6500, y: 4300 }], "#7c3aed", true)}
+          {renderSheetPolyline("switch-control-2", [{ x: 9120, y: 3180 }, { x: 7600, y: 2100 }, { x: 6500, y: 2100 }], "#7c3aed", true)}
+        </g>
+      );
+    }
+
+    if (sheetMode === "lighting") {
+      if (floor.id === "2F") {
+        const bedroomLightPoints = [
+          { id: "lt-2f-master-1", x: 2400, y: 6100, label: "筒" },
+          { id: "lt-2f-master-2", x: 3350, y: 6100, label: "筒" },
+          { id: "lt-2f-hall", x: 5200, y: 4300, label: "廊" },
+          { id: "lt-2f-bath", x: 8150, y: 4300, label: "防" }
+        ];
+        return (
+          <g data-layer="LightingPlanOverlay" pointerEvents="none">
+            <rect x={1150} y={5320} width={2600} height={1700} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
+            <rect x={7050} y={3500} width={2100} height={1500} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
+            {bedroomLightPoints.map((point) => renderSheetPoint(point.id, point.x, point.y, point.label, "#f59e0b"))}
+          </g>
+        );
+      }
+      if (floor.id !== "1F") {
+        const basementLightPoints = [
+          { id: `lt-${floor.id}-1`, x: 2350, y: 6100, label: "筒" },
+          { id: `lt-${floor.id}-2`, x: 5200, y: 6100, label: "筒" },
+          { id: `lt-${floor.id}-3`, x: 8200, y: 4550, label: "检" }
+        ];
+        return (
+          <g data-layer="LightingPlanOverlay" pointerEvents="none">
+            <rect x={1150} y={5320} width={7500} height={1700} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
+            {basementLightPoints.map((point) => renderSheetPoint(point.id, point.x, point.y, point.label, "#f59e0b"))}
+          </g>
+        );
+      }
+      const lightPoints = [
+        { id: "lt-living-1", x: 2350, y: 6100, label: "筒" },
+        { id: "lt-living-2", x: 3300, y: 6100, label: "筒" },
+        { id: "lt-dining", x: 7700, y: 3820, label: "餐吊" },
+        { id: "lt-kitchen-1", x: 6500, y: 1900, label: "筒" },
+        { id: "lt-kitchen-2", x: 8400, y: 1900, label: "筒" },
+        { id: "lt-yard-n", x: 5500, y: -1050, label: "庭" },
+        { id: "lt-yard-s", x: 6000, y: 9250, label: "庭" }
+      ];
+      return (
+        <g data-layer="LightingPlanOverlay" pointerEvents="none">
+          <rect x={1150} y={5320} width={2600} height={1700} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
+          <rect x={5750} y={850} width={3200} height={1850} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
+          {lightPoints.map((point) => renderSheetPoint(point.id, point.x, point.y, point.label, "#f59e0b"))}
+        </g>
+      );
+    }
+
+    if (sheetMode === "water") {
+      if (floor.id === "2F") {
+        return (
+          <g data-layer="WaterPlanOverlay" pointerEvents="none">
+            {renderSheetPolyline("water-2f-cold", [{ x: 9100, y: 7800 }, { x: 9100, y: 4300 }, { x: 8150, y: 4300 }, { x: 7750, y: 4700 }], "#0284c7")}
+            {renderSheetPolyline("water-2f-hot", [{ x: 8800, y: 7800 }, { x: 8800, y: 4450 }, { x: 8150, y: 4450 }, { x: 7750, y: 4850 }], "#ef4444", true)}
+            {renderSheetPoint("water-2f-vanity", 7750, 4700, "台盆水点", "#0284c7")}
+            {renderSheetPoint("water-2f-shower", 8350, 4200, "淋浴水点", "#0284c7")}
+          </g>
+        );
+      }
+      if (floor.id !== "1F") {
+        return (
+          <g data-layer="WaterPlanOverlay" pointerEvents="none">
+            {renderSheetPolyline(`water-${floor.id}-cold`, [{ x: 9100, y: 7800 }, { x: 9100, y: 4550 }, { x: 8200, y: 4550 }], "#0284c7")}
+            {renderSheetPoint(`water-${floor.id}-equipment`, 8200, 4550, "设备给水", "#0284c7")}
+          </g>
+        );
+      }
+      return (
+        <g data-layer="WaterPlanOverlay" pointerEvents="none">
+          {renderSheetPolyline("cold-water", [{ x: 9100, y: 7800 }, { x: 9100, y: 2700 }, { x: 8150, y: 2400 }, { x: 7200, y: 3720 }], "#0284c7")}
+          {renderSheetPolyline("hot-water", [{ x: 8800, y: 7800 }, { x: 8800, y: 2800 }, { x: 8000, y: 2600 }, { x: 7200, y: 3920 }], "#ef4444", true)}
+          {renderSheetPoint("water-sink", 7200, 3820, "岛台水槽", "#0284c7")}
+          {renderSheetPoint("water-kitchen", 8150, 2400, "厨房水点", "#0284c7")}
+          {renderSheetPoint("water-yard", 8400, 8800, "庭院龙头", "#0284c7")}
+        </g>
+      );
+    }
+
+    if (sheetMode === "drainage") {
+      if (floor.id === "2F") {
+        return (
+          <g data-layer="DrainagePlanOverlay" pointerEvents="none">
+            {renderSheetPolyline("drain-2f-main", [{ x: 9400, y: 7800 }, { x: 9400, y: 4550 }, { x: 8050, y: 4550 }], "#92400e")}
+            {renderSheetPoint("drain-2f-vanity", 8050, 4550, "台盆排水", "#92400e")}
+            {renderSheetPoint("drain-2f-floor", 8500, 5100, "地漏", "#92400e")}
+          </g>
+        );
+      }
+      if (floor.id !== "1F") {
+        return (
+          <g data-layer="DrainagePlanOverlay" pointerEvents="none">
+            {renderSheetPolyline(`drain-${floor.id}-main`, [{ x: 9400, y: 7800 }, { x: 9400, y: 4550 }, { x: 8200, y: 4550 }], "#92400e")}
+            {renderSheetPoint(`drain-${floor.id}-sump`, 8200, 4550, "集水/排水", "#92400e")}
+          </g>
+        );
+      }
+      return (
+        <g data-layer="DrainagePlanOverlay" pointerEvents="none">
+          {renderSheetPolyline("drain-main", [{ x: 9400, y: 7800 }, { x: 9400, y: 3850 }, { x: 7250, y: 3850 }], "#92400e")}
+          {renderSheetPolyline("drain-yard", [{ x: 6050, y: 9600 }, { x: 8500, y: 9600 }, { x: 9400, y: 7800 }], "#92400e", true)}
+          {renderSheetPoint("drain-island", 7250, 3850, "水槽排水", "#92400e")}
+          {renderSheetPoint("drain-yard-point", 6050, 9600, "庭院地漏", "#92400e")}
+        </g>
+      );
+    }
+
+    if (sheetMode === "ceiling") {
+      if (floor.id === "2F") {
+        return (
+          <g data-layer="CeilingPlanOverlay" pointerEvents="none">
+            <rect x={1150} y={5320} width={2600} height={1700} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
+            <rect x={7050} y={3500} width={2100} height={1500} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
+            <rect x={7950} y={3720} width={680} height={260} rx={90} fill="#e0f2fe" stroke="#0284c7" strokeWidth={34} />
+            <text x={7900} y={3600} fill="#0284c7" fontSize={150} fontWeight={800}>卫浴风口</text>
+            <rect x={5020} y={3920} width={620} height={420} rx={80} fill="#fff" stroke="#0284c7" strokeWidth={32} />
+            <text x={4960} y={3840} fill="#0284c7" fontSize={150} fontWeight={800}>检修</text>
+          </g>
+        );
+      }
+      if (floor.id !== "1F") {
+        return (
+          <g data-layer="CeilingPlanOverlay" pointerEvents="none">
+            <rect x={1150} y={5320} width={7500} height={1700} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
+            <rect x={7850} y={4300} width={850} height={280} rx={90} fill="#e0f2fe" stroke="#0284c7" strokeWidth={34} />
+            <text x={7800} y={4170} fill="#0284c7" fontSize={150} fontWeight={800}>设备风口</text>
+            <rect x={5000} y={5850} width={620} height={420} rx={80} fill="#fff" stroke="#0284c7" strokeWidth={32} />
+            <text x={4940} y={5770} fill="#0284c7" fontSize={150} fontWeight={800}>检修</text>
+          </g>
+        );
+      }
+      return (
+        <g data-layer="CeilingPlanOverlay" pointerEvents="none">
+          <rect x={1150} y={5320} width={2600} height={1700} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
+          <rect x={5750} y={850} width={3200} height={1850} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
+          <rect x={7850} y={1240} width={850} height={280} rx={90} fill="#e0f2fe" stroke="#0284c7" strokeWidth={34} />
+          <text x={7900} y={1130} fill="#0284c7" fontSize={150} fontWeight={800}>风口</text>
+          <rect x={5950} y={2480} width={620} height={420} rx={80} fill="#fff" stroke="#0284c7" strokeWidth={32} />
+          <text x={5890} y={2400} fill="#0284c7" fontSize={150} fontWeight={800}>检修</text>
+        </g>
+      );
+    }
+
+    if (floor.id === "2F") {
+      return (
+        <g data-layer="FlooringPlanOverlay" pointerEvents="none">
+          <rect x={950} y={5150} width={2947} height={2650} fill="rgba(202,138,4,0.08)" stroke="#ca8a04" strokeDasharray="110 90" strokeWidth={34} />
+          <rect x={6542} y={3050} width={2953} height={4750} fill="rgba(148,163,184,0.10)" stroke="#64748b" strokeDasharray="110 90" strokeWidth={34} />
+          <text x={1280} y={5550} fill="#a16207" fontSize={170} fontWeight={900}>木地板/卧室</text>
+          <text x={6800} y={3500} fill="#475569" fontSize={170} fontWeight={900}>防滑砖/卫浴</text>
+        </g>
+      );
+    }
+    if (floor.id !== "1F") {
+      return (
+        <g data-layer="FlooringPlanOverlay" pointerEvents="none">
+          <rect x={950} y={5150} width={8545} height={2650} fill="rgba(100,116,139,0.10)" stroke="#64748b" strokeDasharray="110 90" strokeWidth={34} />
+          <text x={1280} y={5550} fill="#475569" fontSize={170} fontWeight={900}>防潮地坪/设备区</text>
+        </g>
+      );
+    }
+
+    return (
+      <g data-layer="FlooringPlanOverlay" pointerEvents="none">
+        <rect x={950} y={5150} width={2947} height={2650} fill="rgba(202,138,4,0.08)" stroke="#ca8a04" strokeDasharray="110 90" strokeWidth={34} />
+        <rect x={5383} y={350} width={4112} height={2700} fill="rgba(148,163,184,0.10)" stroke="#64748b" strokeDasharray="110 90" strokeWidth={34} />
+        <text x={1280} y={5550} fill="#a16207" fontSize={170} fontWeight={900}>木地板/客厅</text>
+        <text x={5800} y={750} fill="#475569" fontSize={170} fontWeight={900}>防滑砖/餐厨</text>
+        <text x={4050} y={8650} fill="#166534" fontSize={170} fontWeight={900}>户外石材平台</text>
+      </g>
+    );
+  }
 
   function renderStructureLabelLayer(context: "2d" | "3d") {
     return (
@@ -1650,6 +2211,7 @@ export function PlanCanvas({
           const selected = selectedInteractionObjectId === label.id;
           const hovered = isObjectHovered(label.id);
           if (!selected && !hovered && !showObjectIds) return null;
+          const labelPosition = toPlanPercent({ x: label.x, y: label.y }, planBounds);
           const mode = selected ? "selected" : hovered ? "hover" : "debug";
           const responsiveClass = mode === "selected"
             ? "block"
@@ -1667,8 +2229,8 @@ export function PlanCanvas({
               key={`2d-html-${label.id}`}
               className={`${responsiveClass} absolute w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-md border-2 px-3 py-2 text-center shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${toneClass}`}
               style={{
-                left: `${(label.x / STRUCTURE_WIDTH_MM) * 100}%`,
-                top: `${(label.y / STRUCTURE_HEIGHT_MM) * 100}%`,
+                left: `${labelPosition.x}%`,
+                top: `${labelPosition.y}%`,
                 marginTop: "-8px"
               }}
             >
@@ -1996,6 +2558,21 @@ export function PlanCanvas({
                 </div>
               </div>
 
+              {focusMode && (
+                <label className="mb-3 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-xs shadow-sm">
+                  <span className="shrink-0 font-semibold text-blue-700">楼层</span>
+                  <select
+                    className="min-w-0 flex-1 bg-transparent font-semibold text-ink outline-none"
+                    value={floor.id}
+                    onChange={(event) => onSelectFloor(event.target.value as Floor["id"])}
+                  >
+                    {floors.map((item) => (
+                      <option key={item.id} value={item.id}>{item.label} · {item.subtitle}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
               <div className="space-y-3">
                 <div className="rounded-xl bg-slate-50 p-2 leading-5">
                   <p className="font-semibold text-ink">统一坐标</p>
@@ -2166,32 +2743,34 @@ export function PlanCanvas({
 
           <div
             ref={planRef}
-            className={`relative aspect-[4/3] w-full max-w-5xl shrink-0 justify-self-center overflow-hidden rounded-[1.5rem] border shadow-soft transition ${
+            className={`relative ${floor.id === "1F" ? "aspect-[12/13.8]" : "aspect-[4/3]"} w-full max-w-5xl shrink-0 justify-self-center overflow-hidden rounded-[1.5rem] border shadow-soft transition ${
               isPlanZoomSelected ? "border-blue-500 ring-4 ring-blue-500/20" : "border-slate-200"
             }`}
             style={{
               backgroundColor: floorPlanVisualSettings.cleanWhiteBackground ? cleanFillColor : "#f8f4ec",
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
               transformOrigin: "center center",
-              width: "min(100%, 1024px, calc((100vh - 15rem) * 1.333))"
+              width: floor.id === "1F" ? "min(100%, 900px, calc((100vh - 12rem) * 0.87))" : "min(100%, 1024px, calc((100vh - 15rem) * 1.333))"
             }}
           >
             {visibleBaseFloorPlan && (
               <div className="absolute inset-0" data-layer="BaseFloorPlanLayer">
                 {floor.floorPlanImage ? (
-                  <img
-                    alt={`${floor.label} 酷家乐平面底图`}
-                    className="absolute inset-0 h-full w-full select-none object-contain"
-                    draggable={false}
-                    src={floor.floorPlanImage}
-                    style={{
-                      filter: floorPlanFilter,
-                      opacity: plannerMode === "edit" ? Math.min(0.22, floorPlanVisualSettings.opacity * 0.24) : floorPlanVisualSettings.opacity,
-                      mixBlendMode: floorPlanVisualSettings.repairMode ? "multiply" : "normal"
-                    }}
-                  />
+                  <div className="absolute" style={basePlanRect}>
+                    <img
+                      alt={`${floor.label} 酷家乐平面底图`}
+                      className="absolute inset-0 h-full w-full select-none object-contain"
+                      draggable={false}
+                      src={floor.floorPlanImage}
+                      style={{
+                        filter: floorPlanFilter,
+                        opacity: plannerMode === "edit" ? Math.min(0.22, floorPlanVisualSettings.opacity * 0.24) : floorPlanVisualSettings.opacity,
+                        mixBlendMode: floorPlanVisualSettings.repairMode ? "multiply" : "normal"
+                      }}
+                    />
+                  </div>
                 ) : (
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(74,85,104,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(74,85,104,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" />
+                  <div className="absolute bg-[linear-gradient(rgba(74,85,104,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(74,85,104,0.08)_1px,transparent_1px)] bg-[size:32px_32px]" style={basePlanRect} />
                 )}
                 {floorPlanVisualSettings.removeWhiteBorder && <div className="absolute inset-0 ring-8 ring-inset ring-white/70" />}
                 {repairOverlayStyles.map((style, index) => (
@@ -2227,9 +2806,9 @@ export function PlanCanvas({
               onPointerMove={handleStructurePointerMove}
               onPointerUp={handleStructurePointerUp}
               onPointerCancel={handleStructurePointerUp}
-              viewBox={`0 0 ${STRUCTURE_WIDTH_MM} ${STRUCTURE_HEIGHT_MM}`}
+              viewBox={`${planBounds.x} ${planBounds.y} ${planBounds.width} ${planBounds.height}`}
             >
-              {plannerMode === "edit" && drawTool !== "select" && <rect width={STRUCTURE_WIDTH_MM} height={STRUCTURE_HEIGHT_MM} fill="transparent" />}
+              {plannerMode === "edit" && drawTool !== "select" && <rect x={planBounds.x} y={planBounds.y} width={planBounds.width} height={planBounds.height} fill="transparent" />}
 
               <g data-layer="OutdoorLayer">
                 {houseStructure.outdoorSurfaces.map((surface) => {
@@ -2346,6 +2925,8 @@ export function PlanCanvas({
                   );
                 })}
               </g>
+
+              {renderStructureProjectionLayer()}
 
               <g data-layer="RoomLayer">
                 {houseStructure.rooms.map((room) => (
@@ -2759,6 +3340,10 @@ export function PlanCanvas({
                 })}
               </g>
 
+              {renderSyncRuleOverlay()}
+
+              {renderPlanSheetOverlay()}
+
               {renderDimensionLayer()}
 
               {drawPreview && (
@@ -2806,23 +3391,11 @@ export function PlanCanvas({
               )}
             </svg>
 
-            <div className="absolute left-5 top-5 z-40 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
-              {isStructureSheetMode
-                ? "空白结构：底图隐藏，单位 mm"
-                : isConstructionSheetMode
-                  ? "施工标注：结构尺寸来自模型"
-                  : sheetMode === "furnishing"
-                    ? "家具布置：家具为独立对象"
-                    : "效果预览：未来承接 3D 渲染"}
+            <div className="absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
+              {planSheetModeLabels[sheetMode]}：{planSheetModeDescriptions[sheetMode]}
             </div>
             <div className="absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-              {isStructureSheetMode
-                ? "结构对象：墙 / 门窗 / 楼梯 / 院子"
-                : isConstructionSheetMode
-                  ? "施工表达：尺寸 / 洞口 / 后续备注"
-                  : sheetMode === "furnishing"
-                    ? "家具对象：尺寸 / 位置 / 朝向"
-                    : "展示表达：家具 / 语义 / 白模"}
+              {planSheetModeFootnotes[sheetMode]}
             </div>
 
             {visibleDebugLayer && (
@@ -2863,8 +3436,9 @@ export function PlanCanvas({
                 const isSelected = isObjectSelected(item.id);
                 const isHovered = isObjectHovered(item.id);
                 const locked = objectIsLocked(item.id) || item.locked;
-                const width = Math.max(6, item.dimensions.width / 24);
-                const height = Math.max(5, item.dimensions.depth / 24);
+                const displayPosition = getFurnitureDisplayPosition(item);
+                const width = Math.max(5, (item.dimensions.width / 24) * (STRUCTURE_WIDTH_MM / planBounds.width));
+                const height = Math.max(4, (item.dimensions.depth / 24) * (STRUCTURE_HEIGHT_MM / planBounds.height));
                 return (
                   <button
                     key={item.id}
@@ -2872,8 +3446,8 @@ export function PlanCanvas({
                       isSelected ? "z-20 border-blue-500 bg-emerald-100/70 ring-4 ring-blue-500/20" : isHovered ? "border-emerald-700 bg-emerald-100/75 ring-2 ring-emerald-500/20" : "border-emerald-600/55 bg-emerald-100/55"
                     }`}
                     style={{
-                      left: `${item.position.x}%`,
-                      top: `${item.position.y}%`,
+                      left: `${displayPosition.x}%`,
+                      top: `${displayPosition.y}%`,
                       width: `${width}%`,
                       height: `${height}%`,
                       minWidth: "48px",
@@ -2898,7 +3472,7 @@ export function PlanCanvas({
                       onSelectFurniture(item);
                       onActiveObjectChange(item.id);
                       if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
-                      const position = getPercentPosition(event);
+                      const position = getFurniturePosition(event);
                       if (!position) return;
                       furnitureDragRef.current = { pointerId: event.pointerId, objectId: item.id, lastPosition: position, moved: false };
                       event.currentTarget.setPointerCapture(event.pointerId);
@@ -2906,7 +3480,7 @@ export function PlanCanvas({
                     onPointerMove={(event) => {
                       const drag = furnitureDragRef.current;
                       if (!drag || drag.pointerId !== event.pointerId || drag.objectId !== item.id) return;
-                      const position = getPercentPosition(event);
+                      const position = getFurniturePosition(event);
                       if (!position) return;
                       const delta = { x: position.x - drag.lastPosition.x, y: position.y - drag.lastPosition.y };
                       const nextModel = runInteractionDrag({ houseStructure, furniture }, interactionState, item.id, delta);
@@ -2936,6 +3510,7 @@ export function PlanCanvas({
                 {furniture.map((item) => {
                   const selected = selectedInteractionObjectId === item.id;
                   const hovered = isObjectHovered(item.id);
+                  const displayPosition = getFurnitureDisplayPosition(item);
                   const debugVisible = showObjectIds && (labelFilter === "all" || labelFilter === "furniture");
                   if (!selected && !hovered && !debugVisible) return null;
                   const mode = selected ? "selected" : hovered ? "hover" : "debug";
@@ -2954,8 +3529,8 @@ export function PlanCanvas({
                       key={`furniture-label-${item.id}`}
                       className={`${responsiveClass} absolute w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-md border-2 px-3 py-2 text-center text-sm leading-tight shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${toneClass}`}
                       style={{
-                        left: `${item.position.x}%`,
-                        top: `${item.position.y + (furnitureLabelOffsets.get(item.id) ?? 0)}%`,
+                        left: `${displayPosition.x}%`,
+                        top: `${displayPosition.y + (furnitureLabelOffsets.get(item.id) ?? 0)}%`,
                         marginTop: "-8px"
                       }}
                     >

@@ -60,6 +60,33 @@ function bayWindow(id: string, floorId: FloorId, wallId: string, positionOnWall:
   };
 }
 
+function outdoor(id: string, floorId: FloorId, name: string, polygon: { x: number; y: number }[]): HouseOutdoor {
+  return {
+    ...createOutdoor(id, floorId, polygon),
+    name
+  };
+}
+
+function fence(id: string, floorId: FloorId, name: string, start: { x: number; y: number }, end: { x: number; y: number }): HouseFence {
+  return {
+    ...createFence(id, floorId, start, end),
+    name
+  };
+}
+
+function surface(
+  id: string,
+  floorId: FloorId,
+  name: string,
+  surfaceType: HouseOutdoorSurface["surfaceType"],
+  polygon: { x: number; y: number }[]
+): HouseOutdoorSurface {
+  return {
+    ...createOutdoorSurface(id, floorId, surfaceType, polygon),
+    name
+  };
+}
+
 function stair(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }, width = 900): HouseStair {
   return {
     ...createStair(id, floorId, start, end),
@@ -106,6 +133,24 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     doors: [door("D-1F-001", "1F", "W-1F-007", 0.78, 900), door("D-1F-002", "1F", "W-1F-015", 0.1, 900)],
     windows: [windowObject("WIN-1F-001", "1F", "W-1F-001", 0.5, 1200), windowObject("WIN-1F-002", "1F", "W-1F-002", 0.72, 1200)],
     bayWindows: [bayWindow("BW-1F-001", "1F", "W-1F-015", 0.78, 1200)],
+    outdoors: [
+      outdoor("OD-1F-NORTH-001", "1F", "北院 / 入户庭院", [{ x: 900, y: -1900 }, { x: 10650, y: -1900 }, { x: 10650, y: 250 }, { x: 900, y: 250 }]),
+      outdoor("OD-1F-SOUTH-001", "1F", "南院 / 生活庭院", [{ x: 900, y: 7900 }, { x: 10650, y: 7900 }, { x: 10650, y: 11150 }, { x: 900, y: 11150 }])
+    ],
+    fences: [
+      fence("FN-1F-NORTH-001", "1F", "北院围合", { x: 900, y: -1900 }, { x: 10650, y: -1900 }),
+      fence("FN-1F-NORTH-002", "1F", "北院东侧围合", { x: 10650, y: -1900 }, { x: 10650, y: 250 }),
+      fence("FN-1F-SOUTH-001", "1F", "南院围合", { x: 900, y: 11150 }, { x: 10650, y: 11150 }),
+      fence("FN-1F-SOUTH-002", "1F", "南院东侧围合", { x: 10650, y: 7900 }, { x: 10650, y: 11150 })
+    ],
+    outdoorSurfaces: [
+      surface("OS-1F-NORTH-001", "1F", "北院入户硬地", "hardscape", [{ x: 2700, y: -1500 }, { x: 6900, y: -1500 }, { x: 6900, y: -450 }, { x: 2700, y: -450 }]),
+      surface("OS-1F-NORTH-002", "1F", "北院引导小路", "path", [{ x: 5250, y: -450 }, { x: 5950, y: -450 }, { x: 5750, y: 250 }, { x: 5050, y: 250 }]),
+      surface("OS-1F-NORTH-003", "1F", "北院绿化带", "planting", [{ x: 930, y: -1750 }, { x: 2400, y: -1750 }, { x: 2400, y: 80 }, { x: 930, y: 80 }]),
+      surface("OS-1F-SOUTH-001", "1F", "南院会客平台", "hardscape", [{ x: 3900, y: 8150 }, { x: 7900, y: 8150 }, { x: 7900, y: 9600 }, { x: 3900, y: 9600 }]),
+      surface("OS-1F-SOUTH-002", "1F", "南院草坪", "planting", [{ x: 930, y: 8250 }, { x: 3600, y: 8250 }, { x: 3600, y: 10850 }, { x: 930, y: 10850 }]),
+      surface("OS-1F-SOUTH-003", "1F", "南院步道", "path", [{ x: 7900, y: 9300 }, { x: 9850, y: 9300 }, { x: 9850, y: 10000 }, { x: 7900, y: 10000 }])
+    ],
     stairs: [stair("ST-1F-001", "1F", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
   }),
   "2F": structure("2F", [

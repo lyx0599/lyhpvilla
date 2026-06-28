@@ -593,6 +593,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
           <PlanCanvas
             floor={currentFloor}
+            floors={data.floors}
             rooms={floorRooms}
             walls={floorWalls}
             furniture={floorFurniture}
@@ -611,6 +612,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             canRedo={floorHistory.future.length > 0}
             onScaleChange={handleScaleChange}
             onFocusModeChange={setFocusMode}
+            onSelectFloor={handleFloorChange}
             onActiveObjectChange={setActiveObjectId}
             onUndo={handleUndo}
             onRedo={handleRedo}
