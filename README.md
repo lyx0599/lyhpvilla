@@ -4,7 +4,7 @@
 
 在线预览：
 
-https://lyhpvilla.netlify.app
+https://lyx0599.github.io/lyhpvilla/
 
 ## 项目目标
 
@@ -28,7 +28,7 @@ https://lyhpvilla.netlify.app
 - 家具和设备占位：家具对象可点击、拖动、旋转，并显示编号、尺寸、材质和备注。
 - 多图纸表达：总平面、结构、联动规则、施工标注、家具布置、插座、开关、灯光、水路、排水、吊顶、铺装、效果预览。
 - 本地持久化：编辑结果自动保存在当前浏览器，刷新后继续使用。
-- 静态发布：Next.js 导出静态站点，可部署到 Netlify、Vercel 或 Cloudflare Pages。
+- 静态发布：Next.js 导出静态站点，并通过 GitHub Actions 发布到 GitHub Pages。
 
 ## 设计方向
 
@@ -76,12 +76,10 @@ http://localhost:3000
 pnpm build
 ```
 
-构建后会生成 `out` 目录。Netlify 配置已经写在 `netlify.toml`：
+构建后会生成 `out` 目录。正式发布使用 GitHub Actions，配置在 `.github/workflows/pages.yml`。推送到 `main` 后会自动发布到：
 
-```toml
-[build]
-  command = "pnpm build"
-  publish = "out"
+```text
+https://lyx0599.github.io/lyhpvilla/
 ```
 
 ## 数据说明

@@ -2,13 +2,18 @@ import type { SpaceData } from "@/types/space";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 
 const cleanGrayVisualSettings = getDefaultVisualSettings();
+const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
+function assetPath(path: string) {
+  return `${assetBasePath}${path}`;
+}
 
 export const mockSpaceData: SpaceData = {
   floors: [
-    { id: "B2", label: "b2", subtitle: "地下室二层", floorPlanImage: "/floor-plans/hd-clean/b2-hd-clean.png", visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "B1", label: "b1", subtitle: "地下室一层", floorPlanImage: "/floor-plans/hd-clean/b1-hd-clean.png", visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "1F", label: "1f", subtitle: "一层 / 客餐厨", floorPlanImage: "/floor-plans/hd-clean/1f-hd-clean.png", visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "2F", label: "2f", subtitle: "二层 / 卧室区", floorPlanImage: "/floor-plans/hd-clean/2f-hd-clean.png", visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
+    { id: "B2", label: "b2", subtitle: "地下室二层", floorPlanImage: assetPath("/floor-plans/hd-clean/b2-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
+    { id: "B1", label: "b1", subtitle: "地下室一层", floorPlanImage: assetPath("/floor-plans/hd-clean/b1-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
+    { id: "1F", label: "1f", subtitle: "一层 / 客餐厨", floorPlanImage: assetPath("/floor-plans/hd-clean/1f-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
+    { id: "2F", label: "2f", subtitle: "二层 / 卧室区", floorPlanImage: assetPath("/floor-plans/hd-clean/2f-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
     { id: "YARD", label: "院子", subtitle: "庭院 / 入户", visualSettings: cleanGrayVisualSettings, cleanPatches: [] }
   ],
   rooms: [
