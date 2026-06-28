@@ -8,6 +8,7 @@ import type {
   HouseOutdoorSurface,
   HousePartition,
   HouseRoom,
+  HouseSkylight,
   HouseStair,
   HouseStructure,
   HouseWall,
@@ -285,6 +286,22 @@ export function createBayWindow(id: string, floorId: FloorId, host: NonNullable<
   };
 }
 
+export function createSkylight(id: string, floorId: FloorId, center: MmPoint): HouseSkylight {
+  return {
+    id,
+    floorId,
+    name: `Skylight ${id.split("-").slice(-1)[0]}`,
+    geometryType: "polygon",
+    center,
+    width: 1200,
+    depth: 900,
+    height: 120,
+    rotation: 0,
+    editable: true,
+    removable: true
+  };
+}
+
 export function createOutdoor(id: string, floorId: FloorId, polygon: MmPoint[]): HouseOutdoor {
   return {
     id,
@@ -336,6 +353,7 @@ export function createEmptyStructure(floorId: FloorId): HouseStructure {
     doors: [],
     windows: [],
     bayWindows: [],
+    skylights: [],
     outdoors: []
   };
 }

@@ -15,6 +15,7 @@ export type DrawTool =
   | "door"
   | "window"
   | "bay-window"
+  | "skylight"
   | "outdoor";
 export type GeometryType = "line" | "arc" | "polygon" | "point";
 export type SpaceType = "Room" | "Zone" | "Outdoor" | "Partition";
@@ -202,6 +203,20 @@ export type HouseBayWindow = {
   height: number;
 };
 
+export type HouseSkylight = {
+  id: string;
+  floorId: FloorId;
+  name: string;
+  geometryType: "polygon";
+  center: MmPoint;
+  width: number;
+  depth: number;
+  height: number;
+  rotation: number;
+  editable: true;
+  removable: true;
+};
+
 export type HouseOutdoor = {
   id: string;
   floorId: FloorId;
@@ -265,6 +280,7 @@ export type HouseStructureObject =
   | HouseDoor
   | HouseWindow
   | HouseBayWindow
+  | HouseSkylight
   | HouseOutdoor;
 
 export type HouseStructure = {
@@ -279,6 +295,7 @@ export type HouseStructure = {
   doors: HouseDoor[];
   windows: HouseWindow[];
   bayWindows: HouseBayWindow[];
+  skylights: HouseSkylight[];
   outdoors: HouseOutdoor[];
 };
 

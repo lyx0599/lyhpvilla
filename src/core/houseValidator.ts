@@ -25,7 +25,7 @@ const POINT_EPSILON_MM = 180;
 const REPAIR_SNAP_MM = 420;
 const ORTHOGONAL_SNAP_MM = 260;
 const ORTHOGONAL_RATIO = 0.16;
-const INTERNAL_WALL_IDS = new Set(["W-1F-010", "W-2F-009", "W-2F-010", "W-2F-011"]);
+const PROJECTED_CONNECTION_OUTER_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008"]);
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -53,15 +53,19 @@ function getStraightWalls(walls: HouseWall[]) {
   return walls.filter((wall): wall is StraightHouseWall => wall.kind === "straight");
 }
 
-function isLikelyOuterWall(wallId: string) {
-  return !INTERNAL_WALL_IDS.has(wallId);
+function getWallSuffix(wallId: string) {
+  return wallId.split("-").at(-1) ?? wallId;
+}
+
+function allowsProjectedConnection(wallId: string) {
+  return PROJECTED_CONNECTION_OUTER_WALL_SUFFIXES.has(getWallSuffix(wallId));
 }
 
 function countConnections(point: MmPoint, walls: StraightHouseWall[], selfId: string) {
   return walls.filter((wall) => {
     if (wall.id === selfId) return false;
     if (samePoint(point, wall.start) || samePoint(point, wall.end)) return true;
-    return isLikelyOuterWall(selfId) && isLikelyOuterWall(wall.id) && projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
+    return allowsProjectedConnection(selfId) && allowsProjectedConnection(wall.id) && projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
   }).length;
 }
 
@@ -366,6 +370,15 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
         floorId,
         positionOnWall: clamp(isFiniteNumber(bayWindow.positionOnWall) ? bayWindow.positionOnWall : 0.5, 0, 1)
       })),
+    skylights: structure.skylights.map((skylight) => ({
+      ...skylight,
+      floorId,
+      center: sanitizePoint(skylight.center),
+      width: Math.max(1, isFiniteNumber(skylight.width) ? skylight.width : 1200),
+      depth: Math.max(1, isFiniteNumber(skylight.depth) ? skylight.depth : 900),
+      height: Math.max(1, isFiniteNumber(skylight.height) ? skylight.height : 120),
+      rotation: isFiniteNumber(skylight.rotation) ? skylight.rotation : 0
+    })),
     outdoors: structure.outdoors.map((outdoor) => ({
       ...outdoor,
       floorId,
@@ -611,6 +624,18 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     }
     if (!isFiniteNumber(bayWindow.width) || bayWindow.width <= 0 || !isFiniteNumber(bayWindow.depth) || bayWindow.depth <= 0 || !isFiniteNumber(bayWindow.height) || bayWindow.height <= 0) {
       errors.push({ type: "window", id: bayWindow.id, message: "飘窗必须有合法宽度、进深和高度，单位为 mm。" });
+    }
+  });
+
+  structure.skylights.forEach((skylight) => {
+    if (skylight.floorId !== floorId) {
+      errors.push({ type: "window", id: skylight.id, message: "天窗的 floorId 与当前楼层不一致。" });
+    }
+    if (!isValidMmPoint(skylight.center) || !isPointInsideFloor(skylight.center)) {
+      pushCoordinateError(errors, skylight.id, "天窗中心点坐标非法或超出统一楼层坐标范围。");
+    }
+    if (!isFiniteNumber(skylight.width) || skylight.width <= 0 || !isFiniteNumber(skylight.depth) || skylight.depth <= 0 || !isFiniteNumber(skylight.height) || skylight.height <= 0) {
+      errors.push({ type: "window", id: skylight.id, message: "天窗必须有合法宽度、进深和高度，单位为 mm。" });
     }
   });
 

@@ -2,8 +2,10 @@ import { createStair, generateRoomsFromWalls, getLineLength } from "@/lib/house-
 import type { FloorId, HouseStair, HouseStructure, HouseWall } from "@/types/space";
 
 const REFERENCE_FLOOR_ID: FloorId = "1F";
-const SYNCED_FLOORS: FloorId[] = ["B2", "B1", "2F"];
-const REFERENCE_OUTER_WALL_SUFFIXES = new Set(["001", "002", "003", "004", "005", "006", "007", "008"]);
+const OUTER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2"]);
+const INNER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
+const OUTER_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008"]);
+const INNER_WALL_SUFFIXES = new Set(["017", "001", "011", "010", "012", "022"]);
 
 function getWallSuffix(id: string) {
   return id.split("-").at(-1) ?? id;
@@ -11,6 +13,13 @@ function getWallSuffix(id: string) {
 
 function getSyncedWallId(floorId: FloorId, referenceWall: HouseWall) {
   return `W-${floorId}-${getWallSuffix(referenceWall.id)}`;
+}
+
+function getWallSyncFloors(wall: HouseWall) {
+  const suffix = getWallSuffix(wall.id);
+  if (OUTER_WALL_SUFFIXES.has(suffix)) return OUTER_SYNC_FLOORS;
+  if (INNER_WALL_SUFFIXES.has(suffix)) return INNER_SYNC_FLOORS;
+  return null;
 }
 
 function copyReferenceWallToFloor(referenceWall: HouseWall, floorId: FloorId, existingWall?: HouseWall): HouseWall {
@@ -67,35 +76,42 @@ function copyReferenceStairsToFloor(referenceStairs: HouseStair[], floorId: Floo
   });
 }
 
-export function syncStructureToReferenceFloor(referenceStructure: HouseStructure, targetStructure: HouseStructure): HouseStructure {
-  if (targetStructure.floorId === REFERENCE_FLOOR_ID || !SYNCED_FLOORS.includes(targetStructure.floorId)) return targetStructure;
+export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, targetStructure: HouseStructure): HouseStructure {
+  if (targetStructure.floorId === sourceStructure.floorId) return {
+    ...targetStructure,
+    rooms: generateRoomsFromWalls(targetStructure.floorId, targetStructure.walls)
+  };
 
-  const referenceOuterWalls = referenceStructure.walls.filter((wall) => REFERENCE_OUTER_WALL_SUFFIXES.has(getWallSuffix(wall.id)));
-  const referenceWallIds = new Set(referenceOuterWalls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
-  const preservedLocalWalls = targetStructure.walls.filter((wall) => !referenceWallIds.has(wall.id));
-  const syncedWalls = referenceOuterWalls.map((referenceWall) => {
+  const syncedSourceWalls = sourceStructure.walls.filter((wall) => {
+    const floors = getWallSyncFloors(wall);
+    return Boolean(floors?.has(sourceStructure.floorId) && floors.has(targetStructure.floorId));
+  });
+  const syncedWallIds = new Set(syncedSourceWalls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
+  const preservedLocalWalls = targetStructure.walls.filter((wall) => !syncedWallIds.has(wall.id));
+  const syncedWalls = syncedSourceWalls.map((referenceWall) => {
     const id = getSyncedWallId(targetStructure.floorId, referenceWall);
     const existingWall = targetStructure.walls.find((wall) => wall.id === id);
     return copyReferenceWallToFloor(referenceWall, targetStructure.floorId, existingWall);
   });
   const walls = [...syncedWalls, ...preservedLocalWalls];
+  const shouldSyncStairs = OUTER_SYNC_FLOORS.has(sourceStructure.floorId) && OUTER_SYNC_FLOORS.has(targetStructure.floorId);
 
   return {
     ...targetStructure,
     walls,
-    stairs: copyReferenceStairsToFloor(referenceStructure.stairs, targetStructure.floorId, targetStructure.stairs),
+    stairs: shouldSyncStairs ? copyReferenceStairsToFloor(sourceStructure.stairs, targetStructure.floorId, targetStructure.stairs) : targetStructure.stairs,
     rooms: generateRoomsFromWalls(targetStructure.floorId, walls)
   };
 }
 
-export function syncHouseStructuresToReference(structures: Record<FloorId, HouseStructure>) {
-  const referenceStructure = structures[REFERENCE_FLOOR_ID];
-  if (!referenceStructure) return structures;
+export function syncHouseStructuresToReference(structures: Record<FloorId, HouseStructure>, sourceFloorId: FloorId = REFERENCE_FLOOR_ID) {
+  const sourceStructure = structures[sourceFloorId] ?? structures[REFERENCE_FLOOR_ID];
+  if (!sourceStructure) return structures;
 
   return Object.fromEntries(
     Object.entries(structures).map(([floorId, structure]) => [
       floorId,
-      syncStructureToReferenceFloor(referenceStructure, structure as HouseStructure)
+      syncStructureFromSourceFloor(sourceStructure, structure as HouseStructure)
     ])
   ) as Record<FloorId, HouseStructure>;
 }

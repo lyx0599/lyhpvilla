@@ -1,6 +1,6 @@
 import { createArcWall, createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls } from "@/lib/house-geometry";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
-import type { FloorId, HouseBayWindow, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
+import type { FloorId, HouseBayWindow, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
 
 function wall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
   return createStraightWall(id, floorId, start, end);
@@ -10,6 +10,7 @@ type StructureAddons = {
   doors?: HouseDoor[];
   windows?: HouseWindow[];
   bayWindows?: HouseBayWindow[];
+  skylights?: HouseSkylight[];
   outdoors?: HouseOutdoor[];
   fences?: HouseFence[];
   outdoorSurfaces?: HouseOutdoorSurface[];
@@ -72,6 +73,7 @@ function structure(floorId: FloorId, walls: HouseWall[], partitions: HousePartit
     doors: addons.doors ?? [],
     windows: addons.windows ?? [],
     bayWindows: addons.bayWindows ?? [],
+    skylights: addons.skylights ?? [],
     outdoors: addons.outdoors ?? []
   };
 }

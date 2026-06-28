@@ -22,6 +22,7 @@ import {
   createOutdoor,
   createOutdoorSurface,
   createPartition,
+  createSkylight,
   createStair,
   createStraightWall,
   createWindow,
@@ -116,7 +117,7 @@ type ClickDrawTool = "wall-straight" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
 type StructureObjectRow = {
   id: string;
-  kind: "wall" | "partition" | "stair" | "fence" | "door" | "window" | "bayWindow" | "room" | "outdoor" | "outdoorSurface" | "furniture";
+  kind: "wall" | "partition" | "stair" | "fence" | "door" | "window" | "bayWindow" | "skylight" | "room" | "outdoor" | "outdoorSurface" | "furniture";
   label: string;
   name: string;
   detail: string;
@@ -421,6 +422,7 @@ export function PlanCanvas({
       ...houseStructure.doors.map((object) => object.id),
       ...houseStructure.windows.map((object) => object.id),
       ...houseStructure.bayWindows.map((object) => object.id),
+      ...houseStructure.skylights.map((object) => object.id),
       ...houseStructure.outdoors.map((object) => object.id)
     ];
     const maxSuffix = existingIds.reduce((max, id) => {
@@ -441,6 +443,7 @@ export function PlanCanvas({
       houseStructure.doors.find((object) => object.id === selectedStructureId) ??
       houseStructure.windows.find((object) => object.id === selectedStructureId) ??
       houseStructure.bayWindows.find((object) => object.id === selectedStructureId) ??
+      houseStructure.skylights.find((object) => object.id === selectedStructureId) ??
       houseStructure.outdoors.find((object) => object.id === selectedStructureId) ??
       null
     );
@@ -624,6 +627,17 @@ export function PlanCanvas({
         onActiveObjectChange(bayWindow.id);
       }
       setStructureMessage("已吸附到最近的墙体/隔断。");
+      return;
+    }
+
+    if (drawTool === "skylight") {
+      event.stopPropagation();
+      const skylight = createSkylight(getNextStructureId("SKY", houseStructure.skylights.length), floor.id, point);
+      onHouseStructureChange({ ...houseStructure, skylights: [...houseStructure.skylights, skylight] });
+      setSelectedStructureId(skylight.id);
+      selectObject(skylight.id);
+      onActiveObjectChange(skylight.id);
+      setStructureMessage("已放置天窗。天窗是独立结构对象，可在右侧调整宽度、进深和高度。");
       return;
     }
 
@@ -913,6 +927,7 @@ export function PlanCanvas({
       doors: houseStructure.doors.filter((door) => door.id !== selectedStructureId),
       windows: houseStructure.windows.filter((windowObject) => windowObject.id !== selectedStructureId),
       bayWindows: houseStructure.bayWindows.filter((bayWindow) => bayWindow.id !== selectedStructureId),
+      skylights: houseStructure.skylights.filter((skylight) => skylight.id !== selectedStructureId),
       outdoors: houseStructure.outdoors.filter((outdoor) => outdoor.id !== selectedStructureId)
     });
     setStructureMessage("已删除选中的结构对象。");
@@ -1177,6 +1192,15 @@ export function PlanCanvas({
         detail: `${bayWindow.width} x ${bayWindow.depth} x ${bayWindow.height} mm · 挂 ${bayWindow.wallId}`
       });
     });
+    houseStructure.skylights.forEach((skylight) => {
+      rows.push({
+        id: skylight.id,
+        kind: "skylight",
+        label: "天窗",
+        name: skylight.name,
+        detail: `${skylight.width} x ${skylight.depth} mm · 高 ${skylight.height} mm`
+      });
+    });
     houseStructure.rooms.forEach((room) => {
       rows.push({
         id: room.id,
@@ -1284,13 +1308,22 @@ export function PlanCanvas({
         y: segment.center.y + segment.normal.y * bayWindow.depth
       });
     });
+    houseStructure.skylights.forEach((skylight) => {
+      labels.push({
+        id: skylight.id,
+        name: skylight.name,
+        type: "Skylight",
+        x: skylight.center.x,
+        y: skylight.center.y
+      });
+    });
 
     return avoidLabelOverlap(labels);
   }, [houseStructure]);
   const filteredStructureLabels = useMemo(() => structureLabels.filter((label) => {
     if (labelFilter === "all") return true;
     if (labelFilter === "walls") return label.type === "Wall" || label.type === "Arc Wall" || label.type === "Partition" || label.type === "Stair" || label.type === "Fence";
-    if (labelFilter === "openings") return label.type === "Door" || label.type === "Window" || label.type === "Bay Window";
+    if (labelFilter === "openings") return label.type === "Door" || label.type === "Window" || label.type === "Bay Window" || label.type === "Skylight";
     if (labelFilter === "rooms") return label.type === "Room" || label.type === "Outdoor";
     if (labelFilter === "outdoor") return label.type === "Outdoor" || label.type === "Fence" || label.type === "Hardscape" || label.type === "Path" || label.type === "Planting";
     return false;
@@ -1319,6 +1352,7 @@ export function PlanCanvas({
     door: "门",
     window: "窗",
     "bay-window": "飘窗",
+    skylight: "天窗",
     outdoor: "院子"
   };
   const drawToolHints: Record<DrawTool, string> = {
@@ -1334,11 +1368,12 @@ export function PlanCanvas({
     door: "点击墙或隔断",
     window: "点击结构墙",
     "bay-window": "点击结构墙",
+    skylight: "点击放置天窗",
     outdoor: "连续点边界"
   };
   const drawToolSections: Array<{ title: string; tools: DrawTool[] }> = [
     { title: "结构主体", tools: ["select", "wall-straight", "wall-arc", "partition", "stair"] },
-    { title: "洞口", tools: ["door", "window", "bay-window"] },
+    { title: "洞口", tools: ["door", "window", "bay-window", "skylight"] },
     { title: "院子", tools: ["outdoor", "fence", "hardscape", "path", "planting"] }
   ];
 
@@ -1350,6 +1385,7 @@ export function PlanCanvas({
     if (tool === "outdoor") return "点击画布添加院子边界点。";
     if (tool === "hardscape" || tool === "path" || tool === "planting") return "点击画布添加区域边界点，至少 3 个点后完成。";
     if (tool === "door" || tool === "window" || tool === "bay-window") return "点击靠近墙体的位置，系统会自动吸附。";
+    if (tool === "skylight") return "点击楼板/屋面位置放置天窗，放好后可选中调整尺寸。";
     return "";
   }
 
@@ -2653,6 +2689,46 @@ export function PlanCanvas({
                       onMouseEnter={() => hoverObject(bayWindow.id)}
                       onMouseLeave={() => clearHoverObject(bayWindow.id)}
                     />
+                  );
+                })}
+
+                {houseStructure.skylights.map((skylight) => {
+                  const isSelected = isObjectSelected(skylight.id);
+                  const isHovered = isObjectHovered(skylight.id);
+                  const halfWidth = skylight.width / 2;
+                  const halfDepth = skylight.depth / 2;
+                  const points = [
+                    { x: skylight.center.x - halfWidth, y: skylight.center.y - halfDepth },
+                    { x: skylight.center.x + halfWidth, y: skylight.center.y - halfDepth },
+                    { x: skylight.center.x + halfWidth, y: skylight.center.y + halfDepth },
+                    { x: skylight.center.x - halfWidth, y: skylight.center.y + halfDepth }
+                  ];
+                  return (
+                    <g
+                      key={skylight.id}
+                      className="cursor-pointer"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (shouldIgnoreStructureSelection()) return;
+                        selectStructureObject(skylight.id, `${skylight.name} · ${skylight.width} x ${skylight.depth} mm`);
+                      }}
+                      onPointerDown={(event) => {
+                        if (plannerMode !== "edit" || drawTool !== "select") return;
+                        event.stopPropagation();
+                        selectStructureObject(skylight.id, `${skylight.name} · ${skylight.width} x ${skylight.depth} mm`);
+                      }}
+                      onMouseEnter={() => hoverObject(skylight.id)}
+                      onMouseLeave={() => clearHoverObject(skylight.id)}
+                    >
+                      <polygon
+                        points={points.map((point) => `${point.x},${point.y}`).join(" ")}
+                        fill={isSelected ? "rgba(14,165,233,0.22)" : "rgba(125,211,252,0.24)"}
+                        stroke={isSelected ? "#2563eb" : isHovered ? "#0f172a" : "#0ea5e9"}
+                        strokeWidth={isSelected || isHovered ? 38 : 22}
+                      />
+                      <line x1={points[0].x} y1={points[0].y} x2={points[2].x} y2={points[2].y} stroke="#0ea5e9" strokeWidth={14} />
+                      <line x1={points[1].x} y1={points[1].y} x2={points[3].x} y2={points[3].y} stroke="#0ea5e9" strokeWidth={14} />
+                    </g>
                   );
                 })}
               </g>

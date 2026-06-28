@@ -57,6 +57,7 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
     doors: structure.doors ?? [],
     windows: structure.windows ?? [],
     bayWindows: structure.bayWindows ?? [],
+    skylights: structure.skylights ?? [],
     outdoors: structure.outdoors ?? []
   };
 }
@@ -178,6 +179,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     floorHouseStructure.doors.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.windows.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.bayWindows.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.skylights.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.outdoors.find((item) => item.id === activeObjectId) ??
     null
   ), [activeObjectId, floorHouseStructure]);
@@ -393,7 +395,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...syncHouseStructuresToReference({
         ...currentStructures,
         [selectedFloorId]: structure
-      })
+      }, selectedFloorId)
     }));
   }
 
@@ -486,6 +488,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       doors: update(floorHouseStructure.doors),
       windows: update(floorHouseStructure.windows),
       bayWindows: update(floorHouseStructure.bayWindows),
+      skylights: update(floorHouseStructure.skylights),
       outdoors: update(floorHouseStructure.outdoors)
     });
   }
@@ -505,7 +508,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return structures;
     }, { ...houseStructuresByFloor } as Record<FloorId, HouseStructure>);
 
-    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures));
+    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures, selectedFloorId));
     setFurniture(nextFurniture);
     setValidatorRepairLog(repairLog.length > 0 ? repairLog : ["全屋未发现可自动修复的表达问题。"]);
   }
@@ -743,6 +746,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     <label className="mt-3 block text-xs text-stone-500">
                       宽度 mm
                       <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="200" type="number" value={activeStructureObject.width} onChange={(event) => updateActiveObject({ width: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "depth" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      进深 mm
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="100" type="number" value={activeStructureObject.depth} onChange={(event) => updateActiveObject({ depth: Number(event.target.value) })} />
                     </label>
                   )}
                   {activeStructureObject && "stepCount" in activeStructureObject && (
