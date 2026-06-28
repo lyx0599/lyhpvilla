@@ -87,7 +87,8 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     wall("W-1F-007", "1F", { x: 9500, y: 7800 }, { x: 4200, y: 7800 }),
     wall("W-1F-008", "1F", { x: 6200, y: 350 }, { x: 9500, y: 350 }),
     wall("W-1F-009", "1F", { x: 9500, y: 350 }, { x: 9500, y: 3000 }),
-    wall("W-1F-010", "1F", { x: 7600, y: 350 }, { x: 7600, y: 3000 })
+    wall("W-1F-010", "1F", { x: 7600, y: 350 }, { x: 7600, y: 3000 }),
+    wall("W-1F-011", "1F", { x: 6200, y: 350 }, { x: 6200, y: 3000 })
   ], [], {
     doors: [door("D-1F-001", "1F", "W-1F-003", 0.72, 1050), door("D-1F-002", "1F", "W-1F-005", 0.28, 900)],
     windows: [windowObject("WIN-1F-001", "1F", "W-1F-001", 0.42, 1800), windowObject("WIN-1F-002", "1F", "W-1F-006", 0.58, 1500)],
@@ -114,7 +115,7 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     wall("W-B1-001", "B1", { x: 2600, y: 300 }, { x: 8500, y: 300 }),
     wall("W-B1-002", "B1", { x: 8500, y: 300 }, { x: 8500, y: 3500 }),
     wall("W-B1-003", "B1", { x: 8500, y: 3500 }, { x: 5100, y: 3500 }),
-    createArcWall("AW-B1-001", "B1", { x: 2000, y: 7000 }, 800, 90, 180, "clockwise"),
+    createArcWall("AW-B1-001", "B1", { x: 1750, y: 7000 }, 800, 90, 180, "clockwise"),
     wall("W-B1-004", "B1", { x: 5100, y: 6700 }, { x: 6900, y: 6700 }),
     wall("W-B1-005", "B1", { x: 6900, y: 6700 }, { x: 6900, y: 8600 }),
     wall("W-B1-006", "B1", { x: 6900, y: 8600 }, { x: 1200, y: 8600 }),

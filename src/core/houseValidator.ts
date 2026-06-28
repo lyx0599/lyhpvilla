@@ -53,7 +53,11 @@ function getStraightWalls(walls: HouseWall[]) {
 }
 
 function countConnections(point: MmPoint, walls: StraightHouseWall[], selfId: string) {
-  return walls.filter((wall) => wall.id !== selfId && (samePoint(point, wall.start) || samePoint(point, wall.end))).length;
+  return walls.filter((wall) => {
+    if (wall.id === selfId) return false;
+    if (samePoint(point, wall.start) || samePoint(point, wall.end)) return true;
+    return projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
+  }).length;
 }
 
 function lineOrientation(a: MmPoint, b: MmPoint, c: MmPoint) {
