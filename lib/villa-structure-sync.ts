@@ -3,6 +3,7 @@ import type { FloorId, HouseStair, HouseStructure, HouseWall } from "@/types/spa
 
 const REFERENCE_FLOOR_ID: FloorId = "1F";
 const SYNCED_FLOORS: FloorId[] = ["B2", "B1", "2F"];
+const REFERENCE_OUTER_WALL_SUFFIXES = new Set(["001", "002", "003", "004", "005", "006", "007", "008"]);
 
 function getWallSuffix(id: string) {
   return id.split("-").at(-1) ?? id;
@@ -69,9 +70,10 @@ function copyReferenceStairsToFloor(referenceStairs: HouseStair[], floorId: Floo
 export function syncStructureToReferenceFloor(referenceStructure: HouseStructure, targetStructure: HouseStructure): HouseStructure {
   if (targetStructure.floorId === REFERENCE_FLOOR_ID || !SYNCED_FLOORS.includes(targetStructure.floorId)) return targetStructure;
 
-  const referenceWallIds = new Set(referenceStructure.walls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
-  const preservedLocalWalls = targetStructure.walls.filter((wall) => wall.kind === "arc" && !referenceWallIds.has(wall.id));
-  const syncedWalls = referenceStructure.walls.map((referenceWall) => {
+  const referenceOuterWalls = referenceStructure.walls.filter((wall) => REFERENCE_OUTER_WALL_SUFFIXES.has(getWallSuffix(wall.id)));
+  const referenceWallIds = new Set(referenceOuterWalls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
+  const preservedLocalWalls = targetStructure.walls.filter((wall) => !referenceWallIds.has(wall.id));
+  const syncedWalls = referenceOuterWalls.map((referenceWall) => {
     const id = getSyncedWallId(targetStructure.floorId, referenceWall);
     const existingWall = targetStructure.walls.find((wall) => wall.id === id);
     return copyReferenceWallToFloor(referenceWall, targetStructure.floorId, existingWall);

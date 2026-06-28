@@ -25,6 +25,7 @@ const POINT_EPSILON_MM = 180;
 const REPAIR_SNAP_MM = 420;
 const ORTHOGONAL_SNAP_MM = 260;
 const ORTHOGONAL_RATIO = 0.16;
+const INTERNAL_WALL_IDS = new Set(["W-1F-010", "W-2F-009", "W-2F-010", "W-2F-011"]);
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -52,11 +53,15 @@ function getStraightWalls(walls: HouseWall[]) {
   return walls.filter((wall): wall is StraightHouseWall => wall.kind === "straight");
 }
 
+function isLikelyOuterWall(wallId: string) {
+  return !INTERNAL_WALL_IDS.has(wallId);
+}
+
 function countConnections(point: MmPoint, walls: StraightHouseWall[], selfId: string) {
   return walls.filter((wall) => {
     if (wall.id === selfId) return false;
     if (samePoint(point, wall.start) || samePoint(point, wall.end)) return true;
-    return projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
+    return isLikelyOuterWall(selfId) && isLikelyOuterWall(wall.id) && projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
   }).length;
 }
 
