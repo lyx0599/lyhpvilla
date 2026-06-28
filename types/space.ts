@@ -140,6 +140,7 @@ export type HouseWall = StraightHouseWall | ArcHouseWall;
 export type HouseRoom = {
   id: string;
   floorId: FloorId;
+  roomNumber: string;
   name: string;
   spaceType: "Room";
   geometryType: "polygon";

@@ -6,6 +6,7 @@ const OUTER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2"]);
 const INNER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
 const OUTER_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008"]);
 const INNER_WALL_SUFFIXES = new Set(["017", "001", "011", "010", "012", "022"]);
+const LOCAL_ONLY_WALL_SUFFIXES = new Set(["014", "016", "017", "022"]);
 
 type SyncOptions = {
   syncCrossFloor?: boolean;
@@ -21,6 +22,7 @@ function getSyncedWallId(floorId: FloorId, referenceWall: HouseWall) {
 
 function getWallSyncFloors(wall: HouseWall) {
   const suffix = getWallSuffix(wall.id);
+  if (LOCAL_ONLY_WALL_SUFFIXES.has(suffix)) return null;
   if (OUTER_WALL_SUFFIXES.has(suffix)) return OUTER_SYNC_FLOORS;
   if (INNER_WALL_SUFFIXES.has(suffix)) return INNER_SYNC_FLOORS;
   return null;

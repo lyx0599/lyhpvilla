@@ -14,7 +14,7 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { createEmptyStructure } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
-import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseStructure, PlannerMode, SpaceData, ViewMode } from "@/types/space";
+import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseRoom, HouseStructure, PlannerMode, SpaceData, ViewMode } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
 type ModelSnapshot = {
@@ -40,6 +40,21 @@ type PersistedWebWorkspace = {
   houseStructuresByFloor: Record<FloorId, HouseStructure>;
 };
 
+function getDefaultRoomNumber(floorId: FloorId, index: number) {
+  return `R-${floorId}-${String(index + 1).padStart(3, "0")}`;
+}
+
+function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseRoom {
+  return {
+    ...room,
+    floorId,
+    roomNumber: room.roomNumber || getDefaultRoomNumber(floorId, index),
+    name: room.name || `${floorId} 房间 ${index + 1}`,
+    boundary: room.boundary ?? [],
+    sourceWallIds: room.sourceWallIds ?? []
+  };
+}
+
 function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | undefined): HouseStructure {
   const emptyStructure = createEmptyStructure(floorId);
   if (!structure) return emptyStructure;
@@ -49,7 +64,7 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
     floorId,
     coordinateSystem: structure.coordinateSystem ?? emptyStructure.coordinateSystem,
     walls: structure.walls ?? [],
-    rooms: structure.rooms ?? [],
+    rooms: (structure.rooms ?? []).map((room, index) => normalizeRoom(floorId, room, index)),
     partitions: structure.partitions ?? [],
     stairs: structure.stairs ?? [],
     fences: structure.fences ?? [],
@@ -184,6 +199,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     null
   ), [activeObjectId, floorHouseStructure]);
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+  const activeRoomObject = activeStructureObject && "spaceType" in activeStructureObject && activeStructureObject.spaceType === "Room"
+    ? activeStructureObject
+    : null;
 
   useEffect(() => {
     try {
@@ -698,8 +716,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               {(activeStructureObject || activeFurniture) ? (
                 <div>
                   <p className="break-all rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{activeObjectId}</p>
+                  {activeRoomObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      房间编号
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeRoomObject.roomNumber} onChange={(event) => updateActiveObject({ roomNumber: event.target.value })} />
+                    </label>
+                  )}
                   <label className="mt-3 block text-xs text-stone-500">
-                    {activeStructureObject && "spaceType" in activeStructureObject && activeStructureObject.spaceType === "Room" ? "房间名称" : "名称"}
+                    {activeRoomObject ? "房间名称" : "名称"}
                     <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={(activeStructureObject ?? activeFurniture)?.name ?? ""} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                   </label>
                   {activeStructureObject && "thickness" in activeStructureObject && (

@@ -1195,7 +1195,7 @@ export function PlanCanvas({
         id: room.id,
         kind: "room",
         label: "房间",
-        name: room.name,
+        name: `${room.roomNumber} · ${room.name}`,
         detail: `${(room.area / 1_000_000).toFixed(2)} m2 · ${room.boundary.length} 个边界点`
       });
     });
@@ -1266,7 +1266,7 @@ export function PlanCanvas({
     houseStructure.rooms.forEach((room) => {
       const x = room.boundary.reduce((sum, point) => sum + point.x, 0) / Math.max(1, room.boundary.length);
       const y = room.boundary.reduce((sum, point) => sum + point.y, 0) / Math.max(1, room.boundary.length);
-      labels.push({ id: room.id, name: room.name, type: "Room", x, y });
+      labels.push({ id: room.id, name: `${room.roomNumber} · ${room.name}`, type: "Room", x, y });
     });
     houseStructure.outdoors.forEach((outdoor) => {
       const x = outdoor.polygon.reduce((sum, point) => sum + point.x, 0) / Math.max(1, outdoor.polygon.length);
@@ -2358,7 +2358,7 @@ export function PlanCanvas({
                     onClick={(event) => {
                       event.stopPropagation();
                       if (shouldIgnoreStructureSelection()) return;
-                      selectStructureObject(room.id, `${room.name} · ${(room.area / 1_000_000).toFixed(2)} m2`);
+                      selectStructureObject(room.id, `${room.roomNumber} · ${room.name} · ${(room.area / 1_000_000).toFixed(2)} m2`);
                     }}
                     onMouseEnter={() => hoverObject(room.id)}
                     onMouseLeave={() => clearHoverObject(room.id)}

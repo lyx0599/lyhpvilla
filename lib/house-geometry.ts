@@ -246,11 +246,140 @@ function getRoomSignature(sourceWallIds: string[]) {
   return [...sourceWallIds].sort().join("|");
 }
 
-export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[], previousRooms: HouseRoom[] = []) {
-  const straightWalls = walls.filter((wall): wall is StraightHouseWall => wall.kind === "straight");
+function getRoomNumber(floorId: FloorId, index: number) {
+  return `R-${floorId}-${String(index + 1).padStart(3, "0")}`;
+}
+
+function createGeneratedRoom(
+  floorId: FloorId,
+  rooms: HouseRoom[],
+  boundary: MmPoint[],
+  sourceWallIds: string[],
+  previousRoomBySignature: Map<string, HouseRoom>
+) {
+  const previousRoom = previousRoomBySignature.get(getRoomSignature(sourceWallIds));
+  rooms.push({
+    id: previousRoom?.id ?? `ROOM-${floorId}-${String(rooms.length + 1).padStart(3, "0")}`,
+    floorId,
+    roomNumber: previousRoom?.roomNumber ?? getRoomNumber(floorId, rooms.length),
+    name: previousRoom?.name ?? `${floorId} 房间 ${rooms.length + 1}`,
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary,
+    area: getPolygonArea(boundary),
+    sourceWallIds
+  });
+}
+
+function uniqueSorted(values: number[]) {
+  return Array.from(new Set(values.map((value) => Math.round(value)))).sort((a, b) => a - b);
+}
+
+function getAxisAlignedWallGroups(walls: StraightHouseWall[]) {
+  const horizontalWalls = walls.filter((wall) => Math.abs(wall.start.y - wall.end.y) <= 1 && Math.abs(wall.start.x - wall.end.x) > 1);
+  const verticalWalls = walls.filter((wall) => Math.abs(wall.start.x - wall.end.x) <= 1 && Math.abs(wall.start.y - wall.end.y) > 1);
+  return { horizontalWalls, verticalWalls };
+}
+
+function getHorizontalCover(walls: StraightHouseWall[], y: number, x1: number, x2: number) {
+  return walls.find((wall) => {
+    if (Math.abs(wall.start.y - y) > 1 || Math.abs(wall.end.y - y) > 1) return false;
+    const minX = Math.min(wall.start.x, wall.end.x);
+    const maxX = Math.max(wall.start.x, wall.end.x);
+    return minX <= x1 + 1 && maxX >= x2 - 1;
+  });
+}
+
+function getVerticalCover(walls: StraightHouseWall[], x: number, y1: number, y2: number) {
+  return walls.find((wall) => {
+    if (Math.abs(wall.start.x - x) > 1 || Math.abs(wall.end.x - x) > 1) return false;
+    const minY = Math.min(wall.start.y, wall.end.y);
+    const maxY = Math.max(wall.start.y, wall.end.y);
+    return minY <= y1 + 1 && maxY >= y2 - 1;
+  });
+}
+
+function hasInternalDivider(
+  horizontalWalls: StraightHouseWall[],
+  verticalWalls: StraightHouseWall[],
+  x1: number,
+  x2: number,
+  y1: number,
+  y2: number
+) {
+  const fullHeightDivider = verticalWalls.some((wall) => {
+    const x = wall.start.x;
+    if (x <= x1 + 1 || x >= x2 - 1) return false;
+    const minY = Math.min(wall.start.y, wall.end.y);
+    const maxY = Math.max(wall.start.y, wall.end.y);
+    return minY <= y1 + 1 && maxY >= y2 - 1;
+  });
+  if (fullHeightDivider) return true;
+
+  return horizontalWalls.some((wall) => {
+    const y = wall.start.y;
+    if (y <= y1 + 1 || y >= y2 - 1) return false;
+    const minX = Math.min(wall.start.x, wall.end.x);
+    const maxX = Math.max(wall.start.x, wall.end.x);
+    return minX <= x1 + 1 && maxX >= x2 - 1;
+  });
+}
+
+function generateGridRoomsFromWalls(
+  floorId: FloorId,
+  straightWalls: StraightHouseWall[],
+  previousRoomBySignature: Map<string, HouseRoom>
+) {
+  const { horizontalWalls, verticalWalls } = getAxisAlignedWallGroups(straightWalls);
+  const xs = uniqueSorted(straightWalls.flatMap((wall) => [wall.start.x, wall.end.x]));
+  const ys = uniqueSorted(straightWalls.flatMap((wall) => [wall.start.y, wall.end.y]));
+  const rooms: HouseRoom[] = [];
+  const seenSignatures = new Set<string>();
+
+  for (let yStartIndex = 0; yStartIndex < ys.length - 1; yStartIndex += 1) {
+    for (let yEndIndex = yStartIndex + 1; yEndIndex < ys.length; yEndIndex += 1) {
+      const y1 = ys[yStartIndex];
+      const y2 = ys[yEndIndex];
+      if (y2 - y1 < 300) continue;
+      for (let xStartIndex = 0; xStartIndex < xs.length - 1; xStartIndex += 1) {
+        for (let xEndIndex = xStartIndex + 1; xEndIndex < xs.length; xEndIndex += 1) {
+          const x1 = xs[xStartIndex];
+          const x2 = xs[xEndIndex];
+          if (x2 - x1 < 300) continue;
+
+          const top = getHorizontalCover(horizontalWalls, y1, x1, x2);
+          const right = getVerticalCover(verticalWalls, x2, y1, y2);
+          const bottom = getHorizontalCover(horizontalWalls, y2, x1, x2);
+          const left = getVerticalCover(verticalWalls, x1, y1, y2);
+          if (!top || !right || !bottom || !left) continue;
+          if (hasInternalDivider(horizontalWalls, verticalWalls, x1, x2, y1, y2)) continue;
+
+          const sourceWallIds = Array.from(new Set([top.id, right.id, bottom.id, left.id]));
+          const signature = getRoomSignature(sourceWallIds);
+          if (seenSignatures.has(signature)) continue;
+          seenSignatures.add(signature);
+          createGeneratedRoom(
+            floorId,
+            rooms,
+            [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }],
+            sourceWallIds,
+            previousRoomBySignature
+          );
+        }
+      }
+    }
+  }
+
+  return rooms;
+}
+
+function generateLoopRoomsFromWalls(
+  floorId: FloorId,
+  straightWalls: StraightHouseWall[],
+  previousRoomBySignature: Map<string, HouseRoom>
+) {
   const rooms: HouseRoom[] = [];
   const used = new Set<string>();
-  const previousRoomBySignature = new Map(previousRooms.map((room) => [getRoomSignature(room.sourceWallIds), room]));
 
   straightWalls.forEach((startWall) => {
     if (used.has(startWall.id)) return;
@@ -268,23 +397,24 @@ export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[], pre
     }
 
     if (loopWalls.length >= 3 && samePoint(loopWalls[loopWalls.length - 1].end, startWall.start)) {
-      const boundary = loopWalls.map((wall) => wall.start);
-      const sourceWallIds = loopWalls.map((wall) => wall.id);
-      const previousRoom = previousRoomBySignature.get(getRoomSignature(sourceWallIds));
-      rooms.push({
-        id: previousRoom?.id ?? `ROOM-${floorId}-${String(rooms.length + 1).padStart(3, "0")}`,
+      createGeneratedRoom(
         floorId,
-        name: previousRoom?.name ?? `${floorId} Room ${rooms.length + 1}`,
-        spaceType: "Room",
-        geometryType: "polygon",
-        boundary,
-        area: getPolygonArea(boundary),
-        sourceWallIds
-      });
+        rooms,
+        loopWalls.map((wall) => wall.start),
+        loopWalls.map((wall) => wall.id),
+        previousRoomBySignature
+      );
     }
   });
 
   return rooms;
+}
+
+export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[], previousRooms: HouseRoom[] = []) {
+  const straightWalls = walls.filter((wall): wall is StraightHouseWall => wall.kind === "straight");
+  const previousRoomBySignature = new Map(previousRooms.map((room) => [getRoomSignature(room.sourceWallIds), room]));
+  const gridRooms = generateGridRoomsFromWalls(floorId, straightWalls, previousRoomBySignature);
+  return gridRooms.length > 0 ? gridRooms : generateLoopRoomsFromWalls(floorId, straightWalls, previousRoomBySignature);
 }
 
 export function projectPointToSegment(point: MmPoint, start: MmPoint, end: MmPoint) {

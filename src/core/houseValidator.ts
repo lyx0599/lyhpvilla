@@ -1,4 +1,4 @@
-import { createFloorCoordinateSystem, generateRoomsFromWalls, getDistance, getLineLength, getPolygonArea, projectPointToSegment, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
+import { createFloorCoordinateSystem, generateRoomsFromWalls, getArcWallEndpoints, getDistance, getLineLength, getPolygonArea, projectPointToSegment, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
 import type { FloorId, Furniture, HousePartition, HouseRoom, HouseStructure, HouseWall, MmPoint, StraightHouseWall } from "@/types/space";
 
 export type HouseValidationIssueType = "wall" | "door" | "window" | "room" | "stair" | "outdoor" | "furniture" | "coordinate";
@@ -25,7 +25,7 @@ const POINT_EPSILON_MM = 180;
 const REPAIR_SNAP_MM = 420;
 const ORTHOGONAL_SNAP_MM = 260;
 const ORTHOGONAL_RATIO = 0.16;
-const PROJECTED_CONNECTION_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008", "001", "010", "012", "022"]);
+const PROJECTED_CONNECTION_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008", "001", "005", "010", "012", "022"]);
 const FORCED_HORIZONTAL_WALL_SUFFIXES = new Set(["012", "022"]);
 
 function isFiniteNumber(value: unknown): value is number {
@@ -62,11 +62,17 @@ function allowsProjectedConnection(wallId: string) {
   return PROJECTED_CONNECTION_WALL_SUFFIXES.has(getWallSuffix(wallId));
 }
 
-function countConnections(point: MmPoint, walls: StraightHouseWall[], selfId: string) {
+function getWallEndpointPair(wall: HouseWall) {
+  if (wall.kind === "arc") return getArcWallEndpoints(wall);
+  return { start: wall.start, end: wall.end };
+}
+
+function countConnections(point: MmPoint, walls: HouseWall[], selfId: string) {
   return walls.filter((wall) => {
     if (wall.id === selfId) return false;
-    if (samePoint(point, wall.start) || samePoint(point, wall.end)) return true;
-    return allowsProjectedConnection(selfId) && allowsProjectedConnection(wall.id) && projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
+    const endpoints = getWallEndpointPair(wall);
+    if (samePoint(point, endpoints.start) || samePoint(point, endpoints.end)) return true;
+    return wall.kind === "straight" && allowsProjectedConnection(selfId) && projectPointToSegment(point, wall.start, wall.end).distance <= POINT_EPSILON_MM;
   }).length;
 }
 
@@ -431,7 +437,6 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
 export function validateHouse(floorId: FloorId, structure: HouseStructure, furniture: Furniture[]): HouseValidationResult {
   const errors: HouseValidationIssue[] = [];
   const warnings: HouseValidationIssue[] = [];
-  const straightWalls = getStraightWalls(structure.walls);
   const allowOpenBoundary = floorId === "YARD" || structure.outdoors.length > 0;
 
   if (structure.floorId !== floorId) {
@@ -473,10 +478,10 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       } else if (!orthogonalStatus.horizontal && !orthogonalStatus.vertical) {
         warnings.push({ type: "wall", id: wall.id, message: "直墙接近水平/垂直但未完全归正，自动修复会尝试拉平或拉直。" });
       }
-      if (!allowOpenBoundary && countConnections(wall.start, straightWalls, wall.id) === 0 && countConnections(wall.end, straightWalls, wall.id) === 0) {
+      if (!allowOpenBoundary && countConnections(wall.start, structure.walls, wall.id) === 0 && countConnections(wall.end, structure.walls, wall.id) === 0) {
         errors.push({ type: "wall", id: wall.id, message: "墙体不能为孤立线段，至少需要与其他墙体连接。" });
       }
-      if (!allowOpenBoundary && (countConnections(wall.start, straightWalls, wall.id) === 0 || countConnections(wall.end, straightWalls, wall.id) === 0)) {
+      if (!allowOpenBoundary && (countConnections(wall.start, structure.walls, wall.id) === 0 || countConnections(wall.end, structure.walls, wall.id) === 0)) {
         warnings.push({ type: "wall", id: wall.id, message: "墙体存在开放端点；非院子/开放边界应形成闭合结构。" });
       }
       return;
