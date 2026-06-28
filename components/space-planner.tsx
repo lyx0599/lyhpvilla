@@ -14,6 +14,7 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { createEmptyStructure } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
+import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseRoom, HouseStructure, PlannerMode, SpaceData, ViewMode } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
@@ -38,6 +39,7 @@ type PersistedWebWorkspace = {
   visualSettingsByFloor: Record<FloorId, FloorPlanVisualSettings>;
   cleanPatchesByFloor: Record<FloorId, CleanPatch[]>;
   houseStructuresByFloor: Record<FloorId, HouseStructure>;
+  wallSyncOverrides: WallSyncOverrides;
 };
 
 function getDefaultRoomNumber(floorId: FloorId, index: number) {
@@ -135,6 +137,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [visualSettingsByFloor, setVisualSettingsByFloor] = useState<Record<FloorId, FloorPlanVisualSettings>>(initialVisualSettings);
   const [cleanPatchesByFloor, setCleanPatchesByFloor] = useState<Record<FloorId, CleanPatch[]>>(initialCleanPatches);
   const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(initialHouseStructures);
+  const [wallSyncOverrides, setWallSyncOverrides] = useState<WallSyncOverrides>({});
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
   const [activeObjectId, setActiveObjectId] = useState("");
@@ -227,6 +230,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       setSemanticObjects(parsed.semanticObjects ?? initialSemanticObjects);
       setVisualSettingsByFloor(parsed.visualSettingsByFloor ?? initialVisualSettings);
       setCleanPatchesByFloor(parsed.cleanPatchesByFloor ?? initialCleanPatches);
+      setWallSyncOverrides(parsed.wallSyncOverrides ?? {});
       setHouseStructuresByFloor(syncedStructures);
       committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
         floor.id,
@@ -257,7 +261,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           semanticObjects,
           visualSettingsByFloor,
           cleanPatchesByFloor,
-          houseStructuresByFloor
+          houseStructuresByFloor,
+          wallSyncOverrides
         };
         window.localStorage.setItem(WEB_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
         setWebSaveStatus("saved");
@@ -276,7 +281,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     semanticObjects,
     visualSettingsByFloor,
     cleanPatchesByFloor,
-    houseStructuresByFloor
+    houseStructuresByFloor,
+    wallSyncOverrides
   ]);
 
   useEffect(() => {
@@ -335,6 +341,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setVisualSettingsByFloor(initialVisualSettings);
     setCleanPatchesByFloor(initialCleanPatches);
     setHouseStructuresByFloor(initialHouseStructures);
+    setWallSyncOverrides({});
     setHistoryByFloor({});
     setValidatorRepairLog([]);
     setActiveObjectId("");
@@ -413,7 +420,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...syncHouseStructuresToReference({
         ...currentStructures,
         [selectedFloorId]: structure
-      }, selectedFloorId, { syncCrossFloor: true })
+      }, selectedFloorId, { syncCrossFloor: true, wallSyncOverrides })
+    }));
+  }
+
+  function handleWallSyncOverridesChange(nextOverrides: WallSyncOverrides) {
+    setWallSyncOverrides(nextOverrides);
+    setHouseStructuresByFloor((currentStructures) => ({
+      ...syncHouseStructuresToReference(currentStructures, selectedFloorId, { syncCrossFloor: true, wallSyncOverrides: nextOverrides })
     }));
   }
 
@@ -526,7 +540,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return structures;
     }, { ...houseStructuresByFloor } as Record<FloorId, HouseStructure>);
 
-    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures, selectedFloorId, { syncCrossFloor: true }));
+    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures, selectedFloorId, { syncCrossFloor: true, wallSyncOverrides }));
     setFurniture(nextFurniture);
     setValidatorRepairLog(repairLog.length > 0 ? repairLog : ["全屋未发现可自动修复的表达问题。"]);
   }
@@ -604,6 +618,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             plannerMode={plannerMode}
             drawTool={drawTool}
             houseStructure={floorHouseStructure}
+            wallSyncOverrides={wallSyncOverrides}
             floorPlanVisualSettings={floorPlanVisualSettings}
             cleanPatches={floorCleanPatches}
             focusMode={focusMode}
@@ -619,6 +634,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             onPlannerModeChange={setPlannerMode}
             onDrawToolChange={setDrawTool}
             onHouseStructureChange={handleHouseStructureChange}
+            onWallSyncOverridesChange={handleWallSyncOverridesChange}
             onFloorPlanVisualSettingsChange={handleFloorPlanVisualSettingsChange}
             onCleanPatchesChange={handleCleanPatchesChange}
             onSelectFurniture={handleFurnitureSelect}

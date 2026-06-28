@@ -1,6 +1,9 @@
 import { createStair, generateRoomsFromWalls, getLineLength } from "@/lib/house-geometry";
 import type { FloorId, HouseStair, HouseStructure, HouseWall } from "@/types/space";
 
+export type WallSyncRuleId = "all-level" | "above-grade" | "basement" | "local";
+export type WallSyncOverrides = Partial<Record<string, WallSyncRuleId>>;
+
 const REFERENCE_FLOOR_ID: FloorId = "1F";
 const ALL_LEVEL_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2", "B1"]);
 const ABOVE_GRADE_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
@@ -13,33 +16,41 @@ const WALL_SYNC_GROUPS = [
     label: "1F / 2F / B2 / B1",
     color: "#2563eb",
     floors: ALL_LEVEL_SYNC_FLOORS,
-    suffixes: new Set(["007", "003", "017"])
+    suffixes: new Set(["007", "003", "010"])
   },
   {
     id: "above-grade",
     label: "1F / 2F",
     color: "#16a34a",
     floors: ABOVE_GRADE_SYNC_FLOORS,
-    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "012", "018", "019", "020", "015", "013", "014", "016"])
+    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "012", "018", "019", "020", "015", "022"])
   },
   {
     id: "basement",
     label: "B1 / B2",
     color: "#f97316",
     floors: BASEMENT_SYNC_FLOORS,
-    suffixes: new Set(["001", "002", "009", "010"])
+    suffixes: new Set(["001", "002", "009"])
   }
 ];
 
 type SyncOptions = {
   syncCrossFloor?: boolean;
+  wallSyncOverrides?: WallSyncOverrides;
 };
 
 function getWallSuffix(id: string) {
   return id.split("-").at(-1) ?? id;
 }
 
-export function getWallSyncRule(floorId: FloorId, wallId: string) {
+export function getWallSyncRule(floorId: FloorId, wallId: string, wallSyncOverrides: WallSyncOverrides = {}) {
+  const override = wallSyncOverrides[wallId];
+  if (override === "local") return null;
+  if (override) {
+    const group = WALL_SYNC_GROUPS.find((item) => item.id === override);
+    return group?.floors.has(floorId) ? group : null;
+  }
+
   const suffix = getWallSuffix(wallId);
   return WALL_SYNC_GROUPS.find((group) => group.floors.has(floorId) && group.suffixes.has(suffix)) ?? null;
 }
@@ -64,10 +75,6 @@ export function getStairSyncRule() {
 
 function getSyncedWallId(floorId: FloorId, referenceWall: HouseWall) {
   return `W-${floorId}-${getWallSuffix(referenceWall.id)}`;
-}
-
-function getWallSyncFloors(wall: HouseWall) {
-  return getWallSyncRule(wall.floorId, wall.id)?.floors ?? null;
 }
 
 function refreshRooms(structure: HouseStructure): HouseStructure {
@@ -133,13 +140,20 @@ function copyReferenceStairsToFloor(referenceStairs: HouseStair[], floorId: Floo
   });
 }
 
-export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, targetStructure: HouseStructure): HouseStructure {
+export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, targetStructure: HouseStructure, options: Pick<SyncOptions, "wallSyncOverrides"> = {}): HouseStructure {
   if (targetStructure.floorId === sourceStructure.floorId) return refreshRooms(targetStructure);
 
   const syncedSourceWalls = sourceStructure.walls.filter((wall) => {
     if (REMOVED_WALL_IDS.has(wall.id)) return false;
-    const floors = getWallSyncFloors(wall);
-    return Boolean(floors?.has(sourceStructure.floorId) && floors.has(targetStructure.floorId));
+    const rule = getWallSyncRule(wall.floorId, wall.id, options.wallSyncOverrides);
+    if (!rule?.floors.has(sourceStructure.floorId) || !rule.floors.has(targetStructure.floorId)) return false;
+
+    const targetWallId = getSyncedWallId(targetStructure.floorId, wall);
+    const targetOverride = options.wallSyncOverrides?.[targetWallId];
+    if (!targetOverride) return true;
+
+    const targetRule = getWallSyncRule(targetStructure.floorId, targetWallId, options.wallSyncOverrides);
+    return Boolean(targetRule?.id === rule.id && targetRule.floors.has(sourceStructure.floorId));
   });
   const syncedWallIds = new Set(syncedSourceWalls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
   const preservedLocalWalls = targetStructure.walls.filter((wall) => !REMOVED_WALL_IDS.has(wall.id) && !syncedWallIds.has(wall.id));
@@ -179,7 +193,7 @@ export function syncHouseStructuresToReference(
   return Object.fromEntries(
     Object.entries(structures).map(([floorId, structure]) => [
       floorId,
-      syncStructureFromSourceFloor(sourceStructure, structure as HouseStructure)
+      syncStructureFromSourceFloor(sourceStructure, structure as HouseStructure, options)
     ])
   ) as Record<FloorId, HouseStructure>;
 }

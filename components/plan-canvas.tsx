@@ -48,6 +48,7 @@ import {
   getRepairOverlayStyles
 } from "@/lib/floor-plan-cleanup";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
+import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import type {
   CleanPatch,
   DrawTool,
@@ -80,6 +81,7 @@ type Props = {
   plannerMode: PlannerMode;
   drawTool: DrawTool;
   houseStructure: HouseStructure;
+  wallSyncOverrides: WallSyncOverrides;
   floorPlanVisualSettings: FloorPlanVisualSettings;
   cleanPatches: CleanPatch[];
   focusMode: boolean;
@@ -95,6 +97,7 @@ type Props = {
   onPlannerModeChange: (mode: PlannerMode) => void;
   onDrawToolChange: (tool: DrawTool) => void;
   onHouseStructureChange: (structure: HouseStructure) => void;
+  onWallSyncOverridesChange: (overrides: WallSyncOverrides) => void;
   onFloorPlanVisualSettingsChange: (settings: FloorPlanVisualSettings) => void;
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
   onSelectFurniture: (furniture: Furniture) => void;
@@ -118,6 +121,7 @@ type ObjectLabel = {
 type LabelFilter = "all" | "walls" | "openings" | "rooms" | "outdoor" | "furniture";
 type PlanSheetMode = "site" | "structure" | "sync" | "construction" | "furnishing" | "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "flooring" | "preview";
 type PlanBounds = { x: number; y: number; width: number; height: number };
+type SyncPaintRuleId = WallSyncRuleId | "default";
 type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
 type StructureObjectRow = {
@@ -178,6 +182,14 @@ const planSheetModeFootnotes: Record<PlanSheetMode, string> = {
   preview: "展示表达：家具 / 语义 / 白模"
 };
 
+const syncPaintTools: Array<{ id: SyncPaintRuleId; label: string; color: string }> = [
+  { id: "all-level", label: "四层", color: "#2563eb" },
+  { id: "above-grade", label: "1F/2F", color: "#16a34a" },
+  { id: "basement", label: "B1/B2", color: "#f97316" },
+  { id: "local", label: "独立", color: "#94a3b8" },
+  { id: "default", label: "默认", color: "#ffffff" }
+];
+
 function getPlanBounds(floorId: Floor["id"]): PlanBounds {
   if (floorId !== "1F") return defaultPlanBounds;
   return {
@@ -227,6 +239,7 @@ export function PlanCanvas({
   plannerMode,
   drawTool,
   houseStructure,
+  wallSyncOverrides,
   floorPlanVisualSettings,
   cleanPatches,
   focusMode,
@@ -242,6 +255,7 @@ export function PlanCanvas({
   onPlannerModeChange,
   onDrawToolChange,
   onHouseStructureChange,
+  onWallSyncOverridesChange,
   onFloorPlanVisualSettingsChange,
   onCleanPatchesChange,
   onSelectFurniture,
@@ -267,6 +281,7 @@ export function PlanCanvas({
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
+  const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId>("all-level");
   const [interactionState, setInteractionState] = useState(emptyInteractionState);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
   const structureDragRef = useRef<{ pointerId: number; objectId: string; pointKey: "start" | "end"; moved: boolean } | null>(null);
@@ -461,6 +476,20 @@ export function PlanCanvas({
       ...nextStructure,
       rooms: generateRoomsFromWalls(floor.id, nextStructure.walls, nextStructure.rooms)
     });
+  }
+
+  function applyWallSyncOverride(wallId: string) {
+    if (sheetMode !== "sync") return;
+    const nextOverrides = { ...wallSyncOverrides };
+    if (syncPaintRuleId === "default") {
+      delete nextOverrides[wallId];
+      setStructureMessage(`${wallId} 已恢复默认联动规则`);
+    } else {
+      nextOverrides[wallId] = syncPaintRuleId as WallSyncRuleId;
+      const label = syncPaintTools.find((item) => item.id === syncPaintRuleId)?.label ?? "自定义";
+      setStructureMessage(`${wallId} 已标记为 ${label}`);
+    }
+    onWallSyncOverridesChange(nextOverrides);
   }
 
   function commitInteractionModel(nextModel: { houseStructure: HouseStructure; furniture: Furniture[] }) {
@@ -1822,7 +1851,7 @@ export function PlanCanvas({
     const legendY = planBounds.y + 520;
 
     return (
-      <g data-layer="SyncRuleOverlay" pointerEvents="none">
+      <g data-layer="SyncRuleOverlay">
         <rect
           x={legendX - 180}
           y={legendY - 300}
@@ -1845,35 +1874,72 @@ export function PlanCanvas({
           );
         })}
         {houseStructure.walls.map((wall) => {
-          const rule = getWallSyncRule(floor.id, wall.id);
-          const color = rule?.color ?? "#94a3b8";
-          const label = rule?.label ?? "独立";
+          const override = wallSyncOverrides[wall.id];
+          const overrideTool = syncPaintTools.find((item) => item.id === override);
+          const rule = getWallSyncRule(floor.id, wall.id, wallSyncOverrides);
+          const color = overrideTool?.color ?? rule?.color ?? "#94a3b8";
+          const label = overrideTool?.label ?? rule?.label ?? "独立";
           const point = getWallLabelPoint(wall);
+          const canPaintSyncRule = plannerMode === "edit";
+          const hitPadding = Math.max(wall.thickness + 360, 520) / 2;
+          const handlePaintSyncRule = (event: MouseEvent<SVGElement>) => {
+            if (!canPaintSyncRule) return;
+            event.stopPropagation();
+            applyWallSyncOverride(wall.id);
+          };
           return (
             <g key={`sync-wall-${wall.id}`}>
               {wall.kind === "arc" ? (
-                <path
-                  d={getArcPath(wall)}
-                  fill="none"
-                  stroke={color}
-                  strokeLinecap="round"
-                  strokeOpacity={0.82}
-                  strokeWidth={wall.thickness + 110}
-                />
+                <>
+                  <path
+                    d={getArcPath(wall)}
+                    data-sync-wall-hit={wall.id}
+                    className={canPaintSyncRule ? "cursor-pointer" : undefined}
+                    fill="none"
+                    pointerEvents="stroke"
+                    stroke="transparent"
+                    strokeLinecap="round"
+                    strokeWidth={Math.max(wall.thickness + 360, 520)}
+                    onClick={handlePaintSyncRule}
+                  />
+                  <path
+                    d={getArcPath(wall)}
+                    fill="none"
+                    pointerEvents="none"
+                    stroke={color}
+                    strokeLinecap="round"
+                    strokeOpacity={0.82}
+                    strokeWidth={wall.thickness + 110}
+                  />
+                </>
               ) : (
-                <line
-                  x1={wall.start.x}
-                  y1={wall.start.y}
-                  x2={wall.end.x}
-                  y2={wall.end.y}
-                  stroke={color}
-                  strokeLinecap="square"
-                  strokeOpacity={0.82}
-                  strokeWidth={wall.thickness + 110}
-                />
+                <>
+                  <rect
+                    x={Math.min(wall.start.x, wall.end.x) - hitPadding}
+                    y={Math.min(wall.start.y, wall.end.y) - hitPadding}
+                    width={Math.abs(wall.end.x - wall.start.x) + hitPadding * 2}
+                    height={Math.abs(wall.end.y - wall.start.y) + hitPadding * 2}
+                    data-sync-wall-hit={wall.id}
+                    className={canPaintSyncRule ? "cursor-pointer" : undefined}
+                    fill="transparent"
+                    pointerEvents="all"
+                    onClick={handlePaintSyncRule}
+                  />
+                  <line
+                    x1={wall.start.x}
+                    y1={wall.start.y}
+                    x2={wall.end.x}
+                    y2={wall.end.y}
+                    pointerEvents="none"
+                    stroke={color}
+                    strokeLinecap="square"
+                    strokeOpacity={0.82}
+                    strokeWidth={wall.thickness + 110}
+                  />
+                </>
               )}
-              <text x={point.x} y={point.y - 170} fill={color} fontSize={150} fontWeight={900} textAnchor="middle">{wall.id}</text>
-              <text x={point.x} y={point.y + 20} fill={color} fontSize={118} fontWeight={800} textAnchor="middle">{label}</text>
+              <text x={point.x} y={point.y - 170} fill={color} fontSize={150} fontWeight={900} pointerEvents="none" textAnchor="middle">{wall.id}</text>
+              <text x={point.x} y={point.y + 20} fill={color} fontSize={118} fontWeight={800} pointerEvents="none" textAnchor="middle">{label}</text>
             </g>
           );
         })}
@@ -2574,6 +2640,30 @@ export function PlanCanvas({
               )}
 
               <div className="space-y-3">
+                {sheetMode === "sync" && (
+                  <div className="rounded-xl border border-stone-200 bg-white p-2">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="font-semibold text-ink">联动颜色</p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">{Object.keys(wallSyncOverrides).length}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {syncPaintTools.map((tool) => (
+                        <button
+                          key={tool.id}
+                          className={`flex min-h-10 items-center gap-2 rounded-lg border px-2 py-1.5 text-left font-semibold transition ${
+                            syncPaintRuleId === tool.id ? "border-blue-500 bg-blue-50 text-blue-700" : "border-stone-200 bg-slate-50 text-stone-600 hover:bg-stone-100"
+                          }`}
+                          onClick={() => setSyncPaintRuleId(tool.id)}
+                          type="button"
+                        >
+                          <span className="size-4 shrink-0 rounded-full border border-stone-300" style={{ backgroundColor: tool.color }} />
+                          <span className="min-w-0 truncate">{tool.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-xl bg-slate-50 p-2 leading-5">
                   <p className="font-semibold text-ink">统一坐标</p>
                   <p>原点 ({houseStructure.coordinateSystem.origin.x}, {houseStructure.coordinateSystem.origin.y}) · {houseStructure.coordinateSystem.width} x {houseStructure.coordinateSystem.height} mm</p>
