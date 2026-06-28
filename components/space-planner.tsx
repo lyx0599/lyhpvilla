@@ -395,7 +395,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...syncHouseStructuresToReference({
         ...currentStructures,
         [selectedFloorId]: structure
-      }, selectedFloorId)
+      }, selectedFloorId, { syncCrossFloor: true })
     }));
   }
 
@@ -508,7 +508,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return structures;
     }, { ...houseStructuresByFloor } as Record<FloorId, HouseStructure>);
 
-    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures, selectedFloorId));
+    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures, selectedFloorId, { syncCrossFloor: true }));
     setFurniture(nextFurniture);
     setValidatorRepairLog(repairLog.length > 0 ? repairLog : ["全屋未发现可自动修复的表达问题。"]);
   }
@@ -665,8 +665,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   <p>警告</p>
                 </div>
               </div>
-              <div className="mt-3 space-y-2">
-                {[...houseValidation.errors, ...houseValidation.warnings].slice(0, 5).map((issue, index) => (
+              <div className="mt-3 max-h-96 space-y-2 overflow-auto pr-1">
+                {[...houseValidation.errors, ...houseValidation.warnings].map((issue, index) => (
                   <button key={`${issue.type}-${issue.id}-${index}`} className="block w-full rounded-xl bg-slate-50 p-2 text-left text-xs leading-5 text-slate-600 transition hover:bg-blue-50" onClick={() => locateValidationObject(issue.id)} type="button">
                     <p className="font-semibold text-ink">{issue.type} · {issue.id}</p>
                     <p>{issue.message}</p>
@@ -678,9 +678,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 )}
               </div>
               {validatorRepairLog.length > 0 && (
-                <div className="mt-3 space-y-1 rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-600">
+                <div className="mt-3 max-h-56 space-y-1 overflow-auto rounded-xl bg-slate-50 p-2 pr-1 text-xs leading-5 text-slate-600">
                   <p className="font-semibold text-ink">修复记录</p>
-                  {validatorRepairLog.slice(0, 4).map((item, index) => (
+                  {validatorRepairLog.map((item, index) => (
                     <p key={`${item}-${index}`}>{item}</p>
                   ))}
                 </div>
@@ -699,7 +699,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <div>
                   <p className="break-all rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{activeObjectId}</p>
                   <label className="mt-3 block text-xs text-stone-500">
-                    名称
+                    {activeStructureObject && "spaceType" in activeStructureObject && activeStructureObject.spaceType === "Room" ? "房间名称" : "名称"}
                     <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={(activeStructureObject ?? activeFurniture)?.name ?? ""} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                   </label>
                   {activeStructureObject && "thickness" in activeStructureObject && (
@@ -719,6 +719,25 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     <label className="mt-3 block text-xs text-stone-500">
                       弧墙半径 mm
                       <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="100" type="number" value={activeStructureObject.radius} onChange={(event) => updateActiveObject({ radius: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "startAngle" in activeStructureObject && "endAngle" in activeStructureObject && "direction" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      弧度角度
+                      <input
+                        className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400"
+                        max="180"
+                        min="10"
+                        step="5"
+                        type="number"
+                        value={Math.round(Math.abs(activeStructureObject.endAngle - activeStructureObject.startAngle))}
+                        onChange={(event) => {
+                          const nextAngle = Math.min(180, Math.max(10, Number(event.target.value) || 90));
+                          updateActiveObject({
+                            endAngle: activeStructureObject.startAngle + (activeStructureObject.direction === "clockwise" ? nextAngle : -nextAngle)
+                          });
+                        }}
+                      />
                     </label>
                   )}
                   {activeStructureObject && "startAngle" in activeStructureObject && (

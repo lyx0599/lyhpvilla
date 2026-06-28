@@ -7,6 +7,10 @@ const INNER_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
 const OUTER_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008"]);
 const INNER_WALL_SUFFIXES = new Set(["017", "001", "011", "010", "012", "022"]);
 
+type SyncOptions = {
+  syncCrossFloor?: boolean;
+};
+
 function getWallSuffix(id: string) {
   return id.split("-").at(-1) ?? id;
 }
@@ -20,6 +24,13 @@ function getWallSyncFloors(wall: HouseWall) {
   if (OUTER_WALL_SUFFIXES.has(suffix)) return OUTER_SYNC_FLOORS;
   if (INNER_WALL_SUFFIXES.has(suffix)) return INNER_SYNC_FLOORS;
   return null;
+}
+
+function refreshRooms(structure: HouseStructure): HouseStructure {
+  return {
+    ...structure,
+    rooms: generateRoomsFromWalls(structure.floorId, structure.walls, structure.rooms)
+  };
 }
 
 function copyReferenceWallToFloor(referenceWall: HouseWall, floorId: FloorId, existingWall?: HouseWall): HouseWall {
@@ -77,10 +88,7 @@ function copyReferenceStairsToFloor(referenceStairs: HouseStair[], floorId: Floo
 }
 
 export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, targetStructure: HouseStructure): HouseStructure {
-  if (targetStructure.floorId === sourceStructure.floorId) return {
-    ...targetStructure,
-    rooms: generateRoomsFromWalls(targetStructure.floorId, targetStructure.walls)
-  };
+  if (targetStructure.floorId === sourceStructure.floorId) return refreshRooms(targetStructure);
 
   const syncedSourceWalls = sourceStructure.walls.filter((wall) => {
     const floors = getWallSyncFloors(wall);
@@ -100,11 +108,24 @@ export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, ta
     ...targetStructure,
     walls,
     stairs: shouldSyncStairs ? copyReferenceStairsToFloor(sourceStructure.stairs, targetStructure.floorId, targetStructure.stairs) : targetStructure.stairs,
-    rooms: generateRoomsFromWalls(targetStructure.floorId, walls)
+    rooms: generateRoomsFromWalls(targetStructure.floorId, walls, targetStructure.rooms)
   };
 }
 
-export function syncHouseStructuresToReference(structures: Record<FloorId, HouseStructure>, sourceFloorId: FloorId = REFERENCE_FLOOR_ID) {
+export function syncHouseStructuresToReference(
+  structures: Record<FloorId, HouseStructure>,
+  sourceFloorId: FloorId = REFERENCE_FLOOR_ID,
+  options: SyncOptions = {}
+) {
+  if (!options.syncCrossFloor) {
+    return Object.fromEntries(
+      Object.entries(structures).map(([floorId, structure]) => [
+        floorId,
+        refreshRooms(structure as HouseStructure)
+      ])
+    ) as Record<FloorId, HouseStructure>;
+  }
+
   const sourceStructure = structures[sourceFloorId] ?? structures[REFERENCE_FLOOR_ID];
   if (!sourceStructure) return structures;
 

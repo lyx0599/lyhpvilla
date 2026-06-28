@@ -17,6 +17,7 @@ import {
 } from "@/src/core/interactionEngine";
 import {
   createBayWindow,
+  createArcWallFromEndpoints,
   createDoor,
   createFence,
   createOutdoor,
@@ -26,8 +27,6 @@ import {
   createStair,
   createStraightWall,
   createWindow,
-  DEFAULT_WALL_HEIGHT_MM,
-  DEFAULT_WALL_THICKNESS_MM,
   findNearestHost,
   generateRoomsFromWalls,
   getDistance,
@@ -113,7 +112,7 @@ type ObjectLabel = {
 
 type LabelFilter = "all" | "walls" | "openings" | "rooms" | "outdoor" | "furniture";
 type PlanSheetMode = "structure" | "construction" | "furnishing" | "preview";
-type ClickDrawTool = "wall-straight" | "partition" | "stair" | "fence";
+type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
 type StructureObjectRow = {
   id: string;
@@ -199,6 +198,8 @@ export function PlanCanvas({
   const [isPlanZoomSelected, setIsPlanZoomSelected] = useState(false);
   const [drawPreview, setDrawPreview] = useState<{ start: MmPoint; end: MmPoint } | null>(null);
   const [clickDrawStart, setClickDrawStart] = useState<{ tool: ClickDrawTool; start: MmPoint } | null>(null);
+  const [arcSweepAngle, setArcSweepAngle] = useState(90);
+  const [arcDirection, setArcDirection] = useState<"clockwise" | "counterclockwise">("clockwise");
   const [outdoorDraft, setOutdoorDraft] = useState<MmPoint[]>([]);
   const [outdoorSurfaceDraft, setOutdoorSurfaceDraft] = useState<{ tool: OutdoorSurfaceDrawTool; points: MmPoint[] } | null>(null);
   const [selectedStructureId, setSelectedStructureId] = useState("");
@@ -373,7 +374,7 @@ export function PlanCanvas({
   function updateHouseStructure(nextStructure: HouseStructure) {
     onHouseStructureChange({
       ...nextStructure,
-      rooms: generateRoomsFromWalls(floor.id, nextStructure.walls)
+      rooms: generateRoomsFromWalls(floor.id, nextStructure.walls, nextStructure.rooms)
     });
   }
 
@@ -491,6 +492,18 @@ export function PlanCanvas({
       return;
     }
 
+    if (tool === "wall-arc") {
+      const wall = createArcWallFromEndpoints(getNextStructureId("AW", houseStructure.walls.length), floor.id, start, end, arcSweepAngle, arcDirection);
+      updateHouseStructure({ ...houseStructure, walls: [...houseStructure.walls, wall] });
+      setSelectedStructureId(wall.id);
+      selectObject(wall.id);
+      onActiveObjectChange(wall.id);
+      setClickDrawStart({ tool, start: end });
+      setDrawPreview({ start: end, end });
+      setStructureMessage(`已连接弧墙 ${wall.id}，弧度 ${arcSweepAngle}°，长度 ${wall.length} mm。继续移动鼠标可接着画下一段，双击或按 Esc 结束。`);
+      return;
+    }
+
     if (tool === "stair") {
       const stair = createStair(getNextStructureId("ST", houseStructure.stairs.length), floor.id, start, end);
       onHouseStructureChange({ ...houseStructure, stairs: [...houseStructure.stairs, stair] });
@@ -550,7 +563,7 @@ export function PlanCanvas({
       ? snapPoint(rawPoint, snapPoints, clickDrawStart.start)
       : snapPoint(rawPoint, snapPoints);
 
-    if (drawTool === "wall-straight" || drawTool === "partition" || drawTool === "stair" || drawTool === "fence") {
+    if (drawTool === "wall-straight" || drawTool === "wall-arc" || drawTool === "partition" || drawTool === "stair" || drawTool === "fence") {
       event.stopPropagation();
       const tool = drawTool;
       if (!clickDrawStart || clickDrawStart.tool !== tool) {
@@ -558,41 +571,17 @@ export function PlanCanvas({
         setDrawPreview({ start: point, end: point });
         setStructureMessage(tool === "wall-straight"
           ? "已设置墙体起点。移动鼠标预览，再点击终点完成连接。"
-          : tool === "partition"
-            ? "已设置隔断起点。移动鼠标预览，再点击终点完成连接。"
-            : tool === "stair"
-              ? "已设置楼梯起点。移动鼠标预览，再点击终点完成连接。"
-              : "已设置篱笆起点。移动鼠标预览，再点击终点完成连接。"
+          : tool === "wall-arc"
+            ? "已设置弧墙起点。移动鼠标预览，再点击终点完成连接。"
+            : tool === "partition"
+              ? "已设置隔断起点。移动鼠标预览，再点击终点完成连接。"
+              : tool === "stair"
+                ? "已设置楼梯起点。移动鼠标预览，再点击终点完成连接。"
+                : "已设置篱笆起点。移动鼠标预览，再点击终点完成连接。"
         );
         return;
       }
       finishClickDraw(tool, clickDrawStart.start, point);
-      return;
-    }
-
-    if (drawTool === "wall-arc") {
-      event.stopPropagation();
-      const radius = 900;
-      const arcWall: HouseWall = {
-        id: getNextStructureId("AW", houseStructure.walls.length),
-        floorId: floor.id,
-        name: `Arc Wall ${houseStructure.walls.length + 1}`,
-        kind: "arc",
-        geometryType: "arc",
-        center: point,
-        radius,
-        startAngle: 0,
-        endAngle: 90,
-        thickness: DEFAULT_WALL_THICKNESS_MM,
-        height: DEFAULT_WALL_HEIGHT_MM,
-        direction: "clockwise",
-        length: Math.round((Math.PI * radius) / 2)
-      };
-      updateHouseStructure({ ...houseStructure, walls: [...houseStructure.walls, arcWall] });
-      setSelectedStructureId(arcWall.id);
-      selectObject(arcWall.id);
-      onActiveObjectChange(arcWall.id);
-      setStructureMessage("已创建弧形墙。第一版弧形墙参与结构显示，房间自动闭合先按直线墙生成。");
       return;
     }
 
@@ -660,7 +649,7 @@ export function PlanCanvas({
   }
 
   function handleStructurePointerMove(event: PointerEvent<SVGSVGElement>) {
-    if (clickDrawStart && (drawTool === "wall-straight" || drawTool === "partition" || drawTool === "stair" || drawTool === "fence")) {
+    if (clickDrawStart && (drawTool === "wall-straight" || drawTool === "wall-arc" || drawTool === "partition" || drawTool === "stair" || drawTool === "fence")) {
       const rawPoint = getMmPosition(event);
       if (!rawPoint) return;
       const end = snapPoint(rawPoint, getStructureSnapPoints(), clickDrawStart.start);
@@ -1328,6 +1317,11 @@ export function PlanCanvas({
     if (labelFilter === "outdoor") return label.type === "Outdoor" || label.type === "Fence" || label.type === "Hardscape" || label.type === "Path" || label.type === "Planting";
     return false;
   }), [labelFilter, structureLabels]);
+  const arcDrawPreview = useMemo(() => {
+    if (!drawPreview || drawTool !== "wall-arc" || getDistance(drawPreview.start, drawPreview.end) <= 120) return null;
+    const wall = createArcWallFromEndpoints("AW-PREVIEW", floor.id, drawPreview.start, drawPreview.end, arcSweepAngle, arcDirection);
+    return wall.kind === "arc" ? wall : null;
+  }, [arcDirection, arcSweepAngle, drawPreview, drawTool, floor.id]);
   const furnitureLabelOffsets = useMemo(() => {
     const placed: Array<{ x: number; y: number }> = [];
     return new Map(furniture.map((item) => {
@@ -1358,7 +1352,7 @@ export function PlanCanvas({
   const drawToolHints: Record<DrawTool, string> = {
     select: "选择、拖动、编辑对象",
     "wall-straight": "点起点，再点终点",
-    "wall-arc": "点击放置弧墙",
+    "wall-arc": "点起点，再点终点",
     partition: "点起点，再点终点",
     stair: "点起点，再点终点",
     fence: "点起点，再点终点",
@@ -1379,6 +1373,7 @@ export function PlanCanvas({
 
   function getDrawToolMessage(tool: DrawTool) {
     if (tool === "wall-straight") return "点击墙体端点或空白点作为起点，移动鼠标预览，再点击终点完成连接。";
+    if (tool === "wall-arc") return "点击弧墙起点，移动鼠标预览，再点击终点完成连接。可先设置弧度角度。";
     if (tool === "partition") return "点击隔断起点，移动鼠标预览，再点击终点完成连接。";
     if (tool === "stair") return "点击楼梯起点，移动鼠标预览，再点击终点完成楼梯方向。";
     if (tool === "fence") return "点击篱笆起点，移动鼠标预览，再点击终点完成连接。";
@@ -2033,6 +2028,37 @@ export function PlanCanvas({
                     </div>
                   ))}
                 </div>
+
+                {drawTool === "wall-arc" && (
+                  <div className="rounded-xl border border-stone-200 bg-white p-2">
+                    <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                      <label className="block text-xs text-stone-500">
+                        弧度角度
+                        <input
+                          className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400"
+                          max="180"
+                          min="10"
+                          step="5"
+                          type="number"
+                          value={arcSweepAngle}
+                          onChange={(event) => setArcSweepAngle(Math.min(180, Math.max(10, Number(event.target.value) || 90)))}
+                        />
+                      </label>
+                      <span className="pb-2 font-semibold text-stone-500">°</span>
+                    </div>
+                    <label className="mt-2 block text-xs text-stone-500">
+                      弯曲方向
+                      <select
+                        className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400"
+                        value={arcDirection}
+                        onChange={(event) => setArcDirection(event.target.value as "clockwise" | "counterclockwise")}
+                      >
+                        <option value="clockwise">顺时针</option>
+                        <option value="counterclockwise">逆时针</option>
+                      </select>
+                    </label>
+                  </div>
+                )}
 
                 {drawTool === "outdoor" && (
                   <div className="grid grid-cols-2 gap-2">
@@ -2745,16 +2771,27 @@ export function PlanCanvas({
                     stroke={drawTool === "partition" ? "#0f766e" : drawTool === "stair" ? "#7c3aed" : drawTool === "fence" ? "#365314" : "#2563eb"}
                     strokeWidth={34}
                   />
-                  <line
-                    x1={drawPreview.start.x}
-                    y1={drawPreview.start.y}
-                    x2={drawPreview.end.x}
-                    y2={drawPreview.end.y}
-                    stroke={drawTool === "partition" ? "#0f766e" : drawTool === "stair" ? "#7c3aed" : drawTool === "fence" ? "#365314" : "#2563eb"}
-                    strokeDasharray="120 80"
-                    strokeLinecap="round"
-                    strokeWidth={drawTool === "partition" ? 90 : drawTool === "fence" ? 120 : 220}
-                  />
+                  {arcDrawPreview ? (
+                    <path
+                      d={getArcPath(arcDrawPreview)}
+                      fill="none"
+                      stroke="#2563eb"
+                      strokeDasharray="120 80"
+                      strokeLinecap="round"
+                      strokeWidth={220}
+                    />
+                  ) : (
+                    <line
+                      x1={drawPreview.start.x}
+                      y1={drawPreview.start.y}
+                      x2={drawPreview.end.x}
+                      y2={drawPreview.end.y}
+                      stroke={drawTool === "partition" ? "#0f766e" : drawTool === "stair" ? "#7c3aed" : drawTool === "fence" ? "#365314" : "#2563eb"}
+                      strokeDasharray="120 80"
+                      strokeLinecap="round"
+                      strokeWidth={drawTool === "partition" ? 90 : drawTool === "fence" ? 120 : 220}
+                    />
+                  )}
                   <circle
                     cx={drawPreview.end.x}
                     cy={drawPreview.end.y}
@@ -2763,7 +2800,7 @@ export function PlanCanvas({
                     opacity={getLineLength(drawPreview.start, drawPreview.end) > 120 ? 1 : 0.45}
                   />
                   <text x={(drawPreview.start.x + drawPreview.end.x) / 2 + 80} y={(drawPreview.start.y + drawPreview.end.y) / 2 - 80} fill="#0f172a" fontSize={180} fontWeight={700}>
-                    {getLineLength(drawPreview.start, drawPreview.end)} mm
+                    {arcDrawPreview ? `${arcDrawPreview.length} mm · ${arcSweepAngle}°` : `${getLineLength(drawPreview.start, drawPreview.end)} mm`}
                   </text>
                 </g>
               )}

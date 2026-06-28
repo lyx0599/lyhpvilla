@@ -14,6 +14,7 @@ import type {
   HouseWall,
   HouseWindow,
   MmPoint,
+  ArcHouseWall,
   StraightHouseWall
 } from "@/types/space";
 
@@ -48,6 +49,21 @@ export function getLineLength(start: MmPoint, end: MmPoint) {
   return Math.round(getDistance(start, end));
 }
 
+function getPointAtAngle(center: MmPoint, radius: number, angle: number): MmPoint {
+  const radians = (angle * Math.PI) / 180;
+  return {
+    x: Math.round(center.x + Math.cos(radians) * radius),
+    y: Math.round(center.y + Math.sin(radians) * radius)
+  };
+}
+
+export function getArcWallEndpoints(wall: ArcHouseWall) {
+  return {
+    start: getPointAtAngle(wall.center, wall.radius, wall.startAngle),
+    end: getPointAtAngle(wall.center, wall.radius, wall.endAngle)
+  };
+}
+
 export function getPolygonArea(points: MmPoint[]) {
   if (points.length < 3) return 0;
   const area = points.reduce((sum, point, index) => {
@@ -72,7 +88,10 @@ export function snapPoint(point: MmPoint, candidates: MmPoint[], origin?: MmPoin
 
 export function getWallEndpoints(walls: HouseWall[]) {
   return walls.flatMap((wall) => {
-    if (wall.kind === "arc") return [];
+    if (wall.kind === "arc") {
+      const { start, end } = getArcWallEndpoints(wall);
+      return [start, end];
+    }
     return [wall.start, wall.end];
   });
 }
@@ -115,6 +134,54 @@ export function createArcWall(
     height: DEFAULT_WALL_HEIGHT_MM,
     direction,
     length: Math.round((Math.abs(endAngle - startAngle) * Math.PI * radius) / 180)
+  };
+}
+
+export function createArcWallFromEndpoints(
+  id: string,
+  floorId: FloorId,
+  start: MmPoint,
+  end: MmPoint,
+  sweepAngle = 90,
+  direction: "clockwise" | "counterclockwise" = "clockwise"
+): HouseWall {
+  const chord = Math.max(1, getDistance(start, end));
+  const clampedSweepAngle = Math.min(180, Math.max(10, Math.abs(sweepAngle)));
+  const halfSweepRadians = (clampedSweepAngle * Math.PI) / 360;
+  const radius = Math.max(1, chord / (2 * Math.sin(halfSweepRadians)));
+  const midpoint = {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2
+  };
+  const unit = {
+    x: (end.x - start.x) / chord,
+    y: (end.y - start.y) / chord
+  };
+  const centerDistance = Math.sqrt(Math.max(0, radius * radius - (chord / 2) * (chord / 2)));
+  const normal = direction === "clockwise"
+    ? { x: -unit.y, y: unit.x }
+    : { x: unit.y, y: -unit.x };
+  const center = {
+    x: Math.round(midpoint.x + normal.x * centerDistance),
+    y: Math.round(midpoint.y + normal.y * centerDistance)
+  };
+  const startAngle = (Math.atan2(start.y - center.y, start.x - center.x) * 180) / Math.PI;
+  const endAngle = startAngle + (direction === "clockwise" ? clampedSweepAngle : -clampedSweepAngle);
+
+  return {
+    id,
+    floorId,
+    name: `Arc Wall ${id.split("-").slice(-1)[0]}`,
+    kind: "arc",
+    geometryType: "arc",
+    center,
+    radius: Math.round(radius),
+    startAngle: Number(startAngle.toFixed(2)),
+    endAngle: Number(endAngle.toFixed(2)),
+    thickness: DEFAULT_WALL_THICKNESS_MM,
+    height: DEFAULT_WALL_HEIGHT_MM,
+    direction,
+    length: Math.round((clampedSweepAngle * Math.PI * radius) / 180)
   };
 }
 
@@ -175,10 +242,15 @@ function samePoint(a: MmPoint, b: MmPoint) {
   return getDistance(a, b) <= SNAP_MM;
 }
 
-export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[]) {
+function getRoomSignature(sourceWallIds: string[]) {
+  return [...sourceWallIds].sort().join("|");
+}
+
+export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[], previousRooms: HouseRoom[] = []) {
   const straightWalls = walls.filter((wall): wall is StraightHouseWall => wall.kind === "straight");
   const rooms: HouseRoom[] = [];
   const used = new Set<string>();
+  const previousRoomBySignature = new Map(previousRooms.map((room) => [getRoomSignature(room.sourceWallIds), room]));
 
   straightWalls.forEach((startWall) => {
     if (used.has(startWall.id)) return;
@@ -197,15 +269,17 @@ export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[]) {
 
     if (loopWalls.length >= 3 && samePoint(loopWalls[loopWalls.length - 1].end, startWall.start)) {
       const boundary = loopWalls.map((wall) => wall.start);
+      const sourceWallIds = loopWalls.map((wall) => wall.id);
+      const previousRoom = previousRoomBySignature.get(getRoomSignature(sourceWallIds));
       rooms.push({
-        id: `ROOM-${floorId}-${String(rooms.length + 1).padStart(3, "0")}`,
+        id: previousRoom?.id ?? `ROOM-${floorId}-${String(rooms.length + 1).padStart(3, "0")}`,
         floorId,
-        name: `${floorId} Room ${rooms.length + 1}`,
+        name: previousRoom?.name ?? `${floorId} Room ${rooms.length + 1}`,
         spaceType: "Room",
         geometryType: "polygon",
         boundary,
         area: getPolygonArea(boundary),
-        sourceWallIds: loopWalls.map((wall) => wall.id)
+        sourceWallIds
       });
     }
   });

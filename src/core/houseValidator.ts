@@ -25,7 +25,8 @@ const POINT_EPSILON_MM = 180;
 const REPAIR_SNAP_MM = 420;
 const ORTHOGONAL_SNAP_MM = 260;
 const ORTHOGONAL_RATIO = 0.16;
-const PROJECTED_CONNECTION_OUTER_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008"]);
+const PROJECTED_CONNECTION_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008", "001", "010", "012", "022"]);
+const FORCED_HORIZONTAL_WALL_SUFFIXES = new Set(["012", "022"]);
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -58,7 +59,7 @@ function getWallSuffix(wallId: string) {
 }
 
 function allowsProjectedConnection(wallId: string) {
-  return PROJECTED_CONNECTION_OUTER_WALL_SUFFIXES.has(getWallSuffix(wallId));
+  return PROJECTED_CONNECTION_WALL_SUFFIXES.has(getWallSuffix(wallId));
 }
 
 function countConnections(point: MmPoint, walls: StraightHouseWall[], selfId: string) {
@@ -155,6 +156,16 @@ function straightenNearOrthogonalWalls(walls: HouseWall[]) {
     if (wall.kind !== "straight") return wall;
     const start = sanitizePoint(wall.start);
     const end = sanitizePoint(wall.end);
+    const suffix = getWallSuffix(wall.id);
+
+    if (FORCED_HORIZONTAL_WALL_SUFFIXES.has(suffix) && start.y !== end.y && Math.abs(end.x - start.x) > POINT_EPSILON_MM) {
+      const y = Math.round((start.y + end.y) / 2);
+      const nextStart = sanitizePoint({ ...start, y });
+      const nextEnd = sanitizePoint({ ...end, y });
+      repairs.push(`已将直墙 ${wall.id} 修正为水平。`);
+      return { ...wall, start: nextStart, end: nextEnd, length: getLineLength(nextStart, nextEnd) };
+    }
+
     const status = getOrthogonalStatus(start, end);
 
     if (status.horizontal || status.vertical || status.diagonal) {
@@ -388,7 +399,7 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
 
   const nextStructure = {
     ...nextStructureBase,
-    rooms: generateRoomsFromWalls(floorId, nextStructureBase.walls)
+    rooms: generateRoomsFromWalls(floorId, nextStructureBase.walls, structure.rooms)
   };
 
   const nextFurniture = furniture.map((item) => {

@@ -77,7 +77,7 @@ export function toggleLock(state: ObjectInteractionState, objectId: string): Obj
 function refreshRooms(structure: HouseStructure): HouseStructure {
   return {
     ...structure,
-    rooms: generateRoomsFromWalls(structure.floorId, structure.walls)
+    rooms: generateRoomsFromWalls(structure.floorId, structure.walls, structure.rooms)
   };
 }
 
