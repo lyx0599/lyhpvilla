@@ -13,6 +13,7 @@ import { initialSemanticObjects } from "@/data/mock-semantic-map";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { createEmptyStructure } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
+import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
 import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseStructure, PlannerMode, SpaceData, ViewMode } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
@@ -196,6 +197,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, parsed.houseStructuresByFloor?.[floor.id]);
         return structuresByFloor;
       }, {} as Record<FloorId, HouseStructure>);
+      const syncedStructures = syncHouseStructuresToReference(nextStructures);
       const nextSelectedFloorId = parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
         ? parsed.selectedFloorId
         : selectedFloorId;
@@ -205,11 +207,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       setSemanticObjects(parsed.semanticObjects ?? initialSemanticObjects);
       setVisualSettingsByFloor(parsed.visualSettingsByFloor ?? initialVisualSettings);
       setCleanPatchesByFloor(parsed.cleanPatchesByFloor ?? initialCleanPatches);
-      setHouseStructuresByFloor(nextStructures);
+      setHouseStructuresByFloor(syncedStructures);
       committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
         floor.id,
         {
-          structure: nextStructures[floor.id],
+          structure: syncedStructures[floor.id],
           furniture: (parsed.furniture ?? data.furniture).filter((item) => item.floorId === floor.id)
         }
       ])) as Partial<Record<FloorId, ModelSnapshot>>;
@@ -388,8 +390,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   function handleHouseStructureChange(structure: HouseStructure) {
     setHouseStructuresByFloor((currentStructures) => ({
-      ...currentStructures,
-      [selectedFloorId]: structure
+      ...syncHouseStructuresToReference({
+        ...currentStructures,
+        [selectedFloorId]: structure
+      })
     }));
   }
 
@@ -460,7 +464,17 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return;
     }
     if (!activeStructureObject) return;
-    const update = <T extends { id: string }>(items: T[]) => items.map((item) => item.id === activeStructureObject.id ? { ...item, ...patch } as T : item);
+    const update = <T extends { id: string }>(items: T[]) => items.map((item) => {
+      if (item.id !== activeStructureObject.id) return item;
+      const next = { ...item, ...patch } as T;
+      if ("kind" in next && next.kind === "arc" && "radius" in next && "startAngle" in next && "endAngle" in next) {
+        return {
+          ...next,
+          length: Math.round((Math.abs(Number(next.endAngle) - Number(next.startAngle)) * Math.PI * Number(next.radius)) / 180)
+        } as T;
+      }
+      return next;
+    });
     handleHouseStructureChange({
       ...floorHouseStructure,
       walls: update(floorHouseStructure.walls),
@@ -477,13 +491,23 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleAutoRepairHouse() {
-    const result = autoRepairHouse(selectedFloorId, floorHouseStructure, floorFurniture);
-    setHouseStructuresByFloor((currentStructures) => ({
-      ...currentStructures,
-      [selectedFloorId]: result.structure
-    }));
-    handleFloorFurnitureChange(result.furniture);
-    setValidatorRepairLog(result.repairs.length > 0 ? result.repairs : ["未发现可自动修复的表达问题。"]);
+    let nextFurniture = furniture;
+    const repairLog: string[] = [];
+    const repairedStructures = data.floors.reduce((structures, floor) => {
+      const structure = structures[floor.id] ?? createEmptyStructure(floor.id);
+      const result = autoRepairHouse(floor.id, structure, nextFurniture.filter((item) => item.floorId === floor.id));
+      structures[floor.id] = result.structure;
+      nextFurniture = [
+        ...nextFurniture.filter((item) => item.floorId !== floor.id),
+        ...result.furniture
+      ];
+      repairLog.push(...result.repairs.map((item) => `${floor.label}: ${item}`));
+      return structures;
+    }, { ...houseStructuresByFloor } as Record<FloorId, HouseStructure>);
+
+    setHouseStructuresByFloor(syncHouseStructuresToReference(repairedStructures));
+    setFurniture(nextFurniture);
+    setValidatorRepairLog(repairLog.length > 0 ? repairLog : ["全屋未发现可自动修复的表达问题。"]);
   }
 
   function handleFloorFurnitureChange(nextFloorFurniture: Furniture[]) {
@@ -688,6 +712,33 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     </label>
                   )}
                   {activeStructureObject && "length" in activeStructureObject && <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">长度：{activeStructureObject.length} mm</p>}
+                  {activeStructureObject && "radius" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      弧墙半径 mm
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="100" type="number" value={activeStructureObject.radius} onChange={(event) => updateActiveObject({ radius: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "startAngle" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      起始角度
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" type="number" value={activeStructureObject.startAngle} onChange={(event) => updateActiveObject({ startAngle: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "endAngle" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      结束角度
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" type="number" value={activeStructureObject.endAngle} onChange={(event) => updateActiveObject({ endAngle: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "direction" in activeStructureObject && "radius" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      弧线方向
+                      <select className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.direction} onChange={(event) => updateActiveObject({ direction: event.target.value })}>
+                        <option value="clockwise">顺时针</option>
+                        <option value="counterclockwise">逆时针</option>
+                      </select>
+                    </label>
+                  )}
                   {activeStructureObject && "width" in activeStructureObject && (
                     <label className="mt-3 block text-xs text-stone-500">
                       宽度 mm

@@ -91,6 +91,32 @@ export function createStraightWall(id: string, floorId: FloorId, start: MmPoint,
   };
 }
 
+export function createArcWall(
+  id: string,
+  floorId: FloorId,
+  center: MmPoint,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+  direction: "clockwise" | "counterclockwise" = "clockwise"
+): HouseWall {
+  return {
+    id,
+    floorId,
+    name: `Arc Wall ${id.split("-").slice(-1)[0]}`,
+    kind: "arc",
+    geometryType: "arc",
+    center,
+    radius,
+    startAngle,
+    endAngle,
+    thickness: DEFAULT_WALL_THICKNESS_MM,
+    height: DEFAULT_WALL_HEIGHT_MM,
+    direction,
+    length: Math.round((Math.abs(endAngle - startAngle) * Math.PI * radius) / 180)
+  };
+}
+
 export function createPartition(id: string, floorId: FloorId, start: MmPoint, end: MmPoint): HousePartition {
   return {
     id,

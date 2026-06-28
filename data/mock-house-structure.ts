@@ -1,4 +1,5 @@
-import { createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls } from "@/lib/house-geometry";
+import { createArcWall, createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls } from "@/lib/house-geometry";
+import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
 import type { FloorId, HouseBayWindow, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
 
 function wall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
@@ -75,7 +76,7 @@ function structure(floorId: FloorId, walls: HouseWall[], partitions: HousePartit
   };
 }
 
-export const initialHouseStructures: Record<FloorId, HouseStructure> = {
+const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
   "1F": structure("1F", [
     wall("W-1F-001", "1F", { x: 950, y: 2700 }, { x: 4200, y: 2700 }),
     wall("W-1F-002", "1F", { x: 4200, y: 2700 }, { x: 4200, y: 7800 }),
@@ -113,6 +114,7 @@ export const initialHouseStructures: Record<FloorId, HouseStructure> = {
     wall("W-B1-001", "B1", { x: 2600, y: 300 }, { x: 8500, y: 300 }),
     wall("W-B1-002", "B1", { x: 8500, y: 300 }, { x: 8500, y: 3500 }),
     wall("W-B1-003", "B1", { x: 8500, y: 3500 }, { x: 5100, y: 3500 }),
+    createArcWall("AW-B1-001", "B1", { x: 2000, y: 7000 }, 800, 90, 180, "clockwise"),
     wall("W-B1-004", "B1", { x: 5100, y: 6700 }, { x: 6900, y: 6700 }),
     wall("W-B1-005", "B1", { x: 6900, y: 6700 }, { x: 6900, y: 8600 }),
     wall("W-B1-006", "B1", { x: 6900, y: 8600 }, { x: 1200, y: 8600 }),
@@ -151,3 +153,5 @@ export const initialHouseStructures: Record<FloorId, HouseStructure> = {
     ]
   })
 };
+
+export const initialHouseStructures: Record<FloorId, HouseStructure> = syncHouseStructuresToReference(rawInitialHouseStructures);
