@@ -16,10 +16,9 @@ GitHub 仓库的 `Settings -> Pages` 已设置为 GitHub Actions 后，推送到
 
 工作流会完成这些步骤：
 
-- 安装依赖
-- 使用 `NEXT_PUBLIC_BASE_PATH=/lyhpvilla pnpm build` 构建静态站点
-- 给 `out` 目录添加 `.nojekyll`
+- 从仓库读取已经构建好的 `out` 目录
 - 上传 `out` 作为 GitHub Pages 发布包
+- 部署到 GitHub Pages
 
 ## 本地构建
 
@@ -33,7 +32,10 @@ pnpm build
 
 ```bash
 NEXT_PUBLIC_BASE_PATH=/lyhpvilla pnpm build
+touch out/.nojekyll
 ```
+
+发布前需要提交代码改动和生成后的 `out` 目录。这样 GitHub Actions 不需要在线安装依赖，发布更稳定。
 
 ## 数据方式
 

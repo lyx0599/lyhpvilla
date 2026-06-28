@@ -76,7 +76,14 @@ http://localhost:3000
 pnpm build
 ```
 
-构建后会生成 `out` 目录。正式发布使用 GitHub Actions，配置在 `.github/workflows/pages.yml`。推送到 `main` 后会自动发布到：
+GitHub Pages 使用仓库中的 `out` 目录作为静态发布包。发布前先构建 GitHub Pages 子路径版本：
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/lyhpvilla pnpm build
+touch out/.nojekyll
+```
+
+然后提交代码和 `out` 目录。推送到 `main` 后，`.github/workflows/pages.yml` 会自动上传 `out` 并发布到：
 
 ```text
 https://lyx0599.github.io/lyhpvilla/
