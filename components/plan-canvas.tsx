@@ -281,7 +281,8 @@ export function PlanCanvas({
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
-  const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId>("all-level");
+  const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId | null>(null);
+  const [selectedSyncWallId, setSelectedSyncWallId] = useState("");
   const [interactionState, setInteractionState] = useState(emptyInteractionState);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; panX: number; panY: number } | null>(null);
   const structureDragRef = useRef<{ pointerId: number; objectId: string; pointKey: "start" | "end"; moved: boolean } | null>(null);
@@ -293,6 +294,18 @@ export function PlanCanvas({
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
   const planBounds = useMemo(() => getPlanBounds(floor.id), [floor.id]);
+
+  useEffect(() => {
+    setSelectedSyncWallId("");
+    setSyncPaintRuleId(null);
+  }, [floor.id, sheetMode]);
+
+  useEffect(() => {
+    if (sheetMode !== "sync") return;
+    if (houseStructure.walls.some((wall) => wall.id === selectedStructureId)) {
+      setSelectedSyncWallId(selectedStructureId);
+    }
+  }, [houseStructure.walls, selectedStructureId, sheetMode]);
   const basePlanRect = useMemo(() => ({
     left: `${((0 - planBounds.x) / planBounds.width) * 100}%`,
     top: `${((0 - planBounds.y) / planBounds.height) * 100}%`,
@@ -478,18 +491,29 @@ export function PlanCanvas({
     });
   }
 
-  function applyWallSyncOverride(wallId: string) {
+  function applyWallSyncOverride(wallId: string, ruleId: SyncPaintRuleId) {
     if (sheetMode !== "sync") return;
     const nextOverrides = { ...wallSyncOverrides };
-    if (syncPaintRuleId === "default") {
+    if (ruleId === "default") {
       delete nextOverrides[wallId];
       setStructureMessage(`${wallId} 已恢复默认联动规则`);
     } else {
-      nextOverrides[wallId] = syncPaintRuleId as WallSyncRuleId;
-      const label = syncPaintTools.find((item) => item.id === syncPaintRuleId)?.label ?? "自定义";
+      nextOverrides[wallId] = ruleId as WallSyncRuleId;
+      const label = syncPaintTools.find((item) => item.id === ruleId)?.label ?? "自定义";
       setStructureMessage(`${wallId} 已标记为 ${label}`);
     }
     onWallSyncOverridesChange(nextOverrides);
+  }
+
+  function handleSyncPaintToolSelect(ruleId: SyncPaintRuleId) {
+    setSyncPaintRuleId(ruleId);
+    const selectedWallId = selectedSyncWallId || (houseStructure.walls.some((wall) => wall.id === selectedStructureId) ? selectedStructureId : "");
+    if (selectedWallId) {
+      applyWallSyncOverride(selectedWallId, ruleId);
+      return;
+    }
+    const label = syncPaintTools.find((item) => item.id === ruleId)?.label ?? "规则";
+    setStructureMessage(`已选择 ${label}，再点一面墙`);
   }
 
   function commitInteractionModel(nextModel: { houseStructure: HouseStructure; furniture: Furniture[] }) {
@@ -1109,6 +1133,13 @@ export function PlanCanvas({
     setSelectedStructureId(objectId);
     selectObject(objectId);
     onActiveObjectChange(objectId);
+    if (sheetMode === "sync" && houseStructure.walls.some((wall) => wall.id === objectId)) {
+      setSelectedSyncWallId(objectId);
+      if (syncPaintRuleId) {
+        applyWallSyncOverride(objectId, syncPaintRuleId);
+        return;
+      }
+    }
     if (message) setStructureMessage(message);
   }
 
@@ -1169,6 +1200,27 @@ export function PlanCanvas({
     setStructureMessage("已调整窗宽。");
   }
 
+  function resizeSelectedStair(deltaLength: number) {
+    if (!selectedStair || objectIsLocked(selectedStair.id)) return;
+
+    const currentLength = Math.max(1, getLineLength(selectedStair.start, selectedStair.end));
+    const nextLength = Math.max(600, currentLength + deltaLength);
+    const ux = (selectedStair.end.x - selectedStair.start.x) / currentLength;
+    const uy = (selectedStair.end.y - selectedStair.start.y) / currentLength;
+    const nextEnd = {
+      x: Math.round(selectedStair.start.x + ux * nextLength),
+      y: Math.round(selectedStair.start.y + uy * nextLength)
+    };
+
+    onHouseStructureChange({
+      ...houseStructure,
+      stairs: houseStructure.stairs.map((stair) => stair.id === selectedStair.id
+        ? { ...stair, end: nextEnd }
+        : stair)
+    });
+    setStructureMessage(`已调整楼梯长度为 ${nextLength} mm。`);
+  }
+
   function rotateSelectedFurniture() {
     const objectId = interactionState.selectedObjectId || selectedFurnitureId;
     if (!furniture.some((item) => item.id === objectId)) return;
@@ -1218,6 +1270,7 @@ export function PlanCanvas({
   const canDeleteSelectedFurniture = Boolean(selectedInteractionFurniture && !selectedInteractionFurniture.locked && !objectIsLocked(selectedInteractionFurniture.id));
   const canDeleteSelectedObject = canDeleteSelectedStructure || canDeleteSelectedFurniture;
   const selectedWall = houseStructure.walls.find((wall) => wall.id === selectedStructureId);
+  const selectedStair = houseStructure.stairs.find((stair) => stair.id === selectedStructureId);
   const selectedDoor = houseStructure.doors.find((door) => door.id === selectedStructureId);
   const selectedWindow = houseStructure.windows.find((windowObject) => windowObject.id === selectedStructureId);
   const selectedBayWindow = houseStructure.bayWindows.find((bayWindow) => bayWindow.id === selectedStructureId);
@@ -1832,6 +1885,32 @@ export function PlanCanvas({
     );
   }
 
+  function getSyncWallPresentation(wall: HouseWall) {
+    const override = wallSyncOverrides[wall.id];
+    const overrideTool = syncPaintTools.find((item) => item.id === override);
+    const rule = getWallSyncRule(floor.id, wall.id, wallSyncOverrides);
+    return {
+      color: overrideTool?.color ?? rule?.color ?? "#94a3b8",
+      label: overrideTool?.label ?? rule?.label ?? "独立"
+    };
+  }
+
+  function getVisibleWallStroke(wall: HouseWall, isSelected: boolean, isHovered: boolean, locked: boolean) {
+    if (isSyncSheetMode) {
+      return {
+        color: getSyncWallPresentation(wall).color,
+        width: isSelected || isHovered ? wall.thickness + 76 : wall.thickness + 30,
+        opacity: locked ? 0.55 : 1
+      };
+    }
+
+    return {
+      color: locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#334155" : "#5e6468",
+      width: isSelected || isHovered ? wall.thickness + 34 : wall.thickness,
+      opacity: locked ? 0.55 : 1
+    };
+  }
+
   function renderSyncRuleOverlay() {
     if (!isSyncSheetMode) return null;
 
@@ -1851,7 +1930,7 @@ export function PlanCanvas({
     const legendY = planBounds.y + 520;
 
     return (
-      <g data-layer="SyncRuleOverlay">
+      <g data-layer="SyncRuleOverlay" pointerEvents="none">
         <rect
           x={legendX - 180}
           y={legendY - 300}
@@ -1874,70 +1953,10 @@ export function PlanCanvas({
           );
         })}
         {houseStructure.walls.map((wall) => {
-          const override = wallSyncOverrides[wall.id];
-          const overrideTool = syncPaintTools.find((item) => item.id === override);
-          const rule = getWallSyncRule(floor.id, wall.id, wallSyncOverrides);
-          const color = overrideTool?.color ?? rule?.color ?? "#94a3b8";
-          const label = overrideTool?.label ?? rule?.label ?? "独立";
+          const { color, label } = getSyncWallPresentation(wall);
           const point = getWallLabelPoint(wall);
-          const canPaintSyncRule = plannerMode === "edit";
-          const hitPadding = Math.max(wall.thickness + 360, 520) / 2;
-          const handlePaintSyncRule = (event: MouseEvent<SVGElement>) => {
-            if (!canPaintSyncRule) return;
-            event.stopPropagation();
-            applyWallSyncOverride(wall.id);
-          };
           return (
             <g key={`sync-wall-${wall.id}`}>
-              {wall.kind === "arc" ? (
-                <>
-                  <path
-                    d={getArcPath(wall)}
-                    data-sync-wall-hit={wall.id}
-                    className={canPaintSyncRule ? "cursor-pointer" : undefined}
-                    fill="none"
-                    pointerEvents="stroke"
-                    stroke="transparent"
-                    strokeLinecap="round"
-                    strokeWidth={Math.max(wall.thickness + 360, 520)}
-                    onClick={handlePaintSyncRule}
-                  />
-                  <path
-                    d={getArcPath(wall)}
-                    fill="none"
-                    pointerEvents="none"
-                    stroke={color}
-                    strokeLinecap="round"
-                    strokeOpacity={0.82}
-                    strokeWidth={wall.thickness + 110}
-                  />
-                </>
-              ) : (
-                <>
-                  <rect
-                    x={Math.min(wall.start.x, wall.end.x) - hitPadding}
-                    y={Math.min(wall.start.y, wall.end.y) - hitPadding}
-                    width={Math.abs(wall.end.x - wall.start.x) + hitPadding * 2}
-                    height={Math.abs(wall.end.y - wall.start.y) + hitPadding * 2}
-                    data-sync-wall-hit={wall.id}
-                    className={canPaintSyncRule ? "cursor-pointer" : undefined}
-                    fill="transparent"
-                    pointerEvents="all"
-                    onClick={handlePaintSyncRule}
-                  />
-                  <line
-                    x1={wall.start.x}
-                    y1={wall.start.y}
-                    x2={wall.end.x}
-                    y2={wall.end.y}
-                    pointerEvents="none"
-                    stroke={color}
-                    strokeLinecap="square"
-                    strokeOpacity={0.82}
-                    strokeWidth={wall.thickness + 110}
-                  />
-                </>
-              )}
               <text x={point.x} y={point.y - 170} fill={color} fontSize={150} fontWeight={900} pointerEvents="none" textAnchor="middle">{wall.id}</text>
               <text x={point.x} y={point.y + 20} fill={color} fontSize={118} fontWeight={800} pointerEvents="none" textAnchor="middle">{label}</text>
             </g>
@@ -1950,16 +1969,6 @@ export function PlanCanvas({
           };
           return (
             <g key={`sync-stair-${stair.id}`}>
-              <line
-                x1={stair.start.x}
-                y1={stair.start.y}
-                x2={stair.end.x}
-                y2={stair.end.y}
-                stroke={stairRule.color}
-                strokeLinecap="round"
-                strokeOpacity={0.72}
-                strokeWidth={stair.width + 80}
-              />
               <text x={point.x} y={point.y - 260} fill={stairRule.color} fontSize={150} fontWeight={900} textAnchor="middle">{stair.id}</text>
               <text x={point.x} y={point.y - 70} fill={stairRule.color} fontSize={118} fontWeight={800} textAnchor="middle">楼梯四层</text>
             </g>
@@ -2653,7 +2662,7 @@ export function PlanCanvas({
                           className={`flex min-h-10 items-center gap-2 rounded-lg border px-2 py-1.5 text-left font-semibold transition ${
                             syncPaintRuleId === tool.id ? "border-blue-500 bg-blue-50 text-blue-700" : "border-stone-200 bg-slate-50 text-stone-600 hover:bg-stone-100"
                           }`}
-                          onClick={() => setSyncPaintRuleId(tool.id)}
+                          onClick={() => handleSyncPaintToolSelect(tool.id)}
                           type="button"
                         >
                           <span className="size-4 shrink-0 rounded-full border border-stone-300" style={{ backgroundColor: tool.color }} />
@@ -2774,6 +2783,20 @@ export function PlanCanvas({
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={splitSelectedWall} type="button">分割墙体</button>
                       <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={mergeSelectedWall} type="button">合并墙体</button>
+                    </div>
+                  )}
+                  {selectedStair && (
+                    <div className="mt-2 rounded-xl border border-stone-200 bg-slate-50 p-2">
+                      <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                        <span className="font-semibold text-ink">楼梯长度</span>
+                        <span className="font-semibold text-stone-500">{getLineLength(selectedStair.start, selectedStair.end)} mm</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <button className="rounded-xl bg-white px-2 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={() => resizeSelectedStair(-500)} type="button">-500</button>
+                        <button className="rounded-xl bg-white px-2 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={() => resizeSelectedStair(-100)} type="button">-100</button>
+                        <button className="rounded-xl bg-white px-2 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={() => resizeSelectedStair(100)} type="button">+100</button>
+                        <button className="rounded-xl bg-white px-2 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={() => resizeSelectedStair(500)} type="button">+500</button>
+                      </div>
                     </div>
                   )}
                   {selectedDoor && (
@@ -3042,6 +3065,7 @@ export function PlanCanvas({
                   const isSelected = isObjectSelected(wall.id);
                   const isHovered = isObjectHovered(wall.id);
                   const locked = objectIsLocked(wall.id);
+                  const visibleStroke = getVisibleWallStroke(wall, isSelected, isHovered, locked);
                   if (wall.kind === "arc") {
                     return (
                       <g key={wall.id}>
@@ -3073,25 +3097,26 @@ export function PlanCanvas({
                           d={getArcPath(wall)}
                           fill="none"
                           pointerEvents="none"
-                          stroke={locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#334155" : "#5e6468"}
+                          stroke={visibleStroke.color}
                           strokeLinecap="round"
-                          strokeWidth={isSelected || isHovered ? wall.thickness + 34 : wall.thickness}
-                          opacity={locked ? 0.55 : 1}
+                          strokeWidth={visibleStroke.width}
+                          opacity={visibleStroke.opacity}
                         />
                       </g>
                     );
                   }
+                  const hitPadding = Math.max(260, wall.thickness + 110);
                   return (
                     <g key={wall.id}>
-                      <line
-                        x1={wall.start.x}
-                        y1={wall.start.y}
-                        x2={wall.end.x}
-                        y2={wall.end.y}
+                      <rect
+                        x={Math.min(wall.start.x, wall.end.x) - hitPadding}
+                        y={Math.min(wall.start.y, wall.end.y) - hitPadding}
+                        width={Math.abs(wall.end.x - wall.start.x) + hitPadding * 2}
+                        height={Math.abs(wall.end.y - wall.start.y) + hitPadding * 2}
+                        data-wall-hit={wall.id}
+                        fill="transparent"
                         stroke="transparent"
-                        pointerEvents="stroke"
-                        strokeLinecap="square"
-                        strokeWidth={Math.max(420, wall.thickness + 220)}
+                        pointerEvents="all"
                         onClick={(event) => {
                           event.stopPropagation();
                           if (shouldIgnoreStructureSelection()) return;
@@ -3115,10 +3140,10 @@ export function PlanCanvas({
                         x2={wall.end.x}
                         y2={wall.end.y}
                         pointerEvents="none"
-                        stroke={locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#334155" : "#5e6468"}
+                        stroke={visibleStroke.color}
                         strokeLinecap="square"
-                        strokeWidth={isSelected || isHovered ? wall.thickness + 34 : wall.thickness}
-                        opacity={locked ? 0.55 : 1}
+                        strokeWidth={visibleStroke.width}
+                        opacity={visibleStroke.opacity}
                       />
                       {locked && <text x={(wall.start.x + wall.end.x) / 2} y={(wall.start.y + wall.end.y) / 2 - 140} fill="#92400e" fontSize={160} fontWeight={700}>LOCK</text>}
                       {renderDragHandle(wall.id, "start", wall.start)}
@@ -3481,10 +3506,10 @@ export function PlanCanvas({
               )}
             </svg>
 
-            <div className="absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
+            <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
               {planSheetModeLabels[sheetMode]}：{planSheetModeDescriptions[sheetMode]}
             </div>
-            <div className="absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+            <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
               {planSheetModeFootnotes[sheetMode]}
             </div>
 
