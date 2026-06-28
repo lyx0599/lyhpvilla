@@ -1,0 +1,773 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { FloorSidebar } from "@/components/floor-sidebar";
+import { FurnitureDetails } from "@/components/furniture-details";
+import { MobileDetailsDrawer } from "@/components/mobile-details-drawer";
+import { PlanCanvas } from "@/components/plan-canvas";
+import { SemanticMapPanel } from "@/components/semantic-map-panel";
+import { ViewToggle } from "@/components/view-toggle";
+import { initialHouseStructures } from "@/data/mock-house-structure";
+import { initialSemanticObjects } from "@/data/mock-semantic-map";
+import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
+import { createEmptyStructure } from "@/lib/house-geometry";
+import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
+import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseStructure, PlannerMode, SpaceData, ViewMode } from "@/types/space";
+import type { SemanticObject } from "@/types/semantic-map";
+
+type ModelSnapshot = {
+  structure: HouseStructure;
+  furniture: Furniture[];
+};
+
+type FloorHistory = {
+  past: ModelSnapshot[];
+  future: ModelSnapshot[];
+};
+
+type RightPanelKey = "workflow" | "status" | "object" | "details" | "semantic";
+
+const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v1";
+
+type PersistedWebWorkspace = {
+  selectedFloorId: FloorId;
+  furniture: Furniture[];
+  semanticObjects: SemanticObject[];
+  visualSettingsByFloor: Record<FloorId, FloorPlanVisualSettings>;
+  cleanPatchesByFloor: Record<FloorId, CleanPatch[]>;
+  houseStructuresByFloor: Record<FloorId, HouseStructure>;
+};
+
+function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | undefined): HouseStructure {
+  const emptyStructure = createEmptyStructure(floorId);
+  if (!structure) return emptyStructure;
+  return {
+    ...emptyStructure,
+    ...structure,
+    floorId,
+    coordinateSystem: structure.coordinateSystem ?? emptyStructure.coordinateSystem,
+    walls: structure.walls ?? [],
+    rooms: structure.rooms ?? [],
+    partitions: structure.partitions ?? [],
+    stairs: structure.stairs ?? [],
+    fences: structure.fences ?? [],
+    outdoorSurfaces: structure.outdoorSurfaces ?? [],
+    doors: structure.doors ?? [],
+    windows: structure.windows ?? [],
+    bayWindows: structure.bayWindows ?? [],
+    outdoors: structure.outdoors ?? []
+  };
+}
+
+function RightPanelCard({
+  id,
+  title,
+  eyebrow,
+  summary,
+  open,
+  onToggle,
+  children
+}: {
+  id: RightPanelKey;
+  title: string;
+  eyebrow: string;
+  summary: string;
+  open: boolean;
+  onToggle: (id: RightPanelKey) => void;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-stone-200 bg-white text-sm shadow-sm">
+      <button
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-stone-50"
+        onClick={() => onToggle(id)}
+        type="button"
+      >
+        <span className="min-w-0">
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">{eyebrow}</span>
+          <span className="mt-0.5 block font-semibold text-ink">{title}</span>
+          <span className="mt-0.5 block truncate text-xs text-stone-500">{summary}</span>
+        </span>
+        <span className={`grid size-7 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-stone-500 transition ${open ? "rotate-180" : ""}`}>⌄</span>
+      </button>
+      {open && <div className="border-t border-stone-100 p-4">{children}</div>}
+    </section>
+  );
+}
+
+export function SpacePlanner({ data }: { data: SpaceData }) {
+  const initialVisualSettings = data.floors.reduce((settingsByFloor, floor) => {
+    settingsByFloor[floor.id] = floor.visualSettings ?? getDefaultVisualSettings();
+    return settingsByFloor;
+  }, {} as Record<FloorId, FloorPlanVisualSettings>);
+  const initialCleanPatches = data.floors.reduce((patchesByFloor, floor) => {
+    patchesByFloor[floor.id] = [];
+    return patchesByFloor;
+  }, {} as Record<FloorId, CleanPatch[]>);
+
+  const [selectedFloorId, setSelectedFloorId] = useState<FloorId>("1F");
+  const [furniture, setFurniture] = useState<Furniture[]>(data.furniture);
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture[0]?.id ?? "");
+  const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(initialSemanticObjects);
+  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(initialSemanticObjects.find((object) => object.floorId === "1F")?.id ?? "");
+  const [viewMode, setViewMode] = useState<ViewMode>("2d");
+  const [plannerMode, setPlannerMode] = useState<PlannerMode>("edit");
+  const [drawTool, setDrawTool] = useState<DrawTool>("select");
+  const [floorPlanScale, setFloorPlanScale] = useState(1);
+  const [visualSettingsByFloor, setVisualSettingsByFloor] = useState<Record<FloorId, FloorPlanVisualSettings>>(initialVisualSettings);
+  const [cleanPatchesByFloor, setCleanPatchesByFloor] = useState<Record<FloorId, CleanPatch[]>>(initialCleanPatches);
+  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(initialHouseStructures);
+  const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
+  const [focusMode, setFocusMode] = useState(false);
+  const [activeObjectId, setActiveObjectId] = useState("");
+  const [locateObjectRequest, setLocateObjectRequest] = useState<{ id: string; nonce: number } | null>(null);
+  const [hasLoadedWebWorkspace, setHasLoadedWebWorkspace] = useState(false);
+  const [webSaveStatus, setWebSaveStatus] = useState<"loading" | "saved" | "saving" | "error">("loading");
+  const [openRightPanels, setOpenRightPanels] = useState<Record<RightPanelKey, boolean>>({
+    workflow: true,
+    status: true,
+    object: true,
+    details: false,
+    semantic: false
+  });
+  const [historyByFloor, setHistoryByFloor] = useState<Partial<Record<FloorId, FloorHistory>>>({});
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const webSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingHistoryBaseRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>({});
+  const suppressHistoryRef = useRef(false);
+  const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
+    Object.fromEntries(data.floors.map((floor) => [
+      floor.id,
+      {
+        structure: initialHouseStructures[floor.id] ?? createEmptyStructure(floor.id),
+        furniture: data.furniture.filter((item) => item.floorId === floor.id)
+      }
+    ])) as Partial<Record<FloorId, ModelSnapshot>>
+  );
+
+  const currentFloor = data.floors.find((floor) => floor.id === selectedFloorId) ?? data.floors[0];
+  const floorPlanVisualSettings = visualSettingsByFloor[selectedFloorId] ?? getDefaultVisualSettings();
+  const floorCleanPatches = cleanPatchesByFloor[selectedFloorId] ?? [];
+  const floorHouseStructure = houseStructuresByFloor[selectedFloorId] ?? createEmptyStructure(selectedFloorId);
+  const floorFurniture = useMemo(
+    () => furniture.filter((item) => item.floorId === selectedFloorId),
+    [furniture, selectedFloorId]
+  );
+  const floorRooms = useMemo(() => data.rooms.filter((room) => room.floorId === selectedFloorId), [data.rooms, selectedFloorId]);
+  const floorWalls = useMemo(() => data.walls.filter((wall) => wall.floorId === selectedFloorId), [data.walls, selectedFloorId]);
+  const floorSemanticObjects = useMemo(
+    () => semanticObjects.filter((object) => object.floorId === selectedFloorId),
+    [semanticObjects, selectedFloorId]
+  );
+  const selectedFurniture = furniture.find((item) => item.id === selectedFurnitureId) ?? floorFurniture[0] ?? null;
+  const selectedSemanticObject = semanticObjects.find((object) => object.id === selectedSemanticObjectId) ?? null;
+  const houseValidation = useMemo(
+    () => validateHouse(selectedFloorId, floorHouseStructure, floorFurniture),
+    [selectedFloorId, floorHouseStructure, floorFurniture]
+  );
+  const floorHistory = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
+  const activeStructureObject = useMemo(() => (
+    floorHouseStructure.walls.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.partitions.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.stairs.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.fences.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.outdoorSurfaces.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.rooms.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.doors.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.windows.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.bayWindows.find((item) => item.id === activeObjectId) ??
+    floorHouseStructure.outdoors.find((item) => item.id === activeObjectId) ??
+    null
+  ), [activeObjectId, floorHouseStructure]);
+  const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+
+  useEffect(() => {
+    try {
+      const savedWorkspace = window.localStorage.getItem(WEB_WORKSPACE_STORAGE_KEY);
+      if (!savedWorkspace) {
+        setHasLoadedWebWorkspace(true);
+        setWebSaveStatus("saved");
+        return;
+      }
+
+      const parsed = JSON.parse(savedWorkspace) as Partial<PersistedWebWorkspace>;
+      const nextStructures = data.floors.reduce((structuresByFloor, floor) => {
+        structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, parsed.houseStructuresByFloor?.[floor.id]);
+        return structuresByFloor;
+      }, {} as Record<FloorId, HouseStructure>);
+      const nextSelectedFloorId = parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
+        ? parsed.selectedFloorId
+        : selectedFloorId;
+
+      setSelectedFloorId(nextSelectedFloorId);
+      setFurniture(parsed.furniture ?? data.furniture);
+      setSemanticObjects(parsed.semanticObjects ?? initialSemanticObjects);
+      setVisualSettingsByFloor(parsed.visualSettingsByFloor ?? initialVisualSettings);
+      setCleanPatchesByFloor(parsed.cleanPatchesByFloor ?? initialCleanPatches);
+      setHouseStructuresByFloor(nextStructures);
+      committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
+        floor.id,
+        {
+          structure: nextStructures[floor.id],
+          furniture: (parsed.furniture ?? data.furniture).filter((item) => item.floorId === floor.id)
+        }
+      ])) as Partial<Record<FloorId, ModelSnapshot>>;
+      setSelectedFurnitureId((parsed.furniture ?? data.furniture).find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
+      setSelectedSemanticObjectId((parsed.semanticObjects ?? initialSemanticObjects).find((object) => object.floorId === nextSelectedFloorId)?.id ?? "");
+      setHasLoadedWebWorkspace(true);
+      setWebSaveStatus("saved");
+    } catch {
+      setHasLoadedWebWorkspace(true);
+      setWebSaveStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedWebWorkspace) return;
+    if (webSaveTimerRef.current) clearTimeout(webSaveTimerRef.current);
+    setWebSaveStatus("saving");
+    webSaveTimerRef.current = setTimeout(() => {
+      try {
+        const workspace: PersistedWebWorkspace = {
+          selectedFloorId,
+          furniture,
+          semanticObjects,
+          visualSettingsByFloor,
+          cleanPatchesByFloor,
+          houseStructuresByFloor
+        };
+        window.localStorage.setItem(WEB_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
+        setWebSaveStatus("saved");
+      } catch {
+        setWebSaveStatus("error");
+      }
+    }, 450);
+
+    return () => {
+      if (webSaveTimerRef.current) clearTimeout(webSaveTimerRef.current);
+    };
+  }, [
+    hasLoadedWebWorkspace,
+    selectedFloorId,
+    furniture,
+    semanticObjects,
+    visualSettingsByFloor,
+    cleanPatchesByFloor,
+    houseStructuresByFloor
+  ]);
+
+  useEffect(() => {
+    const floorId = selectedFloorId;
+    const current: ModelSnapshot = { structure: floorHouseStructure, furniture: floorFurniture };
+    if (suppressHistoryRef.current) {
+      suppressHistoryRef.current = false;
+      committedModelRef.current[floorId] = current;
+      return;
+    }
+
+    const committed = committedModelRef.current[floorId];
+    if (!committed || JSON.stringify(committed) === JSON.stringify(current)) return;
+    pendingHistoryBaseRef.current[floorId] ??= committed;
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = setTimeout(() => {
+      const base = pendingHistoryBaseRef.current[floorId];
+      if (!base) return;
+      setHistoryByFloor((currentHistory) => {
+        const history = currentHistory[floorId] ?? { past: [], future: [] };
+        return {
+          ...currentHistory,
+          [floorId]: {
+            past: [...history.past.slice(-39), base],
+            future: []
+          }
+        };
+      });
+      committedModelRef.current[floorId] = current;
+      delete pendingHistoryBaseRef.current[floorId];
+    }, 320);
+
+    return () => {
+      if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    };
+  }, [selectedFloorId, floorHouseStructure, floorFurniture]);
+
+  function handleFloorChange(floorId: FloorId) {
+    setSelectedFloorId(floorId);
+    const firstFurniture = furniture.find((item) => item.floorId === floorId);
+    const firstSemanticObject = semanticObjects.find((object) => object.floorId === floorId);
+    setSelectedFurnitureId(firstFurniture?.id ?? "");
+    setSelectedSemanticObjectId(firstSemanticObject?.id ?? "");
+    setDrawTool("select");
+    setActiveObjectId("");
+    setLocateObjectRequest(null);
+  }
+
+  function resetWebWorkspace() {
+    window.localStorage.removeItem(WEB_WORKSPACE_STORAGE_KEY);
+    setSelectedFloorId("1F");
+    setFurniture(data.furniture);
+    setSelectedFurnitureId(data.furniture[0]?.id ?? "");
+    setSemanticObjects(initialSemanticObjects);
+    setSelectedSemanticObjectId(initialSemanticObjects.find((object) => object.floorId === "1F")?.id ?? "");
+    setVisualSettingsByFloor(initialVisualSettings);
+    setCleanPatchesByFloor(initialCleanPatches);
+    setHouseStructuresByFloor(initialHouseStructures);
+    setHistoryByFloor({});
+    setValidatorRepairLog([]);
+    setActiveObjectId("");
+    setLocateObjectRequest(null);
+    committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
+      floor.id,
+      {
+        structure: initialHouseStructures[floor.id] ?? createEmptyStructure(floor.id),
+        furniture: data.furniture.filter((item) => item.floorId === floor.id)
+      }
+    ])) as Partial<Record<FloorId, ModelSnapshot>>;
+    setWebSaveStatus("saved");
+  }
+
+  function handleFurnitureSelect(furniture: Furniture) {
+    setSelectedFurnitureId(furniture.id);
+  }
+
+  function handleSemanticObjectSelect(object: SemanticObject) {
+    setSelectedSemanticObjectId(object.id);
+  }
+
+  function handleCreateSemanticObject(object: SemanticObject) {
+    setSemanticObjects((currentObjects) => [...currentObjects, object]);
+    setSelectedSemanticObjectId(object.id);
+  }
+
+  function handleUpdateSemanticObject(object: SemanticObject) {
+    setSemanticObjects((currentObjects) => currentObjects.map((item) => item.id === object.id ? object : item));
+    setSelectedSemanticObjectId(object.id);
+  }
+
+  function handleMoveSemanticObject(objectId: string, position: { x: number; y: number }) {
+    setSemanticObjects((currentObjects) => currentObjects.map((item) => {
+      if (item.id !== objectId) return item;
+      const details = item.details as Record<string, unknown>;
+      return {
+        ...item,
+        position,
+        details: {
+          ...details,
+          position
+        }
+      };
+    }));
+  }
+
+  function handleDeleteSemanticObject(objectId: string) {
+    setSemanticObjects((currentObjects) => currentObjects.filter((item) => item.id !== objectId));
+    if (selectedSemanticObjectId === objectId) {
+      const nextObject = semanticObjects.find((item) => item.id !== objectId && item.floorId === selectedFloorId);
+      setSelectedSemanticObjectId(nextObject?.id ?? "");
+    }
+  }
+
+  const handleScaleChange = useCallback((scale: number) => {
+    setFloorPlanScale(scale);
+  }, []);
+
+  function handleFloorPlanVisualSettingsChange(settings: FloorPlanVisualSettings) {
+    setVisualSettingsByFloor((currentSettings) => ({
+      ...currentSettings,
+      [selectedFloorId]: settings
+    }));
+  }
+
+  function handleCleanPatchesChange(patches: CleanPatch[]) {
+    setCleanPatchesByFloor((currentPatches) => ({
+      ...currentPatches,
+      [selectedFloorId]: patches
+    }));
+  }
+
+  function handleHouseStructureChange(structure: HouseStructure) {
+    setHouseStructuresByFloor((currentStructures) => ({
+      ...currentStructures,
+      [selectedFloorId]: structure
+    }));
+  }
+
+  function applySnapshot(snapshot: ModelSnapshot) {
+    suppressHistoryRef.current = true;
+    committedModelRef.current[selectedFloorId] = snapshot;
+    setHouseStructuresByFloor((currentStructures) => ({
+      ...currentStructures,
+      [selectedFloorId]: snapshot.structure
+    }));
+    setFurniture((currentFurniture) => [
+      ...currentFurniture.filter((item) => item.floorId !== selectedFloorId),
+      ...snapshot.furniture
+    ]);
+    setActiveObjectId("");
+  }
+
+  function handleUndo() {
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    const pendingBase = pendingHistoryBaseRef.current[selectedFloorId];
+    const history = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
+    const current = { structure: floorHouseStructure, furniture: floorFurniture };
+    const target = pendingBase ?? history.past.at(-1);
+    if (!target) return;
+    delete pendingHistoryBaseRef.current[selectedFloorId];
+    setHistoryByFloor((currentHistory) => ({
+      ...currentHistory,
+      [selectedFloorId]: {
+        past: pendingBase ? history.past : history.past.slice(0, -1),
+        future: [current, ...history.future].slice(0, 40)
+      }
+    }));
+    applySnapshot(target);
+  }
+
+  function handleRedo() {
+    const history = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
+    const target = history.future[0];
+    if (!target) return;
+    const current = { structure: floorHouseStructure, furniture: floorFurniture };
+    setHistoryByFloor((currentHistory) => ({
+      ...currentHistory,
+      [selectedFloorId]: {
+        past: [...history.past, current].slice(-40),
+        future: history.future.slice(1)
+      }
+    }));
+    applySnapshot(target);
+  }
+
+  function locateValidationObject(objectId: string) {
+    setPlannerMode("edit");
+    setDrawTool("select");
+    setActiveObjectId(objectId);
+    setLocateObjectRequest({ id: objectId, nonce: Date.now() });
+  }
+
+  function toggleRightPanel(panelId: RightPanelKey) {
+    setOpenRightPanels((currentPanels) => ({
+      ...currentPanels,
+      [panelId]: !currentPanels[panelId]
+    }));
+  }
+
+  function updateActiveObject(patch: Record<string, unknown>) {
+    if (activeFurniture) {
+      handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? { ...item, ...patch } as Furniture : item));
+      return;
+    }
+    if (!activeStructureObject) return;
+    const update = <T extends { id: string }>(items: T[]) => items.map((item) => item.id === activeStructureObject.id ? { ...item, ...patch } as T : item);
+    handleHouseStructureChange({
+      ...floorHouseStructure,
+      walls: update(floorHouseStructure.walls),
+      partitions: update(floorHouseStructure.partitions),
+      stairs: update(floorHouseStructure.stairs),
+      fences: update(floorHouseStructure.fences),
+      outdoorSurfaces: update(floorHouseStructure.outdoorSurfaces),
+      rooms: update(floorHouseStructure.rooms),
+      doors: update(floorHouseStructure.doors),
+      windows: update(floorHouseStructure.windows),
+      bayWindows: update(floorHouseStructure.bayWindows),
+      outdoors: update(floorHouseStructure.outdoors)
+    });
+  }
+
+  function handleAutoRepairHouse() {
+    const result = autoRepairHouse(selectedFloorId, floorHouseStructure, floorFurniture);
+    setHouseStructuresByFloor((currentStructures) => ({
+      ...currentStructures,
+      [selectedFloorId]: result.structure
+    }));
+    handleFloorFurnitureChange(result.furniture);
+    setValidatorRepairLog(result.repairs.length > 0 ? result.repairs : ["未发现可自动修复的表达问题。"]);
+  }
+
+  function handleFloorFurnitureChange(nextFloorFurniture: Furniture[]) {
+    setFurniture((currentFurniture) => {
+      return [
+        ...currentFurniture.filter((item) => item.floorId !== selectedFloorId),
+        ...nextFloorFurniture
+      ];
+    });
+  }
+
+  return (
+    <main className={`min-h-screen ${focusMode ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
+      <section className={`mx-auto flex min-h-[calc(100vh-1.5rem)] flex-col overflow-hidden border border-white/70 bg-white/72 shadow-soft backdrop-blur md:min-h-[calc(100vh-2.5rem)] ${
+        focusMode ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-1" : "max-w-7xl rounded-[2rem] lg:grid lg:grid-cols-[240px_minmax(0,1fr)_320px]"
+      }`}>
+        {!focusMode && <FloorSidebar floors={data.floors} selectedFloorId={selectedFloorId} onSelectFloor={handleFloorChange} />}
+
+        <section className="flex min-h-0 flex-1 flex-col">
+          {!focusMode && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">Villa Space Studio</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">户型结构网站工作台</h1>
+              <p className="mt-1 text-sm text-stone-500">{currentFloor.label} · {currentFloor.subtitle} · 一套模型，多种表达</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="hidden items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm xl:flex">
+                <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                <span>{webSaveStatus === "error" ? "保存失败" : webSaveStatus === "saving" ? "保存中" : webSaveStatus === "loading" ? "加载中" : "浏览器已保存"}</span>
+                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={resetWebWorkspace} type="button">重置</button>
+              </div>
+              <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
+                <span className="shrink-0 text-stone-500">楼层</span>
+                <select
+                  className="w-full bg-transparent font-semibold text-ink outline-none"
+                  value={selectedFloorId}
+                  onChange={(event) => handleFloorChange(event.target.value as FloorId)}
+                >
+                  {data.floors.map((floor) => (
+                    <option key={floor.id} value={floor.id}>{floor.label} · {floor.subtitle}</option>
+                  ))}
+                </select>
+              </label>
+              <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+              <div className="hidden rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500 lg:flex">
+                {(["view", "edit"] as PlannerMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    className={`rounded-xl px-3 py-2 transition ${plannerMode === mode ? "bg-white text-ink shadow-sm" : "hover:text-ink"}`}
+                    onClick={() => {
+                      setPlannerMode(mode);
+                      if (mode === "view") setDrawTool("select");
+                    }}
+                    type="button"
+                  >
+                    {mode === "view" ? "查看" : "绘制"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>}
+
+          <PlanCanvas
+            floor={currentFloor}
+            rooms={floorRooms}
+            walls={floorWalls}
+            furniture={floorFurniture}
+            semanticObjects={floorSemanticObjects}
+            selectedFurnitureId={selectedFurniture?.id ?? ""}
+            selectedSemanticObjectId={selectedSemanticObjectId}
+            viewMode={viewMode}
+            plannerMode={plannerMode}
+            drawTool={drawTool}
+            houseStructure={floorHouseStructure}
+            floorPlanVisualSettings={floorPlanVisualSettings}
+            cleanPatches={floorCleanPatches}
+            focusMode={focusMode}
+            locateObjectRequest={locateObjectRequest}
+            canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
+            canRedo={floorHistory.future.length > 0}
+            onScaleChange={handleScaleChange}
+            onFocusModeChange={setFocusMode}
+            onActiveObjectChange={setActiveObjectId}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onPlannerModeChange={setPlannerMode}
+            onDrawToolChange={setDrawTool}
+            onHouseStructureChange={handleHouseStructureChange}
+            onFloorPlanVisualSettingsChange={handleFloorPlanVisualSettingsChange}
+            onCleanPatchesChange={handleCleanPatchesChange}
+            onSelectFurniture={handleFurnitureSelect}
+            onFurnitureChange={handleFloorFurnitureChange}
+            onSelectSemanticObject={handleSemanticObjectSelect}
+            onMoveSemanticObject={handleMoveSemanticObject}
+          />
+        </section>
+
+        {!focusMode && <aside className="hidden overflow-y-auto border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
+          <div className="space-y-3">
+            <div className="px-1 pb-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Inspector</p>
+              <h2 className="mt-1 text-lg font-semibold text-ink">结构检查器</h2>
+            </div>
+
+            <RightPanelCard
+              id="workflow"
+              eyebrow="Workflow"
+              title="图纸逻辑"
+              summary="先建结构模型，再派生施工和展示"
+              open={openRightPanels.workflow}
+              onToggle={toggleRightPanel}
+            >
+              <div className="space-y-2 text-xs leading-5 text-stone-600">
+                <div className="rounded-xl bg-blue-50 p-3 text-blue-800">
+                  <p className="font-semibold">当前重点：空白结构</p>
+                  <p className="mt-1">只画墙、门窗、楼梯、院子边界和室外硬地/绿化，保证对象带 ID、可选择、可校验。</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="font-semibold text-ink">施工标注</p>
+                  <p className="mt-1">不单独重画一张 CAD 图，后续从结构模型派生尺寸、洞口、拆改和备注。</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="font-semibold text-ink">家具与效果</p>
+                  <p className="mt-1">家具先作为独立对象；沟通效果以后由 3D 白模、材质和灯光生成。</p>
+                </div>
+              </div>
+            </RightPanelCard>
+
+            <RightPanelCard
+              id="status"
+              eyebrow="Validator"
+              title="模型状态"
+              summary={`${houseValidation.errors.length} 错误 · ${houseValidation.warnings.length} 警告`}
+              open={openRightPanels.status}
+              onToggle={toggleRightPanel}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${houseValidation.valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                  {houseValidation.valid ? "结构通过" : "需检查"}
+                </span>
+                <button className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-ink/90" onClick={handleAutoRepairHouse} type="button">
+                  自动修复
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-xl bg-red-50 px-3 py-2 text-red-700">
+                  <p className="font-semibold">{houseValidation.errors.length}</p>
+                  <p>错误</p>
+                </div>
+                <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-700">
+                  <p className="font-semibold">{houseValidation.warnings.length}</p>
+                  <p>警告</p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                {[...houseValidation.errors, ...houseValidation.warnings].slice(0, 5).map((issue, index) => (
+                  <button key={`${issue.type}-${issue.id}-${index}`} className="block w-full rounded-xl bg-slate-50 p-2 text-left text-xs leading-5 text-slate-600 transition hover:bg-blue-50" onClick={() => locateValidationObject(issue.id)} type="button">
+                    <p className="font-semibold text-ink">{issue.type} · {issue.id}</p>
+                    <p>{issue.message}</p>
+                    <p className="mt-1 font-semibold text-blue-600">定位对象</p>
+                  </button>
+                ))}
+                {houseValidation.errors.length + houseValidation.warnings.length === 0 && (
+                  <p className="rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-500">当前楼层未发现结构表达错误。</p>
+                )}
+              </div>
+              {validatorRepairLog.length > 0 && (
+                <div className="mt-3 space-y-1 rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-600">
+                  <p className="font-semibold text-ink">修复记录</p>
+                  {validatorRepairLog.slice(0, 4).map((item, index) => (
+                    <p key={`${item}-${index}`}>{item}</p>
+                  ))}
+                </div>
+              )}
+            </RightPanelCard>
+
+            <RightPanelCard
+              id="object"
+              eyebrow="Selection"
+              title="当前对象"
+              summary={activeObjectId || "未选择对象"}
+              open={openRightPanels.object}
+              onToggle={toggleRightPanel}
+            >
+              {(activeStructureObject || activeFurniture) ? (
+                <div>
+                  <p className="break-all rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{activeObjectId}</p>
+                  <label className="mt-3 block text-xs text-stone-500">
+                    名称
+                    <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={(activeStructureObject ?? activeFurniture)?.name ?? ""} onChange={(event) => updateActiveObject({ name: event.target.value })} />
+                  </label>
+                  {activeStructureObject && "thickness" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      厚度 mm
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="20" type="number" value={activeStructureObject.thickness} onChange={(event) => updateActiveObject({ thickness: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "height" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      高度 mm
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="100" type="number" value={activeStructureObject.height} onChange={(event) => updateActiveObject({ height: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "length" in activeStructureObject && <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">长度：{activeStructureObject.length} mm</p>}
+                  {activeStructureObject && "width" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      宽度 mm
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="200" type="number" value={activeStructureObject.width} onChange={(event) => updateActiveObject({ width: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "stepCount" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      踏步数
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="1" type="number" value={activeStructureObject.stepCount} onChange={(event) => updateActiveObject({ stepCount: Number(event.target.value) })} />
+                    </label>
+                  )}
+                  {activeStructureObject && "stepCount" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      方向
+                      <select className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.direction} onChange={(event) => updateActiveObject({ direction: event.target.value })}>
+                        <option value="up">上行</option>
+                        <option value="down">下行</option>
+                      </select>
+                    </label>
+                  )}
+                  {activeStructureObject && "openDirection" in activeStructureObject && (
+                    <label className="mt-3 block text-xs text-stone-500">
+                      开启方向
+                      <select className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={String(activeStructureObject.openDirection)} onChange={(event) => updateActiveObject({ openDirection: event.target.value })}>
+                        <option value="leftIn">左内开</option>
+                        <option value="rightIn">右内开</option>
+                        <option value="leftOut">左外开</option>
+                        <option value="rightOut">右外开</option>
+                      </select>
+                    </label>
+                  )}
+                </div>
+              ) : (
+                <p className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">在画布或对象台账里选择一个结构对象后，这里会显示可编辑属性。</p>
+              )}
+            </RightPanelCard>
+
+            <RightPanelCard
+              id="details"
+              eyebrow="Floor"
+              title="楼层与家具"
+              summary={`${currentFloor.label} · ${selectedFurniture?.name ?? "无家具选择"}`}
+              open={openRightPanels.details}
+              onToggle={toggleRightPanel}
+            >
+              <FurnitureDetails floor={currentFloor} floorPlanScale={floorPlanScale} furniture={selectedFurniture} semanticObject={selectedSemanticObject} />
+            </RightPanelCard>
+
+            <RightPanelCard
+              id="semantic"
+              eyebrow="Map"
+              title="语义对象"
+              summary={`${floorSemanticObjects.length} 个对象`}
+              open={openRightPanels.semantic}
+              onToggle={toggleRightPanel}
+            >
+              <SemanticMapPanel
+                floorId={selectedFloorId}
+                objects={floorSemanticObjects}
+                allObjects={semanticObjects}
+                floors={data.floors}
+                selectedObjectId={selectedSemanticObjectId}
+                onSelectObject={setSelectedSemanticObjectId}
+                onCreateObject={handleCreateSemanticObject}
+                onUpdateObject={handleUpdateSemanticObject}
+                onDeleteObject={handleDeleteSemanticObject}
+              />
+            </RightPanelCard>
+          </div>
+        </aside>}
+      </section>
+
+      <MobileDetailsDrawer
+        floor={currentFloor}
+        floorPlanScale={floorPlanScale}
+        furniture={selectedFurniture}
+        semanticObject={selectedSemanticObject}
+        semanticObjects={floorSemanticObjects}
+      />
+    </main>
+  );
+}
