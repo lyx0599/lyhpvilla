@@ -6,27 +6,28 @@ const ALL_LEVEL_SYNC_FLOORS = new Set<FloorId>(["1F", "2F", "B2", "B1"]);
 const ABOVE_GRADE_SYNC_FLOORS = new Set<FloorId>(["1F", "2F"]);
 const BASEMENT_SYNC_FLOORS = new Set<FloorId>(["B1", "B2"]);
 const STAIR_SYNC_FLOORS = ALL_LEVEL_SYNC_FLOORS;
+const REMOVED_WALL_IDS = new Set(["W-B1-016", "W-B1-017"]);
 const WALL_SYNC_GROUPS = [
   {
     id: "all-level",
     label: "1F / 2F / B2 / B1",
     color: "#2563eb",
     floors: ALL_LEVEL_SYNC_FLOORS,
-    suffixes: new Set(["007", "003", "012", "010"])
+    suffixes: new Set(["007", "003", "010"])
   },
   {
     id: "above-grade",
     label: "1F / 2F",
     color: "#16a34a",
     floors: ABOVE_GRADE_SYNC_FLOORS,
-    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "018", "019", "020", "015"])
+    suffixes: new Set(["001", "002", "004", "005", "008", "009", "021", "011", "012", "018", "019", "020", "015", "013", "014", "016", "017"])
   },
   {
     id: "basement",
     label: "B1 / B2",
     color: "#f97316",
     floors: BASEMENT_SYNC_FLOORS,
-    suffixes: new Set(["001", "002", "017", "016"])
+    suffixes: new Set(["001", "002", "009"])
   }
 ];
 
@@ -70,9 +71,11 @@ function getWallSyncFloors(wall: HouseWall) {
 }
 
 function refreshRooms(structure: HouseStructure): HouseStructure {
+  const walls = structure.walls.filter((wall) => !REMOVED_WALL_IDS.has(wall.id));
   return {
     ...structure,
-    rooms: generateRoomsFromWalls(structure.floorId, structure.walls, structure.rooms)
+    walls,
+    rooms: generateRoomsFromWalls(structure.floorId, walls, structure.rooms)
   };
 }
 
@@ -134,11 +137,12 @@ export function syncStructureFromSourceFloor(sourceStructure: HouseStructure, ta
   if (targetStructure.floorId === sourceStructure.floorId) return refreshRooms(targetStructure);
 
   const syncedSourceWalls = sourceStructure.walls.filter((wall) => {
+    if (REMOVED_WALL_IDS.has(wall.id)) return false;
     const floors = getWallSyncFloors(wall);
     return Boolean(floors?.has(sourceStructure.floorId) && floors.has(targetStructure.floorId));
   });
   const syncedWallIds = new Set(syncedSourceWalls.map((wall) => getSyncedWallId(targetStructure.floorId, wall)));
-  const preservedLocalWalls = targetStructure.walls.filter((wall) => !syncedWallIds.has(wall.id));
+  const preservedLocalWalls = targetStructure.walls.filter((wall) => !REMOVED_WALL_IDS.has(wall.id) && !syncedWallIds.has(wall.id));
   const syncedWalls = syncedSourceWalls.map((referenceWall) => {
     const id = getSyncedWallId(targetStructure.floorId, referenceWall);
     const existingWall = targetStructure.walls.find((wall) => wall.id === id);
