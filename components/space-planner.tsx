@@ -386,17 +386,26 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     };
   }
 
-  function downloadWorkspace() {
-    const workspace = getCurrentWorkspace();
-    const blob = new Blob([JSON.stringify(workspace, null, 2)], { type: "application/json" });
+  function downloadJsonFile(fileName: string, payload: unknown) {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `villa-space-workspace-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadWorkspace() {
+    downloadJsonFile(`villa-space-workspace-${new Date().toISOString().slice(0, 10)}.json`, getCurrentWorkspace());
+  }
+
+  function saveWorkspaceForCode() {
+    const workspace = getCurrentWorkspace();
+    downloadJsonFile("default-workspace.json", workspace);
+    setValidatorRepairLog(["已生成代码保存文件：把 default-workspace.json 发给我，我会回写进仓库并发布为默认模型。"]);
   }
 
   function applyWorkspace(workspace: Partial<PersistedWebWorkspace>) {
@@ -756,10 +765,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               <p className="mt-1 text-sm text-stone-500">{currentFloor.label} · {currentFloor.subtitle} · 一套模型，多种表达</p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm xl:flex">
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm">
                 <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" ? "bg-amber-500" : "bg-emerald-500"}`} />
                 <span>{webSaveStatus === "error" ? "保存失败" : webSaveStatus === "saving" ? "保存中" : webSaveStatus === "loading" ? "加载中" : "浏览器已保存"}</span>
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
+                <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay" onClick={saveWorkspaceForCode} type="button">保存到代码</button>
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={() => workspaceFileInputRef.current?.click()} type="button">导入方案</button>
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={resetWebWorkspace} type="button">重置</button>
                 <input
