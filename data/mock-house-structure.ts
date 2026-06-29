@@ -1,5 +1,6 @@
 import { createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls } from "@/lib/house-geometry";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
+import defaultWorkspace from "@/data/default-workspace.json";
 import type { FloorId, HouseBayWindow, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
 
 function wall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
@@ -236,4 +237,6 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
   })
 };
 
-export const initialHouseStructures: Record<FloorId, HouseStructure> = syncHouseStructuresToReference(rawInitialHouseStructures);
+const savedDefaultWorkspace = defaultWorkspace as Partial<{ houseStructuresByFloor: Record<FloorId, HouseStructure> }>;
+
+export const initialHouseStructures: Record<FloorId, HouseStructure> = savedDefaultWorkspace.houseStructuresByFloor ?? syncHouseStructuresToReference(rawInitialHouseStructures);

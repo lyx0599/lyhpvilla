@@ -159,6 +159,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const webSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingHistoryBaseRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>({});
   const suppressHistoryRef = useRef(false);
+  const workspaceFileInputRef = useRef<HTMLInputElement | null>(null);
   const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
     Object.fromEntries(data.floors.map((floor) => [
       floor.id,
@@ -371,6 +372,86 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       }
     ])) as Partial<Record<FloorId, ModelSnapshot>>;
     setWebSaveStatus("saved");
+  }
+
+  function getCurrentWorkspace(): PersistedWebWorkspace {
+    return {
+      selectedFloorId,
+      furniture,
+      semanticObjects,
+      visualSettingsByFloor,
+      cleanPatchesByFloor,
+      houseStructuresByFloor,
+      wallSyncOverrides
+    };
+  }
+
+  function downloadWorkspace() {
+    const workspace = getCurrentWorkspace();
+    const blob = new Blob([JSON.stringify(workspace, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `villa-space-workspace-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function applyWorkspace(workspace: Partial<PersistedWebWorkspace>) {
+    const nextSelectedFloorId = workspace.selectedFloorId && data.floors.some((floor) => floor.id === workspace.selectedFloorId)
+      ? workspace.selectedFloorId
+      : selectedFloorId;
+    const nextFurniture = workspace.furniture ?? data.furniture;
+    const nextSemanticObjects = workspace.semanticObjects ?? initialSemanticObjects;
+    const nextStructures = data.floors.reduce((structuresByFloor, floor) => {
+      structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, workspace.houseStructuresByFloor?.[floor.id]);
+      return structuresByFloor;
+    }, {} as Record<FloorId, HouseStructure>);
+
+    setSelectedFloorId(nextSelectedFloorId);
+    setFurniture(nextFurniture);
+    setSemanticObjects(nextSemanticObjects);
+    setVisualSettingsByFloor(workspace.visualSettingsByFloor ?? initialVisualSettings);
+    setCleanPatchesByFloor(workspace.cleanPatchesByFloor ?? initialCleanPatches);
+    setWallSyncOverrides(workspace.wallSyncOverrides ?? {});
+    setHouseStructuresByFloor(nextStructures);
+    setSelectedFurnitureId(nextFurniture.find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
+    setSelectedSemanticObjectId(nextSemanticObjects.find((object) => object.floorId === nextSelectedFloorId)?.id ?? "");
+    setHistoryByFloor({});
+    setActiveObjectId("");
+    setLocateObjectRequest(null);
+    committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
+      floor.id,
+      {
+        structure: nextStructures[floor.id],
+        furniture: nextFurniture.filter((item) => item.floorId === floor.id)
+      }
+    ])) as Partial<Record<FloorId, ModelSnapshot>>;
+    const normalizedWorkspace: PersistedWebWorkspace = {
+      selectedFloorId: nextSelectedFloorId,
+      furniture: nextFurniture,
+      semanticObjects: nextSemanticObjects,
+      visualSettingsByFloor: workspace.visualSettingsByFloor ?? initialVisualSettings,
+      cleanPatchesByFloor: workspace.cleanPatchesByFloor ?? initialCleanPatches,
+      houseStructuresByFloor: nextStructures,
+      wallSyncOverrides: workspace.wallSyncOverrides ?? {}
+    };
+    window.localStorage.setItem(WEB_WORKSPACE_STORAGE_KEY, JSON.stringify(normalizedWorkspace));
+    setHasLoadedWebWorkspace(true);
+    setWebSaveStatus("saved");
+  }
+
+  async function importWorkspaceFromFile(file: File) {
+    try {
+      const text = await file.text();
+      applyWorkspace(JSON.parse(text) as Partial<PersistedWebWorkspace>);
+      setValidatorRepairLog(["已导入方案 JSON，并保存到当前浏览器。"]);
+    } catch {
+      setWebSaveStatus("error");
+      setValidatorRepairLog(["导入失败：请选择由本工具导出的方案 JSON。"]);
+    }
   }
 
   function handleFurnitureSelect(furniture: Furniture) {
@@ -678,7 +759,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               <div className="hidden items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm xl:flex">
                 <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" ? "bg-amber-500" : "bg-emerald-500"}`} />
                 <span>{webSaveStatus === "error" ? "保存失败" : webSaveStatus === "saving" ? "保存中" : webSaveStatus === "loading" ? "加载中" : "浏览器已保存"}</span>
+                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
+                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={() => workspaceFileInputRef.current?.click()} type="button">导入方案</button>
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={resetWebWorkspace} type="button">重置</button>
+                <input
+                  ref={workspaceFileInputRef}
+                  accept="application/json"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void importWorkspaceFromFile(file);
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
               </div>
               <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
                 <span className="shrink-0 text-stone-500">楼层</span>

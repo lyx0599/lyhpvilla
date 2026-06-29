@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "apply-workspace": "node scripts/apply-workspace-to-default.mjs",
     "start": "next start",
     "lint": "next lint"
   },
