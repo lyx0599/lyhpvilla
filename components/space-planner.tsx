@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { FloorSidebar } from "@/components/floor-sidebar";
 import { FurnitureDetails } from "@/components/furniture-details";
+import { FurnitureTopView } from "@/components/furniture-top-view";
 import { MobileDetailsDrawer } from "@/components/mobile-details-drawer";
 import { PlanCanvas } from "@/components/plan-canvas";
 import { SemanticMapPanel } from "@/components/semantic-map-panel";
@@ -32,7 +33,7 @@ type FloorHistory = {
 type RightPanelKey = "workflow" | "status" | "modules" | "object" | "details" | "semantic";
 
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
-const moduleCategoryOrder: InteriorModuleCategory[] = ["kitchen", "bath", "storage"];
+const moduleCategoryOrder: InteriorModuleCategory[] = ["living", "bedroom", "kitchen", "bath", "storage", "decor"];
 
 type PersistedWebWorkspace = {
   selectedFloorId: FloorId;
@@ -183,7 +184,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     () => semanticObjects.filter((object) => object.floorId === selectedFloorId),
     [semanticObjects, selectedFloorId]
   );
-  const selectedFurniture = furniture.find((item) => item.id === selectedFurnitureId) ?? floorFurniture[0] ?? null;
+  const selectedFurniture = floorFurniture.find((item) => item.id === selectedFurnitureId) ?? floorFurniture[0] ?? null;
   const selectedSemanticObject = semanticObjects.find((object) => object.id === selectedSemanticObjectId) ?? null;
   const houseValidation = useMemo(
     () => validateHouse(selectedFloorId, floorHouseStructure, floorFurniture),
@@ -373,6 +374,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   function handleFurnitureSelect(furniture: Furniture) {
     setSelectedFurnitureId(furniture.id);
+    setSelectedSemanticObjectId("");
+    setActiveObjectId(furniture.id);
+    setOpenRightPanels((currentPanels) => ({
+      ...currentPanels,
+      object: true,
+      details: true
+    }));
+  }
+
+  function handleFurnitureUpdate(nextFurniture: Furniture) {
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === nextFurniture.id ? nextFurniture : item));
+    setSelectedFurnitureId(nextFurniture.id);
+    setActiveObjectId(nextFurniture.id);
   }
 
   function handleSemanticObjectSelect(object: SemanticObject) {
@@ -775,7 +789,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 </div>
                 <div className="rounded-xl bg-slate-50 p-3">
                   <p className="font-semibold text-ink">家具与效果</p>
-                  <p className="mt-1">家具先作为独立对象；沟通效果以后由 3D 白模、材质和灯光生成。</p>
+                  <p className="mt-1">家具和硬装模块都作为独立对象；可按采购款式继续调整尺寸、颜色和材质。</p>
                 </div>
               </div>
             </RightPanelCard>
@@ -831,7 +845,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             <RightPanelCard
               id="modules"
               eyebrow="Library"
-              title="硬装模块库"
+              title="物品模块库"
               summary={`${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}`}
               open={openRightPanels.modules}
               onToggle={toggleRightPanel}
@@ -853,7 +867,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                         return (
                           <div key={item.id} className="rounded-lg bg-slate-50 p-2">
                             <div className="flex items-start gap-2">
-                              <span className="mt-0.5 size-8 shrink-0 rounded-lg border border-white shadow-sm" style={{ backgroundColor: item.color }} />
+                              <FurnitureTopView className="mt-0.5 h-16 w-20 shrink-0 border border-white shadow-sm" color={item.color} label={item.codePrefix} type={item.furnitureType} />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-start justify-between gap-2">
                                   <div className="min-w-0">
@@ -924,10 +938,62 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </label>
                       <p className="mt-2 text-xs leading-5 text-blue-800">输入后会在房间标签和对象台账里同步显示，改完记得点保存。</p>
                     </div>
-                  ) : (activeStructureObject || activeFurniture) ? (
+                  ) : activeFurniture ? (
+                    <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+                      <div className="flex items-center gap-3">
+                        <FurnitureTopView className="size-16 shrink-0 border border-white shadow-sm" color={activeFurniture.color} label={activeFurniture.code} type={activeFurniture.type} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-emerald-900">{activeFurniture.moduleCategory ? "物品模块" : "家具对象"}</p>
+                          <p className="mt-1 truncate text-sm font-semibold text-ink">{activeFurniture.name}</p>
+                        </div>
+                      </div>
+                      <label className="mt-3 block text-xs text-stone-500">
+                        名称
+                        <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeFurniture.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
+                      </label>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {([
+                          ["width", "宽 cm"],
+                          ["depth", "深 cm"],
+                          ["height", "高 cm"]
+                        ] as const).map(([field, label]) => (
+                          <label key={field} className="block text-xs text-stone-500">
+                            {label}
+                            <input
+                              className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 font-semibold text-ink outline-none focus:border-blue-400"
+                              min="1"
+                              type="number"
+                              value={activeFurniture.dimensions[field]}
+                              onChange={(event) => updateActiveObject({
+                                dimensions: {
+                                  ...activeFurniture.dimensions,
+                                  [field]: Math.max(1, Number(event.target.value) || 1)
+                                }
+                              })}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <label className="mt-3 block text-xs text-stone-500">
+                        颜色
+                        <div className="mt-1 flex items-center gap-2">
+                          <input className="h-10 w-14 rounded-lg border border-stone-200 bg-white p-1" type="color" value={activeFurniture.color} onChange={(event) => updateActiveObject({ color: event.target.value })} />
+                          <input className="min-w-0 flex-1 rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeFurniture.color} onChange={(event) => updateActiveObject({ color: event.target.value })} />
+                        </div>
+                      </label>
+                      <label className="mt-3 block text-xs text-stone-500">
+                        材质
+                        <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeFurniture.material} onChange={(event) => updateActiveObject({ material: event.target.value })} />
+                      </label>
+                      <label className="mt-3 block text-xs text-stone-500">
+                        备注
+                        <textarea className="mt-1 min-h-20 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeFurniture.note} onChange={(event) => updateActiveObject({ note: event.target.value, constructionNote: event.target.value })} />
+                      </label>
+                    </div>
+                  ) : activeStructureObject ? (
                     <label className="mt-3 block text-xs text-stone-500">
                       名称
-                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={(activeStructureObject ?? activeFurniture)?.name ?? ""} onChange={(event) => updateActiveObject({ name: event.target.value })} />
+                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                     </label>
                   ) : (
                     <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">选择一个房间后，可以在这里输入名称，例如“厨房”。</p>
@@ -1043,7 +1109,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               open={openRightPanels.details}
               onToggle={toggleRightPanel}
             >
-              <FurnitureDetails floor={currentFloor} floorPlanScale={floorPlanScale} furniture={selectedFurniture} semanticObject={selectedSemanticObject} />
+              <FurnitureDetails floor={currentFloor} floorPlanScale={floorPlanScale} furniture={selectedFurniture} semanticObject={selectedSemanticObject} onFurnitureChange={handleFurnitureUpdate} />
             </RightPanelCard>
 
             <RightPanelCard
@@ -1079,6 +1145,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         moduleCatalogGroups={moduleCatalogGroups}
         moduleTargetLabel={moduleTargetLabel}
         onAddModule={addModuleFromCatalog}
+        onFurnitureChange={handleFurnitureUpdate}
         onDeleteFurniture={handleDeleteFurniture}
         onRotateFurniture={handleRotateFurniture}
       />

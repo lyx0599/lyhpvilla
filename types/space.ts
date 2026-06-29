@@ -74,8 +74,13 @@ export type CleanPatch = {
   notes: string;
 };
 
-export type InteriorModuleCategory = "kitchen" | "bath" | "storage";
+export type InteriorModuleCategory = "living" | "bedroom" | "kitchen" | "bath" | "storage" | "decor";
 export type InteriorModuleType =
+  | "sofa"
+  | "table"
+  | "bed"
+  | "plant"
+  | "cabinet"
   | "island"
   | "cooktop"
   | "sink"

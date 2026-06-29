@@ -1,5 +1,6 @@
 import { formatDimensions, getFileName } from "@/lib/format";
-import type { Floor, Furniture } from "@/types/space";
+import { FurnitureTopView } from "@/components/furniture-top-view";
+import type { Dimension, Floor, Furniture } from "@/types/space";
 import { interiorModuleCategoryLabels, interiorModuleTypeLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import { semanticCategoryLabels } from "@/lib/semantic-map";
 import type { SemanticObject } from "@/types/semantic-map";
@@ -9,13 +10,33 @@ type Props = {
   floorPlanScale: number;
   furniture: Furniture | null;
   semanticObject: SemanticObject | null;
+  onFurnitureChange?: (furniture: Furniture) => void;
 };
 
-export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObject }: Props) {
+const dimensionFields: Array<[keyof Dimension, string]> = [
+  ["width", "宽 cm"],
+  ["depth", "深 cm"],
+  ["height", "高 cm"]
+];
+
+function isHexColor(value: string) {
+  return /^#[0-9a-f]{6}$/i.test(value);
+}
+
+function getFurnitureTypeLabel(furniture: Furniture) {
+  if (furniture.moduleCategory) {
+    return `${interiorModuleCategoryLabels[furniture.moduleCategory]} · ${furniture.moduleType ? interiorModuleTypeLabels[furniture.moduleType] : furniture.type}`;
+  }
+  return furniture.type;
+}
+
+export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObject, onFurnitureChange }: Props) {
   const serviceRequirements = furniture?.serviceRequirements;
   const serviceRows = serviceRequirements
     ? serviceRequirementLabels.map((service) => [service.label, serviceRequirements[service.key] ? "需要" : "不需要"])
     : [];
+  const canEditFurniture = Boolean(furniture && onFurnitureChange && !furniture.locked);
+  const colorPickerValue = furniture && isHexColor(furniture.color) ? furniture.color : "#d6d9d7";
   const floorRows = [
     ["楼层名称", floor.label],
     ["楼层编号", floor.id],
@@ -27,13 +48,28 @@ export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObj
     ["唯一编号", furniture.code],
     ["名称", furniture.name],
     ["楼层", furniture.floorId],
-    ["类型", furniture.moduleCategory ? `${interiorModuleCategoryLabels[furniture.moduleCategory]} · ${furniture.moduleType ? interiorModuleTypeLabels[furniture.moduleType] : furniture.type}` : furniture.type],
+    ["类型", getFurnitureTypeLabel(furniture)],
     ["尺寸", formatDimensions(furniture.dimensions)],
     ["材质", furniture.material],
     ...serviceRows,
     ["施工备注", furniture.constructionNote || furniture.note],
     ["备注", furniture.note]
   ] : [];
+
+  function updateFurniture(patch: Partial<Furniture>) {
+    if (!furniture || !onFurnitureChange || furniture.locked) return;
+    onFurnitureChange({ ...furniture, ...patch });
+  }
+
+  function updateFurnitureDimension(field: keyof Dimension, value: string) {
+    if (!furniture) return;
+    updateFurniture({
+      dimensions: {
+        ...furniture.dimensions,
+        [field]: Math.max(1, Number(value) || 1)
+      }
+    });
+  }
 
   return (
     <div>
@@ -82,15 +118,79 @@ export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObj
       {furniture ? (
         <div className="mt-5 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-3">
-          <div className="grid size-12 place-items-center rounded-2xl" style={{ backgroundColor: furniture.color }}>
-            <span className="text-sm font-bold text-ink/70">{furniture.code.split("-")[0]}</span>
-          </div>
+          <FurnitureTopView className="size-16 shrink-0 border border-stone-100 shadow-sm" color={furniture.color} label={furniture.code.split("-")[0]} type={furniture.type} />
           <div>
             <h3 className="font-semibold text-ink">{furniture.name}</h3>
             <p className="text-sm text-stone-500">
-              {furniture.moduleCategory ? `${interiorModuleCategoryLabels[furniture.moduleCategory]} · ${furniture.moduleType ? interiorModuleTypeLabels[furniture.moduleType] : furniture.type}` : furniture.type}
+              {getFurnitureTypeLabel(furniture)}
             </p>
           </div>
+        </div>
+        <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-emerald-900">可编辑参数</p>
+            {furniture.locked && <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-stone-500">已锁定</span>}
+          </div>
+          <label className="mt-3 block text-xs text-stone-500">
+            名称
+            <input
+              className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400"
+              disabled={!canEditFurniture}
+              value={furniture.name}
+              onChange={(event) => updateFurniture({ name: event.target.value })}
+            />
+          </label>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {dimensionFields.map(([field, label]) => (
+              <label key={field} className="block text-xs text-stone-500">
+                {label}
+                <input
+                  className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400"
+                  disabled={!canEditFurniture}
+                  min="1"
+                  type="number"
+                  value={furniture.dimensions[field]}
+                  onChange={(event) => updateFurnitureDimension(field, event.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          <label className="mt-3 block text-xs text-stone-500">
+            颜色
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                className="h-10 w-14 shrink-0 rounded-lg border border-stone-200 bg-white p-1 disabled:bg-stone-100"
+                disabled={!canEditFurniture}
+                type="color"
+                value={colorPickerValue}
+                onChange={(event) => updateFurniture({ color: event.target.value })}
+              />
+              <input
+                className="min-w-0 flex-1 rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400"
+                disabled={!canEditFurniture}
+                value={furniture.color}
+                onChange={(event) => updateFurniture({ color: event.target.value })}
+              />
+            </div>
+          </label>
+          <label className="mt-3 block text-xs text-stone-500">
+            材质
+            <input
+              className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400"
+              disabled={!canEditFurniture}
+              value={furniture.material}
+              onChange={(event) => updateFurniture({ material: event.target.value })}
+            />
+          </label>
+          <label className="mt-3 block text-xs text-stone-500">
+            备注 / 采购想法
+            <textarea
+              className="mt-1 min-h-20 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400"
+              disabled={!canEditFurniture}
+              value={furniture.note}
+              onChange={(event) => updateFurniture({ note: event.target.value, constructionNote: event.target.value })}
+            />
+          </label>
         </div>
         {serviceRequirements && (
           <div className="mb-4 flex flex-wrap gap-2">

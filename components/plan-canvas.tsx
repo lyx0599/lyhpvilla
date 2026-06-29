@@ -49,6 +49,7 @@ import {
 } from "@/lib/floor-plan-cleanup";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
+import { FurnitureTopView } from "@/components/furniture-top-view";
 import type {
   CleanPatch,
   DrawTool,
@@ -3769,11 +3770,10 @@ export function PlanCanvas({
                 const displayPosition = getFurnitureDisplayPosition(item);
                 const width = Math.max(5, (item.dimensions.width / 24) * (STRUCTURE_WIDTH_MM / planBounds.width));
                 const height = Math.max(4, (item.dimensions.depth / 24) * (STRUCTURE_HEIGHT_MM / planBounds.height));
-                const labelTextColor = item.color.toLowerCase() === "#1f2937" ? "#ffffff" : "#0f172a";
                 return (
                   <button
                     key={item.id}
-                    className={`absolute grid cursor-grab place-items-center rounded-md border text-[10px] font-bold text-emerald-950/90 transition hover:scale-105 ${
+                    className={`absolute grid cursor-grab place-items-center rounded-lg border bg-white p-0.5 shadow-sm transition hover:scale-105 ${
                       isSelected ? "z-20 border-blue-500 ring-4 ring-blue-500/20" : isHovered ? "border-emerald-700 ring-2 ring-emerald-500/20" : "border-emerald-600/55"
                     }`}
                     style={{
@@ -3783,8 +3783,6 @@ export function PlanCanvas({
                       height: `${height}%`,
                       minWidth: "48px",
                       minHeight: "40px",
-                      backgroundColor: item.color,
-                      color: labelTextColor,
                       opacity: locked ? 0.6 : 1,
                       transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
                     }}
@@ -3831,7 +3829,7 @@ export function PlanCanvas({
                     type="button"
                     title={`${locked ? "已锁定 · " : ""}${item.name}`}
                   >
-                    <span className="max-w-full truncate px-1">{locked ? "LOCK" : item.code}</span>
+                    <FurnitureTopView className="h-full w-full" color={item.color} label={locked ? "LOCK" : item.code} type={item.type} />
                   </button>
                 );
               })}
@@ -4112,14 +4110,13 @@ export function PlanCanvas({
                 return (
                   <button
                     key={item.id}
-                    className={`absolute rounded-lg border bg-white shadow-lg transition hover:-translate-y-1 ${isSelected ? "border-clay ring-4 ring-clay/20" : "border-stone-200"}`}
+                    className={`absolute overflow-hidden rounded-lg border bg-white shadow-lg transition hover:-translate-y-1 ${isSelected ? "border-clay ring-4 ring-clay/20" : "border-stone-200"}`}
                     style={{
                       left: `${item.position.x}%`,
                       top: `${item.position.y}%`,
                       width: `${Math.max(28, item.dimensions.width / 5)}px`,
                       height: `${Math.max(22, item.dimensions.depth / 5)}px`,
-                      transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`,
-                      backgroundColor: item.color
+                      transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
                     }}
                     onClick={() => {
                       selectObject(item.id);
@@ -4129,7 +4126,9 @@ export function PlanCanvas({
                     onMouseLeave={() => clearHoverObject(item.id)}
                     type="button"
                     title={item.name}
-                  />
+                  >
+                    <FurnitureTopView className="h-full w-full" color={item.color} label={item.code} type={item.type} />
+                  </button>
                 );
               })}
               {furniture.map((item) => {

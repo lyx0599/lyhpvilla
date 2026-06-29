@@ -15,12 +15,20 @@ export type InteriorModuleCatalogItem = {
 };
 
 export const interiorModuleCategoryLabels: Record<InteriorModuleCategory, string> = {
+  living: "客餐厅",
+  bedroom: "卧室",
   kitchen: "厨房",
   bath: "卫浴",
-  storage: "收纳"
+  storage: "收纳",
+  decor: "绿植装饰"
 };
 
 export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
+  sofa: "沙发",
+  table: "餐桌",
+  bed: "床",
+  plant: "绿植",
+  cabinet: "矮柜",
   island: "中岛台",
   cooktop: "灶台",
   sink: "水槽",
@@ -43,6 +51,58 @@ export const serviceRequirementLabels: Array<{ key: keyof ModuleServiceRequireme
 ];
 
 export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
+  {
+    id: "living-sofa",
+    category: "living",
+    moduleType: "sofa",
+    furnitureType: "sofa",
+    codePrefix: "SF",
+    name: "直排沙发",
+    dimensions: { width: 240, depth: 90, height: 78, unit: "cm" },
+    color: "#e8ded0",
+    material: "布艺 / 皮革沙发",
+    note: "用于客厅主座位，后续可按实际采购款式调整长度和材质。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+  },
+  {
+    id: "living-dining-table",
+    category: "living",
+    moduleType: "table",
+    furnitureType: "table",
+    codePrefix: "TB",
+    name: "圆餐桌",
+    dimensions: { width: 135, depth: 135, height: 75, unit: "cm" },
+    color: "#d6d9d7",
+    material: "岩板 / 木饰面餐桌",
+    note: "放置后校核餐椅和通道宽度。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+  },
+  {
+    id: "living-tv-cabinet",
+    category: "living",
+    moduleType: "cabinet",
+    furnitureType: "cabinet",
+    codePrefix: "TV",
+    name: "电视矮柜",
+    dimensions: { width: 280, depth: 42, height: 45, unit: "cm" },
+    color: "#eadfcd",
+    material: "悬浮柜 / 成品矮柜",
+    note: "结合电视墙、插座和弱电点位深化。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+  },
+  {
+    id: "bedroom-bed",
+    category: "bedroom",
+    moduleType: "bed",
+    furnitureType: "bed",
+    codePrefix: "BD",
+    name: "双人床",
+    dimensions: { width: 180, depth: 200, height: 95, unit: "cm" },
+    color: "#c8a887",
+    material: "木质床架 + 软包床头",
+    note: "放置后校核床侧通道、床头插座和衣柜开门空间。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+  },
   {
     id: "kitchen-island",
     category: "kitchen",
@@ -198,6 +258,19 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "餐边柜 + 小家电台面",
     note: "预留咖啡机、净饮机或小家电插座。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+  },
+  {
+    id: "decor-large-plant",
+    category: "decor",
+    moduleType: "plant",
+    furnitureType: "plant",
+    codePrefix: "PL",
+    name: "大型绿植",
+    dimensions: { width: 120, depth: 120, height: 260, unit: "cm" },
+    color: "#7c9468",
+    material: "绿植 / 乔木 / 盆栽",
+    note: "用于庭院、玄关或客厅视线焦点，可按实际植物冠幅调整。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
   }
 ];
 
