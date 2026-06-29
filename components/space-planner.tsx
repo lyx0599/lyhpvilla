@@ -145,7 +145,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [activeObjectId, setActiveObjectId] = useState("");
   const [locateObjectRequest, setLocateObjectRequest] = useState<{ id: string; nonce: number } | null>(null);
   const [hasLoadedWebWorkspace, setHasLoadedWebWorkspace] = useState(false);
-  const [webSaveStatus, setWebSaveStatus] = useState<"loading" | "saved" | "saving" | "error">("loading");
+  const [webSaveStatus, setWebSaveStatus] = useState<"loading" | "saved" | "dirty" | "saving" | "error">("loading");
   const [openRightPanels, setOpenRightPanels] = useState<Record<RightPanelKey, boolean>>({
     workflow: true,
     status: true,
@@ -156,10 +156,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   });
   const [historyByFloor, setHistoryByFloor] = useState<Partial<Record<FloorId, FloorHistory>>>({});
   const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const webSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingHistoryBaseRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>({});
   const suppressHistoryRef = useRef(false);
-  const workspaceFileInputRef = useRef<HTMLInputElement | null>(null);
+  const suppressDirtyStatusRef = useRef(true);
   const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
     Object.fromEntries(data.floors.map((floor) => [
       floor.id,
@@ -269,29 +268,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   useEffect(() => {
     if (!hasLoadedWebWorkspace) return;
-    if (webSaveTimerRef.current) clearTimeout(webSaveTimerRef.current);
-    setWebSaveStatus("saving");
-    webSaveTimerRef.current = setTimeout(() => {
-      try {
-        const workspace: PersistedWebWorkspace = {
-          selectedFloorId,
-          furniture,
-          semanticObjects,
-          visualSettingsByFloor,
-          cleanPatchesByFloor,
-          houseStructuresByFloor,
-          wallSyncOverrides
-        };
-        window.localStorage.setItem(WEB_WORKSPACE_STORAGE_KEY, JSON.stringify(workspace));
-        setWebSaveStatus("saved");
-      } catch {
-        setWebSaveStatus("error");
-      }
-    }, 450);
-
-    return () => {
-      if (webSaveTimerRef.current) clearTimeout(webSaveTimerRef.current);
-    };
+    if (suppressDirtyStatusRef.current) {
+      suppressDirtyStatusRef.current = false;
+      return;
+    }
+    setWebSaveStatus((currentStatus) => currentStatus === "loading" || currentStatus === "saving" ? currentStatus : "dirty");
   }, [
     hasLoadedWebWorkspace,
     selectedFloorId,
@@ -349,31 +330,6 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setLocateObjectRequest(null);
   }
 
-  function resetWebWorkspace() {
-    window.localStorage.removeItem(WEB_WORKSPACE_STORAGE_KEY);
-    setSelectedFloorId("1F");
-    setFurniture(data.furniture);
-    setSelectedFurnitureId(data.furniture[0]?.id ?? "");
-    setSemanticObjects(initialSemanticObjects);
-    setSelectedSemanticObjectId(initialSemanticObjects.find((object) => object.floorId === "1F")?.id ?? "");
-    setVisualSettingsByFloor(initialVisualSettings);
-    setCleanPatchesByFloor(initialCleanPatches);
-    setHouseStructuresByFloor(initialHouseStructures);
-    setWallSyncOverrides({});
-    setHistoryByFloor({});
-    setValidatorRepairLog([]);
-    setActiveObjectId("");
-    setLocateObjectRequest(null);
-    committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
-      floor.id,
-      {
-        structure: initialHouseStructures[floor.id] ?? createEmptyStructure(floor.id),
-        furniture: data.furniture.filter((item) => item.floorId === floor.id)
-      }
-    ])) as Partial<Record<FloorId, ModelSnapshot>>;
-    setWebSaveStatus("saved");
-  }
-
   function getCurrentWorkspace(): PersistedWebWorkspace {
     return {
       selectedFloorId,
@@ -402,64 +358,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     downloadJsonFile(`villa-space-workspace-${new Date().toISOString().slice(0, 10)}.json`, getCurrentWorkspace());
   }
 
-  function saveWorkspaceForCode() {
-    const workspace = getCurrentWorkspace();
-    downloadJsonFile("default-workspace.json", workspace);
-    setValidatorRepairLog(["已生成代码保存文件：把 default-workspace.json 发给我，我会回写进仓库并发布为默认模型。"]);
-  }
-
-  function applyWorkspace(workspace: Partial<PersistedWebWorkspace>) {
-    const nextSelectedFloorId = workspace.selectedFloorId && data.floors.some((floor) => floor.id === workspace.selectedFloorId)
-      ? workspace.selectedFloorId
-      : selectedFloorId;
-    const nextFurniture = workspace.furniture ?? data.furniture;
-    const nextSemanticObjects = workspace.semanticObjects ?? initialSemanticObjects;
-    const nextStructures = data.floors.reduce((structuresByFloor, floor) => {
-      structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, workspace.houseStructuresByFloor?.[floor.id]);
-      return structuresByFloor;
-    }, {} as Record<FloorId, HouseStructure>);
-
-    setSelectedFloorId(nextSelectedFloorId);
-    setFurniture(nextFurniture);
-    setSemanticObjects(nextSemanticObjects);
-    setVisualSettingsByFloor(workspace.visualSettingsByFloor ?? initialVisualSettings);
-    setCleanPatchesByFloor(workspace.cleanPatchesByFloor ?? initialCleanPatches);
-    setWallSyncOverrides(workspace.wallSyncOverrides ?? {});
-    setHouseStructuresByFloor(nextStructures);
-    setSelectedFurnitureId(nextFurniture.find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
-    setSelectedSemanticObjectId(nextSemanticObjects.find((object) => object.floorId === nextSelectedFloorId)?.id ?? "");
-    setHistoryByFloor({});
-    setActiveObjectId("");
-    setLocateObjectRequest(null);
-    committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
-      floor.id,
-      {
-        structure: nextStructures[floor.id],
-        furniture: nextFurniture.filter((item) => item.floorId === floor.id)
-      }
-    ])) as Partial<Record<FloorId, ModelSnapshot>>;
-    const normalizedWorkspace: PersistedWebWorkspace = {
-      selectedFloorId: nextSelectedFloorId,
-      furniture: nextFurniture,
-      semanticObjects: nextSemanticObjects,
-      visualSettingsByFloor: workspace.visualSettingsByFloor ?? initialVisualSettings,
-      cleanPatchesByFloor: workspace.cleanPatchesByFloor ?? initialCleanPatches,
-      houseStructuresByFloor: nextStructures,
-      wallSyncOverrides: workspace.wallSyncOverrides ?? {}
-    };
-    window.localStorage.setItem(WEB_WORKSPACE_STORAGE_KEY, JSON.stringify(normalizedWorkspace));
-    setHasLoadedWebWorkspace(true);
-    setWebSaveStatus("saved");
-  }
-
-  async function importWorkspaceFromFile(file: File) {
+  function saveCurrentWorkspace() {
+    if (!hasLoadedWebWorkspace) return;
+    setWebSaveStatus("saving");
     try {
-      const text = await file.text();
-      applyWorkspace(JSON.parse(text) as Partial<PersistedWebWorkspace>);
-      setValidatorRepairLog(["已导入方案 JSON，并保存到当前浏览器。"]);
+      window.localStorage.setItem(WEB_WORKSPACE_STORAGE_KEY, JSON.stringify(getCurrentWorkspace()));
+      setWebSaveStatus("saved");
+      setValidatorRepairLog(["已保存当前户型。下次用同一个浏览器打开网站，会自动恢复这套模型。"]);
     } catch {
       setWebSaveStatus("error");
-      setValidatorRepairLog(["导入失败：请选择由本工具导出的方案 JSON。"]);
+      setValidatorRepairLog(["保存失败：当前浏览器不允许写入本地存储，请检查隐私模式或存储权限。"]);
     }
   }
 
@@ -766,23 +674,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm">
-                <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" ? "bg-amber-500" : "bg-emerald-500"}`} />
-                <span>{webSaveStatus === "error" ? "保存失败" : webSaveStatus === "saving" ? "保存中" : webSaveStatus === "loading" ? "加载中" : "浏览器已保存"}</span>
+                <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" || webSaveStatus === "dirty" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                <span>{webSaveStatus === "error" ? "保存失败" : webSaveStatus === "saving" ? "保存中" : webSaveStatus === "loading" ? "加载中" : webSaveStatus === "dirty" ? "有未保存修改" : "已保存"}</span>
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
-                <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay" onClick={saveWorkspaceForCode} type="button">保存到代码</button>
-                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={() => workspaceFileInputRef.current?.click()} type="button">导入方案</button>
-                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={resetWebWorkspace} type="button">重置</button>
-                <input
-                  ref={workspaceFileInputRef}
-                  accept="application/json"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void importWorkspaceFromFile(file);
-                    event.target.value = "";
-                  }}
-                  type="file"
-                />
+                <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={saveCurrentWorkspace} type="button">保存</button>
               </div>
               <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
                 <span className="shrink-0 text-stone-500">楼层</span>
@@ -1027,7 +922,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                         房间名称
                         <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" placeholder="例如：厨房" value={activeRoomObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                       </label>
-                      <p className="mt-2 text-xs leading-5 text-blue-800">输入后会自动保存到当前浏览器，并在房间标签和对象台账里同步显示。</p>
+                      <p className="mt-2 text-xs leading-5 text-blue-800">输入后会在房间标签和对象台账里同步显示，改完记得点保存。</p>
                     </div>
                   ) : (activeStructureObject || activeFurniture) ? (
                     <label className="mt-3 block text-xs text-stone-500">
