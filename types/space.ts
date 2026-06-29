@@ -74,7 +74,35 @@ export type CleanPatch = {
   notes: string;
 };
 
-export type FurnitureType = "sofa" | "table" | "bed" | "cabinet" | "chair" | "plant" | "custom";
+export type InteriorModuleCategory = "kitchen" | "bath" | "storage";
+export type InteriorModuleType =
+  | "island"
+  | "cooktop"
+  | "sink"
+  | "fridge"
+  | "tallCabinet"
+  | "toilet"
+  | "bathtub"
+  | "shower"
+  | "vanity"
+  | "wardrobe"
+  | "entryCabinet"
+  | "sideboard";
+export type ModuleServiceRequirements = {
+  water: boolean;
+  drainage: boolean;
+  power: boolean;
+  exhaust: boolean;
+};
+export type FurnitureType =
+  | "sofa"
+  | "table"
+  | "bed"
+  | "cabinet"
+  | "chair"
+  | "plant"
+  | "custom"
+  | InteriorModuleType;
 
 export type Dimension = {
   width: number;
@@ -327,11 +355,16 @@ export type Furniture = {
   code: string;
   name: string;
   type: FurnitureType;
+  moduleCategory?: InteriorModuleCategory;
+  moduleType?: InteriorModuleType;
+  catalogId?: string;
   floorId: FloorId;
   roomId: string;
   dimensions: Dimension;
   material: string;
   note: string;
+  serviceRequirements?: ModuleServiceRequirements;
+  constructionNote?: string;
   position: Position2D;
   color: string;
   locked?: boolean;

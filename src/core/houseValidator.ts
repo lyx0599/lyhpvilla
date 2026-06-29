@@ -27,6 +27,7 @@ const ORTHOGONAL_SNAP_MM = 260;
 const ORTHOGONAL_RATIO = 0.16;
 const PROJECTED_CONNECTION_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008", "001", "005", "010", "012", "022"]);
 const FORCED_HORIZONTAL_WALL_SUFFIXES = new Set(["012", "022"]);
+const MODULE_SERVICE_KEYS = ["water", "drainage", "power", "exhaust"] as const;
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -677,8 +678,30 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     if (!item.roomId) {
       errors.push({ type: "furniture", id: item.id, message: "家具必须属于某个 Room 或 Zone。" });
     }
+    if (
+      !item.dimensions ||
+      !isFiniteNumber(item.dimensions.width) ||
+      !isFiniteNumber(item.dimensions.depth) ||
+      !isFiniteNumber(item.dimensions.height) ||
+      item.dimensions.width <= 0 ||
+      item.dimensions.depth <= 0 ||
+      item.dimensions.height <= 0 ||
+      item.dimensions.unit !== "cm"
+    ) {
+      errors.push({ type: "furniture", id: item.id, message: "家具/硬装模块必须有合法宽度、进深、高度，单位为 cm。" });
+    }
     if (!isValidPercentPoint(item.position)) {
       pushCoordinateError(errors, item.id, "家具 overlay 坐标必须使用 0~100 的楼层百分比坐标。" );
+    }
+    if (item.moduleCategory && !item.moduleType) {
+      warnings.push({ type: "furniture", id: item.id, message: "硬装模块缺少 moduleType，后续清单统计可能不完整。" });
+    }
+    if (item.moduleCategory) {
+      const serviceRequirements = item.serviceRequirements as Record<string, unknown> | undefined;
+      const invalidServiceKeys = MODULE_SERVICE_KEYS.filter((key) => typeof serviceRequirements?.[key] !== "boolean");
+      if (invalidServiceKeys.length > 0) {
+        warnings.push({ type: "furniture", id: item.id, message: "硬装模块缺少完整的给水、排水、电源、排烟需求标记。" });
+      }
     }
     const roomExists = structure.rooms.some((room) => room.id === item.roomId) || item.roomId.startsWith("room-");
     if (!roomExists) {

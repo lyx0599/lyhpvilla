@@ -1,5 +1,6 @@
 import { formatDimensions, getFileName } from "@/lib/format";
 import type { Floor, Furniture } from "@/types/space";
+import { interiorModuleCategoryLabels, interiorModuleTypeLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import { semanticCategoryLabels } from "@/lib/semantic-map";
 import type { SemanticObject } from "@/types/semantic-map";
 
@@ -11,6 +12,10 @@ type Props = {
 };
 
 export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObject }: Props) {
+  const serviceRequirements = furniture?.serviceRequirements;
+  const serviceRows = serviceRequirements
+    ? serviceRequirementLabels.map((service) => [service.label, serviceRequirements[service.key] ? "需要" : "不需要"])
+    : [];
   const floorRows = [
     ["楼层名称", floor.label],
     ["楼层编号", floor.id],
@@ -22,8 +27,11 @@ export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObj
     ["唯一编号", furniture.code],
     ["名称", furniture.name],
     ["楼层", furniture.floorId],
+    ["类型", furniture.moduleCategory ? `${interiorModuleCategoryLabels[furniture.moduleCategory]} · ${furniture.moduleType ? interiorModuleTypeLabels[furniture.moduleType] : furniture.type}` : furniture.type],
     ["尺寸", formatDimensions(furniture.dimensions)],
     ["材质", furniture.material],
+    ...serviceRows,
+    ["施工备注", furniture.constructionNote || furniture.note],
     ["备注", furniture.note]
   ] : [];
 
@@ -47,7 +55,7 @@ export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObj
         <p className="mt-1">家具、灯光、水电、设备都应作为 Overlay Objects 录入，避免被画死在图片里。</p>
       </div>
 
-      <h2 className="mt-6 text-xl font-semibold text-ink">家具详情</h2>
+      <h2 className="mt-6 text-xl font-semibold text-ink">家具 / 硬装详情</h2>
       {semanticObject && (
         <div className="mb-6 mt-5 rounded-3xl border border-clay/30 bg-clay/10 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay">Selected Semantic Object</p>
@@ -79,9 +87,23 @@ export function FurnitureDetails({ floor, floorPlanScale, furniture, semanticObj
           </div>
           <div>
             <h3 className="font-semibold text-ink">{furniture.name}</h3>
-            <p className="text-sm text-stone-500">{furniture.type}</p>
+            <p className="text-sm text-stone-500">
+              {furniture.moduleCategory ? `${interiorModuleCategoryLabels[furniture.moduleCategory]} · ${furniture.moduleType ? interiorModuleTypeLabels[furniture.moduleType] : furniture.type}` : furniture.type}
+            </p>
           </div>
         </div>
+        {serviceRequirements && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {serviceRequirementLabels.map((service) => (
+              <span
+                key={service.key}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${serviceRequirements[service.key] ? "bg-blue-50 text-blue-700" : "bg-stone-100 text-stone-400"}`}
+              >
+                {service.label}{serviceRequirements[service.key] ? "需要" : "不需要"}
+              </span>
+            ))}
+          </div>
+        )}
         <dl className="space-y-3">
           {furnitureRows.map(([label, value]) => (
             <div key={label} className="rounded-2xl bg-stone-50 px-3 py-2">

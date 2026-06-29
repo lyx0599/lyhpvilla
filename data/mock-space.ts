@@ -1,4 +1,5 @@
 import type { SpaceData } from "@/types/space";
+import { getInteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 
 const cleanGrayVisualSettings = getDefaultVisualSettings();
@@ -6,6 +7,18 @@ const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 function assetPath(path: string) {
   return `${assetBasePath}${path}`;
+}
+
+function moduleMeta(catalogId: string) {
+  const item = getInteriorModuleCatalogItem(catalogId);
+  if (!item) return {};
+  return {
+    catalogId: item.id,
+    moduleCategory: item.category,
+    moduleType: item.moduleType,
+    serviceRequirements: item.serviceRequirements,
+    constructionNote: item.note
+  };
 }
 
 export const mockSpaceData: SpaceData = {
@@ -88,7 +101,8 @@ export const mockSpaceData: SpaceData = {
       id: "furn-island-001",
       code: "IS-001",
       name: "中岛台",
-      type: "table",
+      type: "island",
+      ...moduleMeta("kitchen-island"),
       floorId: "1F",
       roomId: "room-dining",
       dimensions: { width: 240, depth: 95, height: 90, unit: "cm" },
@@ -101,7 +115,8 @@ export const mockSpaceData: SpaceData = {
       id: "furn-sink-001",
       code: "SK-001",
       name: "岛台水槽",
-      type: "custom",
+      type: "sink",
+      ...moduleMeta("kitchen-sink"),
       floorId: "1F",
       roomId: "room-dining",
       dimensions: { width: 72, depth: 48, height: 20, unit: "cm" },
@@ -114,7 +129,8 @@ export const mockSpaceData: SpaceData = {
       id: "furn-cooktop-001",
       code: "CK-001",
       name: "嵌入式灶台",
-      type: "custom",
+      type: "cooktop",
+      ...moduleMeta("kitchen-cooktop"),
       floorId: "1F",
       roomId: "room-dining",
       dimensions: { width: 90, depth: 52, height: 12, unit: "cm" },
@@ -127,7 +143,8 @@ export const mockSpaceData: SpaceData = {
       id: "furn-fridge-001",
       code: "RF-001",
       name: "嵌入式冰箱位",
-      type: "cabinet",
+      type: "fridge",
+      ...moduleMeta("kitchen-fridge"),
       floorId: "1F",
       roomId: "room-dining",
       dimensions: { width: 92, depth: 70, height: 190, unit: "cm" },
@@ -153,7 +170,8 @@ export const mockSpaceData: SpaceData = {
       id: "furn-cabinet-001",
       code: "CB-001",
       name: "B1 入户收纳柜",
-      type: "cabinet",
+      type: "entryCabinet",
+      ...moduleMeta("storage-entry-cabinet"),
       floorId: "B1",
       roomId: "room-entry",
       dimensions: { width: 220, depth: 40, height: 240, unit: "cm" },

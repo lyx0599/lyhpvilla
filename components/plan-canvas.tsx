@@ -125,6 +125,7 @@ type PlanBounds = { x: number; y: number; width: number; height: number };
 type SyncPaintRuleId = WallSyncRuleId | "default";
 type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
+type StructureInteractionKind = "wall" | "partition" | "stair" | "fence" | "opening" | "skylight" | "room" | "outdoor" | "outdoorSurface";
 type StructureObjectRow = {
   id: string;
   kind: "wall" | "partition" | "stair" | "fence" | "door" | "window" | "bayWindow" | "skylight" | "room" | "outdoor" | "outdoorSurface" | "furniture";
@@ -182,6 +183,9 @@ const planSheetModeFootnotes: Record<PlanSheetMode, string> = {
   flooring: "地面：室内铺装 / 庭院硬地 / 绿化",
   preview: "展示表达：家具 / 语义 / 白模"
 };
+
+const wallEditableSheetModes = new Set<PlanSheetMode>(["structure", "construction"]);
+const wallEditableSheetModeLabel = "空白结构、施工标注";
 
 const syncPaintTools: Array<{ id: SyncPaintRuleId; label: string; color: string }> = [
   { id: "all-level", label: "四层", color: "#2563eb" },
@@ -303,7 +307,14 @@ export function PlanCanvas({
   useEffect(() => {
     setSelectedSyncWallId("");
     setSyncPaintRuleId(null);
-  }, [floor.id, sheetMode]);
+    setClickDrawStart(null);
+    setDrawPreview(null);
+    setOutdoorDraft([]);
+    setOutdoorSurfaceDraft(null);
+    setSelectedStructureId("");
+    setInteractionState((currentState) => ({ ...currentState, selectedObjectId: "", hoveredObjectId: "", editingObjectId: "" }));
+    onActiveObjectChange("");
+  }, [floor.id, sheetMode, onActiveObjectChange]);
 
   useEffect(() => {
     if (sheetMode !== "sync") return;
@@ -593,6 +604,78 @@ export function PlanCanvas({
     );
   }
 
+  function getStructureObjectKind(objectId: string): StructureInteractionKind | null {
+    if (houseStructure.walls.some((object) => object.id === objectId)) return "wall";
+    if (houseStructure.partitions.some((object) => object.id === objectId)) return "partition";
+    if (houseStructure.stairs.some((object) => object.id === objectId)) return "stair";
+    if (houseStructure.fences.some((object) => object.id === objectId)) return "fence";
+    if (houseStructure.doors.some((object) => object.id === objectId)) return "opening";
+    if (houseStructure.windows.some((object) => object.id === objectId)) return "opening";
+    if (houseStructure.bayWindows.some((object) => object.id === objectId)) return "opening";
+    if (houseStructure.skylights.some((object) => object.id === objectId)) return "skylight";
+    if (houseStructure.rooms.some((object) => object.id === objectId)) return "room";
+    if (houseStructure.outdoors.some((object) => object.id === objectId)) return "outdoor";
+    if (houseStructure.outdoorSurfaces.some((object) => object.id === objectId)) return "outdoorSurface";
+    return null;
+  }
+
+  function getDrawToolStructureKind(tool: DrawTool): StructureInteractionKind | null {
+    if (tool === "wall-straight" || tool === "wall-arc") return "wall";
+    if (tool === "partition") return "partition";
+    if (tool === "stair") return "stair";
+    if (tool === "fence") return "fence";
+    if (tool === "door" || tool === "window" || tool === "bay-window") return "opening";
+    if (tool === "skylight") return "skylight";
+    if (tool === "outdoor") return "outdoor";
+    if (tool === "hardscape" || tool === "path" || tool === "planting") return "outdoorSurface";
+    return null;
+  }
+
+  function canSelectFurnitureLayer() {
+    return sheetMode === "site" || sheetMode === "furnishing" || sheetMode === "preview" || ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
+  }
+
+  function canSelectStructureLayer(kind: StructureInteractionKind) {
+    if (sheetMode === "site") return true;
+    if (sheetMode === "sync") return kind === "wall";
+    if (sheetMode === "structure" || sheetMode === "construction") return true;
+    return false;
+  }
+
+  function canMutateStructureLayer(kind: StructureInteractionKind) {
+    if (kind === "room" || sheetMode === "sync") return false;
+    if (kind === "wall") return wallEditableSheetModes.has(sheetMode);
+    return sheetMode === "structure" || sheetMode === "construction";
+  }
+
+  function canDrawStructureTool(tool: DrawTool) {
+    const kind = getDrawToolStructureKind(tool);
+    return !kind || canMutateStructureLayer(kind);
+  }
+
+  function getLayerInteractionLabel() {
+    if (sheetMode === "site") return "总平面：可选择全部对象，墙体只读";
+    if (sheetMode === "furnishing") return "家具布置：只响应家具/硬装";
+    if (sheetMode === "sync") return "联动规则：只响应墙体";
+    if (sheetMode === "structure" || sheetMode === "construction") return "结构图：可选择、绘制和调整结构对象";
+    if (sheetMode === "preview") return "效果预览：只响应展示对象";
+    return "点位图：墙体保护，响应家具/硬装";
+  }
+
+  function blockProtectedStructureEdit(kind: StructureInteractionKind, action = "结构调整") {
+    if (canMutateStructureLayer(kind)) return false;
+    if (!canSelectStructureLayer(kind)) {
+      setStructureMessage(`${planSheetModeLabels[sheetMode]}不编辑此对象。`);
+      return true;
+    }
+    if (kind === "wall") {
+      setStructureMessage(`${action}已保护。只有${wallEditableSheetModeLabel}可以动墙。`);
+      return true;
+    }
+    setStructureMessage(`${action}已保护。请切到空白结构或施工标注图再修改结构对象。`);
+    return true;
+  }
+
   function getStructureSnapPoints() {
     return [
       ...getWallEndpoints(houseStructure.walls),
@@ -655,6 +738,9 @@ export function PlanCanvas({
   }
 
   function finishClickDraw(tool: ClickDrawTool, start: MmPoint, end: MmPoint) {
+    const kind = getDrawToolStructureKind(tool);
+    if (kind && blockProtectedStructureEdit(kind, "结构绘制")) return;
+
     if (getDistance(start, end) <= 120) {
       setDrawPreview({ start, end });
       setStructureMessage("终点太近，请移动鼠标后再点击另一端。");
@@ -737,6 +823,11 @@ export function PlanCanvas({
       if (plannerMode !== "edit") return;
     }
     if (plannerMode !== "edit") return;
+    const toolKind = getDrawToolStructureKind(drawTool);
+    if (toolKind && blockProtectedStructureEdit(toolKind, "结构绘制")) {
+      event.stopPropagation();
+      return;
+    }
     const rawPoint = getMmPosition(event);
     if (!rawPoint) return;
     const snapPoints = getStructureSnapPoints();
@@ -832,6 +923,9 @@ export function PlanCanvas({
   }
 
   function handleStructurePointerMove(event: PointerEvent<SVGSVGElement>) {
+    const previewKind = getDrawToolStructureKind(drawTool);
+    if (previewKind && !canMutateStructureLayer(previewKind)) return;
+
     if (clickDrawStart && isClickDrawTool(drawTool)) {
       const rawPoint = getMmPosition(event);
       if (!rawPoint) return;
@@ -851,6 +945,8 @@ export function PlanCanvas({
 
     const structureDrag = structureDragRef.current;
     if (structureDrag && structureDrag.pointerId === event.pointerId) {
+      const kind = getStructureObjectKind(structureDrag.objectId);
+      if (!kind || !canMutateStructureLayer(kind)) return;
       const rawPoint = getMmPosition(event);
       if (!rawPoint) return;
       const point = snapPoint(rawPoint, getStructureSnapPoints());
@@ -888,6 +984,8 @@ export function PlanCanvas({
 
     const structureMove = structureMoveRef.current;
     if (structureMove && structureMove.pointerId === event.pointerId) {
+      const kind = getStructureObjectKind(structureMove.objectId);
+      if (!kind || !canMutateStructureLayer(kind)) return;
       const point = getMmPosition(event);
       if (!point || objectIsLocked(structureMove.objectId)) return;
       const delta = {
@@ -901,6 +999,7 @@ export function PlanCanvas({
 
     const openingDrag = openingDragRef.current;
     if (openingDrag && openingDrag.pointerId === event.pointerId) {
+      if (!canMutateStructureLayer("opening")) return;
       const point = getMmPosition(event);
       if (!point || objectIsLocked(openingDrag.objectId)) return;
       const object = openingDrag.objectType === "door"
@@ -964,6 +1063,7 @@ export function PlanCanvas({
   }
 
   function finishOutdoorDraft() {
+    if (blockProtectedStructureEdit("outdoor", "院子绘制")) return;
     if (outdoorDraft.length < 3) return;
     const outdoor = createOutdoor(getNextStructureId("OD", houseStructure.outdoors.length), floor.id, outdoorDraft);
     onHouseStructureChange({ ...houseStructure, outdoors: [...houseStructure.outdoors, outdoor] });
@@ -980,6 +1080,7 @@ export function PlanCanvas({
   }
 
   function finishOutdoorSurfaceDraft() {
+    if (blockProtectedStructureEdit("outdoorSurface", "户外区域绘制")) return;
     if (!outdoorSurfaceDraft || outdoorSurfaceDraft.points.length < 3) return;
     const prefixByTool: Record<OutdoorSurfaceDrawTool, string> = {
       hardscape: "HS",
@@ -1008,6 +1109,10 @@ export function PlanCanvas({
   function deleteSelectedObject() {
     const selectedFurnitureObject = furniture.find((item) => item.id === interactionState.selectedObjectId);
     if (!selectedStructureId && selectedFurnitureObject) {
+      if (!canSelectFurnitureLayer()) {
+        setStructureMessage(`${planSheetModeLabels[sheetMode]}不编辑家具对象。`);
+        return;
+      }
       if (objectIsLocked(selectedFurnitureObject.id) || selectedFurnitureObject.locked) {
         setStructureMessage("家具已锁定，先解锁后才能删除。");
         return;
@@ -1024,6 +1129,8 @@ export function PlanCanvas({
 
   function deleteSelectedStructureObject() {
     if (!selectedStructureId) return;
+    const kind = getStructureObjectKind(selectedStructureId);
+    if (!kind || blockProtectedStructureEdit(kind, "删除结构")) return;
     if (objectIsLocked(selectedStructureId)) {
       setStructureMessage("对象已锁定，先解锁后才能删除。");
       return;
@@ -1175,6 +1282,11 @@ export function PlanCanvas({
   }
 
   function selectStructureObject(objectId: string, message?: string) {
+    const kind = getStructureObjectKind(objectId);
+    if (!kind || !canSelectStructureLayer(kind)) {
+      setStructureMessage(`${planSheetModeLabels[sheetMode]}不选择此对象。`);
+      return;
+    }
     setSelectedStructureId(objectId);
     selectObject(objectId);
     onActiveObjectChange(objectId);
@@ -1188,7 +1300,8 @@ export function PlanCanvas({
     if (message) setStructureMessage(message);
   }
 
-  function shouldIgnoreStructureSelection() {
+  function shouldIgnoreStructureSelection(kind: StructureInteractionKind) {
+    if (!canSelectStructureLayer(kind)) return true;
     return plannerMode === "edit" && drawTool !== "select";
   }
 
@@ -1201,6 +1314,7 @@ export function PlanCanvas({
 
   function splitSelectedWall() {
     if (!selectedStructureId) return;
+    if (blockProtectedStructureEdit("wall", "分割墙体")) return;
     const nextStructure = splitWall(houseStructure, interactionState, selectedStructureId);
     onHouseStructureChange(nextStructure);
     setSelectedStructureId("");
@@ -1210,6 +1324,7 @@ export function PlanCanvas({
 
   function mergeSelectedWall() {
     if (!selectedStructureId) return;
+    if (blockProtectedStructureEdit("wall", "合并墙体")) return;
     const nextStructure = mergeWall(houseStructure, interactionState, selectedStructureId);
     onHouseStructureChange(nextStructure);
     setSelectedStructureId("");
@@ -1219,12 +1334,14 @@ export function PlanCanvas({
 
   function rotateSelectedDoor() {
     if (!selectedStructureId) return;
+    if (blockProtectedStructureEdit("opening", "门窗调整")) return;
     onHouseStructureChange(rotateDoor(houseStructure, interactionState, selectedStructureId));
     setStructureMessage("已切换门的开启方向。");
   }
 
   function resizeSelectedWindow(deltaWidth: number) {
     if (!selectedStructureId) return;
+    if (blockProtectedStructureEdit("opening", "门窗调整")) return;
     const windowObject = houseStructure.windows.find((item) => item.id === selectedStructureId);
     const bayWindow = houseStructure.bayWindows.find((item) => item.id === selectedStructureId);
     if (bayWindow) {
@@ -1246,6 +1363,7 @@ export function PlanCanvas({
   }
 
   function resizeSelectedStair(deltaLength: number) {
+    if (blockProtectedStructureEdit("stair", "楼梯调整")) return;
     if (!selectedStair || objectIsLocked(selectedStair.id)) return;
 
     const currentLength = Math.max(1, getLineLength(selectedStair.start, selectedStair.end));
@@ -1268,12 +1386,20 @@ export function PlanCanvas({
 
   function rotateSelectedFurniture() {
     const objectId = interactionState.selectedObjectId || selectedFurnitureId;
+    if (!canSelectFurnitureLayer()) {
+      setStructureMessage(`${planSheetModeLabels[sheetMode]}不编辑家具对象。`);
+      return;
+    }
     if (!furniture.some((item) => item.id === objectId)) return;
     onFurnitureChange(rotateFurniture(furniture, interactionState, objectId, 15));
   }
 
   function selectRegistryObject(row: StructureObjectRow) {
     if (row.kind === "furniture") {
+      if (!canSelectFurnitureLayer()) {
+        setStructureMessage(`${planSheetModeLabels[sheetMode]}不选择家具对象。`);
+        return;
+      }
       const item = furniture.find((furnitureObject) => furnitureObject.id === row.id);
       if (!item) return;
       setSelectedStructureId("");
@@ -1287,7 +1413,8 @@ export function PlanCanvas({
   }
 
   function renderDragHandle(objectId: string, pointKey: "start" | "end", point: MmPoint) {
-    if (plannerMode !== "edit" || drawTool !== "select" || objectIsLocked(objectId)) return null;
+    const kind = getStructureObjectKind(objectId);
+    if (!kind || plannerMode !== "edit" || drawTool !== "select" || objectIsLocked(objectId) || !canMutateStructureLayer(kind)) return null;
     return (
       <circle
         key={`${objectId}-${pointKey}`}
@@ -1298,6 +1425,7 @@ export function PlanCanvas({
         strokeWidth={28}
         onPointerDown={(event) => {
           event.stopPropagation();
+          if (blockProtectedStructureEdit(kind, "端点调整")) return;
           structureDragRef.current = { pointerId: event.pointerId, objectId, pointKey, moved: false };
           event.currentTarget.setPointerCapture(event.pointerId);
           setSelectedStructureId(objectId);
@@ -1309,10 +1437,11 @@ export function PlanCanvas({
   }
 
   const selectedStructureObject = getSelectedStructureObject();
+  const selectedStructureKind = selectedStructureId ? getStructureObjectKind(selectedStructureId) : null;
   const selectedInteractionFurniture = furniture.find((item) => item.id === interactionState.selectedObjectId) ?? null;
   const selectedInteractionObjectId = interactionState.selectedObjectId || selectedStructureId;
-  const canDeleteSelectedStructure = Boolean(selectedStructureObject && !houseStructure.rooms.some((room) => room.id === selectedStructureObject.id) && !objectIsLocked(selectedStructureObject.id));
-  const canDeleteSelectedFurniture = Boolean(selectedInteractionFurniture && !selectedInteractionFurniture.locked && !objectIsLocked(selectedInteractionFurniture.id));
+  const canDeleteSelectedStructure = Boolean(selectedStructureObject && selectedStructureKind && canMutateStructureLayer(selectedStructureKind) && !houseStructure.rooms.some((room) => room.id === selectedStructureObject.id) && !objectIsLocked(selectedStructureObject.id));
+  const canDeleteSelectedFurniture = Boolean(selectedInteractionFurniture && canSelectFurnitureLayer() && !selectedInteractionFurniture.locked && !objectIsLocked(selectedInteractionFurniture.id));
   const canDeleteSelectedObject = canDeleteSelectedStructure || canDeleteSelectedFurniture;
   const selectedWall = houseStructure.walls.find((wall) => wall.id === selectedStructureId);
   const selectedStair = houseStructure.stairs.find((stair) => stair.id === selectedStructureId);
@@ -1424,9 +1553,9 @@ export function PlanCanvas({
       rows.push({
         id: item.id,
         kind: "furniture",
-        label: "家具",
+        label: item.moduleCategory ? "硬装" : "家具",
         name: item.name,
-        detail: `${item.dimensions.width} x ${item.dimensions.depth} x ${item.dimensions.height} cm · ${item.roomId}`
+        detail: `${item.dimensions.width} x ${item.dimensions.depth} x ${item.dimensions.height} cm · ${item.moduleCategory ?? item.roomId}`
       });
     });
     return rows;
@@ -1598,6 +1727,15 @@ export function PlanCanvas({
 
   function selectDrawTool(tool: DrawTool) {
     onDrawToolChange(tool);
+    const kind = getDrawToolStructureKind(tool);
+    if (kind && !canMutateStructureLayer(kind)) {
+      if (kind === "wall") {
+        setStructureMessage(`${drawToolLabels[tool]}已保护。只有${wallEditableSheetModeLabel}可以动墙。`);
+        return;
+      }
+      setStructureMessage(`${drawToolLabels[tool]}已保护。请切到空白结构或施工标注图再使用。`);
+      return;
+    }
     setStructureMessage(getDrawToolMessage(tool));
   }
 
@@ -1812,10 +1950,12 @@ export function PlanCanvas({
   const visibleBaseFloorPlan = !isSiteSheetMode && !isStructureSheetMode && !isSyncSheetMode && !isSystemSheetMode && layerVisibility.baseFloorPlan;
   const visibleCleanupPatch = !isSiteSheetMode && !isStructureSheetMode && !isSyncSheetMode && !isSystemSheetMode && layerVisibility.cleanupPatch;
   const visibleStructureProjection = isSystemSheetMode;
-  const visibleFurnitureOverlay = (sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
+  const visibleFurnitureOverlay = (isSiteSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
   const visibleSemanticOverlay = sheetMode === "preview" && layerVisibility.semanticOverlay;
   const visibleDebugLayer = sheetMode === "preview" && layerVisibility.debug;
   const showDimensionLayer = isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode;
+  const structurePointerEventsEnabled = isSiteSheetMode || isStructureSheetMode || isSyncSheetMode || isConstructionSheetMode || (plannerMode === "edit" && Boolean(getDrawToolStructureKind(drawTool)) && canDrawStructureTool(drawTool));
+  const furniturePointerEventsEnabled = canSelectFurnitureLayer();
   const cleanFillColor = getCleanupFillColor(floorPlanVisualSettings);
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
 
@@ -2724,6 +2864,17 @@ export function PlanCanvas({
                   </div>
                 )}
 
+                <div className="rounded-xl border border-stone-200 bg-white p-2 leading-5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-ink">图层隔离</span>
+                    <span className={`rounded-lg px-2 py-1 font-semibold ${wallEditableSheetModes.has(sheetMode) ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-stone-500"}`}>
+                      {wallEditableSheetModes.has(sheetMode) ? "墙体可编辑" : "墙体只读"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-stone-500">{getLayerInteractionLabel()}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-stone-400">可动墙图纸：{wallEditableSheetModeLabel}</p>
+                </div>
+
                 <div className="rounded-xl bg-slate-50 p-2 leading-5">
                   <p className="font-semibold text-ink">统一坐标</p>
                   <p>原点 ({houseStructure.coordinateSystem.origin.x}, {houseStructure.coordinateSystem.origin.y}) · {houseStructure.coordinateSystem.width} x {houseStructure.coordinateSystem.height} mm</p>
@@ -2970,6 +3121,7 @@ export function PlanCanvas({
               onPointerMove={handleStructurePointerMove}
               onPointerUp={handleStructurePointerUp}
               onPointerCancel={handleStructurePointerUp}
+              style={{ pointerEvents: structurePointerEventsEnabled ? "auto" : "none" }}
               viewBox={`${planBounds.x} ${planBounds.y} ${planBounds.width} ${planBounds.height}`}
             >
               {plannerMode === "edit" && drawTool !== "select" && <rect x={planBounds.x} y={planBounds.y} width={planBounds.width} height={planBounds.height} fill="transparent" />}
@@ -2994,7 +3146,7 @@ export function PlanCanvas({
                       strokeWidth={hovered || selected ? 48 : 30}
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (shouldIgnoreStructureSelection()) return;
+                        if (shouldIgnoreStructureSelection("outdoorSurface")) return;
                         selectStructureObject(surface.id, `${surface.name} · ${(surface.area / 1_000_000).toFixed(2)} m2`);
                       }}
                       onMouseEnter={() => hoverObject(surface.id)}
@@ -3011,7 +3163,7 @@ export function PlanCanvas({
                     strokeWidth={isObjectHovered(outdoor.id) ? 52 : 36}
                     onClick={(event) => {
                       event.stopPropagation();
-                      if (shouldIgnoreStructureSelection()) return;
+                      if (shouldIgnoreStructureSelection("outdoor")) return;
                       selectStructureObject(outdoor.id, `${outdoor.name} · ${(outdoor.area / 1_000_000).toFixed(2)} m2`);
                     }}
                     onMouseEnter={() => hoverObject(outdoor.id)}
@@ -3056,11 +3208,12 @@ export function PlanCanvas({
                         strokeWidth={Math.max(360, fence.thickness + 230)}
                         onClick={(event) => {
                           event.stopPropagation();
-                          if (shouldIgnoreStructureSelection()) return;
+                          if (shouldIgnoreStructureSelection("fence")) return;
                           selectStructureObject(fence.id, `${fence.name} · ${getLineLength(fence.start, fence.end)} mm`);
                         }}
                         onPointerDown={(event) => {
                           if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                          if (blockProtectedStructureEdit("fence", "移动篱笆")) return;
                           const point = getMmPosition(event);
                           if (!point) return;
                           event.stopPropagation();
@@ -3102,7 +3255,7 @@ export function PlanCanvas({
                     strokeWidth={isObjectSelected(room.id) || isObjectHovered(room.id) ? 36 : 18}
                     onClick={(event) => {
                       event.stopPropagation();
-                      if (shouldIgnoreStructureSelection()) return;
+                      if (shouldIgnoreStructureSelection("room")) return;
                       selectStructureObject(room.id, `${room.roomNumber} · ${room.name} · ${(room.area / 1_000_000).toFixed(2)} m2`);
                     }}
                     onMouseEnter={() => hoverObject(room.id)}
@@ -3129,11 +3282,12 @@ export function PlanCanvas({
                           strokeWidth={Math.max(420, wall.thickness + 220)}
                           onClick={(event) => {
                             event.stopPropagation();
-                            if (shouldIgnoreStructureSelection()) return;
+                            if (shouldIgnoreStructureSelection("wall")) return;
                             selectStructureObject(wall.id, `${wall.name} · 弧形墙 · ${wall.length} mm`);
                           }}
                           onPointerDown={(event) => {
                             if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                            if (blockProtectedStructureEdit("wall", "移动墙体")) return;
                             const point = getMmPosition(event);
                             if (!point) return;
                             event.stopPropagation();
@@ -3170,11 +3324,12 @@ export function PlanCanvas({
                         pointerEvents="all"
                         onClick={(event) => {
                           event.stopPropagation();
-                          if (shouldIgnoreStructureSelection()) return;
+                          if (shouldIgnoreStructureSelection("wall")) return;
                           selectStructureObject(wall.id, `${wall.name} · ${wall.length} mm`);
                         }}
                         onPointerDown={(event) => {
                           if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                          if (blockProtectedStructureEdit("wall", "移动墙体")) return;
                           const point = getMmPosition(event);
                           if (!point) return;
                           event.stopPropagation();
@@ -3222,11 +3377,12 @@ export function PlanCanvas({
                         strokeWidth={Math.max(320, partition.thickness + 200)}
                         onClick={(event) => {
                           event.stopPropagation();
-                          if (shouldIgnoreStructureSelection()) return;
+                          if (shouldIgnoreStructureSelection("partition")) return;
                           selectStructureObject(partition.id, `${partition.name} · 可拆改隔断`);
                         }}
                         onPointerDown={(event) => {
                           if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                          if (blockProtectedStructureEdit("partition", "移动隔断")) return;
                           const point = getMmPosition(event);
                           if (!point) return;
                           event.stopPropagation();
@@ -3292,11 +3448,12 @@ export function PlanCanvas({
                         strokeWidth={Math.max(520, stair.width + 220)}
                         onClick={(event) => {
                           event.stopPropagation();
-                          if (shouldIgnoreStructureSelection()) return;
+                          if (shouldIgnoreStructureSelection("stair")) return;
                           selectStructureObject(stair.id, `${stair.name} · ${getLineLength(stair.start, stair.end)} mm · ${stair.stepCount} 踏`);
                         }}
                         onPointerDown={(event) => {
                           if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                          if (blockProtectedStructureEdit("stair", "移动楼梯")) return;
                           const point = getMmPosition(event);
                           if (!point) return;
                           event.stopPropagation();
@@ -3378,13 +3535,14 @@ export function PlanCanvas({
                       key={door.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (shouldIgnoreStructureSelection()) return;
+                        if (shouldIgnoreStructureSelection("opening")) return;
                         selectStructureObject(door.id, `${door.name} · ${door.width} mm`);
                       }}
                       onMouseEnter={() => hoverObject(door.id)}
                       onMouseLeave={() => clearHoverObject(door.id)}
                       onPointerDown={(event) => {
                         if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                        if (blockProtectedStructureEdit("opening", "移动门")) return;
                         event.stopPropagation();
                         openingDragRef.current = { pointerId: event.pointerId, objectId: door.id, objectType: "door", moved: false };
                         event.currentTarget.setPointerCapture(event.pointerId);
@@ -3410,13 +3568,14 @@ export function PlanCanvas({
                       key={windowObject.id}
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (shouldIgnoreStructureSelection()) return;
+                        if (shouldIgnoreStructureSelection("opening")) return;
                         selectStructureObject(windowObject.id, `${windowObject.name} · ${windowObject.width} mm`);
                       }}
                       onMouseEnter={() => hoverObject(windowObject.id)}
                       onMouseLeave={() => clearHoverObject(windowObject.id)}
                       onPointerDown={(event) => {
                         if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                        if (blockProtectedStructureEdit("opening", "移动窗")) return;
                         event.stopPropagation();
                         openingDragRef.current = { pointerId: event.pointerId, objectId: windowObject.id, objectType: "window", moved: false };
                         event.currentTarget.setPointerCapture(event.pointerId);
@@ -3451,7 +3610,7 @@ export function PlanCanvas({
                       className="cursor-pointer"
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (shouldIgnoreStructureSelection()) return;
+                        if (shouldIgnoreStructureSelection("opening")) return;
                         selectStructureObject(bayWindow.id, `${bayWindow.name} · 宽 ${bayWindow.width} mm · 外扩 ${bayWindow.depth} mm`);
                       }}
                       onPointerDown={(event) => {
@@ -3482,7 +3641,7 @@ export function PlanCanvas({
                       className="cursor-pointer"
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (shouldIgnoreStructureSelection()) return;
+                        if (shouldIgnoreStructureSelection("skylight")) return;
                         selectStructureObject(skylight.id, `${skylight.name} · ${skylight.width} x ${skylight.depth} mm`);
                       }}
                       onPointerDown={(event) => {
@@ -3597,7 +3756,12 @@ export function PlanCanvas({
             )}
 
             {visibleFurnitureOverlay && (
-              <div className="absolute inset-0 z-30" data-layer="FurnitureOverlayLayer" data-coordinate-system="percent-of-floor-plan">
+              <div
+                className="absolute inset-0 z-30"
+                data-layer="FurnitureOverlayLayer"
+                data-coordinate-system="percent-of-floor-plan"
+                style={{ pointerEvents: furniturePointerEventsEnabled ? "auto" : "none" }}
+              >
               {furniture.map((item) => {
                 const isSelected = isObjectSelected(item.id);
                 const isHovered = isObjectHovered(item.id);
@@ -3605,11 +3769,12 @@ export function PlanCanvas({
                 const displayPosition = getFurnitureDisplayPosition(item);
                 const width = Math.max(5, (item.dimensions.width / 24) * (STRUCTURE_WIDTH_MM / planBounds.width));
                 const height = Math.max(4, (item.dimensions.depth / 24) * (STRUCTURE_HEIGHT_MM / planBounds.height));
+                const labelTextColor = item.color.toLowerCase() === "#1f2937" ? "#ffffff" : "#0f172a";
                 return (
                   <button
                     key={item.id}
                     className={`absolute grid cursor-grab place-items-center rounded-md border text-[10px] font-bold text-emerald-950/90 transition hover:scale-105 ${
-                      isSelected ? "z-20 border-blue-500 bg-emerald-100/70 ring-4 ring-blue-500/20" : isHovered ? "border-emerald-700 bg-emerald-100/75 ring-2 ring-emerald-500/20" : "border-emerald-600/55 bg-emerald-100/55"
+                      isSelected ? "z-20 border-blue-500 ring-4 ring-blue-500/20" : isHovered ? "border-emerald-700 ring-2 ring-emerald-500/20" : "border-emerald-600/55"
                     }`}
                     style={{
                       left: `${displayPosition.x}%`,
@@ -3618,6 +3783,8 @@ export function PlanCanvas({
                       height: `${height}%`,
                       minWidth: "48px",
                       minHeight: "40px",
+                      backgroundColor: item.color,
+                      color: labelTextColor,
                       opacity: locked ? 0.6 : 1,
                       transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
                     }}
