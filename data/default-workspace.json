@@ -1,1 +1,2715 @@
-{}
+{
+  "schemaVersion": 2,
+  "savedAt": "2026-07-01T16:16:58.186Z",
+  "saveMode": "manual",
+  "selectedFloorId": "B2",
+  "furniture": [
+    {
+      "id": "furn-cabinet-001",
+      "code": "CB-001",
+      "name": "B1 入户收纳柜",
+      "type": "entryCabinet",
+      "catalogId": "storage-entry-cabinet",
+      "moduleCategory": "storage",
+      "moduleType": "entryCabinet",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "constructionNote": "预留扫地机器人位、换鞋凳和感应灯电源。",
+      "floorId": "B1",
+      "roomId": "room-entry",
+      "dimensions": {
+        "width": 220,
+        "depth": 40,
+        "height": 240,
+        "unit": "cm"
+      },
+      "material": "暖白柜门 + 原木开放格",
+      "note": "考虑扫地机器人和临时挂衣。",
+      "position": {
+        "x": 26,
+        "y": 29,
+        "rotation": 0
+      },
+      "color": "#f0e7d8"
+    },
+    {
+      "id": "furn-sofa-001",
+      "code": "SF-001",
+      "name": "客厅米白直排沙发",
+      "type": "sofa",
+      "floorId": "1F",
+      "roomId": "room-living",
+      "dimensions": {
+        "width": 240,
+        "depth": 90,
+        "height": 78,
+        "unit": "cm"
+      },
+      "material": "米白色绒布",
+      "note": "自然语言示例目标：往南移动 30cm。",
+      "position": {
+        "x": 26,
+        "y": 67,
+        "rotation": 0
+      },
+      "color": "#e8ded0"
+    },
+    {
+      "id": "furn-table-001",
+      "code": "TB-001",
+      "name": "岩板圆餐桌",
+      "type": "table",
+      "floorId": "1F",
+      "roomId": "room-dining",
+      "dimensions": {
+        "width": 135,
+        "depth": 135,
+        "height": 75,
+        "unit": "cm"
+      },
+      "material": "浅灰岩板 + 黑色金属脚",
+      "note": "靠近餐厨动线，预留通道。",
+      "position": {
+        "x": 72,
+        "y": 43,
+        "rotation": 0
+      },
+      "color": "#d6d9d7"
+    },
+    {
+      "id": "furn-tv-001",
+      "code": "TV-001",
+      "name": "客厅电视矮柜",
+      "type": "cabinet",
+      "floorId": "1F",
+      "roomId": "room-living",
+      "dimensions": {
+        "width": 280,
+        "depth": 42,
+        "height": 45,
+        "unit": "cm"
+      },
+      "material": "悬浮暖白柜 + 木饰面",
+      "note": "先按南侧客厅视线布置，后续配合电视墙立面深化。",
+      "position": {
+        "x": 27,
+        "y": 82,
+        "rotation": 0
+      },
+      "color": "#eadfcd"
+    },
+    {
+      "id": "furn-kitchen-run-001",
+      "code": "KC-001",
+      "name": "餐厨一字型操作台",
+      "type": "cabinet",
+      "floorId": "1F",
+      "roomId": "room-dining",
+      "dimensions": {
+        "width": 360,
+        "depth": 65,
+        "height": 90,
+        "unit": "cm"
+      },
+      "material": "浅灰柜体 + 石英石台面",
+      "note": "靠近北侧窗，作为灶台、水槽和备餐主操作面。",
+      "position": {
+        "x": 70,
+        "y": 20,
+        "rotation": 0
+      },
+      "color": "#cfd7d3"
+    },
+    {
+      "id": "furn-island-001",
+      "code": "IS-001",
+      "name": "中岛台",
+      "type": "table",
+      "floorId": "1F",
+      "roomId": "room-dining",
+      "dimensions": {
+        "width": 240,
+        "depth": 95,
+        "height": 90,
+        "unit": "cm"
+      },
+      "material": "岩板台面 + 储物柜体",
+      "note": "预留岛台地插、净水和排水可选方案。",
+      "position": {
+        "x": 69,
+        "y": 36,
+        "rotation": 0
+      },
+      "color": "#d8ddd9"
+    },
+    {
+      "id": "furn-sink-001",
+      "code": "SK-001",
+      "name": "岛台水槽",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "room-dining",
+      "dimensions": {
+        "width": 72,
+        "depth": 48,
+        "height": 20,
+        "unit": "cm"
+      },
+      "material": "不锈钢台下盆",
+      "note": "对应给水、排水和净水点位。",
+      "position": {
+        "x": 68,
+        "y": 36,
+        "rotation": 0
+      },
+      "color": "#9cc7d9"
+    },
+    {
+      "id": "furn-cooktop-001",
+      "code": "CK-001",
+      "name": "嵌入式灶台",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "room-dining",
+      "dimensions": {
+        "width": 90,
+        "depth": 52,
+        "height": 12,
+        "unit": "cm"
+      },
+      "material": "燃气灶 / 电磁灶预留",
+      "note": "后续和烟道、排烟路径一起校核。",
+      "position": {
+        "x": 78,
+        "y": 20,
+        "rotation": 0
+      },
+      "color": "#1f2937"
+    },
+    {
+      "id": "furn-fridge-001",
+      "code": "RF-001",
+      "name": "嵌入式冰箱位",
+      "type": "cabinet",
+      "floorId": "1F",
+      "roomId": "room-dining",
+      "dimensions": {
+        "width": 92,
+        "depth": 70,
+        "height": 190,
+        "unit": "cm"
+      },
+      "material": "高柜嵌入",
+      "note": "建议独立回路，侧边预留散热。",
+      "position": {
+        "x": 88,
+        "y": 18,
+        "rotation": 0
+      },
+      "color": "#d9dee4"
+    },
+    {
+      "id": "furn-bed-001",
+      "code": "BD-001",
+      "name": "主卧双人床",
+      "type": "bed",
+      "floorId": "2F",
+      "roomId": "room-bedroom",
+      "dimensions": {
+        "width": 180,
+        "depth": 200,
+        "height": 95,
+        "unit": "cm"
+      },
+      "material": "浅木色床架 + 奶咖软包",
+      "note": "床头朝西，后续确认插座。",
+      "position": {
+        "x": 38,
+        "y": 42,
+        "rotation": 90
+      },
+      "color": "#c8a887"
+    },
+    {
+      "id": "furn-plant-001",
+      "code": "PL-001",
+      "name": "院子桂花树",
+      "type": "plant",
+      "floorId": "YARD",
+      "roomId": "room-yard",
+      "dimensions": {
+        "width": 120,
+        "depth": 120,
+        "height": 260,
+        "unit": "cm"
+      },
+      "material": "植物",
+      "note": "作为入户视线焦点。",
+      "position": {
+        "x": 72,
+        "y": 34,
+        "rotation": 0
+      },
+      "color": "#7c9468"
+    }
+  ],
+  "semanticObjects": [
+    {
+      "id": "R-1F-001",
+      "name": "1F 客餐厅",
+      "floorId": "1F",
+      "category": "Room",
+      "type": "living_dining",
+      "notes": "一层主要公共空间，后续用于客餐厨家具标注。",
+      "position": {
+        "x": 55,
+        "y": 55
+      },
+      "details": {
+        "area": 52.99,
+        "boundary": [
+          {
+            "x": 35,
+            "y": 20
+          },
+          {
+            "x": 86,
+            "y": 20
+          },
+          {
+            "x": 86,
+            "y": 86
+          },
+          {
+            "x": 35,
+            "y": 86
+          }
+        ]
+      }
+    },
+    {
+      "id": "Z-1F-001",
+      "name": "1F 餐厨区",
+      "floorId": "1F",
+      "category": "Zone",
+      "type": "dining_kitchen",
+      "notes": "餐桌、岛台和厨房设备所在区域。",
+      "position": {
+        "x": 72,
+        "y": 54
+      },
+      "details": {
+        "roomId": "R-1F-001",
+        "boundary": [
+          {
+            "x": 62,
+            "y": 24
+          },
+          {
+            "x": 88,
+            "y": 24
+          },
+          {
+            "x": 88,
+            "y": 72
+          },
+          {
+            "x": 62,
+            "y": 72
+          }
+        ]
+      }
+    },
+    {
+      "id": "F-1F-001",
+      "name": "1F 沙发占位",
+      "floorId": "1F",
+      "category": "Furniture",
+      "type": "sofa",
+      "notes": "从当前 mock 家具同步来的语义对象示例。",
+      "position": {
+        "x": 28,
+        "y": 48
+      },
+      "details": {
+        "roomId": "R-1F-001",
+        "zoneId": "",
+        "size": {
+          "width": 240,
+          "depth": 90,
+          "height": 78,
+          "unit": "cm"
+        },
+        "position": {
+          "x": 28,
+          "y": 48
+        },
+        "rotation": 0,
+        "materialId": "",
+        "relatedWallIds": []
+      }
+    },
+    {
+      "id": "R-B1-001",
+      "name": "B1 多功能厅",
+      "floorId": "B1",
+      "category": "Room",
+      "type": "multi_function",
+      "notes": "地下室一层主要活动空间。",
+      "position": {
+        "x": 44,
+        "y": 60
+      },
+      "details": {
+        "area": 53.16,
+        "boundary": []
+      }
+    },
+    {
+      "id": "R-B2-001",
+      "name": "B2 会客影音区",
+      "floorId": "B2",
+      "category": "Room",
+      "type": "media_lounge",
+      "notes": "地下室二层大空间，后续标注影音和会客设备。",
+      "position": {
+        "x": 52,
+        "y": 58
+      },
+      "details": {
+        "area": 90.74,
+        "boundary": []
+      }
+    },
+    {
+      "id": "R-2F-001",
+      "name": "2F 主卧",
+      "floorId": "2F",
+      "category": "Room",
+      "type": "bedroom",
+      "notes": "二层主卧语义示例。",
+      "position": {
+        "x": 70,
+        "y": 48
+      },
+      "details": {
+        "area": 12.86,
+        "boundary": []
+      }
+    }
+  ],
+  "visualSettingsByFloor": {
+    "B2": {
+      "preset": "clean_gray",
+      "grayscale": true,
+      "opacity": 0.96,
+      "contrast": 1.28,
+      "brightness": 1.02,
+      "saturation": 0,
+      "sharpen": true,
+      "removeTextMarks": true,
+      "removeWhiteBorder": true,
+      "hideDebugFrames": true,
+      "cleanWhiteBackground": true,
+      "lineEnhance": true,
+      "repairMode": false,
+      "layerVisibility": {
+        "baseFloorPlan": true,
+        "cleanupPatch": true,
+        "semanticOverlay": true,
+        "furnitureOverlay": true,
+        "debug": false
+      }
+    },
+    "B1": {
+      "preset": "clean_gray",
+      "grayscale": true,
+      "opacity": 0.96,
+      "contrast": 1.28,
+      "brightness": 1.02,
+      "saturation": 0,
+      "sharpen": true,
+      "removeTextMarks": true,
+      "removeWhiteBorder": true,
+      "hideDebugFrames": true,
+      "cleanWhiteBackground": true,
+      "lineEnhance": true,
+      "repairMode": false,
+      "layerVisibility": {
+        "baseFloorPlan": true,
+        "cleanupPatch": true,
+        "semanticOverlay": true,
+        "furnitureOverlay": true,
+        "debug": false
+      }
+    },
+    "1F": {
+      "preset": "clean_gray",
+      "grayscale": true,
+      "opacity": 0.96,
+      "contrast": 1.28,
+      "brightness": 1.02,
+      "saturation": 0,
+      "sharpen": true,
+      "removeTextMarks": true,
+      "removeWhiteBorder": true,
+      "hideDebugFrames": true,
+      "cleanWhiteBackground": true,
+      "lineEnhance": true,
+      "repairMode": false,
+      "layerVisibility": {
+        "baseFloorPlan": true,
+        "cleanupPatch": true,
+        "semanticOverlay": true,
+        "furnitureOverlay": true,
+        "debug": false
+      }
+    },
+    "2F": {
+      "preset": "clean_gray",
+      "grayscale": true,
+      "opacity": 0.96,
+      "contrast": 1.28,
+      "brightness": 1.02,
+      "saturation": 0,
+      "sharpen": true,
+      "removeTextMarks": true,
+      "removeWhiteBorder": true,
+      "hideDebugFrames": true,
+      "cleanWhiteBackground": true,
+      "lineEnhance": true,
+      "repairMode": false,
+      "layerVisibility": {
+        "baseFloorPlan": true,
+        "cleanupPatch": true,
+        "semanticOverlay": true,
+        "furnitureOverlay": true,
+        "debug": false
+      }
+    },
+    "YARD": {
+      "preset": "clean_gray",
+      "grayscale": true,
+      "opacity": 0.96,
+      "contrast": 1.28,
+      "brightness": 1.02,
+      "saturation": 0,
+      "sharpen": true,
+      "removeTextMarks": true,
+      "removeWhiteBorder": true,
+      "hideDebugFrames": true,
+      "cleanWhiteBackground": true,
+      "lineEnhance": true,
+      "repairMode": false,
+      "layerVisibility": {
+        "baseFloorPlan": true,
+        "cleanupPatch": true,
+        "semanticOverlay": true,
+        "furnitureOverlay": true,
+        "debug": false
+      }
+    }
+  },
+  "cleanPatchesByFloor": {
+    "B2": [],
+    "B1": [],
+    "1F": [],
+    "2F": [],
+    "YARD": []
+  },
+  "houseStructuresByFloor": {
+    "B2": {
+      "floorId": "B2",
+      "coordinateSystem": {
+        "floorId": "B2",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "unit": "mm",
+        "width": 12000,
+        "height": 9000,
+        "scale": 1,
+        "note": "统一楼层坐标：左上角为原点，所有结构对象使用毫米。底图仅作为参考层。"
+      },
+      "walls": [
+        {
+          "id": "W-B2-001",
+          "floorId": "B2",
+          "name": "Wall 001",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 350
+          },
+          "end": {
+            "x": 7610,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 3934
+        },
+        {
+          "id": "W-B2-003",
+          "floorId": "B2",
+          "name": "Wall 003",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 350
+          },
+          "end": {
+            "x": 3676,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-B2-004",
+          "floorId": "B2",
+          "name": "Wall 004",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 7610,
+            "y": 350
+          },
+          "end": {
+            "x": 7610,
+            "y": 4222
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 3872
+        },
+        {
+          "id": "W-B2-006",
+          "floorId": "B2",
+          "name": "Wall 006",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 7610,
+            "y": 4222
+          },
+          "end": {
+            "x": 9495,
+            "y": 4222
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1885
+        },
+        {
+          "id": "W-B2-007",
+          "floorId": "B2",
+          "name": "Wall 007",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3050
+          },
+          "end": {
+            "x": 3676,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2726
+        },
+        {
+          "id": "W-B2-008",
+          "floorId": "B2",
+          "name": "Wall 008",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3050
+          },
+          "end": {
+            "x": 950,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4750
+        },
+        {
+          "id": "W-B2-010",
+          "floorId": "B2",
+          "name": "Wall 010",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 7800
+          },
+          "end": {
+            "x": 3897,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
+        },
+        {
+          "id": "W-B2-011",
+          "floorId": "B2",
+          "name": "Wall 011",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 7800
+          },
+          "end": {
+            "x": 9495,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 5598
+        },
+        {
+          "id": "W-B2-012",
+          "floorId": "B2",
+          "name": "Wall 012",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 4222
+          },
+          "end": {
+            "x": 9495,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 3578
+        }
+      ],
+      "rooms": [],
+      "partitions": [],
+      "stairs": [
+        {
+          "id": "ST-B2-001",
+          "floorId": "B2",
+          "name": "Stair 001",
+          "geometryType": "line",
+          "start": {
+            "x": 4146,
+            "y": 4100
+          },
+          "end": {
+            "x": 950,
+            "y": 4100
+          },
+          "width": 900,
+          "height": 2800,
+          "stepCount": 14,
+          "direction": "up",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "fences": [],
+      "outdoorSurfaces": [],
+      "doors": [],
+      "windows": [],
+      "bayWindows": [],
+      "skylights": [],
+      "outdoors": []
+    },
+    "B1": {
+      "floorId": "B1",
+      "coordinateSystem": {
+        "floorId": "B1",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "unit": "mm",
+        "width": 12000,
+        "height": 9000,
+        "scale": 1,
+        "note": "统一楼层坐标：左上角为原点，所有结构对象使用毫米。底图仅作为参考层。"
+      },
+      "walls": [
+        {
+          "id": "W-B1-001",
+          "floorId": "B1",
+          "name": "Wall 001",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3947,
+            "y": 350
+          },
+          "end": {
+            "x": 5385,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1438
+        },
+        {
+          "id": "W-B1-002",
+          "floorId": "B1",
+          "name": "Wall 002",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5385,
+            "y": 350
+          },
+          "end": {
+            "x": 9495,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4110
+        },
+        {
+          "id": "W-B1-003",
+          "floorId": "B1",
+          "name": "Wall 003",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3947,
+            "y": 350
+          },
+          "end": {
+            "x": 3947,
+            "y": 3117
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2767
+        },
+        {
+          "id": "W-B1-004",
+          "floorId": "B1",
+          "name": "Wall 004",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 350
+          },
+          "end": {
+            "x": 9495,
+            "y": 3117
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2767
+        },
+        {
+          "id": "W-B1-005",
+          "floorId": "B1",
+          "name": "Wall 005",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3117
+          },
+          "end": {
+            "x": 3947,
+            "y": 3117
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2997
+        },
+        {
+          "id": "W-B1-007",
+          "floorId": "B1",
+          "name": "Wall 007",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3117
+          },
+          "end": {
+            "x": 950,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4683
+        },
+        {
+          "id": "W-B1-009",
+          "floorId": "B1",
+          "name": "Wall 009",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 7800
+          },
+          "end": {
+            "x": 3897,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
+        },
+        {
+          "id": "W-B1-010",
+          "floorId": "B1",
+          "name": "Wall 010",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 7800
+          },
+          "end": {
+            "x": 6650,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2753
+        },
+        {
+          "id": "W-B1-012",
+          "floorId": "B1",
+          "name": "Wall 012",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5385,
+            "y": 5853
+          },
+          "end": {
+            "x": 6650,
+            "y": 5853
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1265
+        },
+        {
+          "id": "W-B1-013",
+          "floorId": "B1",
+          "name": "Wall 013",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 6650,
+            "y": 5853
+          },
+          "end": {
+            "x": 6650,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1947
+        },
+        {
+          "id": "W-B1-014",
+          "floorId": "B1",
+          "name": "Wall 014",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 3117
+          },
+          "end": {
+            "x": 5281,
+            "y": 3117
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4214
+        },
+        {
+          "id": "AW-B1-014",
+          "floorId": "B1",
+          "name": "Arc Wall 014",
+          "kind": "arc",
+          "geometryType": "arc",
+          "center": {
+            "x": 3965,
+            "y": 4537
+          },
+          "radius": 1936,
+          "startAngle": -47.18,
+          "endAngle": 42.82,
+          "thickness": 220,
+          "height": 2800,
+          "direction": "clockwise",
+          "length": 3041
+        }
+      ],
+      "rooms": [],
+      "partitions": [],
+      "stairs": [
+        {
+          "id": "ST-B1-001",
+          "floorId": "B1",
+          "name": "Stair 001",
+          "geometryType": "line",
+          "start": {
+            "x": 4146,
+            "y": 4100
+          },
+          "end": {
+            "x": 950,
+            "y": 4100
+          },
+          "width": 900,
+          "height": 2800,
+          "stepCount": 14,
+          "direction": "up",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "fences": [],
+      "outdoorSurfaces": [],
+      "doors": [],
+      "windows": [],
+      "bayWindows": [],
+      "skylights": [],
+      "outdoors": []
+    },
+    "1F": {
+      "floorId": "1F",
+      "coordinateSystem": {
+        "floorId": "1F",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "unit": "mm",
+        "width": 12000,
+        "height": 9000,
+        "scale": 1,
+        "note": "统一楼层坐标：左上角为原点，所有结构对象使用毫米。底图仅作为参考层。"
+      },
+      "walls": [
+        {
+          "id": "W-1F-001",
+          "floorId": "1F",
+          "name": "Wall 001",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 350
+          },
+          "end": {
+            "x": 5383,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1707
+        },
+        {
+          "id": "W-1F-002",
+          "floorId": "1F",
+          "name": "Wall 002",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5383,
+            "y": 350
+          },
+          "end": {
+            "x": 9495,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4112
+        },
+        {
+          "id": "W-1F-003",
+          "floorId": "1F",
+          "name": "Wall 003",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 350
+          },
+          "end": {
+            "x": 3676,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-1F-004",
+          "floorId": "1F",
+          "name": "Wall 004",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5383,
+            "y": 350
+          },
+          "end": {
+            "x": 5383,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-1F-005",
+          "floorId": "1F",
+          "name": "Wall 005",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 7681,
+            "y": 350
+          },
+          "end": {
+            "x": 7681,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-1F-006",
+          "floorId": "1F",
+          "name": "Wall 006",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 350
+          },
+          "end": {
+            "x": 9495,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-1F-009",
+          "floorId": "1F",
+          "name": "Wall 009",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5383,
+            "y": 3050
+          },
+          "end": {
+            "x": 9495,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4112
+        },
+        {
+          "id": "W-1F-010",
+          "floorId": "1F",
+          "name": "Wall 010",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3050
+          },
+          "end": {
+            "x": 950,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4750
+        },
+        {
+          "id": "W-1F-011",
+          "floorId": "1F",
+          "name": "Wall 011",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 3050
+          },
+          "end": {
+            "x": 9495,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4750
+        },
+        {
+          "id": "W-1F-012",
+          "floorId": "1F",
+          "name": "Wall 012",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 5150
+          },
+          "end": {
+            "x": 3897,
+            "y": 5150
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
+        },
+        {
+          "id": "W-1F-013",
+          "floorId": "1F",
+          "name": "Wall 013",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 5150
+          },
+          "end": {
+            "x": 3897,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2650
+        },
+        {
+          "id": "W-1F-014",
+          "floorId": "1F",
+          "name": "Wall 014",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 7800
+          },
+          "end": {
+            "x": 3897,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
+        },
+        {
+          "id": "W-1F-015",
+          "floorId": "1F",
+          "name": "Wall 015",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 7800
+          },
+          "end": {
+            "x": 9495,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 5598
+        },
+        {
+          "id": "W-1F-016",
+          "floorId": "1F",
+          "name": "Wall 016",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 3050
+          },
+          "end": {
+            "x": 950,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2726
+        }
+      ],
+      "rooms": [
+        {
+          "id": "ROOM-1F-002",
+          "floorId": "1F",
+          "roomNumber": "R-1F-002",
+          "name": "1F 房间 2",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 5383,
+              "y": 350
+            },
+            {
+              "x": 7681,
+              "y": 350
+            },
+            {
+              "x": 7681,
+              "y": 3050
+            },
+            {
+              "x": 5383,
+              "y": 3050
+            }
+          ],
+          "area": 6204600,
+          "sourceWallIds": [
+            "W-1F-002",
+            "W-1F-005",
+            "W-1F-009",
+            "W-1F-004"
+          ]
+        },
+        {
+          "id": "ROOM-1F-003",
+          "floorId": "1F",
+          "roomNumber": "R-1F-003",
+          "name": "1F 房间 3",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 7681,
+              "y": 350
+            },
+            {
+              "x": 9495,
+              "y": 350
+            },
+            {
+              "x": 9495,
+              "y": 3050
+            },
+            {
+              "x": 7681,
+              "y": 3050
+            }
+          ],
+          "area": 4897800,
+          "sourceWallIds": [
+            "W-1F-002",
+            "W-1F-006",
+            "W-1F-009",
+            "W-1F-005"
+          ]
+        },
+        {
+          "id": "ROOM-1F-004",
+          "floorId": "1F",
+          "roomNumber": "R-1F-004",
+          "name": "1F 房间 4",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 950,
+              "y": 5150
+            },
+            {
+              "x": 3897,
+              "y": 5150
+            },
+            {
+              "x": 3897,
+              "y": 7800
+            },
+            {
+              "x": 950,
+              "y": 7800
+            }
+          ],
+          "area": 7809550,
+          "sourceWallIds": [
+            "W-1F-012",
+            "W-1F-013",
+            "W-1F-014",
+            "W-1F-010"
+          ]
+        }
+      ],
+      "partitions": [],
+      "stairs": [
+        {
+          "id": "ST-1F-001",
+          "floorId": "1F",
+          "name": "Stair 001",
+          "geometryType": "line",
+          "start": {
+            "x": 4146,
+            "y": 4100
+          },
+          "end": {
+            "x": 950,
+            "y": 4100
+          },
+          "width": 900,
+          "height": 2800,
+          "stepCount": 14,
+          "direction": "up",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "fences": [
+        {
+          "id": "FN-1F-NORTH-001",
+          "floorId": "1F",
+          "name": "北院北侧木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": -1650
+          },
+          "end": {
+            "x": 9495,
+            "y": -1650
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "FN-1F-NORTH-002",
+          "floorId": "1F",
+          "name": "北院西侧分户木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": -1650
+          },
+          "end": {
+            "x": 950,
+            "y": 350
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "FN-1F-NORTH-003",
+          "floorId": "1F",
+          "name": "北院东侧分户木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": -1650
+          },
+          "end": {
+            "x": 9495,
+            "y": 350
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "FN-1F-SOUTH-001",
+          "floorId": "1F",
+          "name": "南院南侧木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 11800
+          },
+          "end": {
+            "x": 9495,
+            "y": 11800
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "FN-1F-SOUTH-002",
+          "floorId": "1F",
+          "name": "南院西侧分户木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 7800
+          },
+          "end": {
+            "x": 950,
+            "y": 11800
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "FN-1F-SOUTH-003",
+          "floorId": "1F",
+          "name": "南院东侧分户木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 7800
+          },
+          "end": {
+            "x": 9495,
+            "y": 11800
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "outdoorSurfaces": [
+        {
+          "id": "OS-1F-NORTH-001",
+          "floorId": "1F",
+          "name": "北院入户硬地",
+          "geometryType": "polygon",
+          "surfaceType": "hardscape",
+          "polygon": [
+            {
+              "x": 3150,
+              "y": -1400
+            },
+            {
+              "x": 7050,
+              "y": -1400
+            },
+            {
+              "x": 7050,
+              "y": -450
+            },
+            {
+              "x": 3150,
+              "y": -450
+            }
+          ],
+          "area": 3705000,
+          "material": "stone",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-NORTH-002",
+          "floorId": "1F",
+          "name": "北院引导小路",
+          "geometryType": "polygon",
+          "surfaceType": "path",
+          "polygon": [
+            {
+              "x": 5200,
+              "y": -450
+            },
+            {
+              "x": 5900,
+              "y": -450
+            },
+            {
+              "x": 5750,
+              "y": 300
+            },
+            {
+              "x": 5050,
+              "y": 300
+            }
+          ],
+          "area": 525000,
+          "material": "gravel",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-NORTH-003",
+          "floorId": "1F",
+          "name": "北院绿化带",
+          "geometryType": "polygon",
+          "surfaceType": "planting",
+          "polygon": [
+            {
+              "x": 1100,
+              "y": -1450
+            },
+            {
+              "x": 2700,
+              "y": -1450
+            },
+            {
+              "x": 2700,
+              "y": 150
+            },
+            {
+              "x": 1100,
+              "y": 150
+            }
+          ],
+          "area": 2560000,
+          "material": "grass",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-SOUTH-001",
+          "floorId": "1F",
+          "name": "南院会客平台",
+          "geometryType": "polygon",
+          "surfaceType": "hardscape",
+          "polygon": [
+            {
+              "x": 3900,
+              "y": 8200
+            },
+            {
+              "x": 7900,
+              "y": 8200
+            },
+            {
+              "x": 7900,
+              "y": 9800
+            },
+            {
+              "x": 3900,
+              "y": 9800
+            }
+          ],
+          "area": 6400000,
+          "material": "stone",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-SOUTH-002",
+          "floorId": "1F",
+          "name": "南院草坪",
+          "geometryType": "polygon",
+          "surfaceType": "planting",
+          "polygon": [
+            {
+              "x": 1100,
+              "y": 8250
+            },
+            {
+              "x": 3600,
+              "y": 8250
+            },
+            {
+              "x": 3600,
+              "y": 11550
+            },
+            {
+              "x": 1100,
+              "y": 11550
+            }
+          ],
+          "area": 8250000,
+          "material": "grass",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-SOUTH-003",
+          "floorId": "1F",
+          "name": "南院步道",
+          "geometryType": "polygon",
+          "surfaceType": "path",
+          "polygon": [
+            {
+              "x": 7900,
+              "y": 9400
+            },
+            {
+              "x": 9300,
+              "y": 9400
+            },
+            {
+              "x": 9300,
+              "y": 10100
+            },
+            {
+              "x": 7900,
+              "y": 10100
+            }
+          ],
+          "area": 980000,
+          "material": "gravel",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "doors": [
+        {
+          "id": "D-1F-002",
+          "floorId": "1F",
+          "name": "Door 002",
+          "geometryType": "line",
+          "hostId": "W-1F-015",
+          "hostType": "wall",
+          "positionOnWall": 0.1,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-1F-003",
+          "floorId": "1F",
+          "name": "Door 003",
+          "geometryType": "line",
+          "hostId": "W-1F-012",
+          "hostType": "wall",
+          "positionOnWall": 0.546,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-1F-004",
+          "floorId": "1F",
+          "name": "Door 004",
+          "geometryType": "line",
+          "hostId": "W-1F-009",
+          "hostType": "wall",
+          "positionOnWall": 0.249,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-1F-005",
+          "floorId": "1F",
+          "name": "Door 005",
+          "geometryType": "line",
+          "hostId": "W-1F-009",
+          "hostType": "wall",
+          "positionOnWall": 0.788,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-1F-006",
+          "floorId": "1F",
+          "name": "Door 006",
+          "geometryType": "line",
+          "hostId": "W-1F-001",
+          "hostType": "wall",
+          "positionOnWall": 0.567,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        }
+      ],
+      "windows": [
+        {
+          "id": "WIN-1F-002",
+          "floorId": "1F",
+          "name": "Window 002",
+          "geometryType": "line",
+          "hostId": "W-1F-002",
+          "hostType": "wall",
+          "positionOnWall": 0.72,
+          "width": 1200,
+          "height": 1400
+        },
+        {
+          "id": "WIN-1F-003",
+          "floorId": "1F",
+          "name": "Window 003",
+          "geometryType": "line",
+          "hostId": "W-1F-014",
+          "hostType": "wall",
+          "positionOnWall": 0.539,
+          "width": 1200,
+          "height": 1400
+        },
+        {
+          "id": "WIN-1F-004",
+          "floorId": "1F",
+          "name": "Window 004",
+          "geometryType": "line",
+          "hostId": "W-1F-002",
+          "hostType": "wall",
+          "positionOnWall": 0.289,
+          "width": 1200,
+          "height": 1400
+        }
+      ],
+      "bayWindows": [
+        {
+          "id": "BW-1F-001",
+          "floorId": "1F",
+          "name": "Bay Window 001",
+          "geometryType": "line",
+          "wallId": "W-1F-015",
+          "positionOnWall": 0.78,
+          "width": 1200,
+          "depth": 550,
+          "height": 900
+        },
+        {
+          "id": "BW-1F-002",
+          "floorId": "1F",
+          "name": "BayWindow 002",
+          "geometryType": "line",
+          "wallId": "W-1F-011",
+          "positionOnWall": 0.813,
+          "width": 1600,
+          "depth": 550,
+          "height": 900
+        }
+      ],
+      "skylights": [],
+      "outdoors": [
+        {
+          "id": "OD-1F-NORTH-001",
+          "floorId": "1F",
+          "name": "北院 / 入户庭院 · 2m",
+          "spaceType": "Outdoor",
+          "geometryType": "polygon",
+          "outdoorType": "patio",
+          "polygon": [
+            {
+              "x": 950,
+              "y": -1650
+            },
+            {
+              "x": 9495,
+              "y": -1650
+            },
+            {
+              "x": 9495,
+              "y": 350
+            },
+            {
+              "x": 950,
+              "y": 350
+            }
+          ],
+          "area": 17090000
+        },
+        {
+          "id": "OD-1F-SOUTH-001",
+          "floorId": "1F",
+          "name": "南院 / 生活庭院 · 4m",
+          "spaceType": "Outdoor",
+          "geometryType": "polygon",
+          "outdoorType": "patio",
+          "polygon": [
+            {
+              "x": 950,
+              "y": 7800
+            },
+            {
+              "x": 9495,
+              "y": 7800
+            },
+            {
+              "x": 9495,
+              "y": 11800
+            },
+            {
+              "x": 950,
+              "y": 11800
+            }
+          ],
+          "area": 34180000
+        }
+      ]
+    },
+    "2F": {
+      "floorId": "2F",
+      "coordinateSystem": {
+        "floorId": "2F",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "unit": "mm",
+        "width": 12000,
+        "height": 9000,
+        "scale": 1,
+        "note": "统一楼层坐标：左上角为原点，所有结构对象使用毫米。底图仅作为参考层。"
+      },
+      "walls": [
+        {
+          "id": "W-2F-001",
+          "floorId": "2F",
+          "name": "Wall 001",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 350
+          },
+          "end": {
+            "x": 5383,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1707
+        },
+        {
+          "id": "W-2F-002",
+          "floorId": "2F",
+          "name": "Wall 002",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5383,
+            "y": 350
+          },
+          "end": {
+            "x": 9495,
+            "y": 350
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4112
+        },
+        {
+          "id": "W-2F-003",
+          "floorId": "2F",
+          "name": "Wall 003",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 350
+          },
+          "end": {
+            "x": 3676,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-2F-004",
+          "floorId": "2F",
+          "name": "Wall 004",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5383,
+            "y": 350
+          },
+          "end": {
+            "x": 5383,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-2F-005",
+          "floorId": "2F",
+          "name": "Wall 005",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 7681,
+            "y": 350
+          },
+          "end": {
+            "x": 7681,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-2F-006",
+          "floorId": "2F",
+          "name": "Wall 006",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 350
+          },
+          "end": {
+            "x": 9495,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2700
+        },
+        {
+          "id": "W-2F-007",
+          "floorId": "2F",
+          "name": "Wall 007",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3050
+          },
+          "end": {
+            "x": 3676,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2726
+        },
+        {
+          "id": "W-2F-008",
+          "floorId": "2F",
+          "name": "Wall 008",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3676,
+            "y": 3050
+          },
+          "end": {
+            "x": 5383,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1707
+        },
+        {
+          "id": "W-2F-009",
+          "floorId": "2F",
+          "name": "Wall 009",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 5383,
+            "y": 3050
+          },
+          "end": {
+            "x": 9495,
+            "y": 3050
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4112
+        },
+        {
+          "id": "W-2F-010",
+          "floorId": "2F",
+          "name": "Wall 010",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 3050
+          },
+          "end": {
+            "x": 950,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4750
+        },
+        {
+          "id": "W-2F-011",
+          "floorId": "2F",
+          "name": "Wall 011",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 3050
+          },
+          "end": {
+            "x": 9495,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 4750
+        },
+        {
+          "id": "W-2F-012",
+          "floorId": "2F",
+          "name": "Wall 012",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 5150
+          },
+          "end": {
+            "x": 3897,
+            "y": 5150
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
+        },
+        {
+          "id": "W-2F-013",
+          "floorId": "2F",
+          "name": "Wall 013",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 5150
+          },
+          "end": {
+            "x": 6542,
+            "y": 5150
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2645
+        },
+        {
+          "id": "W-2F-014",
+          "floorId": "2F",
+          "name": "Wall 014",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 6542,
+            "y": 5150
+          },
+          "end": {
+            "x": 7681,
+            "y": 5150
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 1139
+        },
+        {
+          "id": "W-2F-015",
+          "floorId": "2F",
+          "name": "Wall 015",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 5150
+          },
+          "end": {
+            "x": 3897,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2650
+        },
+        {
+          "id": "W-2F-016",
+          "floorId": "2F",
+          "name": "Wall 016",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 6542,
+            "y": 5150
+          },
+          "end": {
+            "x": 6542,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2650
+        },
+        {
+          "id": "W-2F-017",
+          "floorId": "2F",
+          "name": "Wall 017",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 7681,
+            "y": 3050
+          },
+          "end": {
+            "x": 7681,
+            "y": 5150
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2100
+        },
+        {
+          "id": "W-2F-018",
+          "floorId": "2F",
+          "name": "Wall 018",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 7800
+          },
+          "end": {
+            "x": 3897,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
+        },
+        {
+          "id": "W-2F-019",
+          "floorId": "2F",
+          "name": "Wall 019",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 3897,
+            "y": 7800
+          },
+          "end": {
+            "x": 6542,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2645
+        },
+        {
+          "id": "W-2F-020",
+          "floorId": "2F",
+          "name": "Wall 020",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 6542,
+            "y": 7800
+          },
+          "end": {
+            "x": 9495,
+            "y": 7800
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2953
+        }
+      ],
+      "rooms": [
+        {
+          "id": "ROOM-2F-001",
+          "floorId": "2F",
+          "roomNumber": "R-2F-001",
+          "name": "2F 房间 1",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 3676,
+              "y": 350
+            },
+            {
+              "x": 5383,
+              "y": 350
+            },
+            {
+              "x": 5383,
+              "y": 3050
+            },
+            {
+              "x": 3676,
+              "y": 3050
+            }
+          ],
+          "area": 4608900,
+          "sourceWallIds": [
+            "W-2F-001",
+            "W-2F-004",
+            "W-2F-008",
+            "W-2F-003"
+          ]
+        },
+        {
+          "id": "ROOM-2F-002",
+          "floorId": "2F",
+          "roomNumber": "R-2F-002",
+          "name": "2F 房间 2",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 5383,
+              "y": 350
+            },
+            {
+              "x": 7681,
+              "y": 350
+            },
+            {
+              "x": 7681,
+              "y": 3050
+            },
+            {
+              "x": 5383,
+              "y": 3050
+            }
+          ],
+          "area": 6204600,
+          "sourceWallIds": [
+            "W-2F-002",
+            "W-2F-005",
+            "W-2F-009",
+            "W-2F-004"
+          ]
+        },
+        {
+          "id": "ROOM-2F-003",
+          "floorId": "2F",
+          "roomNumber": "R-2F-003",
+          "name": "2F 房间 3",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 7681,
+              "y": 350
+            },
+            {
+              "x": 9495,
+              "y": 350
+            },
+            {
+              "x": 9495,
+              "y": 3050
+            },
+            {
+              "x": 7681,
+              "y": 3050
+            }
+          ],
+          "area": 4897800,
+          "sourceWallIds": [
+            "W-2F-002",
+            "W-2F-006",
+            "W-2F-009",
+            "W-2F-005"
+          ]
+        },
+        {
+          "id": "ROOM-2F-004",
+          "floorId": "2F",
+          "roomNumber": "R-2F-004",
+          "name": "2F 房间 4",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 950,
+              "y": 5150
+            },
+            {
+              "x": 3897,
+              "y": 5150
+            },
+            {
+              "x": 3897,
+              "y": 7800
+            },
+            {
+              "x": 950,
+              "y": 7800
+            }
+          ],
+          "area": 7809550,
+          "sourceWallIds": [
+            "W-2F-012",
+            "W-2F-015",
+            "W-2F-018",
+            "W-2F-010"
+          ]
+        },
+        {
+          "id": "ROOM-2F-005",
+          "floorId": "2F",
+          "roomNumber": "R-2F-005",
+          "name": "2F 房间 5",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 3897,
+              "y": 5150
+            },
+            {
+              "x": 6542,
+              "y": 5150
+            },
+            {
+              "x": 6542,
+              "y": 7800
+            },
+            {
+              "x": 3897,
+              "y": 7800
+            }
+          ],
+          "area": 7009250,
+          "sourceWallIds": [
+            "W-2F-013",
+            "W-2F-016",
+            "W-2F-019",
+            "W-2F-015"
+          ]
+        }
+      ],
+      "partitions": [],
+      "stairs": [
+        {
+          "id": "ST-2F-001",
+          "floorId": "2F",
+          "name": "Stair 001",
+          "geometryType": "line",
+          "start": {
+            "x": 4146,
+            "y": 4100
+          },
+          "end": {
+            "x": 950,
+            "y": 4100
+          },
+          "width": 900,
+          "height": 2800,
+          "stepCount": 14,
+          "direction": "up",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "fences": [],
+      "outdoorSurfaces": [],
+      "doors": [
+        {
+          "id": "D-2F-001",
+          "floorId": "2F",
+          "name": "Door 001",
+          "geometryType": "line",
+          "hostId": "W-2F-007",
+          "hostType": "wall",
+          "positionOnWall": 0.78,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-2F-002",
+          "floorId": "2F",
+          "name": "Door 002",
+          "geometryType": "line",
+          "hostId": "W-2F-009",
+          "hostType": "wall",
+          "positionOnWall": 0.36,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-2F-003",
+          "floorId": "2F",
+          "name": "Door 003",
+          "geometryType": "line",
+          "hostId": "W-2F-012",
+          "hostType": "wall",
+          "positionOnWall": 0.78,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-2F-004",
+          "floorId": "2F",
+          "name": "Door 004",
+          "geometryType": "line",
+          "hostId": "W-2F-013",
+          "hostType": "wall",
+          "positionOnWall": 0.18,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        },
+        {
+          "id": "D-2F-005",
+          "floorId": "2F",
+          "name": "Door 005",
+          "geometryType": "line",
+          "hostId": "W-2F-014",
+          "hostType": "wall",
+          "positionOnWall": 0.38,
+          "width": 900,
+          "height": 2100,
+          "openDirection": "leftIn"
+        }
+      ],
+      "windows": [
+        {
+          "id": "WIN-2F-001",
+          "floorId": "2F",
+          "name": "Window 001",
+          "geometryType": "line",
+          "hostId": "W-2F-001",
+          "hostType": "wall",
+          "positionOnWall": 0.5,
+          "width": 1200,
+          "height": 1400
+        },
+        {
+          "id": "WIN-2F-002",
+          "floorId": "2F",
+          "name": "Window 002",
+          "geometryType": "line",
+          "hostId": "W-2F-002",
+          "hostType": "wall",
+          "positionOnWall": 0.7,
+          "width": 1200,
+          "height": 1400
+        }
+      ],
+      "bayWindows": [
+        {
+          "id": "BW-2F-001",
+          "floorId": "2F",
+          "name": "Bay Window 001",
+          "geometryType": "line",
+          "wallId": "W-2F-011",
+          "positionOnWall": 0.84,
+          "width": 1200,
+          "depth": 550,
+          "height": 900
+        }
+      ],
+      "skylights": [],
+      "outdoors": []
+    },
+    "YARD": {
+      "floorId": "YARD",
+      "coordinateSystem": {
+        "floorId": "YARD",
+        "origin": {
+          "x": 0,
+          "y": 0
+        },
+        "unit": "mm",
+        "width": 12000,
+        "height": 9000,
+        "scale": 1,
+        "note": "统一楼层坐标：左上角为原点，所有结构对象使用毫米。底图仅作为参考层。"
+      },
+      "walls": [],
+      "rooms": [],
+      "partitions": [],
+      "stairs": [],
+      "fences": [
+        {
+          "id": "FN-YARD-001",
+          "floorId": "YARD",
+          "name": "Fence 001",
+          "geometryType": "line",
+          "start": {
+            "x": 900,
+            "y": 850
+          },
+          "end": {
+            "x": 10700,
+            "y": 850
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "metal",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "FN-YARD-002",
+          "floorId": "YARD",
+          "name": "Fence 002",
+          "geometryType": "line",
+          "start": {
+            "x": 10700,
+            "y": 850
+          },
+          "end": {
+            "x": 10700,
+            "y": 7100
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "metal",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "outdoorSurfaces": [
+        {
+          "id": "OS-YARD-001",
+          "floorId": "YARD",
+          "name": "Hardscape 001",
+          "geometryType": "polygon",
+          "surfaceType": "hardscape",
+          "polygon": [
+            {
+              "x": 1600,
+              "y": 1400
+            },
+            {
+              "x": 4600,
+              "y": 1400
+            },
+            {
+              "x": 4600,
+              "y": 3200
+            },
+            {
+              "x": 1600,
+              "y": 3200
+            }
+          ],
+          "area": 5400000,
+          "material": "stone",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-YARD-002",
+          "floorId": "YARD",
+          "name": "Path 002",
+          "geometryType": "polygon",
+          "surfaceType": "path",
+          "polygon": [
+            {
+              "x": 4550,
+              "y": 2300
+            },
+            {
+              "x": 5550,
+              "y": 2300
+            },
+            {
+              "x": 9050,
+              "y": 6100
+            },
+            {
+              "x": 8050,
+              "y": 6100
+            }
+          ],
+          "area": 3800000,
+          "material": "gravel",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-YARD-003",
+          "floorId": "YARD",
+          "name": "Planting 003",
+          "geometryType": "polygon",
+          "surfaceType": "planting",
+          "polygon": [
+            {
+              "x": 1300,
+              "y": 3900
+            },
+            {
+              "x": 4200,
+              "y": 3900
+            },
+            {
+              "x": 4200,
+              "y": 6600
+            },
+            {
+              "x": 1300,
+              "y": 6600
+            }
+          ],
+          "area": 7830000,
+          "material": "grass",
+          "editable": true,
+          "removable": true
+        }
+      ],
+      "doors": [],
+      "windows": [],
+      "bayWindows": [],
+      "skylights": [],
+      "outdoors": [
+        {
+          "id": "OD-YARD-001",
+          "floorId": "YARD",
+          "name": "Outdoor 001",
+          "spaceType": "Outdoor",
+          "geometryType": "polygon",
+          "outdoorType": "patio",
+          "polygon": [
+            {
+              "x": 900,
+              "y": 850
+            },
+            {
+              "x": 10700,
+              "y": 850
+            },
+            {
+              "x": 10700,
+              "y": 7100
+            },
+            {
+              "x": 900,
+              "y": 7100
+            }
+          ],
+          "area": 61250000
+        }
+      ]
+    }
+  },
+  "wallSyncOverrides": {}
+}
