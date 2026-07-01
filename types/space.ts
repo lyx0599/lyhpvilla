@@ -79,6 +79,7 @@ export type InteriorModuleType =
   | "sofa"
   | "table"
   | "bed"
+  | "nightstand"
   | "plant"
   | "cabinet"
   | "island"
@@ -120,6 +121,39 @@ export type Position2D = {
   x: number;
   y: number;
   rotation: number;
+  flipX?: boolean;
+  flipY?: boolean;
+};
+
+export type WardrobeCellKind = "hanging-long" | "hanging-short" | "folded" | "drawer" | "open" | "shoe" | "blank";
+
+export type WardrobeCell = {
+  id: string;
+  column: number;
+  row: number;
+  kind: WardrobeCellKind;
+};
+
+export type WardrobeModule = {
+  id: string;
+  kind: WardrobeCellKind;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type WardrobeDesign = {
+  columns: number;
+  rows: number;
+  cells: WardrobeCell[];
+  modules?: WardrobeModule[];
+  notes: string;
+  shelfRows?: number;
+  drawerCount?: number;
+  hangingZones?: number;
+  foldedZones?: number;
+  shoeRack?: boolean;
 };
 
 export type MmPoint = {
@@ -372,6 +406,11 @@ export type Furniture = {
   constructionNote?: string;
   position: Position2D;
   color: string;
+  referenceImageDataUrl?: string;
+  referenceImageName?: string;
+  recognitionStatus?: "none" | "image-attached" | "ai-pending" | "ai-ready";
+  recognitionNote?: string;
+  wardrobeDesign?: WardrobeDesign;
   locked?: boolean;
   interaction?: ObjectInteractionFlags;
 };

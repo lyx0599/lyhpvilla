@@ -86,6 +86,8 @@ type Props = {
   floorPlanVisualSettings: FloorPlanVisualSettings;
   cleanPatches: CleanPatch[];
   focusMode: boolean;
+  furnitureImmersiveMode?: boolean;
+  activeFurnitureId?: string;
   locateObjectRequest: { id: string; nonce: number } | null;
   canUndo: boolean;
   canRedo: boolean;
@@ -103,6 +105,7 @@ type Props = {
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
   onSelectFurniture: (furniture: Furniture) => void;
   onFurnitureChange: (furniture: Furniture[]) => void;
+  onOpenWardrobeDesigner?: (furnitureId: string) => void;
   onSelectSemanticObject: (object: SemanticObject) => void;
   onMoveSemanticObject: (objectId: string, position: { x: number; y: number }) => void;
 };
@@ -297,6 +300,8 @@ export function PlanCanvas({
   floorPlanVisualSettings,
   cleanPatches,
   focusMode,
+  furnitureImmersiveMode = false,
+  activeFurnitureId = "",
   locateObjectRequest,
   canUndo,
   canRedo,
@@ -314,6 +319,7 @@ export function PlanCanvas({
   onCleanPatchesChange,
   onSelectFurniture,
   onFurnitureChange,
+  onOpenWardrobeDesigner,
   onSelectSemanticObject,
   onMoveSemanticObject
 }: Props) {
@@ -363,6 +369,13 @@ export function PlanCanvas({
     setInteractionState((currentState) => ({ ...currentState, selectedObjectId: "", hoveredObjectId: "", editingObjectId: "" }));
     onActiveObjectChange("");
   }, [floor.id, sheetMode, onActiveObjectChange]);
+
+  useEffect(() => {
+    if (!furnitureImmersiveMode) return;
+    setSheetMode("furnishing");
+    onPlannerModeChange("edit");
+    onDrawToolChange("select");
+  }, [furnitureImmersiveMode, onDrawToolChange, onPlannerModeChange]);
 
   useEffect(() => {
     if (sheetMode !== "sync") return;
@@ -487,6 +500,9 @@ export function PlanCanvas({
     if (target && planRef.current && !planRef.current.contains(target)) {
       setIsPlanZoomSelected(false);
     }
+    if (furnitureImmersiveMode && activeFurnitureId) {
+      onActiveObjectChange("");
+    }
     if (viewMode !== "2d" || event.button !== 0 || isManualCleanupMode || (plannerMode === "edit" && drawTool !== "select")) return;
     dragRef.current = {
       pointerId: event.pointerId,
@@ -546,6 +562,62 @@ export function PlanCanvas({
       y: (item.position.y / 100) * STRUCTURE_HEIGHT_MM
     };
     return toPlanPercent(point, planBounds);
+  }
+
+  function getFurnitureDisplaySize(item: Furniture) {
+    return {
+      width: Math.max(5, (item.dimensions.width * 10 / planBounds.width) * 100),
+      height: Math.max(4, (item.dimensions.depth * 10 / planBounds.height) * 100)
+    };
+  }
+
+  function getFurnitureFootprintArea(item: Furniture) {
+    return (item.dimensions.width * item.dimensions.depth / 10_000).toFixed(2);
+  }
+
+  function updateFurnitureObject(furnitureId: string, updater: (item: Furniture) => Furniture) {
+    onFurnitureChange(furniture.map((item) => item.id === furnitureId && !item.locked && !objectIsLocked(item.id) ? updater(item) : item));
+  }
+
+  function nudgeFurnitureObject(furnitureId: string, delta: { x: number; y: number }) {
+    updateFurnitureObject(furnitureId, (item) => ({
+      ...item,
+      position: {
+        ...item.position,
+        x: Math.min(100, Math.max(0, item.position.x + delta.x)),
+        y: Math.min(100, Math.max(0, item.position.y + delta.y))
+      }
+    }));
+  }
+
+  function rotateFurnitureObject(furnitureId: string, delta: number) {
+    updateFurnitureObject(furnitureId, (item) => ({
+      ...item,
+      position: {
+        ...item.position,
+        rotation: (item.position.rotation + delta + 360) % 360
+      }
+    }));
+  }
+
+  function flipFurnitureObject(furnitureId: string, axis: "x" | "y") {
+    updateFurnitureObject(furnitureId, (item) => ({
+      ...item,
+      position: {
+        ...item.position,
+        [axis === "x" ? "flipX" : "flipY"]: !item.position[axis === "x" ? "flipX" : "flipY"]
+      }
+    }));
+  }
+
+  function resizeFurnitureObject(furnitureId: string, field: "width" | "depth" | "height", value: number) {
+    updateFurnitureObject(furnitureId, (item) => ({
+      ...item,
+      dimensions: {
+        ...item.dimensions,
+        [field]: Math.max(1, Math.round(value) || 1)
+      }
+    }));
   }
 
   function updateHouseStructure(nextStructure: HouseStructure) {
@@ -1553,6 +1625,8 @@ export function PlanCanvas({
   const selectedStructureObject = getSelectedStructureObject();
   const selectedStructureKind = selectedStructureId ? getStructureObjectKind(selectedStructureId) : null;
   const selectedInteractionFurniture = furniture.find((item) => item.id === interactionState.selectedObjectId) ?? null;
+  const activeFurnitureObject = furniture.find((item) => item.id === activeFurnitureId) ?? null;
+  const activeFurnitureLocked = activeFurnitureObject ? objectIsLocked(activeFurnitureObject.id) || activeFurnitureObject.locked : false;
   const selectedInteractionObjectId = interactionState.selectedObjectId || selectedStructureId;
   const canDeleteSelectedStructure = Boolean(selectedStructureObject && selectedStructureKind && canMutateStructureLayer(selectedStructureKind) && !houseStructure.rooms.some((room) => room.id === selectedStructureObject.id) && !objectIsLocked(selectedStructureObject.id));
   const canDeleteSelectedFurniture = Boolean(selectedInteractionFurniture && canSelectFurnitureLayer() && !selectedInteractionFurniture.locked && !objectIsLocked(selectedInteractionFurniture.id));
@@ -2687,7 +2761,7 @@ export function PlanCanvas({
     return (
       <g data-layer={`ObjectLabelLayer-${context}`} pointerEvents="none">
         {filteredStructureLabels.map((label) => {
-          const selected = selectedInteractionObjectId === label.id;
+          const selected = label.type !== "Room" && selectedInteractionObjectId === label.id;
           const hovered = isObjectHovered(label.id);
           if (!selected && !hovered && !showObjectIds) return null;
           const mode = selected ? "selected" : hovered ? "hover" : "debug";
@@ -2728,7 +2802,7 @@ export function PlanCanvas({
     return (
       <div className="pointer-events-none absolute inset-0 z-[47]" data-layer="ObjectLabelLayer-2d" data-coordinate-system="millimeter-floor-plan">
         {filteredStructureLabels.map((label) => {
-          const selected = selectedInteractionObjectId === label.id;
+          const selected = label.type !== "Room" && selectedInteractionObjectId === label.id;
           const hovered = isObjectHovered(label.id);
           if (!selected && !hovered && !showObjectIds) return null;
           const labelPosition = toPlanPercent({ x: label.x, y: label.y }, planBounds);
@@ -2885,7 +2959,7 @@ export function PlanCanvas({
           onPointerCancel={handlePointerUp}
           onWheel={handleWheel}
         >
-          <div
+          {!furnitureImmersiveMode && <div
             className="absolute right-5 top-5 z-[60] flex max-w-[calc(100%-2.5rem)] items-center gap-1 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-1 text-sm font-semibold text-stone-600 shadow-sm backdrop-blur"
             onPointerDown={(event) => event.stopPropagation()}
           >
@@ -2926,7 +3000,19 @@ export function PlanCanvas({
             <span className="min-w-14 text-center">{Math.round(scale * 100)}%</span>
             <button className="rounded-xl px-3 py-2 hover:bg-stone-100" onClick={() => zoomBy(SCALE_STEP)} type="button">+</button>
             <button className="rounded-xl px-3 py-2 text-xs hover:bg-stone-100" onClick={resetViewport} type="button">复位</button>
-          </div>
+          </div>}
+
+          {furnitureImmersiveMode && (
+            <div
+              className="absolute right-5 top-5 z-[60] flex items-center gap-1 rounded-2xl border border-white/80 bg-white/95 p-1 text-xs font-semibold text-stone-600 shadow-sm backdrop-blur"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <button className="rounded-xl px-3 py-2 hover:bg-stone-100" onClick={() => zoomBy(-SCALE_STEP)} type="button">-</button>
+              <span className="min-w-12 text-center">{Math.round(scale * 100)}%</span>
+              <button className="rounded-xl px-3 py-2 hover:bg-stone-100" onClick={() => zoomBy(SCALE_STEP)} type="button">+</button>
+              <button className="rounded-xl bg-slate-900 px-3 py-2 text-white hover:bg-clay" onClick={resetViewport} type="button">100% 复位</button>
+            </div>
+          )}
 
           <div
             className={`absolute left-5 top-16 z-[70] max-h-[calc(100%-5.5rem)] w-[min(760px,calc(100%-2.5rem))] overflow-auto rounded-2xl border border-white/80 bg-white/96 p-4 text-xs text-stone-600 shadow-soft backdrop-blur transition ${
@@ -4053,7 +4139,90 @@ export function PlanCanvas({
             {isFurnitureSheetMode && plannerMode === "edit" && (
               <div className="pointer-events-none absolute left-5 bottom-5 z-40 max-w-sm rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
                 <p className="font-semibold text-ink">沉浸家具布置</p>
-                <p className="mt-1">拖动家具调整位置，选中后可在右侧属性里改尺寸、材质、颜色，也可从模块库继续添加。</p>
+                <p className="mt-1">拖动家具调整位置，单击家具显示/隐藏画布控制台，右侧模块库继续添加物品。</p>
+              </div>
+            )}
+
+            {furnitureImmersiveMode && isFurnitureSheetMode && plannerMode === "edit" && activeFurnitureObject && (
+              <div
+                className="absolute left-5 top-5 z-[58] w-[min(430px,calc(100%-2.5rem))] rounded-2xl border border-white/80 bg-white/96 p-3 text-xs text-stone-600 shadow-soft backdrop-blur"
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-stone-200 pb-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-700">家具控制台</p>
+                    <h3 className="mt-1 truncate text-sm font-semibold text-ink">{activeFurnitureObject.name}</h3>
+                    <p className="mt-1 text-stone-500">
+                      {activeFurnitureObject.dimensions.width} x {activeFurnitureObject.dimensions.depth} cm · 占地 {getFurnitureFootprintArea(activeFurnitureObject)} 平米
+                    </p>
+                  </div>
+                  <FurnitureTopView
+                    className="size-16 shrink-0 border border-stone-100 shadow-sm"
+                    color={activeFurnitureObject.color}
+                    imageSrc={activeFurnitureObject.referenceImageDataUrl}
+                    label={activeFurnitureObject.code.split("-")[0]}
+                    type={activeFurnitureObject.type}
+                  />
+                </div>
+
+                <div className="mt-3 grid grid-cols-[92px_1fr] gap-3">
+                  <div>
+                    <p className="mb-2 font-semibold text-ink">移动</p>
+                    <div className="grid grid-cols-3 gap-1">
+                      <span />
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => nudgeFurnitureObject(activeFurnitureObject.id, { x: 0, y: -1 })} type="button">上</button>
+                      <span />
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => nudgeFurnitureObject(activeFurnitureObject.id, { x: -1, y: 0 })} type="button">左</button>
+                      <span className="rounded-lg bg-slate-900 px-2 py-2 text-center font-semibold text-white">选</span>
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => nudgeFurnitureObject(activeFurnitureObject.id, { x: 1, y: 0 })} type="button">右</button>
+                      <span />
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => nudgeFurnitureObject(activeFurnitureObject.id, { x: 0, y: 1 })} type="button">下</button>
+                      <span />
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 font-semibold text-ink">旋转 / 翻转</p>
+                    <div className="grid grid-cols-4 gap-1">
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => rotateFurnitureObject(activeFurnitureObject.id, -15)} type="button">-15</button>
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => rotateFurnitureObject(activeFurnitureObject.id, 15)} type="button">+15</button>
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => rotateFurnitureObject(activeFurnitureObject.id, -90)} type="button">-90</button>
+                      <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurnitureLocked} onClick={() => rotateFurnitureObject(activeFurnitureObject.id, 90)} type="button">+90</button>
+                      <button className={`col-span-2 rounded-lg px-2 py-2 font-semibold disabled:opacity-40 ${activeFurnitureObject.position.flipX ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`} disabled={activeFurnitureLocked} onClick={() => flipFurnitureObject(activeFurnitureObject.id, "x")} type="button">左右翻转</button>
+                      <button className={`col-span-2 rounded-lg px-2 py-2 font-semibold disabled:opacity-40 ${activeFurnitureObject.position.flipY ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`} disabled={activeFurnitureLocked} onClick={() => flipFurnitureObject(activeFurnitureObject.id, "y")} type="button">前后翻转</button>
+                    </div>
+                    <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-500">角度 {Math.round(activeFurnitureObject.position.rotation)}°</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {([
+                    ["width", "宽 cm"],
+                    ["depth", "深 cm"],
+                    ["height", "高 cm"]
+                  ] as const).map(([field, label]) => (
+                    <label key={field} className="block text-[11px] font-semibold text-stone-500">
+                      {label}
+                      <input
+                        className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 text-sm font-semibold text-ink outline-none focus:border-emerald-400 disabled:bg-stone-100"
+                        min="1"
+                        disabled={activeFurnitureLocked}
+                        type="number"
+                        value={activeFurnitureObject.dimensions[field]}
+                        onChange={(event) => resizeFurnitureObject(activeFurnitureObject.id, field, Number(event.target.value))}
+                      />
+                    </label>
+                  ))}
+                </div>
+                {(activeFurnitureObject.type === "wardrobe" || activeFurnitureObject.moduleType === "wardrobe") && (
+                  <button
+                    className="mt-3 w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                    onClick={() => onOpenWardrobeDesigner?.(activeFurnitureObject.id)}
+                    type="button"
+                  >
+                    进入衣柜设计
+                  </button>
+                )}
               </div>
             )}
 
@@ -4101,8 +4270,7 @@ export function PlanCanvas({
                 const isHovered = isObjectHovered(item.id);
                 const locked = objectIsLocked(item.id) || item.locked;
                 const displayPosition = getFurnitureDisplayPosition(item);
-                const width = Math.max(5, (item.dimensions.width / 24) * (STRUCTURE_WIDTH_MM / planBounds.width));
-                const height = Math.max(4, (item.dimensions.depth / 24) * (STRUCTURE_HEIGHT_MM / planBounds.height));
+                const displaySize = getFurnitureDisplaySize(item);
                 return (
                   <button
                     key={item.id}
@@ -4112,10 +4280,10 @@ export function PlanCanvas({
                     style={{
                       left: `${displayPosition.x}%`,
                       top: `${displayPosition.y}%`,
-                      width: `${width}%`,
-                      height: `${height}%`,
-                      minWidth: "48px",
-                      minHeight: "40px",
+                      width: `${displaySize.width}%`,
+                      height: `${displaySize.height}%`,
+                      minWidth: isFurnitureSheetMode ? "0" : "48px",
+                      minHeight: isFurnitureSheetMode ? "0" : "40px",
                       opacity: locked ? 0.6 : 1,
                       transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
                     }}
@@ -4123,9 +4291,7 @@ export function PlanCanvas({
                       event.stopPropagation();
                       if (furnitureDragRef.current?.moved) return;
                       setSelectedStructureId("");
-                      selectObject(item.id);
                       onSelectFurniture(item);
-                      onActiveObjectChange(item.id);
                     }}
                     onMouseEnter={() => hoverObject(item.id)}
                     onMouseLeave={() => clearHoverObject(item.id)}
@@ -4133,8 +4299,6 @@ export function PlanCanvas({
                       event.stopPropagation();
                       setSelectedStructureId("");
                       selectObject(item.id);
-                      onSelectFurniture(item);
-                      onActiveObjectChange(item.id);
                       if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
                       const position = getFurniturePosition(event);
                       if (!position) return;
@@ -4162,7 +4326,17 @@ export function PlanCanvas({
                     type="button"
                     title={`${locked ? "已锁定 · " : ""}${item.name}`}
                   >
-                    <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless label={locked ? "LOCK" : item.code} showLabel={locked || sheetMode !== "furnishing"} type={item.type} />
+                    <div
+                      className="h-full w-full"
+                      style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
+                    >
+                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={locked || sheetMode !== "furnishing"} type={item.type} />
+                    </div>
+                    {isFurnitureSheetMode && (
+                      <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        {item.dimensions.width} x {item.dimensions.depth} cm · {getFurnitureFootprintArea(item)} 平米
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -4460,7 +4634,7 @@ export function PlanCanvas({
                     type="button"
                     title={item.name}
                   >
-                    <FurnitureTopView className="h-full w-full" color={item.color} label={item.code} type={item.type} />
+                    <FurnitureTopView className="h-full w-full" color={item.color} imageSrc={item.referenceImageDataUrl} label={item.code} type={item.type} />
                   </button>
                 );
               })}

@@ -4,12 +4,13 @@ import { useState } from "react";
 type Props = {
   floors: Floor[];
   selectedFloorId: FloorId;
+  compact?: boolean;
   onSelectFloor: (floorId: FloorId) => void;
   onFocusYard: (yard: "north" | "south") => void;
   onNaturalCommand: (command: string) => void;
 };
 
-export function FloorSidebar({ floors, selectedFloorId, onSelectFloor, onFocusYard, onNaturalCommand }: Props) {
+export function FloorSidebar({ floors, selectedFloorId, compact = false, onSelectFloor, onFocusYard, onNaturalCommand }: Props) {
   const [command, setCommand] = useState("");
   const visibleFloors = floors.filter((floor) => floor.id !== "YARD");
 
@@ -21,10 +22,10 @@ export function FloorSidebar({ floors, selectedFloorId, onSelectFloor, onFocusYa
   }
 
   return (
-    <aside className="border-b border-stone-200/80 bg-linen/80 p-5 lg:border-b-0 lg:border-r">
-      <div className="mb-6">
+    <aside className={`border-b border-stone-200/80 bg-linen/80 ${compact ? "p-3 lg:p-4" : "p-5"} lg:border-b-0 lg:border-r`}>
+      <div className={compact ? "mb-3" : "mb-6"}>
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">Floors</p>
-        <h2 className="mt-2 text-lg font-semibold text-ink">楼层</h2>
+        <h2 className="mt-2 text-lg font-semibold text-ink">{compact ? "家具楼层" : "楼层"}</h2>
       </div>
       <div className="space-y-2">
         {visibleFloors.map((floor) => {
@@ -32,7 +33,7 @@ export function FloorSidebar({ floors, selectedFloorId, onSelectFloor, onFocusYa
           return (
             <button
               key={floor.id}
-              className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+              className={`w-full rounded-2xl border ${compact ? "px-3 py-3" : "px-4 py-3"} text-left transition ${
                 isActive
                   ? "border-clay bg-white text-ink shadow-sm"
                   : "border-transparent bg-white/40 text-stone-500 hover:border-stone-200 hover:bg-white/70"
@@ -46,7 +47,7 @@ export function FloorSidebar({ floors, selectedFloorId, onSelectFloor, onFocusYa
           );
         })}
       </div>
-      <div className="mt-5 border-t border-stone-200/80 pt-4">
+      {!compact && <div className="mt-5 border-t border-stone-200/80 pt-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Yard</p>
         <h3 className="mt-1 text-sm font-semibold text-ink">庭院</h3>
         <div className="mt-3 space-y-2">
@@ -59,8 +60,8 @@ export function FloorSidebar({ floors, selectedFloorId, onSelectFloor, onFocusYa
             <span className="mt-1 block text-xs">生活庭院 · 4m</span>
           </button>
         </div>
-      </div>
-      <div className="mt-5 border-t border-stone-200/80 pt-4">
+      </div>}
+      {!compact && <div className="mt-5 border-t border-stone-200/80 pt-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Command</p>
         <h3 className="mt-1 text-sm font-semibold text-ink">自然语言操作</h3>
         <textarea
@@ -76,7 +77,7 @@ export function FloorSidebar({ floors, selectedFloorId, onSelectFloor, onFocusYa
           执行
         </button>
         <p className="mt-2 text-xs leading-5 text-stone-400">先支持增减常用家具，后续再扩展移动、旋转和改尺寸。</p>
-      </div>
+      </div>}
     </aside>
   );
 }

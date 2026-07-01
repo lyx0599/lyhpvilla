@@ -27,6 +27,7 @@ export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
   sofa: "沙发",
   table: "餐桌",
   bed: "床",
+  nightstand: "床头柜",
   plant: "绿植",
   cabinet: "矮柜",
   island: "中岛台",
@@ -101,6 +102,19 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#c8a887",
     material: "木质床架 + 软包床头",
     note: "放置后校核床侧通道、床头插座和衣柜开门空间。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+  },
+  {
+    id: "bedroom-nightstand",
+    category: "bedroom",
+    moduleType: "nightstand",
+    furnitureType: "nightstand",
+    codePrefix: "NS",
+    name: "床头柜",
+    dimensions: { width: 48, depth: 42, height: 52, unit: "cm" },
+    color: "#d7c3a2",
+    material: "成品床头柜 / 木饰面",
+    note: "放在床侧，后续可上传实际采购图片并校核床头插座、开关和通道。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
   },
   {

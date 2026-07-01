@@ -8,6 +8,7 @@ type Props = {
   className?: string;
   showLabel?: boolean;
   frameless?: boolean;
+  imageSrc?: string;
 };
 
 function SymbolShell({ children }: { children: ReactNode }) {
@@ -52,6 +53,15 @@ function renderSymbol(type: FurnitureType, color: string) {
           <rect x="18" y="12" width="64" height="78" rx="8" fill={color} stroke={stroke} strokeWidth="5" />
           <rect x="26" y="20" width="48" height="18" rx="5" fill={light} stroke={stroke} strokeWidth="3" />
           <line x1="18" y1="44" x2="82" y2="44" stroke={stroke} strokeWidth="3" opacity="0.45" />
+        </SymbolShell>
+      );
+    case "nightstand":
+      return (
+        <SymbolShell>
+          <rect x="22" y="20" width="56" height="60" rx="8" fill={color} stroke={stroke} strokeWidth="5" />
+          <line x1="28" y1="42" x2="72" y2="42" stroke={stroke} strokeWidth="3" opacity="0.35" />
+          <line x1="28" y1="62" x2="72" y2="62" stroke={stroke} strokeWidth="3" opacity="0.35" />
+          <circle cx="50" cy="52" r="3" fill={stroke} opacity="0.55" />
         </SymbolShell>
       );
     case "island":
@@ -168,12 +178,16 @@ function renderSymbol(type: FurnitureType, color: string) {
   }
 }
 
-export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false }: Props) {
+export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false, imageSrc }: Props) {
   return (
     <div className={`relative grid place-items-center overflow-hidden rounded-lg ${frameless ? "bg-transparent" : "bg-white"} ${className}`}>
-      <div className={frameless ? "absolute inset-0" : "absolute inset-1"}>
-        {renderSymbol(type, color)}
-      </div>
+      {imageSrc ? (
+        <img alt={label ?? "家具图片"} className={`${frameless ? "absolute inset-0" : "absolute inset-1"} h-auto max-h-full w-auto max-w-full object-contain`} src={imageSrc} />
+      ) : (
+        <div className={frameless ? "absolute inset-0" : "absolute inset-1"}>
+          {renderSymbol(type, color)}
+        </div>
+      )}
       {showLabel && label && (
         <span className="absolute bottom-1 left-1/2 max-w-[88%] -translate-x-1/2 rounded bg-white/88 px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-slate-800 shadow-sm">
           {label}

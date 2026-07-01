@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { FloorSidebar } from "@/components/floor-sidebar";
 import { FurnitureTopView } from "@/components/furniture-top-view";
 import { MobileDetailsDrawer } from "@/components/mobile-details-drawer";
 import { PlanCanvas } from "@/components/plan-canvas";
@@ -16,7 +15,7 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { createEmptyStructure } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseRoom, HouseStructure, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode } from "@/types/space";
+import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseRoom, HouseStructure, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
 type ModelSnapshot = {
@@ -29,7 +28,7 @@ type FloorHistory = {
   future: ModelSnapshot[];
 };
 
-type RightPanelKey = "status" | "modules" | "object" | "semantic";
+type RightPanelKey = "floors" | "status" | "modules" | "object" | "semantic";
 
 const WEB_WORKSPACE_SCHEMA_VERSION = 2;
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
@@ -47,6 +46,80 @@ const GITHUB_SOLIDIFY_BRANCH = "main";
 const GITHUB_SOLIDIFY_PATH = "data/default-workspace.json";
 const GITHUB_SOLIDIFY_TOKEN_KEY = "villa-space-github-solidify-token";
 const moduleCategoryOrder: InteriorModuleCategory[] = ["living", "bedroom", "kitchen", "bath", "storage", "decor"];
+const furnitureDimensionFields: Array<["width" | "depth" | "height", string]> = [
+  ["width", "宽 cm"],
+  ["depth", "深 cm"],
+  ["height", "高 cm"]
+];
+const wardrobeCellLabels: Record<WardrobeCellKind, string> = {
+  "hanging-long": "长衣",
+  "hanging-short": "短衣",
+  folded: "叠放",
+  drawer: "抽屉",
+  open: "开放",
+  shoe: "鞋包",
+  blank: "留空"
+};
+const wardrobeModuleDefaults: Record<WardrobeCellKind, { width: number; height: number; minWidth: number; minHeight: number }> = {
+  "hanging-long": { width: 34, height: 72, minWidth: 22, minHeight: 56 },
+  "hanging-short": { width: 34, height: 48, minWidth: 22, minHeight: 34 },
+  folded: { width: 28, height: 24, minWidth: 18, minHeight: 14 },
+  drawer: { width: 28, height: 16, minWidth: 18, minHeight: 10 },
+  open: { width: 28, height: 24, minWidth: 16, minHeight: 12 },
+  shoe: { width: 32, height: 18, minWidth: 20, minHeight: 12 },
+  blank: { width: 22, height: 18, minWidth: 12, minHeight: 10 }
+};
+
+function createWardrobeCells(columns: number, rows: number, existing: WardrobeDesign["cells"] = []): WardrobeDesign["cells"] {
+  return Array.from({ length: columns * rows }).map((_, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const existingCell = existing.find((cell) => cell.column === column && cell.row === row);
+    const kind: WardrobeCellKind = column === 0 ? (row <= 1 ? "hanging-long" : "hanging-short") : column === columns - 1 ? "folded" : row === rows - 1 ? "drawer" : "open";
+    return existingCell ?? {
+      id: `cell-${column}-${row}`,
+      column,
+      row,
+      kind
+    };
+  });
+}
+
+function normalizeWardrobeDesign(design?: WardrobeDesign): WardrobeDesign {
+  const columns = Math.min(6, Math.max(1, Math.round(design?.columns ?? 3)));
+  const rows = Math.min(8, Math.max(1, Math.round(design?.rows ?? design?.shelfRows ?? 4)));
+  const baseCells: WardrobeDesign["cells"] = design?.cells?.length
+    ? design.cells
+    : createWardrobeCells(columns, rows).map((cell) => {
+      if ((design?.hangingZones ?? 1) > cell.column) return { ...cell, kind: (cell.row <= 1 ? "hanging-long" : "hanging-short") as WardrobeCellKind };
+      if (cell.column >= columns - (design?.foldedZones ?? 1)) return { ...cell, kind: "folded" as WardrobeCellKind };
+      if ((design?.drawerCount ?? 0) > 0 && cell.row === rows - 1) return { ...cell, kind: "drawer" as WardrobeCellKind };
+      if (design?.shoeRack && cell.column === 0 && cell.row === rows - 1) return { ...cell, kind: "shoe" as WardrobeCellKind };
+      return cell;
+    });
+  const legacyModules = baseCells.map((cell) => ({
+    id: `module-${cell.column}-${cell.row}`,
+    kind: cell.kind,
+    x: Math.round((cell.column / columns) * 100),
+    y: Math.round((cell.row / rows) * 100),
+    width: Math.round(100 / columns),
+    height: Math.round(100 / rows)
+  }));
+  return {
+    columns,
+    rows,
+    cells: createWardrobeCells(columns, rows, baseCells),
+    modules: design?.modules?.length ? design.modules : legacyModules,
+    notes: design?.notes ?? "预留长衣区、短衣区和可调层板，深化时按实际衣物数量调整。"
+  };
+}
+
+const defaultWardrobeDesign: WardrobeDesign = {
+  columns: 3,
+  rows: 4,
+  cells: createWardrobeCells(3, 4),
+  notes: "预留长衣区、短衣区和可调层板，深化时按实际衣物数量调整。"
+};
 
 type PersistedWebWorkspace = {
   schemaVersion?: number;
@@ -201,16 +274,28 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [wallSyncOverrides, setWallSyncOverrides] = useState<WallSyncOverrides>({});
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
+  const [furnitureImmersiveMode, setFurnitureImmersiveMode] = useState(false);
+  const [command, setCommand] = useState("");
   const [activeObjectId, setActiveObjectId] = useState("");
+  const [wardrobeDesignFurnitureId, setWardrobeDesignFurnitureId] = useState("");
   const [locateObjectRequest, setLocateObjectRequest] = useState<{ id: string; nonce: number } | null>(null);
   const [hasLoadedWebWorkspace, setHasLoadedWebWorkspace] = useState(false);
   const [webSaveStatus, setWebSaveStatus] = useState<"loading" | "saved" | "dirty" | "saving" | "error">("loading");
   const [defaultWorkspacePayload, setDefaultWorkspacePayload] = useState("");
   const [openRightPanels, setOpenRightPanels] = useState<Record<RightPanelKey, boolean>>({
+    floors: true,
     status: true,
     modules: true,
     object: true,
     semantic: false
+  });
+  const [openModuleCategories, setOpenModuleCategories] = useState<Record<InteriorModuleCategory, boolean>>({
+    living: true,
+    bedroom: false,
+    kitchen: false,
+    bath: false,
+    storage: false,
+    decor: false
   });
   const [historyByFloor, setHistoryByFloor] = useState<Partial<Record<FloorId, FloorHistory>>>({});
   const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -264,6 +349,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     null
   ), [activeObjectId, floorHouseStructure]);
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+  const wardrobeDesignFurniture = floorFurniture.find((item) => item.id === wardrobeDesignFurnitureId) ?? null;
+  const wardrobeDesign = normalizeWardrobeDesign(wardrobeDesignFurniture?.wardrobeDesign);
   const activeRoomObject = activeStructureObject && "spaceType" in activeStructureObject && activeStructureObject.spaceType === "Room"
     ? activeStructureObject
     : null;
@@ -275,8 +362,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     category,
     items: interiorModuleCatalog.filter((item) => item.category === category)
   })), []);
+  const floorFurnitureByCategory = useMemo(() => (
+    moduleCategoryOrder.reduce((countsByCategory, category) => {
+      countsByCategory[category] = floorFurniture.filter((item) => item.moduleCategory === category).length;
+      return countsByCategory;
+    }, {} as Record<InteriorModuleCategory, number>)
+  ), [floorFurniture]);
   const moduleTargetRoom = activeRoomObject ?? (activeFurniture ? floorStructureRooms.find((room) => room.id === activeFurniture.roomId) ?? null : null);
   const moduleTargetLabel = moduleTargetRoom ? `${moduleTargetRoom.roomNumber} · ${moduleTargetRoom.name}` : "画布中心";
+  const activeFurnitureArea = activeFurniture ? (activeFurniture.dimensions.width * activeFurniture.dimensions.depth / 10_000).toFixed(2) : "0.00";
   const activeObjectSummary = activeRoomObject
     ? `${activeRoomObject.roomNumber} · ${activeRoomObject.name}`
     : activeFurniture
@@ -453,6 +547,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         sofa: ["沙发"],
         table: ["餐桌", "桌"],
         bed: ["床"],
+        nightstand: ["床头柜", "床边柜"],
         island: ["中岛", "岛台"],
         cooktop: ["灶", "灶台"],
         sink: ["水槽", "洗菜盆"],
@@ -626,6 +721,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleFurnitureSelect(furniture: Furniture) {
+    if (activeObjectId === furniture.id) {
+      setActiveObjectId("");
+      setOpenRightPanels((currentPanels) => ({
+        ...currentPanels,
+        object: false
+      }));
+      return;
+    }
     setSelectedFurnitureId(furniture.id);
     setSelectedSemanticObjectId("");
     setActiveObjectId(furniture.id);
@@ -639,6 +742,53 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     handleFloorFurnitureChange(floorFurniture.map((item) => item.id === nextFurniture.id ? nextFurniture : item));
     setSelectedFurnitureId(nextFurniture.id);
     setActiveObjectId(nextFurniture.id);
+  }
+
+  function readFurnitureReferenceImage(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("图片读取失败"));
+      reader.onload = () => {
+        const rawDataUrl = String(reader.result ?? "");
+        const image = new Image();
+        image.onload = () => {
+          const maxSize = 900;
+          const ratio = Math.min(1, maxSize / Math.max(image.width, image.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.width * ratio));
+          canvas.height = Math.max(1, Math.round(image.height * ratio));
+          const context = canvas.getContext("2d");
+          if (!context) {
+            resolve(rawDataUrl);
+            return;
+          }
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = "high";
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        image.onerror = () => reject(new Error("图片解析失败"));
+        image.src = rawDataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleActiveFurnitureImageUpload(file: File | undefined) {
+    if (!file || !activeFurniture || activeFurniture.locked) return;
+    try {
+      const dataUrl = await readFurnitureReferenceImage(file);
+      updateActiveFurniture((item) => ({
+        ...item,
+        referenceImageDataUrl: dataUrl,
+        referenceImageName: file.name,
+        recognitionStatus: "image-attached",
+        recognitionNote: "已保存真实家具图片；当前先按图片作为平面参考显示，后续接入 AI 后可自动识别轮廓、抠图和生成 3D 参考。"
+      }));
+      setValidatorRepairLog([`已上传 ${activeFurniture.name} 的参考图片：${file.name}。`]);
+    } catch (error) {
+      setValidatorRepairLog([error instanceof Error ? error.message : "图片上传失败，请换一张图片试试。"]);
+    }
   }
 
   function handleSemanticObjectSelect(object: SemanticObject) {
@@ -825,6 +975,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setLocateObjectRequest({ id: nextModule.id, nonce: Date.now() });
     setPlannerMode("edit");
     setDrawTool("select");
+    setFurnitureImmersiveMode(true);
     setOpenRightPanels((currentPanels) => ({
       ...currentPanels,
       object: true
@@ -835,6 +986,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setOpenRightPanels((currentPanels) => ({
       ...currentPanels,
       [panelId]: !currentPanels[panelId]
+    }));
+  }
+
+  function toggleModuleCategory(category: InteriorModuleCategory) {
+    setOpenModuleCategories((currentCategories) => ({
+      ...currentCategories,
+      [category]: !currentCategories[category]
     }));
   }
 
@@ -868,6 +1026,163 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       bayWindows: update(floorHouseStructure.bayWindows),
       skylights: update(floorHouseStructure.skylights),
       outdoors: update(floorHouseStructure.outdoors)
+    });
+  }
+
+  function updateActiveFurniture(updater: (item: Furniture) => Furniture) {
+    if (!activeFurniture || activeFurniture.locked) return;
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? updater(item) : item));
+    setSelectedFurnitureId(activeFurniture.id);
+    setActiveObjectId(activeFurniture.id);
+  }
+
+  function nudgeActiveFurniture(delta: { x: number; y: number }) {
+    updateActiveFurniture((item) => ({
+      ...item,
+      position: {
+        ...item.position,
+        x: Math.min(100, Math.max(0, item.position.x + delta.x)),
+        y: Math.min(100, Math.max(0, item.position.y + delta.y))
+      }
+    }));
+  }
+
+  function rotateActiveFurniture(delta: number) {
+    updateActiveFurniture((item) => ({
+      ...item,
+      position: {
+        ...item.position,
+        rotation: (item.position.rotation + delta + 360) % 360
+      }
+    }));
+  }
+
+  function flipActiveFurniture(axis: "x" | "y") {
+    updateActiveFurniture((item) => ({
+      ...item,
+      position: {
+        ...item.position,
+        [axis === "x" ? "flipX" : "flipY"]: !item.position[axis === "x" ? "flipX" : "flipY"]
+      }
+    }));
+  }
+
+  function openWardrobeDesigner(furnitureId: string) {
+    const target = furniture.find((item) => item.id === furnitureId);
+    if (!target) return;
+    setSelectedFloorId(target.floorId);
+    setSelectedFurnitureId(target.id);
+    setActiveObjectId(target.id);
+    setWardrobeDesignFurnitureId(target.id);
+    setFurnitureImmersiveMode(true);
+    const normalizedDesign = normalizeWardrobeDesign(target.wardrobeDesign);
+    if (JSON.stringify(target.wardrobeDesign) !== JSON.stringify(normalizedDesign)) {
+      setFurniture((currentFurniture) => currentFurniture.map((item) => item.id === target.id ? { ...item, wardrobeDesign: normalizedDesign } : item));
+    }
+  }
+
+  function updateWardrobeDesign(patch: Partial<WardrobeDesign>) {
+    if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
+    const nextDesign = normalizeWardrobeDesign({ ...wardrobeDesign, ...patch });
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === wardrobeDesignFurniture.id ? { ...item, wardrobeDesign: nextDesign } : item));
+  }
+
+  function updateWardrobeDimensions(field: "width" | "depth" | "height", value: number) {
+    if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
+    const nextDimensions = {
+      ...wardrobeDesignFurniture.dimensions,
+      [field]: Math.max(1, Math.round(value) || 1)
+    };
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === wardrobeDesignFurniture.id ? { ...item, dimensions: nextDimensions } : item));
+  }
+
+  function resizeWardrobeGrid(field: "columns" | "rows", value: number) {
+    const max = field === "columns" ? 6 : 8;
+    const nextValue = Math.min(max, Math.max(1, Math.round(value) || 1));
+    updateWardrobeDesign({ [field]: nextValue } as Partial<WardrobeDesign>);
+  }
+
+  function updateWardrobeCell(column: number, row: number, kind: WardrobeCellKind) {
+    updateWardrobeDesign({
+      cells: wardrobeDesign.cells.map((cell) => cell.column === column && cell.row === row ? { ...cell, kind } : cell)
+    });
+  }
+
+  function wardrobeModulesOverlap(left: NonNullable<WardrobeDesign["modules"]>[number], right: NonNullable<WardrobeDesign["modules"]>[number]) {
+    if (left.kind === "blank" || right.kind === "blank") return false;
+    return left.x < right.x + right.width &&
+      left.x + left.width > right.x &&
+      left.y < right.y + right.height &&
+      left.y + left.height > right.y;
+  }
+
+  function hasWardrobeModuleConflict(candidate: NonNullable<WardrobeDesign["modules"]>[number], modules: NonNullable<WardrobeDesign["modules"]>) {
+    return modules.some((module) => module.id !== candidate.id && wardrobeModulesOverlap(candidate, module));
+  }
+
+  function getClampedWardrobeModule(module: NonNullable<WardrobeDesign["modules"]>[number], patch: Partial<NonNullable<WardrobeDesign["modules"]>[number]>) {
+    const nextKind = patch.kind ?? module.kind;
+    const limits = wardrobeModuleDefaults[nextKind];
+    const nextWidth = Math.min(100, Math.max(limits.minWidth, Math.round(patch.width ?? module.width)));
+    const nextHeight = Math.min(100, Math.max(limits.minHeight, Math.round(patch.height ?? module.height)));
+    return {
+      ...module,
+      ...patch,
+      kind: nextKind,
+      width: nextWidth,
+      height: nextHeight,
+      x: Math.min(100 - nextWidth, Math.max(0, Math.round(patch.x ?? module.x))),
+      y: Math.min(100 - nextHeight, Math.max(0, Math.round(patch.y ?? module.y)))
+    };
+  }
+
+  function updateWardrobeModule(moduleId: string, patch: Partial<NonNullable<WardrobeDesign["modules"]>[number]>) {
+    const modules = wardrobeDesign.modules ?? [];
+    let blockedByOverlap = false;
+    updateWardrobeDesign({
+      modules: modules.map((module) => {
+        if (module.id !== moduleId) return module;
+        const candidate = getClampedWardrobeModule(module, patch);
+        if (hasWardrobeModuleConflict(candidate, modules)) {
+          blockedByOverlap = true;
+          return module;
+        }
+        return candidate;
+      })
+    });
+    if (blockedByOverlap) {
+      setValidatorRepairLog(["模块不能与已有功能模块重叠；留空模块可以被覆盖。"]);
+    }
+  }
+
+  function addWardrobeModule(kind: WardrobeCellKind) {
+    const defaults = wardrobeModuleDefaults[kind];
+    const modules = wardrobeDesign.modules ?? [];
+    const nextId = `module-${Date.now()}`;
+    let nextModule = {
+      id: nextId,
+      kind,
+      x: 0,
+      y: 0,
+      width: defaults.width,
+      height: defaults.height
+    };
+    for (let y = 0; y <= 100 - defaults.height; y += 1) {
+      for (let x = 0; x <= 100 - defaults.width; x += 1) {
+        const candidate = { ...nextModule, x, y };
+        if (!hasWardrobeModuleConflict(candidate, modules)) {
+          nextModule = candidate;
+          updateWardrobeDesign({ modules: [...modules, nextModule] });
+          return;
+        }
+      }
+    }
+    setValidatorRepairLog(["当前衣柜没有足够空位，先缩小、改成留空或删除模块后再添加。"]);
+  }
+
+  function removeWardrobeModule(moduleId: string) {
+    updateWardrobeDesign({
+      modules: (wardrobeDesign.modules ?? []).filter((module) => module.id !== moduleId)
     });
   }
 
@@ -923,28 +1238,24 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setActiveObjectId(furnitureId);
   }
 
+  const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode;
+
   return (
-    <main className={`min-h-screen ${focusMode ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
+    <main className={`min-h-screen ${focusMode || isFurnitureWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
       {defaultWorkspacePayload ? (
         <pre className="hidden" data-testid="villa-default-workspace-payload">
           {defaultWorkspacePayload}
         </pre>
       ) : null}
       <section className={`mx-auto flex min-h-[calc(100vh-1.5rem)] flex-col overflow-hidden border border-white/70 bg-white/72 shadow-soft backdrop-blur md:min-h-[calc(100vh-2.5rem)] ${
-        focusMode ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-1" : "max-w-7xl rounded-[2rem] lg:grid lg:grid-cols-[240px_minmax(0,1fr)_320px]"
+        focusMode
+          ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-1"
+          : isFurnitureWorkspace
+            ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-[minmax(0,1fr)_340px]"
+            : "max-w-7xl rounded-[2rem] lg:grid lg:grid-cols-[minmax(0,1fr)_320px]"
       }`}>
-        {!focusMode && (
-          <FloorSidebar
-            floors={data.floors}
-            selectedFloorId={selectedFloorId}
-            onFocusYard={handleFocusYard}
-            onNaturalCommand={handleNaturalCommand}
-            onSelectFloor={handleFloorChange}
-          />
-        )}
-
         <section className="flex min-h-0 flex-1 flex-col">
-          {!focusMode && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
+          {!focusMode && !isFurnitureWorkspace && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">Villa Space Studio</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">户型结构网站工作台</h1>
@@ -957,6 +1268,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
                 <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={solidifyDefaultWorkspace} type="button">固化默认户型</button>
               </div>
+              <button className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(true)} type="button">
+                家具沉浸
+              </button>
               <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
                 <span className="shrink-0 text-stone-500">楼层</span>
                 <select
@@ -1005,6 +1319,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             floorPlanVisualSettings={floorPlanVisualSettings}
             cleanPatches={floorCleanPatches}
             focusMode={focusMode}
+            furnitureImmersiveMode={isFurnitureWorkspace}
+            activeFurnitureId={activeFurniture?.id ?? ""}
             locateObjectRequest={locateObjectRequest}
             canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
             canRedo={floorHistory.future.length > 0}
@@ -1022,6 +1338,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             onCleanPatchesChange={handleCleanPatchesChange}
             onSelectFurniture={handleFurnitureSelect}
             onFurnitureChange={handleFloorFurnitureChange}
+            onOpenWardrobeDesigner={openWardrobeDesigner}
             onSelectSemanticObject={handleSemanticObjectSelect}
             onMoveSemanticObject={handleMoveSemanticObject}
           />
@@ -1030,11 +1347,103 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         {!focusMode && <aside className="hidden overflow-y-auto border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
           <div className="space-y-3">
             <div className="px-1 pb-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Inspector</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">结构检查器</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isFurnitureWorkspace ? "Furniture" : "Inspector"}</p>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{isFurnitureWorkspace ? "家具布置台" : "结构检查器"}</h2>
             </div>
 
             <RightPanelCard
+              id="floors"
+              eyebrow="Floors"
+              title="楼层 / 庭院"
+              summary={`${currentFloor.label} · ${currentFloor.subtitle}`}
+              open={openRightPanels.floors}
+              onToggle={toggleRightPanel}
+            >
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {data.floors.filter((floor) => floor.id !== "YARD").map((floor) => {
+                    const isActive = floor.id === selectedFloorId;
+                    return (
+                      <button
+                        key={floor.id}
+                        className={`rounded-xl border px-3 py-2 text-left transition ${
+                          isActive
+                            ? "border-clay bg-clay/10 text-ink"
+                            : "border-stone-200 bg-white text-stone-500 hover:border-clay/40 hover:bg-stone-50"
+                        }`}
+                        onClick={() => handleFloorChange(floor.id)}
+                        type="button"
+                      >
+                        <span className="block text-sm font-semibold">{floor.label}</span>
+                        <span className="mt-0.5 block truncate text-[11px]">{floor.subtitle}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {!isFurnitureWorkspace && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
+                      <button className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-xs font-semibold text-stone-600 hover:bg-stone-50" onClick={() => handleFocusYard("north")} type="button">
+                        北院
+                        <span className="mt-0.5 block text-[11px] font-normal text-stone-400">入户庭院 · 2m</span>
+                      </button>
+                      <button className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-xs font-semibold text-stone-600 hover:bg-stone-50" onClick={() => handleFocusYard("south")} type="button">
+                        南院
+                        <span className="mt-0.5 block text-[11px] font-normal text-stone-400">生活庭院 · 4m</span>
+                      </button>
+                    </div>
+                    <div className="border-t border-stone-100 pt-3">
+                      <p className="text-xs font-semibold text-ink">自然语言操作</p>
+                      <textarea
+                        className="mt-2 min-h-20 w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-ink outline-none focus:border-clay"
+                        placeholder="试试：添加一个沙发&#10;删除餐桌"
+                        value={command}
+                        onChange={(event) => setCommand(event.target.value)}
+                        onKeyDown={(event) => {
+                          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                            const text = command.trim();
+                            if (text) {
+                              handleNaturalCommand(text);
+                              setCommand("");
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        className="mt-2 w-full rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-white hover:bg-clay"
+                        onClick={() => {
+                          const text = command.trim();
+                          if (!text) return;
+                          handleNaturalCommand(text);
+                          setCommand("");
+                        }}
+                        type="button"
+                      >
+                        执行
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </RightPanelCard>
+
+            {isFurnitureWorkspace && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-900">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">在线方案保存</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${webSaveStatus === "error" ? "bg-red-100 text-red-700" : webSaveStatus === "dirty" ? "bg-amber-100 text-amber-700" : "bg-white text-emerald-700"}`}>
+                    {webSaveStatus === "error" ? "固化失败" : webSaveStatus === "dirty" ? "本机已草稿保存" : webSaveStatus === "saving" ? "固化中" : "已保存"}
+                  </span>
+                </div>
+                <p className="mt-2">家具会自动存到这台电脑的浏览器里；要让 GitHub Pages 线上也长期保留，点“固化并发布默认方案”。</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(false)} type="button">退出沉浸</button>
+                  <button className="rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800 disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={solidifyDefaultWorkspace} type="button">固化并发布</button>
+                </div>
+              </div>
+            )}
+
+            {!isFurnitureWorkspace && <RightPanelCard
               id="status"
               eyebrow="Validator"
               title="模型状态"
@@ -1081,6 +1490,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 </div>
               )}
             </RightPanelCard>
+            }
 
             <RightPanelCard
               id="modules"
@@ -1095,44 +1505,57 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   <span className="font-semibold text-ink">目标</span>
                   <span className="ml-2">{moduleTargetLabel}</span>
                 </div>
-                {moduleCatalogGroups.map(({ category, items }) => (
-                  <div key={category} className="rounded-xl border border-stone-200 bg-white p-2">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold text-ink">{interiorModuleCategoryLabels[category]}</p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">{items.length}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {items.map((item) => {
-                        const activeServices = serviceRequirementLabels.filter((service) => item.serviceRequirements[service.key]);
-                        return (
-                          <div key={item.id} className="rounded-lg bg-slate-50 p-2">
-                            <div className="flex items-start gap-2">
-                              <FurnitureTopView className="mt-0.5 h-16 w-20 shrink-0 border border-white shadow-sm" color={item.color} label={item.codePrefix} type={item.furnitureType} />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="truncate text-xs font-semibold text-ink">{item.name}</p>
-                                    <p className="mt-0.5 text-[11px] text-stone-500">{item.dimensions.width} x {item.dimensions.depth} x {item.dimensions.height} cm</p>
+                {moduleCatalogGroups.map(({ category, items }) => {
+                  const isOpen = openModuleCategories[category];
+                  const placedCount = floorFurnitureByCategory[category] ?? 0;
+                  return (
+                    <div key={category} className="rounded-xl border border-stone-200 bg-white">
+                      <button
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-stone-50"
+                        onClick={() => toggleModuleCategory(category)}
+                        type="button"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-ink">{interiorModuleCategoryLabels[category]}</span>
+                          <span className="mt-0.5 block truncate text-[11px] text-stone-500">{items.length} 个模块 · 当前楼层已放 {placedCount}</span>
+                        </span>
+                        <span className={`grid size-7 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-stone-500 transition ${isOpen ? "rotate-180" : ""}`}>⌄</span>
+                      </button>
+                      {isOpen && (
+                        <div className="space-y-2 border-t border-stone-100 p-2">
+                          {items.map((item) => {
+                            const activeServices = serviceRequirementLabels.filter((service) => item.serviceRequirements[service.key]);
+                            return (
+                              <div key={item.id} className="rounded-lg bg-slate-50 p-2">
+                                <div className="flex items-start gap-2">
+                                  <FurnitureTopView className="mt-0.5 h-16 w-20 shrink-0 border border-white shadow-sm" color={item.color} label={item.codePrefix} type={item.furnitureType} />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-xs font-semibold text-ink">{item.name}</p>
+                                        <p className="mt-0.5 text-[11px] text-stone-500">{item.dimensions.width} x {item.dimensions.depth} x {item.dimensions.height} cm</p>
+                                      </div>
+                                      <button className="shrink-0 rounded-lg bg-ink px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-ink/90" onClick={() => addModuleFromCatalog(item)} type="button">
+                                        添加
+                                      </button>
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                      {(activeServices.length ? activeServices : [{ key: "power" as const, label: "无机电" }]).map((service) => (
+                                        <span key={`${item.id}-${service.label}`} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-stone-500">
+                                          {service.label}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
-                                  <button className="shrink-0 rounded-lg bg-ink px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-ink/90" onClick={() => addModuleFromCatalog(item)} type="button">
-                                    添加
-                                  </button>
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  {(activeServices.length ? activeServices : [{ key: "power" as const, label: "无机电" }]).map((service) => (
-                                    <span key={`${item.id}-${service.label}`} className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-stone-500">
-                                      {service.label}
-                                    </span>
-                                  ))}
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </RightPanelCard>
 
@@ -1144,10 +1567,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               open={openRightPanels.object}
               onToggle={toggleRightPanel}
             >
-              {(activeStructureObject || activeFurniture || floorStructureRooms.length > 0) ? (
+              {(activeStructureObject || activeFurniture || (!isFurnitureWorkspace && floorStructureRooms.length > 0)) ? (
                 <div>
                   {activeObjectId && <p className="break-all rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{activeObjectId}</p>}
-                  {floorStructureRooms.length > 0 && (
+                  {!isFurnitureWorkspace && floorStructureRooms.length > 0 && (
                     <label className="mt-3 block text-xs text-stone-500">
                       房间快速选择
                       <select
@@ -1178,43 +1601,117 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </label>
                       <p className="mt-2 text-xs leading-5 text-blue-800">输入后会在房间标签和对象台账里同步显示，改完记得固化默认户型。</p>
                     </div>
-                  ) : activeFurniture ? (
-                    <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
-                      <div className="flex items-center gap-3">
-                        <FurnitureTopView className="size-16 shrink-0 border border-white shadow-sm" color={activeFurniture.color} label={activeFurniture.code} type={activeFurniture.type} />
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-emerald-900">{activeFurniture.moduleCategory ? "物品模块" : "家具对象"}</p>
-                          <p className="mt-1 truncate text-sm font-semibold text-ink">{activeFurniture.name}</p>
-                        </div>
-                      </div>
-                      <label className="mt-3 block text-xs text-stone-500">
-                        名称
-                        <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeFurniture.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
-                      </label>
-                      <div className="mt-3 grid grid-cols-3 gap-2">
-                        {([
-                          ["width", "宽 cm"],
-                          ["depth", "深 cm"],
-                          ["height", "高 cm"]
-                        ] as const).map(([field, label]) => (
-                          <label key={field} className="block text-xs text-stone-500">
-                            {label}
-                            <input
-                              className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 font-semibold text-ink outline-none focus:border-blue-400"
-                              min="1"
-                              type="number"
-                              value={activeFurniture.dimensions[field]}
-                              onChange={(event) => updateActiveObject({
-                                dimensions: {
-                                  ...activeFurniture.dimensions,
-                                  [field]: Math.max(1, Number(event.target.value) || 1)
-                                }
-                              })}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                      <label className="mt-3 block text-xs text-stone-500">
+	                  ) : activeFurniture ? (
+	                    <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+	                      <div className="flex items-center gap-3">
+		                        <FurnitureTopView className="size-16 shrink-0 border border-white shadow-sm" color={activeFurniture.color} imageSrc={activeFurniture.referenceImageDataUrl} label={activeFurniture.code} type={activeFurniture.type} />
+	                        <div className="min-w-0">
+	                          <p className="text-xs font-semibold text-emerald-900">{activeFurniture.moduleCategory ? "物品模块" : "家具对象"}</p>
+	                          <p className="mt-1 truncate text-sm font-semibold text-ink">{activeFurniture.name}</p>
+	                          <p className="mt-1 text-xs font-semibold text-emerald-800">占地 {activeFurnitureArea} 平米 · 角度 {Math.round(activeFurniture.position.rotation)}°</p>
+	                        </div>
+	                      </div>
+		                      <label className="mt-3 block text-xs text-stone-500">
+	                        名称
+	                        <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeFurniture.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
+	                      </label>
+	                      <div className="mt-3 rounded-xl bg-white/70 p-2">
+	                        <div className="flex items-center justify-between gap-2">
+	                          <p className="text-xs font-semibold text-ink">真实家具图片</p>
+	                          {activeFurniture.referenceImageDataUrl && (
+	                            <button
+	                              className="rounded-lg bg-stone-100 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-stone-200"
+	                              onClick={() => updateActiveFurniture((item) => ({
+	                                ...item,
+	                                referenceImageDataUrl: undefined,
+	                                referenceImageName: undefined,
+	                                recognitionStatus: "none",
+	                                recognitionNote: undefined
+	                              }))}
+	                              type="button"
+	                            >
+	                              移除
+	                            </button>
+	                          )}
+	                        </div>
+	                        {activeFurniture.referenceImageDataUrl ? (
+	                          <div className="mt-2 overflow-hidden rounded-lg border border-stone-200 bg-white">
+	                            <img alt={activeFurniture.referenceImageName ?? activeFurniture.name} className="max-h-32 w-full object-contain" src={activeFurniture.referenceImageDataUrl} />
+	                          </div>
+	                        ) : (
+	                          <p className="mt-2 text-[11px] leading-4 text-stone-500">上传你想买的实物图后，平面图会优先显示这张图片。</p>
+	                        )}
+	                        <label className="mt-2 block cursor-pointer rounded-lg border border-dashed border-emerald-300 bg-emerald-50 px-3 py-2 text-center text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+	                          上传图片 / AI 识别入口
+	                          <input
+	                            accept="image/*"
+	                            className="hidden"
+	                            disabled={activeFurniture.locked}
+	                            onChange={(event) => {
+	                              void handleActiveFurnitureImageUpload(event.target.files?.[0]);
+	                              event.currentTarget.value = "";
+	                            }}
+	                            type="file"
+	                          />
+	                        </label>
+	                        <p className="mt-2 text-[11px] leading-4 text-stone-500">
+	                          {activeFurniture.recognitionNote ?? "当前先保存图片并作为模型中的平面参考；接入 AI 后可自动抠出家具轮廓并给 3D 预览使用。"}
+	                        </p>
+	                      </div>
+		                      <div className="mt-3 grid grid-cols-3 gap-2">
+	                        {furnitureDimensionFields.map(([field, label]) => (
+	                          <label key={field} className="block text-xs text-stone-500">
+	                            {label}
+	                            <input
+	                              className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 font-semibold text-ink outline-none focus:border-blue-400"
+	                              min="1"
+	                              type="number"
+	                              value={activeFurniture.dimensions[field]}
+	                              onChange={(event) => updateActiveObject({
+	                                dimensions: {
+	                                  ...activeFurniture.dimensions,
+	                                  [field]: Math.max(1, Math.round(Number(event.target.value)) || 1)
+	                                }
+	                              })}
+	                            />
+	                          </label>
+	                        ))}
+	                      </div>
+	                      <div className="mt-3 rounded-xl bg-white/70 p-2">
+	                        <p className="text-xs font-semibold text-ink">移动</p>
+	                        <div className="mt-2 grid grid-cols-3 gap-1 text-xs">
+	                          <span />
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => nudgeActiveFurniture({ x: 0, y: -1 })} type="button">上</button>
+	                          <span />
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => nudgeActiveFurniture({ x: -1, y: 0 })} type="button">左</button>
+	                          <span className="rounded-lg bg-slate-900 px-2 py-2 text-center font-semibold text-white">选</span>
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => nudgeActiveFurniture({ x: 1, y: 0 })} type="button">右</button>
+	                          <span />
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => nudgeActiveFurniture({ x: 0, y: 1 })} type="button">下</button>
+	                          <span />
+	                        </div>
+	                      </div>
+		                      <div className="mt-3 rounded-xl bg-white/70 p-2">
+		                        <p className="text-xs font-semibold text-ink">旋转 / 翻转</p>
+		                        <div className="mt-2 grid grid-cols-4 gap-1 text-xs">
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => rotateActiveFurniture(-15)} type="button">-15</button>
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => rotateActiveFurniture(15)} type="button">+15</button>
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => rotateActiveFurniture(-90)} type="button">-90</button>
+	                          <button className="rounded-lg bg-slate-100 px-2 py-2 font-semibold text-ink hover:bg-slate-200 disabled:opacity-40" disabled={activeFurniture.locked} onClick={() => rotateActiveFurniture(90)} type="button">+90</button>
+	                          <button className={`col-span-2 rounded-lg px-2 py-2 font-semibold disabled:opacity-40 ${activeFurniture.position.flipX ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`} disabled={activeFurniture.locked} onClick={() => flipActiveFurniture("x")} type="button">左右翻转</button>
+		                          <button className={`col-span-2 rounded-lg px-2 py-2 font-semibold disabled:opacity-40 ${activeFurniture.position.flipY ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`} disabled={activeFurniture.locked} onClick={() => flipActiveFurniture("y")} type="button">前后翻转</button>
+		                        </div>
+		                      </div>
+	                      {(activeFurniture.type === "wardrobe" || activeFurniture.moduleType === "wardrobe") && (
+	                        <button
+	                          className="mt-3 w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+	                          onClick={() => openWardrobeDesigner(activeFurniture.id)}
+	                          type="button"
+	                        >
+	                          进入衣柜设计
+	                        </button>
+	                      )}
+		                      <label className="mt-3 block text-xs text-stone-500">
                         颜色
                         <div className="mt-1 flex items-center gap-2">
                           <input className="h-10 w-14 rounded-lg border border-stone-200 bg-white p-1" type="color" value={activeFurniture.color} onChange={(event) => updateActiveObject({ color: event.target.value })} />
@@ -1235,9 +1732,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       名称
                       <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                     </label>
-                  ) : (
-                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">选择一个房间后，可以在这里输入名称，例如“厨房”。</p>
-                  )}
+	                  ) : (
+	                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">{isFurnitureWorkspace ? "从模块库添加家具，或在画布上选择已有家具后，这里会显示尺寸、旋转、翻转和备注。" : "选择一个房间后，可以在这里输入名称，例如“厨房”。"}</p>
+	                  )}
                   {activeStructureObject && "thickness" in activeStructureObject && (
                     <label className="mt-3 block text-xs text-stone-500">
                       厚度 mm
@@ -1337,11 +1834,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   )}
                 </div>
               ) : (
-                <p className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">在画布或对象台账里选择一个结构对象后，这里会显示可编辑属性。</p>
+                <p className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">{isFurnitureWorkspace ? "从模块库添加家具，或在画布上选择已有家具后，这里会显示可编辑属性。" : "在画布或对象台账里选择一个结构对象后，这里会显示可编辑属性。"}</p>
               )}
             </RightPanelCard>
 
-            <RightPanelCard
+            {!isFurnitureWorkspace && <RightPanelCard
               id="semantic"
               eyebrow="Map"
               title="语义对象"
@@ -1361,9 +1858,156 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 onDeleteObject={handleDeleteSemanticObject}
               />
             </RightPanelCard>
+            }
           </div>
         </aside>}
       </section>
+
+      {wardrobeDesignFurniture && (
+        <section className="fixed inset-3 z-[80] overflow-hidden rounded-2xl border border-white/80 bg-white shadow-soft lg:inset-6">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between gap-3 border-b border-stone-200 bg-slate-50 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Wardrobe Design</p>
+                <h2 className="mt-1 truncate text-lg font-semibold text-ink">{wardrobeDesignFurniture.name} · 衣柜内部设计</h2>
+              </div>
+              <button className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-clay" onClick={() => setWardrobeDesignFurnitureId("")} type="button">
+                完成
+              </button>
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-4 overflow-auto bg-[#f3efe7] p-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="flex min-h-[520px] items-center justify-center rounded-2xl border border-white/80 bg-white/80 p-4">
+                <div className="relative aspect-[4/3] w-full max-w-4xl rounded-xl border-[10px] border-[#8b6f47] bg-[#f8f4ed] shadow-inner">
+	                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(139,111,71,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,111,71,0.18)_1px,transparent_1px)] bg-[size:10%_10%]" />
+		                  {[...(wardrobeDesign.modules ?? [])].sort((left, right) => (left.kind === "blank" ? 0 : 1) - (right.kind === "blank" ? 0 : 1)).map((module) => {
+		                      const kindClass: Record<WardrobeCellKind, string> = {
+		                        "hanging-long": "bg-sky-50 text-sky-800",
+		                        "hanging-short": "bg-indigo-50 text-indigo-800",
+	                        folded: "bg-amber-50 text-amber-800",
+	                        drawer: "bg-[#e3d2b7] text-[#5f4528]",
+	                        open: "bg-white/70 text-stone-600",
+	                        shoe: "bg-emerald-50 text-emerald-800",
+	                        blank: "border-dashed bg-transparent text-stone-300 shadow-none"
+		                      };
+	                      return (
+	                        <button
+	                          key={module.id}
+		                          className={`absolute grid place-items-center rounded-lg border-2 border-[#8b6f47]/45 p-1 text-xs font-semibold shadow-sm transition hover:ring-2 hover:ring-emerald-500 ${kindClass[module.kind]}`}
+		                          style={{ left: `${module.x}%`, top: `${module.y}%`, width: `${module.width}%`, height: `${module.height}%`, zIndex: module.kind === "blank" ? 1 : 2 }}
+	                          onClick={() => {
+	                            const kinds = Object.keys(wardrobeCellLabels) as WardrobeCellKind[];
+	                            const nextKind = kinds[(kinds.indexOf(module.kind) + 1) % kinds.length];
+	                            updateWardrobeModule(module.id, { kind: nextKind });
+	                          }}
+	                          type="button"
+	                        >
+	                          {(module.kind === "hanging-long" || module.kind === "hanging-short") && <span className="absolute left-3 right-3 top-4 h-1 rounded-full bg-slate-700" />}
+	                          {module.kind === "drawer" && <span className="absolute inset-x-3 bottom-3 border-t-2 border-[#8b6f47]/70" />}
+	                          <span className="rounded-full bg-white/80 px-2 py-1">{wardrobeCellLabels[module.kind]}</span>
+	                        </button>
+	                      );
+	                    })}
+                </div>
+              </div>
+
+              <aside className="rounded-2xl border border-white/80 bg-white p-4 text-sm shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Controls</p>
+                <h3 className="mt-1 text-base font-semibold text-ink">内部结构参数</h3>
+                <div className="mt-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    {furnitureDimensionFields.map(([field, label]) => (
+                      <label key={field} className="block text-xs font-semibold text-stone-500">
+                        {label}
+                        <input
+                          className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 text-sm font-semibold text-ink outline-none focus:border-emerald-400"
+                          min="1"
+                          type="number"
+                          value={wardrobeDesignFurniture.dimensions[field]}
+                          onChange={(event) => updateWardrobeDimensions(field, Number(event.target.value))}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  {([
+                    ["columns", "竖向列数", 1, 6],
+                    ["rows", "横向层数", 1, 8]
+                  ] as const).map(([field, label, min, max]) => (
+                    <label key={field} className="block text-xs font-semibold text-stone-500">
+                      {label}
+                      <input
+                        className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-emerald-400"
+                        max={max}
+                        min={min}
+                        type="number"
+                        value={wardrobeDesign[field]}
+                        onChange={(event) => resizeWardrobeGrid(field, Number(event.target.value))}
+                      />
+                    </label>
+                  ))}
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold text-ink">模块积木</p>
+                      <select className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-ink" onChange={(event) => addWardrobeModule(event.target.value as WardrobeCellKind)} value="">
+                        <option value="" disabled>添加</option>
+                        {(Object.entries(wardrobeCellLabels) as Array<[WardrobeCellKind, string]>).filter(([kind]) => kind !== "blank").map(([kind, label]) => (
+                          <option key={kind} value={kind}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mt-2 max-h-72 space-y-2 overflow-auto pr-1">
+                      {(wardrobeDesign.modules ?? []).map((module, index) => (
+                        <div key={`module-control-${module.id}`} className="rounded-lg border border-stone-200 bg-white p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <select
+                              className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-2 py-2 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                              value={module.kind}
+                              onChange={(event) => updateWardrobeModule(module.id, { kind: event.target.value as WardrobeCellKind })}
+                            >
+                              {(Object.entries(wardrobeCellLabels) as Array<[WardrobeCellKind, string]>).map(([kind, label]) => (
+                                <option key={kind} value={kind}>{index + 1}. {label}</option>
+                              ))}
+                            </select>
+                            <button className="rounded-lg bg-red-50 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-100" onClick={() => removeWardrobeModule(module.id)} type="button">删</button>
+                          </div>
+                          <div className="mt-2 grid grid-cols-4 gap-1">
+                            {([
+                              ["x", "左"],
+                              ["y", "上"],
+                              ["width", "宽"],
+                              ["height", "高"]
+                            ] as const).map(([field, label]) => (
+                              <label key={`${module.id}-${field}`} className="block text-[10px] font-semibold text-stone-500">
+                                {label}%
+                                <input
+                                  className="mt-1 w-full rounded-lg border border-stone-200 px-1.5 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                  min="0"
+                                  max="100"
+                                  type="number"
+                                  value={module[field]}
+                                  onChange={(event) => updateWardrobeModule(module.id, { [field]: Number(event.target.value) } as Partial<typeof module>)}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="block text-xs font-semibold text-stone-500">
+                    施工/收纳备注
+                    <textarea
+                      className="mt-1 min-h-28 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-emerald-400"
+                      value={wardrobeDesign.notes}
+                      onChange={(event) => updateWardrobeDesign({ notes: event.target.value })}
+                    />
+                  </label>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+      )}
 
       <MobileDetailsDrawer
         floor={currentFloor}
