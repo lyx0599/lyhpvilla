@@ -7,6 +7,7 @@ type Props = {
   label?: string;
   className?: string;
   showLabel?: boolean;
+  frameless?: boolean;
 };
 
 function SymbolShell({ children }: { children: ReactNode }) {
@@ -167,10 +168,10 @@ function renderSymbol(type: FurnitureType, color: string) {
   }
 }
 
-export function FurnitureTopView({ type, color, label, className = "", showLabel = true }: Props) {
+export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false }: Props) {
   return (
-    <div className={`relative grid place-items-center overflow-hidden rounded-lg bg-white ${className}`}>
-      <div className="absolute inset-1">
+    <div className={`relative grid place-items-center overflow-hidden rounded-lg ${frameless ? "bg-transparent" : "bg-white"} ${className}`}>
+      <div className={frameless ? "absolute inset-0" : "absolute inset-1"}>
         {renderSymbol(type, color)}
       </div>
       {showLabel && label && (

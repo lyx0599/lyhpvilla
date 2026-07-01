@@ -134,6 +134,23 @@ type StructureObjectRow = {
   name: string;
   detail: string;
 };
+type ConstructionSheet = {
+  id: string;
+  mode: PlanSheetMode;
+  sheetNo: string;
+  title: string;
+  audience: string;
+  scale: string;
+  status: string;
+  note: string;
+};
+type ConstructionSpecRow = {
+  id: string;
+  category: string;
+  item: string;
+  value: string;
+  note: string;
+};
 
 const defaultPlanBounds: PlanBounds = { x: 0, y: 0, width: STRUCTURE_WIDTH_MM, height: STRUCTURE_HEIGHT_MM };
 
@@ -187,6 +204,33 @@ const planSheetModeFootnotes: Record<PlanSheetMode, string> = {
 
 const wallEditableSheetModes = new Set<PlanSheetMode>(["structure", "construction"]);
 const wallEditableSheetModeLabel = "空白结构、施工标注";
+
+const defaultConstructionSheets: ConstructionSheet[] = [
+  { id: "cover", mode: "site", sheetNo: "A-00", title: "图纸目录 / 总说明", audience: "施工队 / 家人确认", scale: "NTS", status: "概念版", note: "列明版本、楼层、图纸范围和现场复核要求。" },
+  { id: "site", mode: "site", sheetNo: "A-01", title: "总平面与庭院关系", audience: "施工队 / 家人", scale: "1:100", status: "待复核", note: "表达北院入户、南院生活庭院、建筑主体与室外硬地关系。" },
+  { id: "structure", mode: "structure", sheetNo: "A-02", title: "原始结构 / 墙体门窗", audience: "施工队", scale: "1:50", status: "待复核", note: "只看墙、门窗、楼梯、院子边界，所有尺寸现场复尺。" },
+  { id: "construction", mode: "construction", sheetNo: "A-03", title: "施工尺寸 / 拆改标注", audience: "施工队", scale: "1:50", status: "施工沟通", note: "标注净尺寸、洞口、隔断、楼梯和关键通道尺寸。" },
+  { id: "furnishing", mode: "furnishing", sheetNo: "F-01", title: "家具与硬装定位", audience: "施工队 / 家人", scale: "1:50", status: "方案中", note: "用于确认沙发、餐桌、中岛、柜体、床和收纳的真实占位。" },
+  { id: "socket", mode: "socket", sheetNo: "E-01", title: "强弱电插座点位", audience: "水电工", scale: "1:50", status: "示意", note: "点位编号、离地高度、专用回路和防水要求后续逐项校正。" },
+  { id: "switch", mode: "switch", sheetNo: "E-02", title: "开关与控制关系", audience: "水电工", scale: "1:50", status: "示意", note: "表达入户、楼梯、客餐厅、庭院、卧室的双控与灯组控制。" },
+  { id: "lighting", mode: "lighting", sheetNo: "L-01", title: "灯光布置", audience: "电工 / 吊顶", scale: "1:50", status: "示意", note: "筒灯、射灯、灯带、吊灯、庭院灯按生活场景分组。" },
+  { id: "water", mode: "water", sheetNo: "W-01", title: "给水与净水预留", audience: "水电工", scale: "1:50", status: "示意", note: "厨房、岛台、卫浴、庭院龙头的冷水、热水、净水路径。" },
+  { id: "drainage", mode: "drainage", sheetNo: "W-02", title: "排水与地漏", audience: "水电工 / 泥工", scale: "1:50", status: "示意", note: "水槽、台盆、地漏、庭院排水和地下层排水需结合现场管位。" },
+  { id: "ceiling", mode: "ceiling", sheetNo: "C-01", title: "吊顶 / 风口 / 检修", audience: "木工 / 空调", scale: "1:50", status: "示意", note: "表达局部吊顶、灯槽、风口、检修口和设备预留。" },
+  { id: "flooring", mode: "flooring", sheetNo: "M-01", title: "地面材质与铺装", audience: "泥工 / 家人", scale: "1:50", status: "示意", note: "室内木地板、防滑砖、庭院石材、绿化和收口关系。" }
+];
+
+const defaultConstructionSpecs: ConstructionSpecRow[] = [
+  { id: "clearance-main", category: "通道", item: "主要通道净宽", value: "900 mm 以上", note: "中岛、餐椅、沙发边优先复核。" },
+  { id: "clearance-island", category: "餐厨", item: "中岛四周通道", value: "950-1100 mm", note: "冰箱、灶台、水槽动线不得互相冲突。" },
+  { id: "socket-height", category: "水电", item: "常规插座离地", value: "300 mm", note: "台面、床头、设备插座按用途单独标高。" },
+  { id: "switch-height", category: "水电", item: "开关离地", value: "1300 mm", note: "同一区域保持统一高度。" },
+  { id: "kitchen-counter", category: "柜体", item: "厨房台面高度", value: "850-900 mm", note: "按主要使用者身高二次确认。" },
+  { id: "wardrobe-depth", category: "柜体", item: "衣柜净深", value: "600 mm", note: "移门/平开门和踢脚线另算。" },
+  { id: "ceiling-main", category: "吊顶", item: "局部吊顶下挂", value: "180-280 mm", note: "按空调、新风、灯槽、管线综合。" },
+  { id: "waterproof-bath", category: "防水", item: "卫浴墙面防水", value: "1800 mm", note: "淋浴区建议到顶或按现场做法确认。" },
+  { id: "waterproof-yard", category: "庭院", item: "室外插座", value: "防水盒 + 独立回路", note: "南院照明、龙头、清洁设备预留。" }
+];
 
 const syncPaintTools: Array<{ id: SyncPaintRuleId; label: string; color: string }> = [
   { id: "all-level", label: "四层", color: "#2563eb" },
@@ -280,6 +324,9 @@ export function PlanCanvas({
   const [cleanupSelection, setCleanupSelection] = useState<CleanPatch["rect"] | null>(null);
   const [exportOptions, setExportOptions] = useState({ overlay: false, roomNames: false, furniture: false });
   const [sheetMode, setSheetMode] = useState<PlanSheetMode>("site");
+  const [isConstructionPackageOpen, setIsConstructionPackageOpen] = useState(false);
+  const [constructionSheets, setConstructionSheets] = useState<ConstructionSheet[]>(defaultConstructionSheets);
+  const [constructionSpecs, setConstructionSpecs] = useState<ConstructionSpecRow[]>(defaultConstructionSpecs);
   const [isPlanZoomSelected, setIsPlanZoomSelected] = useState(false);
   const [drawPreview, setDrawPreview] = useState<{ start: MmPoint; end: MmPoint } | null>(null);
   const [clickDrawStart, setClickDrawStart] = useState<{ tool: ClickDrawTool; start: MmPoint } | null>(null);
@@ -736,6 +783,72 @@ export function PlanCanvas({
     setClickDrawStart(null);
     setDrawPreview(null);
     setStructureMessage(message);
+  }
+
+  function commitDrawPreview() {
+    if (!drawPreview || !isClickDrawTool(drawTool)) {
+      setStructureMessage("当前没有可完成的预览线段。");
+      return;
+    }
+    if (getDistance(drawPreview.start, drawPreview.end) <= 120) {
+      setStructureMessage("终点太近，请移动鼠标后再完成线段。");
+      return;
+    }
+
+    const tool = drawTool;
+    const start = drawPreview.start;
+    const end = drawPreview.end;
+    const kind = getDrawToolStructureKind(tool);
+    if (kind && blockProtectedStructureEdit(kind, "完成当前线段")) return;
+
+    if (tool === "wall-straight") {
+      const wall = createStraightWall(getNextStructureId("W", houseStructure.walls.length), floor.id, start, end);
+      updateHouseStructure({ ...houseStructure, walls: [...houseStructure.walls, wall] });
+      setSelectedStructureId(wall.id);
+      selectObject(wall.id);
+      onActiveObjectChange(wall.id);
+      finishContinuousDraw(`已完成墙体 ${wall.id}，已进入模型，可固化默认户型。`);
+      return;
+    }
+
+    if (tool === "wall-arc") {
+      const wall = createArcWallFromEndpoints(getNextStructureId("AW", houseStructure.walls.length), floor.id, start, end, arcSweepAngle, arcDirection);
+      updateHouseStructure({ ...houseStructure, walls: [...houseStructure.walls, wall] });
+      setSelectedStructureId(wall.id);
+      selectObject(wall.id);
+      onActiveObjectChange(wall.id);
+      finishContinuousDraw(`已完成弧墙 ${wall.id}，已进入模型，可固化默认户型。`);
+      return;
+    }
+
+    if (tool === "partition") {
+      const partition = createPartition(getNextStructureId("P", houseStructure.partitions.length), floor.id, start, end);
+      onHouseStructureChange({ ...houseStructure, partitions: [...houseStructure.partitions, partition] });
+      setSelectedStructureId(partition.id);
+      selectObject(partition.id);
+      onActiveObjectChange(partition.id);
+      finishContinuousDraw(`已完成隔断 ${partition.id}，已进入模型。`);
+      return;
+    }
+
+    if (tool === "stair") {
+      const stair = createStair(getNextStructureId("ST", houseStructure.stairs.length), floor.id, start, end);
+      onHouseStructureChange({ ...houseStructure, stairs: [...houseStructure.stairs, stair] });
+      setSelectedStructureId(stair.id);
+      selectObject(stair.id);
+      onActiveObjectChange(stair.id);
+      finishContinuousDraw(`已完成楼梯 ${stair.id}，已进入模型。`);
+      return;
+    }
+
+    if (tool === "fence") {
+      const fence = createFence(getNextStructureId("FN", houseStructure.fences.length), floor.id, start, end);
+      onHouseStructureChange({ ...houseStructure, fences: [...houseStructure.fences, fence] });
+      setSelectedStructureId(fence.id);
+      selectObject(fence.id);
+      onActiveObjectChange(fence.id);
+      finishContinuousDraw(`已完成篱笆 ${fence.id}，已进入模型。`);
+    }
   }
 
   function finishClickDraw(tool: ClickDrawTool, start: MmPoint, end: MmPoint) {
@@ -1941,15 +2054,155 @@ export function PlanCanvas({
     link.click();
   }
 
+  function updateConstructionSheet(sheetId: string, patch: Partial<ConstructionSheet>) {
+    setConstructionSheets((currentSheets) => currentSheets.map((sheet) => sheet.id === sheetId ? { ...sheet, ...patch } : sheet));
+  }
+
+  function updateConstructionSpec(specId: string, patch: Partial<ConstructionSpecRow>) {
+    setConstructionSpecs((currentSpecs) => currentSpecs.map((spec) => spec.id === specId ? { ...spec, ...patch } : spec));
+  }
+
+  function escapeHtml(value: string) {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
+  function getConstructionPackageHtml() {
+    const currentDrawingMarkup = planRef.current?.querySelector("svg")?.outerHTML ?? "";
+    const furnitureRows = furniture.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.code)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.roomId)}</td>
+        <td>${item.dimensions.width} x ${item.dimensions.depth} x ${item.dimensions.height} cm</td>
+        <td>${escapeHtml(item.material || "待定")}</td>
+        <td>${escapeHtml(item.note || item.constructionNote || "现场复核")}</td>
+      </tr>
+    `).join("");
+    const sheetRows = constructionSheets.map((sheet) => `
+      <tr>
+        <td>${escapeHtml(sheet.sheetNo)}</td>
+        <td>${escapeHtml(sheet.title)}</td>
+        <td>${escapeHtml(planSheetModeLabels[sheet.mode])}</td>
+        <td>${escapeHtml(sheet.scale)}</td>
+        <td>${escapeHtml(sheet.status)}</td>
+        <td>${escapeHtml(sheet.note)}</td>
+      </tr>
+    `).join("");
+    const specRows = constructionSpecs.map((spec) => `
+      <tr>
+        <td>${escapeHtml(spec.category)}</td>
+        <td>${escapeHtml(spec.item)}</td>
+        <td>${escapeHtml(spec.value)}</td>
+        <td>${escapeHtml(spec.note)}</td>
+      </tr>
+    `).join("");
+    const structureSummary = [
+      ["墙体", houseStructure.walls.length],
+      ["隔断", houseStructure.partitions.length],
+      ["门", houseStructure.doors.length],
+      ["窗", houseStructure.windows.length + houseStructure.bayWindows.length],
+      ["楼梯", houseStructure.stairs.length],
+      ["房间", houseStructure.rooms.length],
+      ["家具/硬装", furniture.length]
+    ];
+    return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(floor.label)}-${escapeHtml(floor.subtitle)}-施工图纸包</title>
+  <style>
+    body { margin: 0; background: #f4f1eb; color: #1f2933; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; }
+    main { max-width: 1120px; margin: 0 auto; padding: 32px; }
+    section { break-inside: avoid; margin-bottom: 24px; border: 1px solid #d9d2c6; background: #fff; padding: 24px; }
+    h1 { margin: 0; font-size: 30px; }
+    h2 { margin: 0 0 14px; font-size: 20px; }
+    p { line-height: 1.7; }
+    .meta { color: #64748b; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat { border: 1px solid #e5e7eb; padding: 14px; }
+    .stat strong { display: block; font-size: 24px; color: #0f172a; }
+    .drawing { border: 1px solid #d7dce2; background: #fff; overflow: hidden; }
+    .drawing svg { display: block; width: 100%; height: auto; max-height: 780px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #d7dce2; padding: 9px 10px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    .note { background: #fff7ed; border-color: #fed7aa; }
+    @media print { body { background: #fff; } main { padding: 0; } section { page-break-inside: avoid; border-color: #999; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <p class="meta">Villa Space Studio · ${new Date().toLocaleDateString("zh-CN")} · 当前楼层 ${escapeHtml(floor.label)} / ${escapeHtml(floor.subtitle)}</p>
+      <h1>装修施工图纸包 · 概念样张</h1>
+      <p>这份文件用于说明施工队通常需要看的图纸结构。当前尺寸与点位为模型推导和别墅经验值，正式施工前必须以现场复尺、设备样本和最终材料为准。</p>
+    </section>
+    <section>
+      <h2>模型对象概览</h2>
+      <div class="grid">
+        ${structureSummary.map(([label, count]) => `<div class="stat"><strong>${count}</strong>${escapeHtml(String(label))}</div>`).join("")}
+      </div>
+    </section>
+    <section>
+      <h2>当前图纸画面 · ${escapeHtml(planSheetModeLabels[sheetMode])}</h2>
+      ${currentDrawingMarkup ? `<div class="drawing">${currentDrawingMarkup}</div>` : "<p>当前没有可导出的绘制图纸，请先回到画布查看图纸后再导出。</p>"}
+      <p class="meta">这张图来自当前画布的绘制结构，不包含原始底图。要导出其他专业图，请先在网页顶部“当前图纸”切换到对应图纸后再导出。</p>
+    </section>
+    <section>
+      <h2>图纸目录</h2>
+      <table>
+        <thead><tr><th>图号</th><th>图名</th><th>对应图层</th><th>比例</th><th>状态</th><th>说明</th></tr></thead>
+        <tbody>${sheetRows}</tbody>
+      </table>
+    </section>
+    <section class="note">
+      <h2>施工总说明</h2>
+      <p>1. 所有墙体、洞口、楼梯、院子边界以现场复核为准；模型用于沟通图纸逻辑和施工范围。</p>
+      <p>2. 水电、吊顶、灯具、柜体、设备需和实物规格、厂家图纸、现场管井位置共同校核。</p>
+      <p>3. 每次开工前以最新版本图纸为准，施工变更应记录图号、日期、责任人和确认结果。</p>
+    </section>
+    <section>
+      <h2>关键尺寸与做法表</h2>
+      <table>
+        <thead><tr><th>类别</th><th>项目</th><th>建议值</th><th>备注</th></tr></thead>
+        <tbody>${specRows}</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>家具 / 硬装定位清单</h2>
+      <table>
+        <thead><tr><th>编号</th><th>名称</th><th>区域</th><th>尺寸</th><th>材质</th><th>施工备注</th></tr></thead>
+        <tbody>${furnitureRows || "<tr><td colspan='6'>当前楼层暂无家具对象。</td></tr>"}</tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>`;
+  }
+
+  async function exportConstructionPackage() {
+    const blob = new Blob([getConstructionPackageHtml()], { type: "text/html;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${floor.id}-construction-package.html`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
   const layerVisibility = floorPlanVisualSettings.layerVisibility;
   const isSiteSheetMode = sheetMode === "site";
   const isStructureSheetMode = sheetMode === "structure";
   const isSyncSheetMode = sheetMode === "sync";
   const isConstructionSheetMode = sheetMode === "construction";
+  const isFurnitureSheetMode = sheetMode === "furnishing";
   const isSystemSheetMode = ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
-  const visibleBaseFloorPlan = !isSiteSheetMode && !isStructureSheetMode && !isSyncSheetMode && !isSystemSheetMode && layerVisibility.baseFloorPlan;
-  const visibleCleanupPatch = !isSiteSheetMode && !isStructureSheetMode && !isSyncSheetMode && !isSystemSheetMode && layerVisibility.cleanupPatch;
+  const visibleBaseFloorPlan = false;
+  const visibleCleanupPatch = false;
   const visibleStructureProjection = isSystemSheetMode;
   const visibleFurnitureOverlay = (isSiteSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
   const visibleSemanticOverlay = sheetMode === "preview" && layerVisibility.semanticOverlay;
@@ -1959,6 +2212,7 @@ export function PlanCanvas({
   const furniturePointerEventsEnabled = canSelectFurnitureLayer();
   const cleanFillColor = getCleanupFillColor(floorPlanVisualSettings);
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
+  const showStructureDrawingPanel = plannerMode === "edit" && !isFurnitureSheetMode;
 
   function renderSheetPoint(id: string, x: number, y: number, label: string, color: string, shape: "circle" | "square" = "circle") {
     return (
@@ -2617,13 +2871,13 @@ export function PlanCanvas({
   return (
     <div className={`relative min-h-0 flex-1 overflow-hidden bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}>
       <div className="absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur">
-        {viewMode === "2d" ? `显示模式 · ${planSheetModeLabels[sheetMode]}` : "效果预览 · 3D 白模"}
+        {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : "效果预览 · 3D 白模"}
       </div>
 
       {viewMode === "2d" ? (
         <div
           className={`relative grid h-full min-h-[calc(100vh-15rem)] touch-none items-start overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:min-h-[560px] sm:pt-16 ${
-            plannerMode === "edit" ? "gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:justify-items-stretch" : "justify-items-center"
+            showStructureDrawingPanel ? "gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:justify-items-stretch" : "justify-items-center"
           }`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -2644,7 +2898,7 @@ export function PlanCanvas({
             )}
             <select
               className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs outline-none"
-              aria-label="显示模式"
+              aria-label="当前图纸"
               value={sheetMode}
               onChange={(event) => setSheetMode(event.target.value as PlanSheetMode)}
               title={planSheetModeDescriptions[sheetMode]}
@@ -2653,6 +2907,7 @@ export function PlanCanvas({
                 <option key={mode} value={mode}>{label}</option>
               ))}
             </select>
+            <button className="rounded-xl bg-stone-900 px-3 py-2 text-xs text-white hover:bg-clay" onClick={() => setIsConstructionPackageOpen(true)} type="button">图纸包</button>
             <label className="hidden cursor-pointer items-center gap-2 rounded-xl px-2 py-2 hover:bg-stone-100 sm:flex">
               <input checked={showObjectIds} onChange={(event) => setShowObjectIds(event.target.checked)} type="checkbox" />
               <span className="whitespace-nowrap text-xs">显示对象 ID</span>
@@ -2673,16 +2928,79 @@ export function PlanCanvas({
             <button className="rounded-xl px-3 py-2 text-xs hover:bg-stone-100" onClick={resetViewport} type="button">复位</button>
           </div>
 
-          {plannerMode !== "edit" && (
-            <button
-              className="absolute left-5 top-16 z-20 rounded-2xl border border-white/80 bg-white/92 px-4 py-3 text-xs font-semibold text-ink shadow-sm backdrop-blur hover:bg-white"
-              onClick={() => setIsCleanupPanelOpen(true)}
-              onPointerDown={(event) => event.stopPropagation()}
-              type="button"
-            >
-              底图清理
-            </button>
-          )}
+          <div
+            className={`absolute left-5 top-16 z-[70] max-h-[calc(100%-5.5rem)] w-[min(760px,calc(100%-2.5rem))] overflow-auto rounded-2xl border border-white/80 bg-white/96 p-4 text-xs text-stone-600 shadow-soft backdrop-blur transition ${
+              isConstructionPackageOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+            }`}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex flex-col gap-3 border-b border-stone-200 pb-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-clay">Construction Package</p>
+                <h3 className="mt-1 text-base font-semibold text-ink">施工图纸包</h3>
+                <p className="mt-1 leading-5 text-stone-500">顶部“当前图纸”下拉用来查看具体图纸；切到空白结构/施工标注时可编辑墙体门窗，切到家具布置时编辑家具，水电灯光等图纸先作为施工表达层查看。</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button className="rounded-xl bg-ink px-3 py-2 font-semibold text-white hover:bg-clay" onClick={exportConstructionPackage} type="button">导出 HTML</button>
+                <button className="rounded-xl bg-slate-100 px-3 py-2 font-semibold text-stone-600 hover:bg-stone-200" onClick={() => setIsConstructionPackageOpen(false)} type="button">收起</button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[1.35fr_1fr]">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold text-ink">图纸目录</p>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">{constructionSheets.length} 张</span>
+                </div>
+                <div className="max-h-96 space-y-2 overflow-auto pr-1">
+                  {constructionSheets.map((sheet) => (
+                    <div key={sheet.id} className="rounded-xl border border-stone-200 bg-slate-50 p-2">
+                      <div className="grid grid-cols-[72px_1fr_78px] gap-2">
+                        <input className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 font-semibold text-ink outline-none" value={sheet.sheetNo} onChange={(event) => updateConstructionSheet(sheet.id, { sheetNo: event.target.value })} />
+                        <input className="min-w-0 rounded-lg border border-stone-200 bg-white px-2 py-1.5 font-semibold text-ink outline-none" value={sheet.title} onChange={(event) => updateConstructionSheet(sheet.id, { title: event.target.value })} />
+                        <button className="rounded-lg bg-white px-2 py-1.5 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-50" onClick={() => setSheetMode(sheet.mode)} type="button">查看</button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        <input className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 outline-none" value={sheet.scale} onChange={(event) => updateConstructionSheet(sheet.id, { scale: event.target.value })} />
+                        <input className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 outline-none" value={sheet.status} onChange={(event) => updateConstructionSheet(sheet.id, { status: event.target.value })} />
+                        <input className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 outline-none" value={sheet.audience} onChange={(event) => updateConstructionSheet(sheet.id, { audience: event.target.value })} />
+                      </div>
+                      <textarea className="mt-2 min-h-14 w-full rounded-lg border border-stone-200 bg-white px-2 py-1.5 leading-5 outline-none" value={sheet.note} onChange={(event) => updateConstructionSheet(sheet.id, { note: event.target.value })} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 leading-5 text-amber-900">
+                  <p className="font-semibold">怎么查看和编辑</p>
+                  <p className="mt-1">点目录里的“查看”会切换到对应图纸；真正编辑仍在画布上完成：结构对象用左侧绘制工具，家具对象用家具布置图拖动和右侧当前对象改尺寸材质。</p>
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 leading-5 text-amber-900">
+                  <p className="font-semibold">施工队看图顺序</p>
+                  <p className="mt-1">先看 A-00/A-01 确认范围，再看 A-02/A-03 定结构，最后按 E/L/W/C/M 分专业施工。</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-ink">关键数值表</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">可改</span>
+                  </div>
+                  <div className="max-h-80 space-y-2 overflow-auto pr-1">
+                    {constructionSpecs.map((spec) => (
+                      <div key={spec.id} className="rounded-xl border border-stone-200 bg-white p-2">
+                        <div className="grid grid-cols-[70px_1fr] gap-2">
+                          <input className="rounded-lg border border-stone-200 px-2 py-1.5 font-semibold text-stone-500 outline-none" value={spec.category} onChange={(event) => updateConstructionSpec(spec.id, { category: event.target.value })} />
+                          <input className="rounded-lg border border-stone-200 px-2 py-1.5 font-semibold text-ink outline-none" value={spec.item} onChange={(event) => updateConstructionSpec(spec.id, { item: event.target.value })} />
+                        </div>
+                        <input className="mt-2 w-full rounded-lg border border-stone-200 px-2 py-1.5 font-semibold text-blue-700 outline-none" value={spec.value} onChange={(event) => updateConstructionSpec(spec.id, { value: event.target.value })} />
+                        <textarea className="mt-2 min-h-12 w-full rounded-lg border border-stone-200 px-2 py-1.5 leading-5 outline-none" value={spec.note} onChange={(event) => updateConstructionSpec(spec.id, { note: event.target.value })} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div
             className={`absolute left-5 top-16 z-30 max-h-[calc(100%-5.5rem)] w-72 overflow-auto rounded-2xl border border-white/80 bg-white/95 p-3 text-xs text-stone-600 shadow-sm backdrop-blur transition ${
@@ -2771,8 +3089,6 @@ export function PlanCanvas({
               <div className="space-y-2 border-t border-stone-200 pt-2">
                 <p className="font-semibold text-ink">图层</p>
                 {[
-                  ["baseFloorPlan", "BaseFloorPlanLayer"],
-                  ["cleanupPatch", "CleanupPatchLayer"],
                   ["semanticOverlay", "SemanticOverlayLayer"],
                   ["furnitureOverlay", "FurnitureOverlayLayer"],
                   ["debug", "DebugLayer"]
@@ -2809,7 +3125,7 @@ export function PlanCanvas({
             </div>
           </div>
 
-          {plannerMode === "edit" && (
+          {showStructureDrawingPanel && (
             <aside
               className="relative z-50 w-full rounded-2xl border border-white/80 bg-white/94 p-3 text-xs text-stone-600 shadow-sm backdrop-blur"
               onPointerDown={(event) => event.stopPropagation()}
@@ -2936,6 +3252,17 @@ export function PlanCanvas({
                         <option value="counterclockwise">逆时针</option>
                       </select>
                     </label>
+                  </div>
+                )}
+
+                {drawPreview && isClickDrawTool(drawTool) && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-amber-900">
+                    <p className="font-semibold">当前只是预览线段</p>
+                    <p className="mt-1 text-[11px] leading-4">需要完成后才会进入结构对象台账，之后才能固化默认户型。</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <button className="rounded-xl bg-amber-600 px-3 py-2 font-semibold text-white hover:bg-amber-700" onClick={commitDrawPreview} type="button">完成当前线段</button>
+                      <button className="rounded-xl bg-white px-3 py-2 font-semibold text-amber-900 ring-1 ring-amber-200" onClick={cancelClickDraw} type="button">取消预览</button>
+                    </div>
                   </div>
                 )}
 
@@ -3723,6 +4050,12 @@ export function PlanCanvas({
             <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
               {planSheetModeFootnotes[sheetMode]}
             </div>
+            {isFurnitureSheetMode && plannerMode === "edit" && (
+              <div className="pointer-events-none absolute left-5 bottom-5 z-40 max-w-sm rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
+                <p className="font-semibold text-ink">沉浸家具布置</p>
+                <p className="mt-1">拖动家具调整位置，选中后可在右侧属性里改尺寸、材质、颜色，也可从模块库继续添加。</p>
+              </div>
+            )}
 
             {visibleDebugLayer && (
               <div className="absolute inset-0" data-layer="DebugLayer" data-coordinate-system="percent-of-floor-plan">
@@ -3773,8 +4106,8 @@ export function PlanCanvas({
                 return (
                   <button
                     key={item.id}
-                    className={`absolute grid cursor-grab place-items-center rounded-lg border bg-white p-0.5 shadow-sm transition hover:scale-105 ${
-                      isSelected ? "z-20 border-blue-500 ring-4 ring-blue-500/20" : isHovered ? "border-emerald-700 ring-2 ring-emerald-500/20" : "border-emerald-600/55"
+                    className={`absolute grid cursor-grab place-items-center rounded-lg bg-transparent p-0 transition hover:scale-105 ${
+                      isSelected ? "z-20 outline outline-2 outline-offset-4 outline-blue-500" : isHovered ? "outline outline-2 outline-offset-3 outline-emerald-600/70" : ""
                     }`}
                     style={{
                       left: `${displayPosition.x}%`,
@@ -3829,7 +4162,7 @@ export function PlanCanvas({
                     type="button"
                     title={`${locked ? "已锁定 · " : ""}${item.name}`}
                   >
-                    <FurnitureTopView className="h-full w-full" color={item.color} label={locked ? "LOCK" : item.code} type={item.type} />
+                    <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless label={locked ? "LOCK" : item.code} showLabel={locked || sheetMode !== "furnishing"} type={item.type} />
                   </button>
                 );
               })}
