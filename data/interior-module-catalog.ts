@@ -71,11 +71,11 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     moduleType: "table",
     furnitureType: "table",
     codePrefix: "TB",
-    name: "圆餐桌",
-    dimensions: { width: 135, depth: 135, height: 75, unit: "cm" },
+    name: "六人圆餐桌套组",
+    dimensions: { width: 240, depth: 240, height: 75, unit: "cm" },
     color: "#d6d9d7",
-    material: "岩板 / 木饰面餐桌",
-    note: "放置后校核餐椅和通道宽度。",
+    material: "圆餐桌 + 6 把餐椅",
+    note: "按整套餐桌椅占地估算，放置后再校核餐椅后退和通道宽度。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
   },
   {

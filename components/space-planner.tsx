@@ -121,6 +121,25 @@ const defaultWardrobeDesign: WardrobeDesign = {
   notes: "预留长衣区、短衣区和可调层板，深化时按实际衣物数量调整。"
 };
 
+function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
+  return furnitureItems.map((item) => {
+    const looksLikeOldRoundTable = item.type === "table" && item.dimensions.width <= 160 && item.dimensions.depth <= 160;
+    if (!looksLikeOldRoundTable) return item;
+    return {
+      ...item,
+      name: item.name.includes("圆餐桌") ? "六人圆餐桌套组" : item.name,
+      dimensions: {
+        ...item.dimensions,
+        width: 240,
+        depth: 240,
+        height: item.dimensions.height || 75
+      },
+      material: item.material.includes("餐桌") || item.material.includes("岩板") ? "圆餐桌 + 6 把餐椅" : item.material,
+      note: item.note.includes("通道") || item.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : item.note
+    };
+  });
+}
+
 type PersistedWebWorkspace = {
   schemaVersion?: number;
   savedAt?: string;
@@ -260,7 +279,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }, {} as Record<FloorId, CleanPatch[]>);
 
   const [selectedFloorId, setSelectedFloorId] = useState<FloorId>("1F");
-  const [furniture, setFurniture] = useState<Furniture[]>(data.furniture);
+  const [furniture, setFurniture] = useState<Furniture[]>(() => normalizeFurnitureDefaults(data.furniture));
   const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture[0]?.id ?? "");
   const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(initialSemanticObjects);
   const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(initialSemanticObjects.find((object) => object.floorId === "1F")?.id ?? "");
@@ -407,7 +426,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         : selectedFloorId;
 
       setSelectedFloorId(nextSelectedFloorId);
-      setFurniture(parsed.furniture ?? data.furniture);
+      const nextFurniture = normalizeFurnitureDefaults(parsed.furniture ?? data.furniture);
+      setFurniture(nextFurniture);
       setSemanticObjects(parsed.semanticObjects ?? initialSemanticObjects);
       setVisualSettingsByFloor(parsed.visualSettingsByFloor ?? initialVisualSettings);
       setCleanPatchesByFloor(parsed.cleanPatchesByFloor ?? initialCleanPatches);
@@ -417,10 +437,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         floor.id,
         {
           structure: nextStructures[floor.id],
-          furniture: (parsed.furniture ?? data.furniture).filter((item) => item.floorId === floor.id)
+          furniture: nextFurniture.filter((item) => item.floorId === floor.id)
         }
       ])) as Partial<Record<FloorId, ModelSnapshot>>;
-      setSelectedFurnitureId((parsed.furniture ?? data.furniture).find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
+      setSelectedFurnitureId(nextFurniture.find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
       setSelectedSemanticObjectId((parsed.semanticObjects ?? initialSemanticObjects).find((object) => object.floorId === nextSelectedFloorId)?.id ?? "");
       setHasLoadedWebWorkspace(true);
       setWebSaveStatus("saved");

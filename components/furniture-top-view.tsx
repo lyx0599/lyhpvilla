@@ -40,11 +40,18 @@ function renderSymbol(type: FurnitureType, color: string) {
     case "table":
       return (
         <SymbolShell>
-          <ellipse cx="50" cy="50" rx="34" ry="27" fill={color} stroke={stroke} strokeWidth="5" />
-          <circle cx="33" cy="34" r="4" fill={stroke} />
-          <circle cx="67" cy="34" r="4" fill={stroke} />
-          <circle cx="33" cy="66" r="4" fill={stroke} />
-          <circle cx="67" cy="66" r="4" fill={stroke} />
+          {[0, 60, 120, 180, 240, 300].map((angle) => (
+            <g key={angle} transform={`rotate(${angle} 50 50)`}>
+              <rect x="41" y="5" width="18" height="22" rx="8" fill="#d9c4a7" />
+              <rect x="43" y="10" width="14" height="14" rx="5" fill="#f6efe6" opacity="0.82" />
+            </g>
+          ))}
+          <circle cx="50" cy="50" r="27" fill={color} />
+          <circle cx="50" cy="50" r="18" fill="#f8fafc" opacity="0.48" />
+          <circle cx="50" cy="50" r="3" fill="#9ca3af" opacity="0.8" />
+          {[0, 60, 120, 180, 240, 300].map((angle) => (
+            <line key={`leg-${angle}`} x1="50" y1="50" x2="50" y2="35" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" transform={`rotate(${angle} 50 50)`} opacity="0.42" />
+          ))}
         </SymbolShell>
       );
     case "bed":

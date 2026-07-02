@@ -61,18 +61,18 @@
     {
       "id": "furn-table-001",
       "code": "TB-001",
-      "name": "岩板圆餐桌",
+      "name": "六人圆餐桌套组",
       "type": "table",
       "floorId": "1F",
       "roomId": "room-dining",
       "dimensions": {
-        "width": 135,
-        "depth": 135,
+        "width": 240,
+        "depth": 240,
         "height": 75,
         "unit": "cm"
       },
-      "material": "浅灰岩板 + 黑色金属脚",
-      "note": "靠近餐厨动线，预留通道。",
+      "material": "圆餐桌 + 6 把餐椅",
+      "note": "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。",
       "position": {
         "x": 72,
         "y": 43,
