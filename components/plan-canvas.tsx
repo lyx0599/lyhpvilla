@@ -343,6 +343,7 @@ export function PlanCanvas({
   const [selectedStructureId, setSelectedStructureId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
+  const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
   const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId | null>(null);
   const [selectedSyncWallId, setSelectedSyncWallId] = useState("");
@@ -3004,9 +3005,16 @@ export function PlanCanvas({
 
           {furnitureImmersiveMode && (
             <div
-              className="absolute right-5 top-5 z-[60] flex items-center gap-1 rounded-2xl border border-white/80 bg-white/95 p-1 text-xs font-semibold text-stone-600 shadow-sm backdrop-blur"
+              className="absolute right-5 top-5 z-[60] flex max-w-[calc(100%-2.5rem)] items-center gap-1 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-1 text-xs font-semibold text-stone-600 shadow-sm backdrop-blur"
               onPointerDown={(event) => event.stopPropagation()}
             >
+              <button
+                className={`whitespace-nowrap rounded-xl px-3 py-2 ${showFurnitureLabels ? "bg-slate-900 text-white hover:bg-clay" : "hover:bg-stone-100"}`}
+                onClick={() => setShowFurnitureLabels((visible) => !visible)}
+                type="button"
+              >
+                {showFurnitureLabels ? "隐藏标签" : "显示标签"}
+              </button>
               <button className="rounded-xl px-3 py-2 hover:bg-stone-100" onClick={() => zoomBy(-SCALE_STEP)} type="button">-</button>
               <span className="min-w-12 text-center">{Math.round(scale * 100)}%</span>
               <button className="rounded-xl px-3 py-2 hover:bg-stone-100" onClick={() => zoomBy(SCALE_STEP)} type="button">+</button>
@@ -4330,9 +4338,9 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={locked || sheetMode !== "furnishing"} type={item.type} />
+                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || showFurnitureLabels) && (locked || sheetMode !== "furnishing")} type={item.type} />
                     </div>
-                    {isFurnitureSheetMode && (
+                    {isFurnitureSheetMode && (!furnitureImmersiveMode || showFurnitureLabels) && (
                       <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
                         {item.dimensions.width} x {item.dimensions.depth} cm · {getFurnitureFootprintArea(item)} 平米
                       </span>
@@ -4350,6 +4358,7 @@ export function PlanCanvas({
                   const hovered = isObjectHovered(item.id);
                   const displayPosition = getFurnitureDisplayPosition(item);
                   const debugVisible = showObjectIds && (labelFilter === "all" || labelFilter === "furniture");
+                  if (furnitureImmersiveMode && !showFurnitureLabels) return null;
                   if (!selected && !hovered && !debugVisible) return null;
                   const mode = selected ? "selected" : hovered ? "hover" : "debug";
                   const responsiveClass = mode === "selected"
