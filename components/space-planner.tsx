@@ -275,6 +275,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
   const [furnitureImmersiveMode, setFurnitureImmersiveMode] = useState(false);
+  const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
   const [command, setCommand] = useState("");
   const [activeObjectId, setActiveObjectId] = useState("");
   const [wardrobeDesignFurnitureId, setWardrobeDesignFurnitureId] = useState("");
@@ -1241,20 +1242,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode;
 
   return (
-    <main className={`min-h-screen ${focusMode || isFurnitureWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
+    <main className={`box-border h-screen overflow-hidden ${focusMode || isFurnitureWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
       {defaultWorkspacePayload ? (
         <pre className="hidden" data-testid="villa-default-workspace-payload">
           {defaultWorkspacePayload}
         </pre>
       ) : null}
-      <section className={`mx-auto flex min-h-[calc(100vh-1.5rem)] flex-col overflow-hidden border border-white/70 bg-white/72 shadow-soft backdrop-blur md:min-h-[calc(100vh-2.5rem)] ${
+      <section className={`mx-auto flex h-full min-h-0 flex-col overflow-hidden border border-white/70 bg-white/72 shadow-soft backdrop-blur ${
         focusMode
           ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-1"
           : isFurnitureWorkspace
             ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-[minmax(0,1fr)_340px]"
             : "max-w-7xl rounded-[2rem] lg:grid lg:grid-cols-[minmax(0,1fr)_320px]"
       }`}>
-        <section className="flex min-h-0 flex-1 flex-col">
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {!focusMode && !isFurnitureWorkspace && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">Villa Space Studio</p>
@@ -1320,6 +1321,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             cleanPatches={floorCleanPatches}
             focusMode={focusMode}
             furnitureImmersiveMode={isFurnitureWorkspace}
+            showFurnitureLabels={showFurnitureLabels}
             activeFurnitureId={activeFurniture?.id ?? ""}
             locateObjectRequest={locateObjectRequest}
             canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
@@ -1338,13 +1340,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             onCleanPatchesChange={handleCleanPatchesChange}
             onSelectFurniture={handleFurnitureSelect}
             onFurnitureChange={handleFloorFurnitureChange}
+            onShowFurnitureLabelsChange={setShowFurnitureLabels}
             onOpenWardrobeDesigner={openWardrobeDesigner}
             onSelectSemanticObject={handleSemanticObjectSelect}
             onMoveSemanticObject={handleMoveSemanticObject}
           />
         </section>
 
-        {!focusMode && <aside className="hidden overflow-y-auto border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
+        {!focusMode && <aside className="hidden h-full min-h-0 overflow-y-auto overscroll-contain border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
           <div className="space-y-3">
             <div className="px-1 pb-1">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isFurnitureWorkspace ? "Furniture" : "Inspector"}</p>
@@ -1436,7 +1439,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   </span>
                 </div>
                 <p className="mt-2">家具会自动存到这台电脑的浏览器里；要让 GitHub Pages 线上也长期保留，点“固化并发布默认方案”。</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  className={`mt-3 w-full rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${
+                    showFurnitureLabels ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-emerald-800 hover:bg-emerald-100"
+                  }`}
+                  onClick={() => setShowFurnitureLabels((visible) => !visible)}
+                  type="button"
+                >
+                  家具标签：{showFurnitureLabels ? "显示中" : "已隐藏"}
+                </button>
+                <div className="mt-2 grid grid-cols-2 gap-2">
                   <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(false)} type="button">退出沉浸</button>
                   <button className="rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800 disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={solidifyDefaultWorkspace} type="button">固化并发布</button>
                 </div>

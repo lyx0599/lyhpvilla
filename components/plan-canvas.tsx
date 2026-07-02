@@ -87,6 +87,7 @@ type Props = {
   cleanPatches: CleanPatch[];
   focusMode: boolean;
   furnitureImmersiveMode?: boolean;
+  showFurnitureLabels?: boolean;
   activeFurnitureId?: string;
   locateObjectRequest: { id: string; nonce: number } | null;
   canUndo: boolean;
@@ -105,6 +106,7 @@ type Props = {
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
   onSelectFurniture: (furniture: Furniture) => void;
   onFurnitureChange: (furniture: Furniture[]) => void;
+  onShowFurnitureLabelsChange?: (visible: boolean) => void;
   onOpenWardrobeDesigner?: (furnitureId: string) => void;
   onSelectSemanticObject: (object: SemanticObject) => void;
   onMoveSemanticObject: (objectId: string, position: { x: number; y: number }) => void;
@@ -301,6 +303,7 @@ export function PlanCanvas({
   cleanPatches,
   focusMode,
   furnitureImmersiveMode = false,
+  showFurnitureLabels,
   activeFurnitureId = "",
   locateObjectRequest,
   canUndo,
@@ -319,6 +322,7 @@ export function PlanCanvas({
   onCleanPatchesChange,
   onSelectFurniture,
   onFurnitureChange,
+  onShowFurnitureLabelsChange,
   onOpenWardrobeDesigner,
   onSelectSemanticObject,
   onMoveSemanticObject
@@ -343,7 +347,7 @@ export function PlanCanvas({
   const [selectedStructureId, setSelectedStructureId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
-  const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
+  const [internalShowFurnitureLabels, setInternalShowFurnitureLabels] = useState(true);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
   const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId | null>(null);
   const [selectedSyncWallId, setSelectedSyncWallId] = useState("");
@@ -358,6 +362,15 @@ export function PlanCanvas({
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
   const planBounds = useMemo(() => getPlanBounds(floor.id), [floor.id]);
+  const furnitureLabelsVisible = showFurnitureLabels ?? internalShowFurnitureLabels;
+
+  function updateFurnitureLabelsVisible(visible: boolean) {
+    if (onShowFurnitureLabelsChange) {
+      onShowFurnitureLabelsChange(visible);
+      return;
+    }
+    setInternalShowFurnitureLabels(visible);
+  }
 
   useEffect(() => {
     setSelectedSyncWallId("");
@@ -2944,8 +2957,8 @@ export function PlanCanvas({
   }
 
   return (
-    <div className={`relative min-h-0 flex-1 overflow-hidden bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}>
-      <div className="absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur">
+    <div className={`relative min-h-0 flex-1 overflow-auto overscroll-contain bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}>
+      <div className={`${furnitureImmersiveMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
         {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : "效果预览 · 3D 白模"}
       </div>
 
@@ -3009,11 +3022,11 @@ export function PlanCanvas({
               onPointerDown={(event) => event.stopPropagation()}
             >
               <button
-                className={`whitespace-nowrap rounded-xl px-3 py-2 ${showFurnitureLabels ? "bg-slate-900 text-white hover:bg-clay" : "hover:bg-stone-100"}`}
-                onClick={() => setShowFurnitureLabels((visible) => !visible)}
+                className={`whitespace-nowrap rounded-xl px-3 py-2 ${furnitureLabelsVisible ? "bg-slate-900 text-white hover:bg-clay" : "hover:bg-stone-100"}`}
+                onClick={() => updateFurnitureLabelsVisible(!furnitureLabelsVisible)}
                 type="button"
               >
-                {showFurnitureLabels ? "隐藏标签" : "显示标签"}
+                标签：{furnitureLabelsVisible ? "显示" : "隐藏"}
               </button>
               <button className="rounded-xl px-3 py-2 hover:bg-stone-100" onClick={() => zoomBy(-SCALE_STEP)} type="button">-</button>
               <span className="min-w-12 text-center">{Math.round(scale * 100)}%</span>
@@ -4338,9 +4351,9 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || showFurnitureLabels) && (locked || sheetMode !== "furnishing")} type={item.type} />
+                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} type={item.type} />
                     </div>
-                    {isFurnitureSheetMode && (!furnitureImmersiveMode || showFurnitureLabels) && (
+                    {isFurnitureSheetMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && (
                       <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
                         {item.dimensions.width} x {item.dimensions.depth} cm · {getFurnitureFootprintArea(item)} 平米
                       </span>
@@ -4358,7 +4371,7 @@ export function PlanCanvas({
                   const hovered = isObjectHovered(item.id);
                   const displayPosition = getFurnitureDisplayPosition(item);
                   const debugVisible = showObjectIds && (labelFilter === "all" || labelFilter === "furniture");
-                  if (furnitureImmersiveMode && !showFurnitureLabels) return null;
+                  if (furnitureImmersiveMode && !furnitureLabelsVisible) return null;
                   if (!selected && !hovered && !debugVisible) return null;
                   const mode = selected ? "selected" : hovered ? "hover" : "debug";
                   const responsiveClass = mode === "selected"
