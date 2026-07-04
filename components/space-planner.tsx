@@ -31,6 +31,7 @@ type FloorHistory = {
 type RightPanelKey = "floors" | "status" | "modules" | "object" | "semantic";
 
 const WEB_WORKSPACE_SCHEMA_VERSION = 4;
+const DEFAULT_WORKSPACE_REVISION = "2026-07-04-doors-yard";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -423,6 +424,7 @@ function normalizeSemanticDefaults(objects: SemanticObject[]) {
 
 type PersistedWebWorkspace = {
   schemaVersion?: number;
+  defaultWorkspaceRevision?: string;
   savedAt?: string;
   saveMode?: "manual" | "draft" | "legacy";
   selectedFloorId: FloorId;
@@ -482,6 +484,33 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
     skylights: structure.skylights ?? [],
     outdoors: structure.outdoors ?? []
   };
+}
+
+function appendMissingById<T extends { id: string }>(items: T[], defaultItems: T[]) {
+  const existingIds = new Set(items.map((item) => item.id));
+  return [
+    ...items,
+    ...defaultItems.filter((item) => !existingIds.has(item.id))
+  ];
+}
+
+function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseStructure>) {
+  return Object.fromEntries(Object.entries(structuresByFloor).map(([floorId, structure]) => {
+    const defaultStructure = initialHouseStructures[floorId as FloorId];
+    if (!defaultStructure) return [floorId, structure];
+    return [
+      floorId,
+      {
+        ...structure,
+        doors: appendMissingById(structure.doors, defaultStructure.doors),
+        windows: appendMissingById(structure.windows, defaultStructure.windows),
+        bayWindows: appendMissingById(structure.bayWindows, defaultStructure.bayWindows),
+        skylights: appendMissingById(structure.skylights, defaultStructure.skylights),
+        outdoors: appendMissingById(structure.outdoors, defaultStructure.outdoors),
+        outdoorSurfaces: appendMissingById(structure.outdoorSurfaces, defaultStructure.outdoorSurfaces)
+      }
+    ];
+  })) as Record<FloorId, HouseStructure>;
 }
 
 function getWorkspaceStructureScore(workspace: Partial<PersistedWebWorkspace>) {
@@ -730,7 +759,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, parsed.houseStructuresByFloor?.[floor.id], initialHouseStructures[floor.id]);
         return structuresByFloor;
       }, {} as Record<FloorId, HouseStructure>);
-      const nextStructures = normalizeOutdoorSurfaceDefaults(loadedStructures, { resetOneFloorYardSurfaces: (parsed.schemaVersion ?? 0) < WEB_WORKSPACE_SCHEMA_VERSION });
+      const shouldApplyDefaultRevision = parsed.defaultWorkspaceRevision !== DEFAULT_WORKSPACE_REVISION;
+      const normalizedStructures = normalizeOutdoorSurfaceDefaults(loadedStructures, { resetOneFloorYardSurfaces: (parsed.schemaVersion ?? 0) < WEB_WORKSPACE_SCHEMA_VERSION && !shouldApplyDefaultRevision });
+      const nextStructures = shouldApplyDefaultRevision ? applyDefaultWorkspaceRevision(normalizedStructures) : normalizedStructures;
       const nextSelectedFloorId = parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
         ? parsed.selectedFloorId
         : selectedFloorId;
@@ -954,6 +985,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   function getCurrentWorkspace(saveMode: PersistedWebWorkspace["saveMode"] = "manual"): PersistedWebWorkspace {
     return {
       schemaVersion: WEB_WORKSPACE_SCHEMA_VERSION,
+      defaultWorkspaceRevision: DEFAULT_WORKSPACE_REVISION,
       savedAt: new Date().toISOString(),
       saveMode,
       selectedFloorId,
@@ -970,6 +1002,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return {
       ...workspace,
       schemaVersion: WEB_WORKSPACE_SCHEMA_VERSION,
+      defaultWorkspaceRevision: DEFAULT_WORKSPACE_REVISION,
       savedAt: new Date().toISOString(),
       saveMode
     };

@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
+  "defaultWorkspaceRevision": "2026-07-04-doors-yard",
   "savedAt": "2026-07-01T16:16:58.186Z",
   "saveMode": "manual",
   "selectedFloorId": "B2",
