@@ -186,7 +186,7 @@ export const mockSpaceData: SpaceData = {
   ],
   rooms: [
     { id: "room-living", name: "客厅", floorId: "1F", bounds: { x: 12, y: 14, width: 52, height: 48 } },
-    { id: "room-dining", name: "餐厨区", floorId: "1F", bounds: { x: 65, y: 14, width: 25, height: 48 } },
+    { id: "room-dining", name: "客厅", floorId: "1F", bounds: { x: 65, y: 14, width: 25, height: 48 } },
     { id: "room-hollow", name: "挑空区", floorId: "B2", bounds: { x: 16, y: 16, width: 58, height: 54 } },
     { id: "room-entry", name: "入户区", floorId: "B1", bounds: { x: 18, y: 20, width: 62, height: 42 } },
     { id: "room-bedroom", name: "主卧", floorId: "2F", bounds: { x: 14, y: 16, width: 46, height: 45 } },

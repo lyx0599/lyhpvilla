@@ -3,23 +3,33 @@ import type { SemanticObject } from "@/types/semantic-map";
 export const initialSemanticObjects: SemanticObject[] = [
   {
     id: "R-1F-001",
-    name: "1F 客餐厅",
+    name: "1F 公共区",
     floorId: "1F",
     category: "Room",
     type: "living_dining",
-    notes: "一层主要公共空间，后续用于客餐厨家具标注。",
+    notes: "一层主要公共空间，具体功能区以玄关、客厅、厨房、卫生间等标签为准。",
     position: { x: 55, y: 55 },
     details: { area: 52.99, boundary: [{ x: 35, y: 20 }, { x: 86, y: 20 }, { x: 86, y: 86 }, { x: 35, y: 86 }] }
   },
   {
     id: "Z-1F-001",
-    name: "1F 餐厨区",
+    name: "1F 客厅",
     floorId: "1F",
     category: "Zone",
-    type: "dining_kitchen",
-    notes: "餐桌、岛台和厨房设备所在区域。",
+    type: "living",
+    notes: "六人圆餐桌所在的客厅活动区。",
     position: { x: 72, y: 54 },
     details: { roomId: "R-1F-001", boundary: [{ x: 62, y: 24 }, { x: 88, y: 24 }, { x: 88, y: 72 }, { x: 62, y: 72 }] }
+  },
+  {
+    id: "Z-1F-ENTRY",
+    name: "1F 玄关",
+    floorId: "1F",
+    category: "Zone",
+    type: "entry",
+    notes: "厨房左侧的入户/玄关过渡空间。",
+    position: { x: 45, y: 28 },
+    details: { roomId: "ROOM-1F-001", boundary: [{ x: 36, y: 18 }, { x: 54, y: 18 }, { x: 54, y: 42 }, { x: 36, y: 42 }] }
   },
   {
     id: "F-1F-001",

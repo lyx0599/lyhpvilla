@@ -10,6 +10,7 @@ export type DrawTool =
   | "stair"
   | "fence"
   | "hardscape"
+  | "hardscape-rect"
   | "path"
   | "planting"
   | "door"
@@ -82,6 +83,10 @@ export type InteriorModuleType =
   | "nightstand"
   | "plant"
   | "cabinet"
+  | "kitchenCabinet"
+  | "snackCabinet"
+  | "pegboard"
+  | "bookshelf"
   | "island"
   | "cooktop"
   | "sink"
@@ -137,6 +142,14 @@ export type WardrobeCell = {
 export type WardrobeModule = {
   id: string;
   kind: WardrobeCellKind;
+  label?: string;
+  column?: number;
+  columnSpan?: number;
+  drawerRows?: number;
+  drawerColumns?: number;
+  drawerRowHeights?: number[];
+  shelfCount?: number;
+  shelfLayerHeights?: number[];
   x: number;
   y: number;
   width: number;
@@ -148,12 +161,33 @@ export type WardrobeDesign = {
   rows: number;
   cells: WardrobeCell[];
   modules?: WardrobeModule[];
+  columnWidths?: number[];
   notes: string;
   shelfRows?: number;
   drawerCount?: number;
   hangingZones?: number;
   foldedZones?: number;
   shoeRack?: boolean;
+};
+
+export type CabinetDesignZone = {
+  id: string;
+  label: string;
+  role: string;
+  widthPercent: number;
+  heightPercent: number;
+  detail: string;
+  serviceNote?: string;
+};
+
+export type CabinetDesign = {
+  template: "kitchenCabinet" | "snackCabinet" | "entryCabinet" | "pegboard" | "bookshelf" | "sideboard" | "tallCabinet" | "cabinet";
+  title: string;
+  designThinking: string;
+  recommendedPlacement: string;
+  layoutNotes: string[];
+  zones: CabinetDesignZone[];
+  cautionNotes: string[];
 };
 
 export type MmPoint = {
@@ -318,7 +352,7 @@ export type HouseOutdoorSurface = {
   surfaceType: "hardscape" | "path" | "planting";
   polygon: MmPoint[];
   area: number;
-  material: "stone" | "tile" | "gravel" | "grass" | "shrub" | "soil";
+  material: "stone" | "slate" | "pebble" | "wood" | "concrete" | "tile" | "gravel" | "grass" | "shrub" | "soil";
   editable: true;
   removable: true;
 };
@@ -411,6 +445,7 @@ export type Furniture = {
   recognitionStatus?: "none" | "image-attached" | "ai-pending" | "ai-ready";
   recognitionNote?: string;
   wardrobeDesign?: WardrobeDesign;
+  cabinetDesign?: CabinetDesign;
   locked?: boolean;
   interaction?: ObjectInteractionFlags;
 };

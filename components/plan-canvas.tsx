@@ -87,13 +87,14 @@ type Props = {
   cleanPatches: CleanPatch[];
   focusMode: boolean;
   furnitureImmersiveMode?: boolean;
+  yardImmersiveMode?: boolean;
+  yardFocus?: YardFocus;
   showFurnitureLabels?: boolean;
   activeFurnitureId?: string;
   locateObjectRequest: { id: string; nonce: number } | null;
   canUndo: boolean;
   canRedo: boolean;
   onScaleChange: (scale: number) => void;
-  onFocusModeChange: (focused: boolean) => void;
   onSelectFloor: (floorId: Floor["id"]) => void;
   onActiveObjectChange: (objectId: string) => void;
   onUndo: () => void;
@@ -101,6 +102,7 @@ type Props = {
   onPlannerModeChange: (mode: PlannerMode) => void;
   onDrawToolChange: (tool: DrawTool) => void;
   onHouseStructureChange: (structure: HouseStructure) => void;
+  onWallLengthChange?: (wallId: string, length: number) => void;
   onWallSyncOverridesChange: (overrides: WallSyncOverrides) => void;
   onFloorPlanVisualSettingsChange: (settings: FloorPlanVisualSettings) => void;
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
@@ -131,7 +133,9 @@ type PlanBounds = { x: number; y: number; width: number; height: number };
 type SyncPaintRuleId = WallSyncRuleId | "default";
 type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
+type OutdoorSurfaceMaterial = HouseStructure["outdoorSurfaces"][number]["material"];
 type StructureInteractionKind = "wall" | "partition" | "stair" | "fence" | "opening" | "skylight" | "room" | "outdoor" | "outdoorSurface";
+type YardFocus = "north" | "south";
 type StructureObjectRow = {
   id: string;
   kind: "wall" | "partition" | "stair" | "fence" | "door" | "window" | "bayWindow" | "skylight" | "room" | "outdoor" | "outdoorSurface" | "furniture";
@@ -158,6 +162,21 @@ type ConstructionSpecRow = {
 };
 
 const defaultPlanBounds: PlanBounds = { x: 0, y: 0, width: STRUCTURE_WIDTH_MM, height: STRUCTURE_HEIGHT_MM };
+
+const outdoorSurfaceMaterialOptions: Array<{ material: OutdoorSurfaceMaterial; label: string; tool: OutdoorSurfaceDrawTool; swatch: string }> = [
+  { material: "pebble", label: "鹅卵石", tool: "path", swatch: "#d7c2a3" },
+  { material: "stone", label: "石板", tool: "hardscape", swatch: "#a8a29e" },
+  { material: "wood", label: "木板", tool: "hardscape", swatch: "#b98254" },
+  { material: "concrete", label: "水泥地", tool: "hardscape", swatch: "#cbd5e1" },
+  { material: "grass", label: "草坪", tool: "planting", swatch: "#86c37a" },
+  { material: "shrub", label: "花境", tool: "planting", swatch: "#5fb069" }
+];
+const protectedBaseYardOutdoorIds = new Set(["OD-1F-NORTH-001", "OD-1F-SOUTH-001"]);
+
+const outdoorSurfaceMaterialLabels = outdoorSurfaceMaterialOptions.reduce((labels, option) => {
+  labels[option.material] = option.label;
+  return labels;
+}, {} as Record<OutdoorSurfaceMaterial, string>);
 
 const planSheetModeLabels: Record<PlanSheetMode, string> = {
   site: "总平面",
@@ -255,6 +274,66 @@ function getPlanBounds(floorId: Floor["id"]): PlanBounds {
   };
 }
 
+function getPointsBounds(points: MmPoint[], padding = 0): PlanBounds {
+  if (points.length === 0) return defaultPlanBounds;
+  const minX = Math.min(...points.map((point) => point.x));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxY = Math.max(...points.map((point) => point.y));
+  return {
+    x: minX - padding,
+    y: minY - padding,
+    width: Math.max(1, maxX - minX + padding * 2),
+    height: Math.max(1, maxY - minY + padding * 2)
+  };
+}
+
+function createRectPolygon(start: MmPoint, end: MmPoint): MmPoint[] {
+  return [
+    { x: start.x, y: start.y },
+    { x: end.x, y: start.y },
+    { x: end.x, y: end.y },
+    { x: start.x, y: end.y }
+  ];
+}
+
+function createPathRibbon(points: MmPoint[], width: number): MmPoint[] {
+  if (points.length < 2) return [];
+  if (points.length === 2) {
+    const [start, end] = points;
+    const length = Math.max(1, getDistance(start, end));
+    const normal = { x: -((end.y - start.y) / length), y: (end.x - start.x) / length };
+    const half = width / 2;
+    return [
+      { x: Math.round(start.x + normal.x * half), y: Math.round(start.y + normal.y * half) },
+      { x: Math.round(end.x + normal.x * half), y: Math.round(end.y + normal.y * half) },
+      { x: Math.round(end.x - normal.x * half), y: Math.round(end.y - normal.y * half) },
+      { x: Math.round(start.x - normal.x * half), y: Math.round(start.y - normal.y * half) }
+    ];
+  }
+
+  const left: MmPoint[] = [];
+  const right: MmPoint[] = [];
+  points.forEach((point, index) => {
+    const previous = points[Math.max(0, index - 1)];
+    const next = points[Math.min(points.length - 1, index + 1)];
+    const length = Math.max(1, getDistance(previous, next));
+    const normal = { x: -((next.y - previous.y) / length), y: (next.x - previous.x) / length };
+    const half = width / 2;
+    left.push({ x: Math.round(point.x + normal.x * half), y: Math.round(point.y + normal.y * half) });
+    right.unshift({ x: Math.round(point.x - normal.x * half), y: Math.round(point.y - normal.y * half) });
+  });
+  return [...left, ...right];
+}
+
+function pointInBounds(point: MmPoint, bounds: PlanBounds) {
+  return point.x >= bounds.x && point.x <= bounds.x + bounds.width && point.y >= bounds.y && point.y <= bounds.y + bounds.height;
+}
+
+function polygonIntersectsBounds(points: MmPoint[], bounds: PlanBounds) {
+  return points.some((point) => pointInBounds(point, bounds));
+}
+
 function toPlanPercent(point: MmPoint, bounds: PlanBounds) {
   return {
     x: ((point.x - bounds.x) / bounds.width) * 100,
@@ -303,13 +382,14 @@ export function PlanCanvas({
   cleanPatches,
   focusMode,
   furnitureImmersiveMode = false,
+  yardImmersiveMode = false,
+  yardFocus = "south",
   showFurnitureLabels,
   activeFurnitureId = "",
   locateObjectRequest,
   canUndo,
   canRedo,
   onScaleChange,
-  onFocusModeChange,
   onSelectFloor,
   onActiveObjectChange,
   onUndo,
@@ -317,6 +397,7 @@ export function PlanCanvas({
   onPlannerModeChange,
   onDrawToolChange,
   onHouseStructureChange,
+  onWallLengthChange,
   onWallSyncOverridesChange,
   onFloorPlanVisualSettingsChange,
   onCleanPatchesChange,
@@ -344,6 +425,9 @@ export function PlanCanvas({
   const [arcDirection, setArcDirection] = useState<"clockwise" | "counterclockwise">("clockwise");
   const [outdoorDraft, setOutdoorDraft] = useState<MmPoint[]>([]);
   const [outdoorSurfaceDraft, setOutdoorSurfaceDraft] = useState<{ tool: OutdoorSurfaceDrawTool; points: MmPoint[] } | null>(null);
+  const [outdoorRectDraft, setOutdoorRectDraft] = useState<{ start: MmPoint; end: MmPoint | null } | null>(null);
+  const [outdoorSurfaceMaterial, setOutdoorSurfaceMaterial] = useState<OutdoorSurfaceMaterial>("pebble");
+  const [outdoorPathWidth, setOutdoorPathWidth] = useState(800);
   const [selectedStructureId, setSelectedStructureId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
@@ -361,7 +445,15 @@ export function PlanCanvas({
   const cleanupDragRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
-  const planBounds = useMemo(() => getPlanBounds(floor.id), [floor.id]);
+  const yardToken = yardFocus === "north" ? "NORTH" : "SOUTH";
+  const focusedYardOutdoor = useMemo(() => {
+    if (!yardImmersiveMode) return null;
+    return houseStructure.outdoors.find((outdoor) => outdoor.id.includes(`-${yardToken}-`) || outdoor.name.includes(yardFocus === "north" ? "北院" : "南院")) ?? null;
+  }, [houseStructure.outdoors, yardFocus, yardImmersiveMode, yardToken]);
+  const planBounds = useMemo(() => {
+    if (yardImmersiveMode && focusedYardOutdoor) return getPointsBounds(focusedYardOutdoor.polygon, 280);
+    return getPlanBounds(floor.id);
+  }, [floor.id, focusedYardOutdoor, yardImmersiveMode]);
   const furnitureLabelsVisible = showFurnitureLabels ?? internalShowFurnitureLabels;
 
   function updateFurnitureLabelsVisible(visible: boolean) {
@@ -379,6 +471,7 @@ export function PlanCanvas({
     setDrawPreview(null);
     setOutdoorDraft([]);
     setOutdoorSurfaceDraft(null);
+    setOutdoorRectDraft(null);
     setSelectedStructureId("");
     setInteractionState((currentState) => ({ ...currentState, selectedObjectId: "", hoveredObjectId: "", editingObjectId: "" }));
     onActiveObjectChange("");
@@ -390,6 +483,15 @@ export function PlanCanvas({
     onPlannerModeChange("edit");
     onDrawToolChange("select");
   }, [furnitureImmersiveMode, onDrawToolChange, onPlannerModeChange]);
+
+  useEffect(() => {
+    if (!yardImmersiveMode) return;
+    setSheetMode("structure");
+    onPlannerModeChange("edit");
+    onDrawToolChange("select");
+    setLabelFilter("outdoor");
+    setShowObjectIds(true);
+  }, [yardImmersiveMode, onDrawToolChange, onPlannerModeChange]);
 
   useEffect(() => {
     if (sheetMode !== "sync") return;
@@ -503,6 +605,7 @@ export function PlanCanvas({
 
   function handleWheel(event: WheelEvent<HTMLDivElement>) {
     if (viewMode !== "2d") return;
+    if (!event.ctrlKey && !event.metaKey) return;
     const target = event.target as Node | null;
     if (!isPlanZoomSelected || !target || !planRef.current?.contains(target)) return;
     event.preventDefault();
@@ -761,7 +864,7 @@ export function PlanCanvas({
     if (tool === "door" || tool === "window" || tool === "bay-window") return "opening";
     if (tool === "skylight") return "skylight";
     if (tool === "outdoor") return "outdoor";
-    if (tool === "hardscape" || tool === "path" || tool === "planting") return "outdoorSurface";
+    if (tool === "hardscape" || tool === "hardscape-rect" || tool === "path" || tool === "planting") return "outdoorSurface";
     return null;
   }
 
@@ -1112,13 +1215,34 @@ export function PlanCanvas({
       return;
     }
 
+    if (drawTool === "hardscape-rect") {
+      event.stopPropagation();
+      if (!outdoorRectDraft) {
+        setOutdoorRectDraft({ start: point, end: null });
+        setStructureMessage("已设置平台第一个角点。移动鼠标预览，再点击对角点完成矩形铺装。");
+        return;
+      }
+      const material = getOutdoorMaterialForTool("hardscape");
+      const polygon = createRectPolygon(outdoorRectDraft.start, point);
+      const surface = createOutdoorSurface(getNextStructureId("HS", houseStructure.outdoorSurfaces.length), floor.id, "hardscape", polygon);
+      const yardPrefix = yardImmersiveMode ? `${yardFocus === "north" ? "北院" : "南院"} · ` : "";
+      onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, { ...surface, material, name: `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}矩形平台` }] });
+      setSelectedStructureId(surface.id);
+      selectObject(surface.id);
+      onActiveObjectChange(surface.id);
+      setOutdoorRectDraft(null);
+      onDrawToolChange("select");
+      setStructureMessage(`已创建矩形平台，面积 ${(surface.area / 1_000_000).toFixed(2)} m2`);
+      return;
+    }
+
     if (drawTool === "hardscape" || drawTool === "path" || drawTool === "planting") {
       event.stopPropagation();
       const tool = drawTool;
       const currentPoints = outdoorSurfaceDraft?.tool === tool ? outdoorSurfaceDraft.points : [];
       const nextDraft = { tool, points: [...currentPoints, point] };
       setOutdoorSurfaceDraft(nextDraft);
-      setStructureMessage("继续点击添加边界点，至少 3 个点后可完成户外区域。");
+      setStructureMessage(tool === "path" ? "继续点击小路中心线，至少 2 个点后可完成自动宽度小路。" : "继续点击添加边界点，至少 3 个点后可完成户外区域。");
     }
   }
 
@@ -1131,6 +1255,13 @@ export function PlanCanvas({
       if (!rawPoint) return;
       const end = getStructureDrawPoint(rawPoint, clickDrawStart.start);
       setDrawPreview({ start: clickDrawStart.start, end });
+      return;
+    }
+
+    if (drawTool === "hardscape-rect" && outdoorRectDraft?.start) {
+      const rawPoint = getMmPosition(event);
+      if (!rawPoint) return;
+      setOutdoorRectDraft({ ...outdoorRectDraft, end: snapPoint(rawPoint, getStructureSnapPoints(), outdoorRectDraft.start) });
       return;
     }
 
@@ -1281,28 +1412,35 @@ export function PlanCanvas({
 
   function finishOutdoorSurfaceDraft() {
     if (blockProtectedStructureEdit("outdoorSurface", "户外区域绘制")) return;
-    if (!outdoorSurfaceDraft || outdoorSurfaceDraft.points.length < 3) return;
+    if (!outdoorSurfaceDraft || outdoorSurfaceDraft.points.length < (outdoorSurfaceDraft.tool === "path" ? 2 : 3)) return;
     const prefixByTool: Record<OutdoorSurfaceDrawTool, string> = {
       hardscape: "HS",
       path: "PA",
       planting: "PL"
     };
+    const material = getOutdoorMaterialForTool(outdoorSurfaceDraft.tool);
+    const polygon = outdoorSurfaceDraft.tool === "path"
+      ? createPathRibbon(outdoorSurfaceDraft.points, outdoorPathWidth)
+      : outdoorSurfaceDraft.points;
     const surface = createOutdoorSurface(
       getNextStructureId(prefixByTool[outdoorSurfaceDraft.tool], houseStructure.outdoorSurfaces.length),
       floor.id,
       outdoorSurfaceDraft.tool,
-      outdoorSurfaceDraft.points
+      polygon
     );
-    onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, surface] });
+    const yardPrefix = yardImmersiveMode ? `${yardFocus === "north" ? "北院" : "南院"} · ` : "";
+    onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, { ...surface, material, name: outdoorSurfaceDraft.tool === "path" ? `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}小路 · ${outdoorPathWidth}mm` : `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}铺装` }] });
     setSelectedStructureId(surface.id);
     selectObject(surface.id);
     onActiveObjectChange(surface.id);
     setOutdoorSurfaceDraft(null);
+    onDrawToolChange("select");
     setStructureMessage(`已创建${surface.surfaceType === "hardscape" ? "硬地" : surface.surfaceType === "path" ? "小路" : "绿化"}区域，面积 ${(surface.area / 1_000_000).toFixed(2)} m2`);
   }
 
   function cancelOutdoorSurfaceDraft() {
     setOutdoorSurfaceDraft(null);
+    setOutdoorRectDraft(null);
     setStructureMessage("");
   }
 
@@ -1329,6 +1467,10 @@ export function PlanCanvas({
 
   function deleteSelectedStructureObject() {
     if (!selectedStructureId) return;
+    if (protectedBaseYardOutdoorIds.has(selectedStructureId)) {
+      setStructureMessage("南院/北院默认绿地是庭院底盘，不能删除；可以删除上面叠加的小路、硬地和花境。");
+      return;
+    }
     const kind = getStructureObjectKind(selectedStructureId);
     if (!kind || blockProtectedStructureEdit(kind, "删除结构")) return;
     if (objectIsLocked(selectedStructureId)) {
@@ -1522,6 +1664,19 @@ export function PlanCanvas({
     setStructureMessage("已尝试在中点分割墙体。");
   }
 
+  function resizeSelectedWallLength(nextLengthValue: number) {
+    const targetWall = houseStructure.walls.find((wall) => wall.id === selectedStructureId);
+    if (!targetWall) return;
+    if (blockProtectedStructureEdit("wall", "修改墙长")) return;
+    if (objectIsLocked(targetWall.id)) {
+      setStructureMessage("墙体已锁定，先解锁再修改长度。");
+      return;
+    }
+    const nextLength = Math.max(100, Math.round(nextLengthValue) || targetWall.length);
+    onWallLengthChange?.(targetWall.id, nextLength);
+    setStructureMessage(`已提交 ${targetWall.name} 长度 ${nextLength} mm，并交给结构检查器校准。`);
+  }
+
   function mergeSelectedWall() {
     if (!selectedStructureId) return;
     if (blockProtectedStructureEdit("wall", "合并墙体")) return;
@@ -1642,7 +1797,7 @@ export function PlanCanvas({
   const activeFurnitureObject = furniture.find((item) => item.id === activeFurnitureId) ?? null;
   const activeFurnitureLocked = activeFurnitureObject ? objectIsLocked(activeFurnitureObject.id) || activeFurnitureObject.locked : false;
   const selectedInteractionObjectId = interactionState.selectedObjectId || selectedStructureId;
-  const canDeleteSelectedStructure = Boolean(selectedStructureObject && selectedStructureKind && canMutateStructureLayer(selectedStructureKind) && !houseStructure.rooms.some((room) => room.id === selectedStructureObject.id) && !objectIsLocked(selectedStructureObject.id));
+  const canDeleteSelectedStructure = Boolean(selectedStructureObject && selectedStructureKind && canMutateStructureLayer(selectedStructureKind) && !protectedBaseYardOutdoorIds.has(selectedStructureObject.id) && !houseStructure.rooms.some((room) => room.id === selectedStructureObject.id) && !objectIsLocked(selectedStructureObject.id));
   const canDeleteSelectedFurniture = Boolean(selectedInteractionFurniture && canSelectFurnitureLayer() && !selectedInteractionFurniture.locked && !objectIsLocked(selectedInteractionFurniture.id));
   const canDeleteSelectedObject = canDeleteSelectedStructure || canDeleteSelectedFurniture;
   const selectedWall = houseStructure.walls.find((wall) => wall.id === selectedStructureId);
@@ -1760,8 +1915,13 @@ export function PlanCanvas({
         detail: `${item.dimensions.width} x ${item.dimensions.depth} x ${item.dimensions.height} cm · ${item.moduleCategory ?? item.roomId}`
       });
     });
-    return rows;
-  }, [houseStructure, furniture]);
+    if (!yardImmersiveMode) return rows;
+    const focusedLabel = yardFocus === "north" ? "北院" : "南院";
+    return rows.filter((row) => (
+      (row.kind === "outdoor" || row.kind === "outdoorSurface" || row.kind === "fence") &&
+      (row.id.includes(`-${yardToken}-`) || row.name.includes(focusedLabel))
+    ));
+  }, [houseStructure, furniture, yardFocus, yardImmersiveMode, yardToken]);
   const structureLabels = useMemo(() => {
     const labels: ObjectLabel[] = [];
 
@@ -1883,9 +2043,10 @@ export function PlanCanvas({
     partition: "隔断",
     stair: "楼梯",
     fence: "篱笆",
-    hardscape: "硬地",
-    path: "小路",
-    planting: "绿化",
+    hardscape: "铺硬地",
+    "hardscape-rect": "矩形平台",
+    path: "小路路径",
+    planting: "铺绿化",
     door: "门",
     window: "窗",
     "bay-window": "飘窗",
@@ -1899,9 +2060,10 @@ export function PlanCanvas({
     partition: "点起点，再点终点",
     stair: "点起点，再点终点",
     fence: "点起点，再点终点",
-    hardscape: "连续点边界",
-    path: "连续点边界",
-    planting: "连续点边界",
+    hardscape: "点边界铺任意形状",
+    "hardscape-rect": "两点生成平台",
+    path: "点中心线自动成路",
+    planting: "草坪或花境",
     door: "点击墙或隔断",
     window: "点击结构墙",
     "bay-window": "点击结构墙",
@@ -1911,8 +2073,30 @@ export function PlanCanvas({
   const drawToolSections: Array<{ title: string; tools: DrawTool[] }> = [
     { title: "结构主体", tools: ["select", "wall-straight", "wall-arc", "partition", "stair"] },
     { title: "洞口", tools: ["door", "window", "bay-window", "skylight"] },
-    { title: "院子", tools: ["outdoor", "fence", "hardscape", "path", "planting"] }
+    { title: "院子", tools: ["outdoor", "fence", "path", "hardscape-rect", "hardscape", "planting"] }
   ];
+  const visibleDrawToolSections = yardImmersiveMode
+    ? [
+      { title: "庭院边界", tools: ["select", "outdoor", "fence"] as DrawTool[] },
+      { title: "庭院铺装", tools: ["path", "hardscape-rect", "hardscape", "planting"] as DrawTool[] }
+    ]
+    : drawToolSections;
+
+  function getOutdoorSurfaceTone(surface: HouseStructure["outdoorSurfaces"][number]) {
+    if (surface.material === "wood") return { fill: "#c98f63", stroke: "#8b5e34", pattern: "url(#woodDeckPattern)" };
+    if (surface.material === "concrete") return { fill: "#d1d5db", stroke: "#64748b", pattern: "url(#concretePattern)" };
+    if (surface.material === "slate" || surface.material === "stone" || surface.material === "tile") return { fill: "#b8b2aa", stroke: "#6b7280", pattern: "url(#stonePaverPattern)" };
+    if (surface.material === "pebble" || surface.material === "gravel") return { fill: "#d9c5a6", stroke: "#a16207", pattern: "url(#pebblePattern)" };
+    if (surface.material === "shrub") return { fill: "#79b86d", stroke: "#15803d", pattern: "url(#plantingPattern)" };
+    return { fill: "#8fcf7a", stroke: "#16a34a", pattern: "url(#grassPattern)" };
+  }
+
+  function getOutdoorMaterialForTool(tool: OutdoorSurfaceDrawTool): OutdoorSurfaceMaterial {
+    if (outdoorSurfaceMaterialOptions.some((option) => option.tool === tool && option.material === outdoorSurfaceMaterial)) return outdoorSurfaceMaterial;
+    if (tool === "path") return "pebble";
+    if (tool === "hardscape") return "stone";
+    return "grass";
+  }
 
   function getDrawToolMessage(tool: DrawTool) {
     if (tool === "wall-straight") return "点击墙体端点或空白点作为起点，移动鼠标预览，再点击终点完成连接。";
@@ -1921,7 +2105,9 @@ export function PlanCanvas({
     if (tool === "stair") return "点击楼梯起点，移动鼠标预览，再点击终点完成楼梯方向。";
     if (tool === "fence") return "点击篱笆起点，移动鼠标预览，再点击终点完成连接。";
     if (tool === "outdoor") return "点击画布添加院子边界点。";
-    if (tool === "hardscape" || tool === "path" || tool === "planting") return "点击画布添加区域边界点，至少 3 个点后完成。";
+    if (tool === "path") return "点击小路中心线，系统会按宽度自动生成鹅卵石/石板小路。";
+    if (tool === "hardscape-rect") return "点击平台第一个角点，再点击对角点，自动生成矩形平台。";
+    if (tool === "hardscape" || tool === "planting") return "点击画布添加区域边界点，至少 3 个点后完成。";
     if (tool === "door" || tool === "window" || tool === "bay-window") return "点击靠近墙体的位置，系统会自动吸附。";
     if (tool === "skylight") return "点击楼板/屋面位置放置天窗，放好后可选中调整尺寸。";
     return "";
@@ -1929,6 +2115,11 @@ export function PlanCanvas({
 
   function selectDrawTool(tool: DrawTool) {
     onDrawToolChange(tool);
+    setOutdoorSurfaceDraft(null);
+    setOutdoorRectDraft(null);
+    if (tool === "path") setOutdoorSurfaceMaterial("pebble");
+    if ((tool === "hardscape" || tool === "hardscape-rect") && !outdoorSurfaceMaterialOptions.some((option) => option.tool === "hardscape" && option.material === outdoorSurfaceMaterial)) setOutdoorSurfaceMaterial("stone");
+    if (tool === "planting" && !outdoorSurfaceMaterialOptions.some((option) => option.tool === "planting" && option.material === outdoorSurfaceMaterial)) setOutdoorSurfaceMaterial("grass");
     const kind = getDrawToolStructureKind(tool);
     if (kind && !canMutateStructureLayer(kind)) {
       if (kind === "wall") {
@@ -2292,15 +2483,20 @@ export function PlanCanvas({
   const visibleBaseFloorPlan = false;
   const visibleCleanupPatch = false;
   const visibleStructureProjection = isSystemSheetMode;
-  const visibleFurnitureOverlay = (isSiteSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
+  const visibleFurnitureOverlay = !yardImmersiveMode && (isSiteSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
   const visibleSemanticOverlay = sheetMode === "preview" && layerVisibility.semanticOverlay;
   const visibleDebugLayer = sheetMode === "preview" && layerVisibility.debug;
-  const showDimensionLayer = isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode;
+  const visibleStructureLabels = !furnitureImmersiveMode;
+  const showDimensionLayer = !yardImmersiveMode && (isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode);
   const structurePointerEventsEnabled = isSiteSheetMode || isStructureSheetMode || isSyncSheetMode || isConstructionSheetMode || (plannerMode === "edit" && Boolean(getDrawToolStructureKind(drawTool)) && canDrawStructureTool(drawTool));
   const furniturePointerEventsEnabled = canSelectFurnitureLayer();
   const cleanFillColor = getCleanupFillColor(floorPlanVisualSettings);
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
   const showStructureDrawingPanel = plannerMode === "edit" && !isFurnitureSheetMode;
+  const yardObjectMatchesFocus = (id: string, name = "") => !yardImmersiveMode || id.includes(`-${yardToken}-`) || name.includes(yardFocus === "north" ? "北院" : "南院");
+  const visibleOutdoors = yardImmersiveMode ? houseStructure.outdoors.filter((outdoor) => yardObjectMatchesFocus(outdoor.id, outdoor.name)) : houseStructure.outdoors;
+  const visibleOutdoorSurfaces = yardImmersiveMode ? houseStructure.outdoorSurfaces.filter((surface) => yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds)) : houseStructure.outdoorSurfaces;
+  const visibleFences = yardImmersiveMode ? houseStructure.fences.filter((fence) => yardObjectMatchesFocus(fence.id, fence.name) || pointInBounds(fence.start, planBounds) || pointInBounds(fence.end, planBounds)) : houseStructure.fences;
 
   function renderSheetPoint(id: string, x: number, y: number, label: string, color: string, shape: "circle" | "square" = "circle") {
     return (
@@ -2958,14 +3154,14 @@ export function PlanCanvas({
 
   return (
     <div className={`relative min-h-0 flex-1 overflow-auto overscroll-contain bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}>
-      <div className={`${furnitureImmersiveMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
+      <div className={`${furnitureImmersiveMode || yardImmersiveMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
         {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : "效果预览 · 3D 白模"}
       </div>
 
       {viewMode === "2d" ? (
         <div
-          className={`relative grid h-full min-h-[calc(100vh-15rem)] touch-none items-start overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:min-h-[560px] sm:pt-16 ${
-            showStructureDrawingPanel ? "gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:justify-items-stretch" : "justify-items-center"
+          className={`relative grid h-full min-h-[calc(100vh-15rem)] items-start overflow-auto rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:min-h-[560px] sm:pt-16 ${
+            showStructureDrawingPanel ? `gap-4 lg:justify-items-stretch ${focusMode ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "lg:grid-cols-[260px_minmax(0,1fr)]"}` : "justify-items-center"
           }`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -3234,16 +3430,15 @@ export function PlanCanvas({
 
           {showStructureDrawingPanel && (
             <aside
-              className="relative z-50 w-full rounded-2xl border border-white/80 bg-white/94 p-3 text-xs text-stone-600 shadow-sm backdrop-blur"
+              className={`relative z-50 max-h-[calc(100vh-8rem)] w-full overflow-y-auto overscroll-contain rounded-2xl border border-white/80 bg-white/94 p-3 text-xs text-stone-600 shadow-sm backdrop-blur ${focusMode ? "lg:order-2" : ""}`}
               onPointerDown={(event) => event.stopPropagation()}
             >
               <div className="mb-3 flex items-center justify-between gap-2 border-b border-stone-200 pb-3">
                 <div>
-                  <p className="font-semibold text-ink">户型绘制</p>
-                  <p className="mt-0.5 text-stone-400">mm 结构对象</p>
+                  <p className="font-semibold text-ink">{yardImmersiveMode ? "庭院绘制" : "户型绘制"}</p>
+                  <p className="mt-0.5 text-stone-400">{yardImmersiveMode ? "边界 / 铺装 / 绿化" : "mm 结构对象"}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button className="rounded-lg px-2 py-1 font-semibold text-blue-600 hover:bg-blue-50" onClick={() => onFocusModeChange(!focusMode)} type="button">{focusMode ? "退出专注" : "专注"}</button>
                   <button className="rounded-lg px-2 py-1 font-semibold text-stone-500 hover:bg-stone-100" onClick={() => onPlannerModeChange("view")} type="button">退出</button>
                 </div>
               </div>
@@ -3295,8 +3490,8 @@ export function PlanCanvas({
                       {wallEditableSheetModes.has(sheetMode) ? "墙体可编辑" : "墙体只读"}
                     </span>
                   </div>
-                  <p className="mt-1 text-stone-500">{getLayerInteractionLabel()}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-stone-400">可动墙图纸：{wallEditableSheetModeLabel}</p>
+                  <p className="mt-1 text-stone-500">{yardImmersiveMode ? "庭院模式：默认绿地，按区域叠加小路、硬地和花境。" : getLayerInteractionLabel()}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-stone-400">{yardImmersiveMode ? "普通滚轮滚动面板，按 Ctrl/⌘ 滚轮缩放画布。" : `可动墙图纸：${wallEditableSheetModeLabel}`}</p>
                 </div>
 
                 <div className="rounded-xl bg-slate-50 p-2 leading-5">
@@ -3305,8 +3500,15 @@ export function PlanCanvas({
                   <p className="text-stone-400">单位 {houseStructure.coordinateSystem.unit} · 比例 {houseStructure.coordinateSystem.scale}:1</p>
                 </div>
 
+                {yardImmersiveMode && (
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-2 leading-5 text-emerald-950">
+                    <p className="font-semibold">庭院画法</p>
+                    <p className="mt-1 text-[11px]">先选“院子”画南院/北院边界；默认就是绿地。再用“铺小路 / 铺硬地 / 铺绿化”叠加材料区域。</p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  {drawToolSections.map((section) => (
+                  {visibleDrawToolSections.map((section) => (
                     <div key={section.title} className="rounded-xl border border-stone-200 bg-white p-2">
                       <div className="mb-2 flex items-center justify-between gap-2">
                         <p className="font-semibold text-ink">{section.title}</p>
@@ -3380,10 +3582,37 @@ export function PlanCanvas({
                   </div>
                 )}
 
-                {(drawTool === "hardscape" || drawTool === "path" || drawTool === "planting") && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button className="rounded-xl bg-emerald-600 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={(outdoorSurfaceDraft?.points.length ?? 0) < 3} onClick={finishOutdoorSurfaceDraft} type="button">完成区域</button>
-                    <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200" onClick={cancelOutdoorSurfaceDraft} type="button">取消</button>
+                {(drawTool === "hardscape" || drawTool === "hardscape-rect" || drawTool === "path" || drawTool === "planting") && (
+                  <div className="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/70 p-2">
+                    <p className="font-semibold text-emerald-950">{drawTool === "path" ? "小路设置" : drawTool === "hardscape-rect" ? "平台设置" : "铺装材料"}</p>
+                    {drawTool === "path" && (
+                      <label className="grid grid-cols-[64px_1fr_58px] items-center gap-2 rounded-xl bg-white/70 px-2 py-2 text-xs font-semibold text-emerald-900">
+                        <span>宽度</span>
+                        <input min="400" max="1600" step="100" type="range" value={outdoorPathWidth} onChange={(event) => setOutdoorPathWidth(Number(event.target.value))} />
+                        <span>{outdoorPathWidth}mm</span>
+                      </label>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      {outdoorSurfaceMaterialOptions.filter((option) => option.tool === (drawTool === "hardscape-rect" ? "hardscape" : drawTool)).map((option) => (
+                        <button
+                          key={option.material}
+                          className={`flex items-center gap-2 rounded-xl border px-2 py-2 text-left font-semibold transition ${
+                            outdoorSurfaceMaterial === option.material
+                              ? "border-emerald-500 bg-white text-emerald-900 shadow-sm"
+                              : "border-white/70 bg-white/55 text-stone-600 hover:bg-white"
+                          }`}
+                          onClick={() => setOutdoorSurfaceMaterial(option.material)}
+                          type="button"
+                        >
+                          <span className="size-4 shrink-0 rounded-full border border-white shadow-sm" style={{ backgroundColor: option.swatch }} />
+                          <span>{option.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button className="rounded-xl bg-emerald-600 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={drawTool === "hardscape-rect" || (outdoorSurfaceDraft?.points.length ?? 0) < (drawTool === "path" ? 2 : 3)} onClick={finishOutdoorSurfaceDraft} type="button">{drawTool === "path" ? "完成小路" : drawTool === "hardscape-rect" ? (outdoorRectDraft ? "点击对角点完成" : "先点第一个角") : "完成铺装"}</button>
+                      <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200" onClick={cancelOutdoorSurfaceDraft} type="button">取消</button>
+                    </div>
                   </div>
                 )}
 
@@ -3395,7 +3624,8 @@ export function PlanCanvas({
                   <p className="mt-1 text-stone-500">{drawToolHints[drawTool]}</p>
                   {clickDrawStart && <p className="mt-1 font-semibold text-blue-600">线性对象已设置起点，双击结束连续绘制</p>}
                   {drawTool === "outdoor" && outdoorDraft.length > 0 && <p className="mt-1 font-semibold text-emerald-700">院子边界点：{outdoorDraft.length}</p>}
-                  {(drawTool === "hardscape" || drawTool === "path" || drawTool === "planting") && outdoorSurfaceDraft && <p className="mt-1 font-semibold text-emerald-700">区域边界点：{outdoorSurfaceDraft.points.length}</p>}
+                  {(drawTool === "hardscape" || drawTool === "path" || drawTool === "planting") && outdoorSurfaceDraft && <p className="mt-1 font-semibold text-emerald-700">{drawTool === "path" ? `小路中心点：${outdoorSurfaceDraft.points.length} · 宽 ${outdoorPathWidth}mm` : `区域边界点：${outdoorSurfaceDraft.points.length}`}</p>}
+                  {drawTool === "hardscape-rect" && outdoorRectDraft && <p className="mt-1 font-semibold text-emerald-700">矩形平台：已设置第一个角点</p>}
                 </div>
 
                 <div className="rounded-xl border border-stone-200 bg-white p-2 leading-5">
@@ -3417,9 +3647,36 @@ export function PlanCanvas({
                     </div>
                   )}
                   {selectedWall && (
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={splitSelectedWall} type="button">分割墙体</button>
-                      <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={mergeSelectedWall} type="button">合并墙体</button>
+                    <div className="mt-2 space-y-2">
+                      <form
+                        className="rounded-xl border border-blue-100 bg-blue-50/70 p-2"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const formData = new FormData(event.currentTarget);
+                          resizeSelectedWallLength(Number(formData.get("wallLength")));
+                        }}
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-semibold text-blue-900">墙体长度</span>
+                          <span className="font-semibold text-blue-700">{selectedWall.length} mm</span>
+                        </div>
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          <input
+                            key={`${selectedWall.id}-${selectedWall.length}`}
+                            className="min-w-0 rounded-lg border border-blue-200 bg-white px-2 py-2 font-semibold text-ink outline-none focus:border-blue-500 disabled:bg-stone-100"
+                            disabled={!onWallLengthChange || objectIsLocked(selectedWall.id)}
+                            min="100"
+                            name="wallLength"
+                            type="number"
+                            defaultValue={selectedWall.length}
+                          />
+                          <button className="rounded-lg bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800 disabled:bg-stone-300" disabled={!onWallLengthChange || objectIsLocked(selectedWall.id)} type="submit">校准</button>
+                        </div>
+                      </form>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={splitSelectedWall} type="button">分割墙体</button>
+                        <button className="rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={mergeSelectedWall} type="button">合并墙体</button>
+                      </div>
                     </div>
                   )}
                   {selectedStair && (
@@ -3448,7 +3705,8 @@ export function PlanCanvas({
                   {selectedInteractionFurniture && (
                     <button className="mt-2 w-full rounded-xl bg-white px-3 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={rotateSelectedFurniture} type="button">家具旋转 15°</button>
                   )}
-                  {selectedStructureObject && !canDeleteSelectedStructure && !objectIsLocked(selectedStructureObject.id) && <p className="mt-2 text-red-500">房间由墙体自动生成，不能直接删除。</p>}
+                  {selectedStructureObject && protectedBaseYardOutdoorIds.has(selectedStructureObject.id) && <p className="mt-2 text-emerald-700">默认绿地是庭院底盘，不能删除；可删除叠加的小路、硬地和花境。</p>}
+                  {selectedStructureObject && !protectedBaseYardOutdoorIds.has(selectedStructureObject.id) && !canDeleteSelectedStructure && !objectIsLocked(selectedStructureObject.id) && <p className="mt-2 text-red-500">房间由墙体自动生成，不能直接删除。</p>}
                   {selectedInteractionObjectId && objectIsLocked(selectedInteractionObjectId) && <p className="mt-2 text-amber-600">已锁定：不能拖拽、删除或调整。</p>}
                 </div>
 
@@ -3497,10 +3755,11 @@ export function PlanCanvas({
               isPlanZoomSelected ? "border-blue-500 ring-4 ring-blue-500/20" : "border-slate-200"
             }`}
             style={{
+              aspectRatio: `${planBounds.width} / ${planBounds.height}`,
               backgroundColor: floorPlanVisualSettings.cleanWhiteBackground ? cleanFillColor : "#f8f4ec",
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
               transformOrigin: "center center",
-              width: floor.id === "1F" ? "min(100%, 900px, calc((100vh - 12rem) * 0.87))" : "min(100%, 1024px, calc((100vh - 15rem) * 1.333))"
+              width: yardImmersiveMode ? "min(100%, 1180px)" : floor.id === "1F" ? "min(100%, 900px, calc((100vh - 12rem) * 0.87))" : "min(100%, 1024px, calc((100vh - 15rem) * 1.333))"
             }}
           >
             {visibleBaseFloorPlan && (
@@ -3559,52 +3818,106 @@ export function PlanCanvas({
               style={{ pointerEvents: structurePointerEventsEnabled ? "auto" : "none" }}
               viewBox={`${planBounds.x} ${planBounds.y} ${planBounds.width} ${planBounds.height}`}
             >
+              <defs>
+                <pattern id="grassPattern" width="180" height="180" patternUnits="userSpaceOnUse">
+                  <rect width="180" height="180" fill="#a8d98f" />
+                  <path d="M28 150 C42 118 54 102 72 70 M112 160 C105 124 118 92 142 58 M158 136 C146 112 150 88 168 62" fill="none" stroke="#6aae58" strokeWidth="12" strokeLinecap="round" opacity="0.35" />
+                  <circle cx="44" cy="42" r="10" fill="#7fbe63" opacity="0.5" />
+                  <circle cx="132" cy="118" r="8" fill="#6fb454" opacity="0.45" />
+                </pattern>
+                <pattern id="pebblePattern" width="260" height="180" patternUnits="userSpaceOnUse">
+                  <rect width="260" height="180" fill="#dcc8a9" />
+                  {[
+                    [32, 38, 28, 18],
+                    [92, 72, 34, 22],
+                    [158, 36, 30, 20],
+                    [218, 86, 36, 24],
+                    [50, 132, 38, 24],
+                    [130, 136, 32, 20],
+                    [200, 142, 30, 18]
+                  ].map(([cx, cy, rx, ry], index) => (
+                    <ellipse key={`pebble-${index}`} cx={cx} cy={cy} rx={rx} ry={ry} fill={index % 2 ? "#f0e1c8" : "#c9b08d"} stroke="#a98d66" strokeWidth="7" opacity="0.9" />
+                  ))}
+                </pattern>
+                <pattern id="stonePaverPattern" width="320" height="220" patternUnits="userSpaceOnUse">
+                  <rect width="320" height="220" fill="#b9b3ab" />
+                  <path d="M0 70 H320 M0 145 H320 M105 0 V70 M220 70 V145 M150 145 V220" stroke="#f8fafc" strokeWidth="14" opacity="0.65" />
+                </pattern>
+                <pattern id="woodDeckPattern" width="240" height="180" patternUnits="userSpaceOnUse">
+                  <rect width="240" height="180" fill="#c58a5a" />
+                  <path d="M0 45 H240 M0 90 H240 M0 135 H240" stroke="#8b5e34" strokeWidth="10" opacity="0.55" />
+                  <path d="M36 18 H98 M132 70 H208 M24 116 H92 M128 154 H220" stroke="#e5b789" strokeWidth="8" strokeLinecap="round" opacity="0.55" />
+                </pattern>
+                <pattern id="concretePattern" width="260" height="220" patternUnits="userSpaceOnUse">
+                  <rect width="260" height="220" fill="#d1d5db" />
+                  <path d="M0 110 H260 M130 0 V220" stroke="#f8fafc" strokeWidth="10" opacity="0.55" />
+                  <circle cx="58" cy="54" r="7" fill="#94a3b8" opacity="0.35" />
+                  <circle cx="204" cy="158" r="9" fill="#94a3b8" opacity="0.3" />
+                </pattern>
+                <pattern id="plantingPattern" width="220" height="180" patternUnits="userSpaceOnUse">
+                  <rect width="220" height="180" fill="#88c878" />
+                  <circle cx="42" cy="44" r="28" fill="#4f9b46" opacity="0.55" />
+                  <circle cx="120" cy="82" r="34" fill="#5daa50" opacity="0.55" />
+                  <circle cx="182" cy="126" r="30" fill="#3f8c3f" opacity="0.45" />
+                </pattern>
+              </defs>
               {plannerMode === "edit" && drawTool !== "select" && <rect x={planBounds.x} y={planBounds.y} width={planBounds.width} height={planBounds.height} fill="transparent" />}
 
               <g data-layer="OutdoorLayer">
-                {houseStructure.outdoorSurfaces.map((surface) => {
-                  const selected = isObjectSelected(surface.id);
-                  const hovered = isObjectHovered(surface.id);
-                  const fillColor = surface.surfaceType === "hardscape"
-                    ? selected ? "rgba(148,163,184,0.36)" : "rgba(148,163,184,0.22)"
-                    : surface.surfaceType === "path"
-                      ? selected ? "rgba(202,138,4,0.3)" : "rgba(202,138,4,0.18)"
-                      : selected ? "rgba(34,197,94,0.34)" : "rgba(34,197,94,0.2)";
-                  const strokeColor = surface.surfaceType === "hardscape" ? "#64748b" : surface.surfaceType === "path" ? "#a16207" : "#16a34a";
-                  return (
-                    <polygon
-                      key={surface.id}
-                      points={surface.polygon.map((point) => `${point.x},${point.y}`).join(" ")}
-                      fill={fillColor}
-                      stroke={hovered || selected ? strokeColor : `${strokeColor}99`}
-                      strokeDasharray={surface.surfaceType === "planting" ? "100 70" : undefined}
-                      strokeWidth={hovered || selected ? 48 : 30}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (shouldIgnoreStructureSelection("outdoorSurface")) return;
-                        selectStructureObject(surface.id, `${surface.name} · ${(surface.area / 1_000_000).toFixed(2)} m2`);
-                      }}
-                      onMouseEnter={() => hoverObject(surface.id)}
-                      onMouseLeave={() => clearHoverObject(surface.id)}
-                    />
-                  );
-                })}
-                {houseStructure.outdoors.map((outdoor) => (
+                {visibleOutdoors.map((outdoor) => (
                   <polygon
                     key={outdoor.id}
                     points={outdoor.polygon.map((point) => `${point.x},${point.y}`).join(" ")}
-                    fill={isObjectSelected(outdoor.id) ? "rgba(34,197,94,0.24)" : "rgba(34,197,94,0.15)"}
+                    fill="url(#grassPattern)"
                     stroke={isObjectSelected(outdoor.id) ? "#16a34a" : isObjectHovered(outdoor.id) ? "#22c55e" : "#65a30d"}
-                    strokeWidth={isObjectHovered(outdoor.id) ? 52 : 36}
+                    strokeWidth={isObjectHovered(outdoor.id) || isObjectSelected(outdoor.id) ? 52 : 30}
                     onClick={(event) => {
                       event.stopPropagation();
                       if (shouldIgnoreStructureSelection("outdoor")) return;
-                      selectStructureObject(outdoor.id, `${outdoor.name} · ${(outdoor.area / 1_000_000).toFixed(2)} m2`);
+                      selectStructureObject(outdoor.id, `${outdoor.name} · 默认绿地 · ${(outdoor.area / 1_000_000).toFixed(2)} m2`);
                     }}
                     onMouseEnter={() => hoverObject(outdoor.id)}
                     onMouseLeave={() => clearHoverObject(outdoor.id)}
                   />
                 ))}
+                {visibleOutdoorSurfaces.map((surface) => {
+                  const selected = isObjectSelected(surface.id);
+                  const hovered = isObjectHovered(surface.id);
+                  const tone = getOutdoorSurfaceTone(surface);
+                  return (
+                    <g key={surface.id}>
+                      <polygon
+                        points={surface.polygon.map((point) => `${point.x},${point.y}`).join(" ")}
+                        fill={tone.pattern}
+                        opacity={surface.surfaceType === "planting" ? 0.9 : 0.96}
+                        stroke={hovered || selected ? tone.stroke : "transparent"}
+                        strokeWidth={hovered || selected ? 54 : 0}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (shouldIgnoreStructureSelection("outdoorSurface")) return;
+                          selectStructureObject(surface.id, `${surface.name} · ${outdoorSurfaceMaterialLabels[surface.material] ?? "铺装"} · ${(surface.area / 1_000_000).toFixed(2)} m2`);
+                        }}
+                        onMouseEnter={() => hoverObject(surface.id)}
+                        onMouseLeave={() => clearHoverObject(surface.id)}
+                      />
+                      {(hovered || selected) && (
+                        <text
+                          x={surface.polygon.reduce((sum, point) => sum + point.x, 0) / surface.polygon.length}
+                          y={surface.polygon.reduce((sum, point) => sum + point.y, 0) / surface.polygon.length}
+                          fill="#1f2937"
+                          fontSize={130}
+                          fontWeight={900}
+                          paintOrder="stroke"
+                          stroke="#ffffff"
+                          strokeWidth={36}
+                          textAnchor="middle"
+                        >
+                          {outdoorSurfaceMaterialLabels[surface.material] ?? "铺装"}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
                 {outdoorDraft.length > 0 && (
                   <polyline
                     points={outdoorDraft.map((point) => `${point.x},${point.y}`).join(" ")}
@@ -3615,10 +3928,29 @@ export function PlanCanvas({
                   />
                 )}
                 {outdoorSurfaceDraft && outdoorSurfaceDraft.points.length > 0 && (
-                  <polyline
-                    points={outdoorSurfaceDraft.points.map((point) => `${point.x},${point.y}`).join(" ")}
-                    fill={outdoorSurfaceDraft.points.length >= 3 ? "rgba(34,197,94,0.08)" : "none"}
-                    stroke={outdoorSurfaceDraft.tool === "hardscape" ? "#64748b" : outdoorSurfaceDraft.tool === "path" ? "#a16207" : "#16a34a"}
+                  outdoorSurfaceDraft.tool === "path" && outdoorSurfaceDraft.points.length >= 2 ? (
+                    <polygon
+                      points={createPathRibbon(outdoorSurfaceDraft.points, outdoorPathWidth).map((point) => `${point.x},${point.y}`).join(" ")}
+                      fill={getOutdoorSurfaceTone({ material: getOutdoorMaterialForTool(outdoorSurfaceDraft.tool) } as HouseStructure["outdoorSurfaces"][number]).pattern}
+                      stroke={getOutdoorSurfaceTone({ material: getOutdoorMaterialForTool(outdoorSurfaceDraft.tool) } as HouseStructure["outdoorSurfaces"][number]).stroke}
+                      strokeDasharray="120 90"
+                      strokeWidth={42}
+                    />
+                  ) : (
+                    <polyline
+                      points={outdoorSurfaceDraft.points.map((point) => `${point.x},${point.y}`).join(" ")}
+                      fill={outdoorSurfaceDraft.points.length >= 3 ? getOutdoorSurfaceTone({ material: getOutdoorMaterialForTool(outdoorSurfaceDraft.tool) } as HouseStructure["outdoorSurfaces"][number]).pattern : "none"}
+                      stroke={getOutdoorSurfaceTone({ material: getOutdoorMaterialForTool(outdoorSurfaceDraft.tool) } as HouseStructure["outdoorSurfaces"][number]).stroke}
+                      strokeDasharray="120 90"
+                      strokeWidth={42}
+                    />
+                  )
+                )}
+                {outdoorRectDraft?.start && outdoorRectDraft.end && (
+                  <polygon
+                    points={createRectPolygon(outdoorRectDraft.start, outdoorRectDraft.end).map((point) => `${point.x},${point.y}`).join(" ")}
+                    fill={getOutdoorSurfaceTone({ material: getOutdoorMaterialForTool("hardscape") } as HouseStructure["outdoorSurfaces"][number]).pattern}
+                    stroke={getOutdoorSurfaceTone({ material: getOutdoorMaterialForTool("hardscape") } as HouseStructure["outdoorSurfaces"][number]).stroke}
                     strokeDasharray="120 90"
                     strokeWidth={42}
                   />
@@ -3626,7 +3958,7 @@ export function PlanCanvas({
               </g>
 
               <g data-layer="FenceLayer">
-                {houseStructure.fences.map((fence) => {
+                {visibleFences.map((fence) => {
                   const isSelected = isObjectSelected(fence.id);
                   const isHovered = isObjectHovered(fence.id);
                   const locked = objectIsLocked(fence.id);
@@ -3678,9 +4010,9 @@ export function PlanCanvas({
                 })}
               </g>
 
-              {renderStructureProjectionLayer()}
+              {!yardImmersiveMode && renderStructureProjectionLayer()}
 
-              <g data-layer="RoomLayer">
+              <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="RoomLayer">
                 {houseStructure.rooms.map((room) => (
                   <polygon
                     key={room.id}
@@ -3699,7 +4031,7 @@ export function PlanCanvas({
                 ))}
               </g>
 
-              <g data-layer="WallLayer">
+              <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="WallLayer">
                 {houseStructure.walls.map((wall) => {
                   const isSelected = isObjectSelected(wall.id);
                   const isHovered = isObjectHovered(wall.id);
@@ -3794,7 +4126,7 @@ export function PlanCanvas({
                 })}
               </g>
 
-              <g data-layer="PartitionLayer">
+              <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="PartitionLayer">
                 {houseStructure.partitions.map((partition) => {
                   const isSelected = isObjectSelected(partition.id);
                   const isHovered = isObjectHovered(partition.id);
@@ -3848,7 +4180,7 @@ export function PlanCanvas({
                 })}
               </g>
 
-              <g data-layer="StairLayer">
+              <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="StairLayer">
                 {houseStructure.stairs.map((stair) => {
                   const isSelected = isObjectSelected(stair.id);
                   const isHovered = isObjectHovered(stair.id);
@@ -3946,7 +4278,7 @@ export function PlanCanvas({
                 })}
               </g>
 
-              <g data-layer="DoorWindowLayer">
+              <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="DoorWindowLayer">
                 {houseStructure.doors.map((door) => {
                   const host = getHostLine(door.hostId, door.hostType);
                   if (!host) return null;
@@ -4351,7 +4683,7 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} type={item.type} />
+                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
                     </div>
                     {isFurnitureSheetMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && (
                       <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
@@ -4555,7 +4887,7 @@ export function PlanCanvas({
               </div>
             )}
 
-            {renderStructureHtmlLabelLayer()}
+            {visibleStructureLabels && renderStructureHtmlLabelLayer()}
 
             {isManualCleanupMode && (
               <div

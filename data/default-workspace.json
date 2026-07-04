@@ -260,11 +260,11 @@
   "semanticObjects": [
     {
       "id": "R-1F-001",
-      "name": "1F 客餐厅",
+      "name": "1F 公共区",
       "floorId": "1F",
       "category": "Room",
       "type": "living_dining",
-      "notes": "一层主要公共空间，后续用于客餐厨家具标注。",
+      "notes": "一层主要公共空间，具体功能区以玄关、客厅、厨房、卫生间等标签为准。",
       "position": {
         "x": 55,
         "y": 55
@@ -293,11 +293,11 @@
     },
     {
       "id": "Z-1F-001",
-      "name": "1F 餐厨区",
+      "name": "1F 客厅",
       "floorId": "1F",
       "category": "Zone",
-      "type": "dining_kitchen",
-      "notes": "餐桌、岛台和厨房设备所在区域。",
+      "type": "living",
+      "notes": "六人圆餐桌所在的客厅活动区。",
       "position": {
         "x": 72,
         "y": 54
@@ -320,6 +320,39 @@
           {
             "x": 62,
             "y": 72
+          }
+        ]
+      }
+    },
+    {
+      "id": "Z-1F-ENTRY",
+      "name": "1F 玄关",
+      "floorId": "1F",
+      "category": "Zone",
+      "type": "entry",
+      "notes": "厨房左侧的入户/玄关过渡空间。",
+      "position": {
+        "x": 45,
+        "y": 28
+      },
+      "details": {
+        "roomId": "ROOM-1F-001",
+        "boundary": [
+          {
+            "x": 36,
+            "y": 18
+          },
+          {
+            "x": 54,
+            "y": 18
+          },
+          {
+            "x": 54,
+            "y": 42
+          },
+          {
+            "x": 36,
+            "y": 42
           }
         ]
       }
@@ -1266,10 +1299,43 @@
       ],
       "rooms": [
         {
+          "id": "ROOM-1F-001",
+          "floorId": "1F",
+          "roomNumber": "R-1F-001",
+          "name": "玄关",
+          "spaceType": "Room",
+          "geometryType": "polygon",
+          "boundary": [
+            {
+              "x": 3676,
+              "y": 350
+            },
+            {
+              "x": 5383,
+              "y": 350
+            },
+            {
+              "x": 5383,
+              "y": 3050
+            },
+            {
+              "x": 3676,
+              "y": 3050
+            }
+          ],
+          "area": 4608900,
+          "sourceWallIds": [
+            "W-1F-001",
+            "W-1F-004",
+            "W-1F-008",
+            "W-1F-003"
+          ]
+        },
+        {
           "id": "ROOM-1F-002",
           "floorId": "1F",
           "roomNumber": "R-1F-002",
-          "name": "1F 房间 2",
+          "name": "厨房",
           "spaceType": "Room",
           "geometryType": "polygon",
           "boundary": [
@@ -1302,7 +1368,7 @@
           "id": "ROOM-1F-003",
           "floorId": "1F",
           "roomNumber": "R-1F-003",
-          "name": "1F 房间 3",
+          "name": "卫生间",
           "spaceType": "Room",
           "geometryType": "polygon",
           "boundary": [
@@ -1335,7 +1401,7 @@
           "id": "ROOM-1F-004",
           "floorId": "1F",
           "roomNumber": "R-1F-004",
-          "name": "1F 房间 4",
+          "name": "卧室",
           "spaceType": "Room",
           "geometryType": "polygon",
           "boundary": [
@@ -1508,28 +1574,28 @@
         {
           "id": "OS-1F-NORTH-001",
           "floorId": "1F",
-          "name": "北院入户硬地",
+          "name": "北院石板入户平台",
           "geometryType": "polygon",
           "surfaceType": "hardscape",
           "polygon": [
             {
-              "x": 3150,
-              "y": -1400
+              "x": 4050,
+              "y": -1500
             },
             {
-              "x": 7050,
-              "y": -1400
+              "x": 6900,
+              "y": -1500
             },
             {
-              "x": 7050,
-              "y": -450
+              "x": 6900,
+              "y": -850
             },
             {
-              "x": 3150,
-              "y": -450
+              "x": 4050,
+              "y": -850
             }
           ],
-          "area": 3705000,
+          "area": 1852500,
           "material": "stone",
           "editable": true,
           "removable": true
@@ -1537,86 +1603,86 @@
         {
           "id": "OS-1F-NORTH-002",
           "floorId": "1F",
-          "name": "北院引导小路",
+          "name": "北院鹅卵石踏步路",
           "geometryType": "polygon",
           "surfaceType": "path",
           "polygon": [
             {
-              "x": 5200,
-              "y": -450
+              "x": 5000,
+              "y": -850
             },
             {
-              "x": 5900,
-              "y": -450
+              "x": 5950,
+              "y": -850
             },
             {
-              "x": 5750,
-              "y": 300
+              "x": 5850,
+              "y": 250
             },
             {
-              "x": 5050,
-              "y": 300
+              "x": 4900,
+              "y": 250
             }
           ],
-          "area": 525000,
-          "material": "gravel",
+          "area": 1045000,
+          "material": "pebble",
           "editable": true,
           "removable": true
         },
         {
           "id": "OS-1F-NORTH-003",
           "floorId": "1F",
-          "name": "北院绿化带",
+          "name": "北院边界花境",
           "geometryType": "polygon",
           "surfaceType": "planting",
           "polygon": [
             {
               "x": 1100,
-              "y": -1450
+              "y": -1500
             },
             {
-              "x": 2700,
-              "y": -1450
+              "x": 3050,
+              "y": -1500
             },
             {
-              "x": 2700,
-              "y": 150
+              "x": 3050,
+              "y": 120
             },
             {
               "x": 1100,
-              "y": 150
+              "y": 120
             }
           ],
-          "area": 2560000,
-          "material": "grass",
+          "area": 3159000,
+          "material": "shrub",
           "editable": true,
           "removable": true
         },
         {
           "id": "OS-1F-SOUTH-001",
           "floorId": "1F",
-          "name": "南院会客平台",
+          "name": "南院石板会客平台",
           "geometryType": "polygon",
           "surfaceType": "hardscape",
           "polygon": [
             {
-              "x": 3900,
-              "y": 8200
+              "x": 4200,
+              "y": 8350
             },
             {
-              "x": 7900,
-              "y": 8200
+              "x": 7600,
+              "y": 8350
             },
             {
-              "x": 7900,
-              "y": 9800
+              "x": 7600,
+              "y": 9650
             },
             {
-              "x": 3900,
-              "y": 9800
+              "x": 4200,
+              "y": 9650
             }
           ],
-          "area": 6400000,
+          "area": 4420000,
           "material": "stone",
           "editable": true,
           "removable": true
@@ -1624,7 +1690,69 @@
         {
           "id": "OS-1F-SOUTH-002",
           "floorId": "1F",
-          "name": "南院草坪",
+          "name": "南院木平台",
+          "geometryType": "polygon",
+          "surfaceType": "hardscape",
+          "polygon": [
+            {
+              "x": 7650,
+              "y": 8350
+            },
+            {
+              "x": 9250,
+              "y": 8350
+            },
+            {
+              "x": 9250,
+              "y": 9400
+            },
+            {
+              "x": 7650,
+              "y": 9400
+            }
+          ],
+          "area": 1680000,
+          "material": "wood",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-SOUTH-003",
+          "floorId": "1F",
+          "name": "南院鹅卵石小路",
+          "geometryType": "polygon",
+          "surfaceType": "path",
+          "polygon": [
+            {
+              "x": 3300,
+              "y": 9300
+            },
+            {
+              "x": 4300,
+              "y": 9300
+            },
+            {
+              "x": 7650,
+              "y": 10400
+            },
+            {
+              "x": 7400,
+              "y": 11250
+            },
+            {
+              "x": 3900,
+              "y": 10150
+            }
+          ],
+          "area": 3693750,
+          "material": "pebble",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-1F-SOUTH-004",
+          "floorId": "1F",
+          "name": "南院花境",
           "geometryType": "polygon",
           "surfaceType": "planting",
           "polygon": [
@@ -1633,11 +1761,11 @@
               "y": 8250
             },
             {
-              "x": 3600,
+              "x": 3200,
               "y": 8250
             },
             {
-              "x": 3600,
+              "x": 3200,
               "y": 11550
             },
             {
@@ -1645,37 +1773,8 @@
               "y": 11550
             }
           ],
-          "area": 8250000,
-          "material": "grass",
-          "editable": true,
-          "removable": true
-        },
-        {
-          "id": "OS-1F-SOUTH-003",
-          "floorId": "1F",
-          "name": "南院步道",
-          "geometryType": "polygon",
-          "surfaceType": "path",
-          "polygon": [
-            {
-              "x": 7900,
-              "y": 9400
-            },
-            {
-              "x": 9300,
-              "y": 9400
-            },
-            {
-              "x": 9300,
-              "y": 10100
-            },
-            {
-              "x": 7900,
-              "y": 10100
-            }
-          ],
-          "area": 980000,
-          "material": "gravel",
+          "area": 6930000,
+          "material": "shrub",
           "editable": true,
           "removable": true
         }
@@ -2591,7 +2690,7 @@
         {
           "id": "OS-YARD-001",
           "floorId": "YARD",
-          "name": "Hardscape 001",
+          "name": "石板休闲平台",
           "geometryType": "polygon",
           "surfaceType": "hardscape",
           "polygon": [
@@ -2620,7 +2719,7 @@
         {
           "id": "OS-YARD-002",
           "floorId": "YARD",
-          "name": "Path 002",
+          "name": "鹅卵石步道",
           "geometryType": "polygon",
           "surfaceType": "path",
           "polygon": [
@@ -2642,14 +2741,14 @@
             }
           ],
           "area": 3800000,
-          "material": "gravel",
+          "material": "pebble",
           "editable": true,
           "removable": true
         },
         {
           "id": "OS-YARD-003",
           "floorId": "YARD",
-          "name": "Planting 003",
+          "name": "边界花境",
           "geometryType": "polygon",
           "surfaceType": "planting",
           "polygon": [
@@ -2671,7 +2770,7 @@
             }
           ],
           "area": 7830000,
-          "material": "grass",
+          "material": "shrub",
           "editable": true,
           "removable": true
         }

@@ -1,4 +1,4 @@
-import type { Dimension, FurnitureType, InteriorModuleCategory, InteriorModuleType, ModuleServiceRequirements } from "@/types/space";
+import type { CabinetDesign, Dimension, FurnitureType, InteriorModuleCategory, InteriorModuleType, ModuleServiceRequirements } from "@/types/space";
 
 export type InteriorModuleCatalogItem = {
   id: string;
@@ -12,6 +12,7 @@ export type InteriorModuleCatalogItem = {
   material: string;
   note: string;
   serviceRequirements: ModuleServiceRequirements;
+  cabinetDesign?: CabinetDesign;
 };
 
 export const interiorModuleCategoryLabels: Record<InteriorModuleCategory, string> = {
@@ -30,6 +31,10 @@ export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
   nightstand: "床头柜",
   plant: "绿植",
   cabinet: "矮柜",
+  kitchenCabinet: "橱柜",
+  snackCabinet: "零食柜",
+  pegboard: "洞洞板",
+  bookshelf: "书架",
   island: "中岛台",
   cooktop: "灶台",
   sink: "水槽",
@@ -180,7 +185,124 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#eadfcd",
     material: "暖白柜门 + 内嵌电器预留",
     note: "可承接蒸烤箱、微波炉或食品储藏。",
-    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "tallCabinet",
+      title: "厨房高柜设计",
+      designThinking: "把不常移动的大电器和高频干货收进一列，减少台面外露设备，让厨房立面更整洁。",
+      recommendedPlacement: "靠近冰箱或厨房端头，避开燃气表、检修口和主通道转角。",
+      layoutNotes: ["中段留蒸烤箱/微波炉电源位", "上下柜门统一分缝", "底部留可抽拉高篮或囤货区"],
+      zones: [
+        { id: "appliance", label: "电器塔", role: "蒸烤 / 微波", widthPercent: 45, heightPercent: 48, detail: "中部按视线高度布置内嵌电器，减少弯腰。", serviceNote: "预留独立电源和散热缝。" },
+        { id: "pantry", label: "干货区", role: "米面 / 调味", widthPercent: 35, heightPercent: 70, detail: "窄高拉篮收纳瓶罐和干货，拿取路径短。" },
+        { id: "seasonal", label: "高处收纳", role: "低频器具", widthPercent: 20, heightPercent: 30, detail: "上柜放低频锅具、烘焙模具和囤货。" }
+      ],
+      cautionNotes: ["电器柜深度按设备散热要求复核。", "高柜门开启后不能挡住冰箱门或厨房通道。"]
+    }
+  },
+  {
+    id: "kitchen-base-cabinet",
+    category: "kitchen",
+    moduleType: "kitchenCabinet",
+    furnitureType: "kitchenCabinet",
+    codePrefix: "KC",
+    name: "一字型橱柜",
+    dimensions: { width: 300, depth: 60, height: 90, unit: "cm" },
+    color: "#e5e1d6",
+    material: "石英石台面 + 防潮柜体",
+    note: "适合先占位厨房操作面，后续按烟道、上下水和窗位拆成洗切炒分区。",
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: true },
+    cabinetDesign: {
+      template: "kitchenCabinet",
+      title: "橱柜设计",
+      designThinking: "先保证洗、切、炒连续，再把常用餐具、调味和小电器放在伸手可及的位置。",
+      recommendedPlacement: "沿厨房最长直墙布置，水槽靠近原排水点，灶台靠近烟道。",
+      layoutNotes: ["水槽、备餐、灶台依次展开", "台面连续段尽量不少于 900 mm", "吊柜和地柜按常用/低频分层"],
+      zones: [
+        { id: "sink", label: "洗涤区", role: "水槽 / 洗碗机", widthPercent: 30, heightPercent: 100, detail: "靠近排水点，旁边留沥水和备菜过渡。", serviceNote: "给水、排水、净水和洗碗机电源集中预留。" },
+        { id: "prep", label: "备餐区", role: "切配 / 小电器", widthPercent: 38, heightPercent: 100, detail: "保持最大连续台面，抽屉放刀具、保鲜袋和常用碗盘。", serviceNote: "台面上方预留多联插座。" },
+        { id: "cook", label: "烹饪区", role: "灶具 / 调味", widthPercent: 32, heightPercent: 100, detail: "灶台两侧留落锅和调味空间，下方收锅具。", serviceNote: "排烟和燃气/电源按现场条件确认。" }
+      ],
+      cautionNotes: ["中岛或餐桌旁至少留 900 mm 通道。", "水槽、灶台不建议紧贴墙角。"]
+    }
+  },
+  {
+    id: "storage-snack-cabinet",
+    category: "storage",
+    moduleType: "snackCabinet",
+    furnitureType: "snackCabinet",
+    codePrefix: "SC",
+    name: "零食柜",
+    dimensions: { width: 120, depth: 40, height: 210, unit: "cm" },
+    color: "#f3d9b1",
+    material: "透明抽屉 + 开放格 + 封闭柜门",
+    note: "适合放在餐厨或客厅交界，把零食、咖啡、茶包和常用杯具集中管理。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "snackCabinet",
+      title: "零食柜设计",
+      designThinking: "把看得见的高频零食和需要遮起来的囤货分开，避免台面堆满小包装。",
+      recommendedPlacement: "靠近餐桌、沙发或厨房入口，旁边最好有一组插座给咖啡机/饮水设备。",
+      layoutNotes: ["中段开放格拿取最快", "下方抽屉按家庭成员或品类分区", "高处封闭柜收囤货"],
+      zones: [
+        { id: "display", label: "开放拿取", role: "咖啡 / 茶 / 杯具", widthPercent: 100, heightPercent: 32, detail: "中腰位置做开放格，放每天都会拿的东西。", serviceNote: "台面或开放格内预留电源。" },
+        { id: "drawers", label: "分类抽屉", role: "零食 / 冲饮", widthPercent: 100, heightPercent: 38, detail: "浅抽屉按甜口、咸口、儿童零食分层，减少翻找。" },
+        { id: "stock", label: "囤货柜", role: "整箱 / 低频", widthPercent: 100, heightPercent: 30, detail: "封闭门板遮住包装杂乱，保持客餐厅清爽。" }
+      ],
+      cautionNotes: ["柜深 350-450 mm 更适合零食，太深容易被遮住。", "靠近餐厅时外观要和餐边柜统一。"]
+    }
+  },
+  {
+    id: "storage-pegboard",
+    category: "storage",
+    moduleType: "pegboard",
+    furnitureType: "pegboard",
+    codePrefix: "PB",
+    name: "洞洞板",
+    dimensions: { width: 120, depth: 8, height: 180, unit: "cm" },
+    color: "#bfd7c9",
+    material: "金属/木质洞洞板 + 可调挂件",
+    note: "适合玄关、家政、书房或工具角，先占墙面位置，再按物品数量增减挂件。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "pegboard",
+      title: "洞洞板设计",
+      designThinking: "用可移动挂件处理经常变化的小物件，让墙面承担临时收纳和展示，而不是再增加厚柜。",
+      recommendedPlacement: "玄关换鞋区、洗衣家政区、书桌侧墙或车库工具墙。",
+      layoutNotes: ["上方放轻物和展示", "中段放高频工具", "下方留给包、伞或清洁用品"],
+      zones: [
+        { id: "display", label: "展示挂件", role: "钥匙 / 香氛 / 小物", widthPercent: 100, heightPercent: 28, detail: "轻量物品放视线高度以上，保持整洁感。" },
+        { id: "daily", label: "高频挂取", role: "包 / 帽 / 工具", widthPercent: 100, heightPercent: 46, detail: "最顺手的位置给每天会拿的东西。" },
+        { id: "utility", label: "重物低挂", role: "伞 / 清洁用品", widthPercent: 100, heightPercent: 26, detail: "重物下置，减少墙面受力风险。" }
+      ],
+      cautionNotes: ["安装墙体需确认承重和基层。", "不要把强电插座藏在不可拆挂件后面。"]
+    }
+  },
+  {
+    id: "storage-bookshelf",
+    category: "storage",
+    moduleType: "bookshelf",
+    furnitureType: "bookshelf",
+    codePrefix: "BS",
+    name: "书架",
+    dimensions: { width: 240, depth: 32, height: 240, unit: "cm" },
+    color: "#d9c7a7",
+    material: "开放层板 + 局部柜门",
+    note: "适合书房、客厅背景墙或楼梯旁，把书、展示品和杂物分开。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "bookshelf",
+      title: "书架设计",
+      designThinking: "开放书格负责展示和取书，封闭柜负责遮杂物，避免整墙书架变成凌乱背景。",
+      recommendedPlacement: "书房主墙、客厅侧墙或楼梯转角，避开强日晒和潮湿墙面。",
+      layoutNotes: ["常读书放 900-1600 mm 高度", "展示格穿插留白", "底部封闭柜收文件和杂物"],
+      zones: [
+        { id: "books", label: "常读书区", role: "书籍", widthPercent: 58, heightPercent: 62, detail: "按 300-350 mm 层高做可调层板，适配不同书高。" },
+        { id: "display", label: "展示留白", role: "摆件 / 画册", widthPercent: 42, heightPercent: 46, detail: "穿插大格和空格，墙面不会显得满。" },
+        { id: "closed", label: "底部柜门", role: "文件 / 杂物", widthPercent: 100, heightPercent: 24, detail: "封闭收纳承担杂物，开放区只保留好看的内容。", serviceNote: "可预留灯带或阅读角插座。" }
+      ],
+      cautionNotes: ["书架跨度过大时要加竖板，避免层板下垂。", "落地高柜建议固定到墙。"]
+    }
   },
   {
     id: "bath-toilet",
@@ -258,7 +380,20 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#f0e7d8",
     material: "暖白柜门 + 原木开放格",
     note: "预留扫地机器人位、换鞋凳和感应灯电源。",
-    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "entryCabinet",
+      title: "玄关柜设计",
+      designThinking: "把进出门的动作拆成换鞋、挂衣、放包、收快递和清洁设备五件事，柜体按动作顺序分区。",
+      recommendedPlacement: "靠近入户门但不压迫门洞，优先贴长墙或转角墙布置。",
+      layoutNotes: ["中段留开放台面放钥匙和包", "底部悬空放常穿鞋", "侧边预留挂衣或全身镜"],
+      zones: [
+        { id: "shoes", label: "鞋区", role: "常穿鞋 / 换鞋凳", widthPercent: 42, heightPercent: 58, detail: "低区做鞋格和换鞋位，常穿鞋不进封闭柜也不显乱。" },
+        { id: "drop", label: "随手台", role: "钥匙 / 包 / 快递", widthPercent: 35, heightPercent: 34, detail: "中腰开放格负责进门第一落点，可配感应灯。", serviceNote: "预留感应灯和扫地机器人电源。" },
+        { id: "cleaning", label: "家政窄柜", role: "伞 / 吸尘器", widthPercent: 23, heightPercent: 100, detail: "窄高柜收长柄工具，避免清洁物品外露。" }
+      ],
+      cautionNotes: ["入户过道净宽尽量不低于 900 mm。", "鞋柜深度按最大鞋码和门板形式复核。"]
+    }
   },
   {
     id: "storage-sideboard",
@@ -271,7 +406,20 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#d7c6a8",
     material: "餐边柜 + 小家电台面",
     note: "预留咖啡机、净饮机或小家电插座。",
-    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "sideboard",
+      title: "餐边柜设计",
+      designThinking: "让餐桌附近的小电器、杯具、酒水和备餐杂物离厨房一步远，但不占用厨房主操作台。",
+      recommendedPlacement: "餐桌侧边或餐厨过渡墙，台面高度与厨房台面接近更顺手。",
+      layoutNotes: ["中段台面放咖啡机和净饮机", "上方玻璃/开放格展示杯具", "下方封闭柜收囤货"],
+      zones: [
+        { id: "counter", label: "小电器台", role: "咖啡 / 净饮 / 烤箱", widthPercent: 100, heightPercent: 34, detail: "把会冒热气或常用的小电器集中在台面。", serviceNote: "台面上方预留多联插座，可加净水点。" },
+        { id: "cups", label: "杯具展示", role: "杯子 / 酒具", widthPercent: 42, heightPercent: 42, detail: "透明或开放格展示好看的杯具，拿取也快。" },
+        { id: "closed", label: "封闭收纳", role: "酒水 / 囤货", widthPercent: 58, heightPercent: 52, detail: "下柜隐藏包装和库存，让餐厅保持干净。" }
+      ],
+      cautionNotes: ["餐椅后退区和餐边柜开门不能冲突。", "有净饮设备时提前确认上下水或桶装水方案。"]
+    }
   },
   {
     id: "decor-large-plant",

@@ -529,7 +529,7 @@ export function createOutdoorSurface(
 ): HouseOutdoorSurface {
   const materialByType: Record<HouseOutdoorSurface["surfaceType"], HouseOutdoorSurface["material"]> = {
     hardscape: "stone",
-    path: "gravel",
+    path: "pebble",
     planting: "grass"
   };
   return {

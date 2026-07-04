@@ -148,12 +148,13 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
       fence("FN-1F-SOUTH-003", "1F", "南院东侧分户木篱笆", { x: 9495, y: 7800 }, { x: 9495, y: 11800 })
     ],
     outdoorSurfaces: [
-      surface("OS-1F-NORTH-001", "1F", "北院入户硬地", "hardscape", [{ x: 3150, y: -1400 }, { x: 7050, y: -1400 }, { x: 7050, y: -450 }, { x: 3150, y: -450 }]),
-      surface("OS-1F-NORTH-002", "1F", "北院引导小路", "path", [{ x: 5200, y: -450 }, { x: 5900, y: -450 }, { x: 5750, y: 300 }, { x: 5050, y: 300 }]),
-      surface("OS-1F-NORTH-003", "1F", "北院绿化带", "planting", [{ x: 1100, y: -1450 }, { x: 2700, y: -1450 }, { x: 2700, y: 150 }, { x: 1100, y: 150 }]),
-      surface("OS-1F-SOUTH-001", "1F", "南院会客平台", "hardscape", [{ x: 3900, y: 8200 }, { x: 7900, y: 8200 }, { x: 7900, y: 9800 }, { x: 3900, y: 9800 }]),
-      surface("OS-1F-SOUTH-002", "1F", "南院草坪", "planting", [{ x: 1100, y: 8250 }, { x: 3600, y: 8250 }, { x: 3600, y: 11550 }, { x: 1100, y: 11550 }]),
-      surface("OS-1F-SOUTH-003", "1F", "南院步道", "path", [{ x: 7900, y: 9400 }, { x: 9300, y: 9400 }, { x: 9300, y: 10100 }, { x: 7900, y: 10100 }])
+      { ...surface("OS-1F-NORTH-001", "1F", "北院石板入户平台", "hardscape", [{ x: 4050, y: -1500 }, { x: 6900, y: -1500 }, { x: 6900, y: -850 }, { x: 4050, y: -850 }]), material: "stone" },
+      { ...surface("OS-1F-NORTH-002", "1F", "北院鹅卵石踏步路", "path", [{ x: 5000, y: -850 }, { x: 5950, y: -850 }, { x: 5850, y: 250 }, { x: 4900, y: 250 }]), material: "pebble" },
+      { ...surface("OS-1F-NORTH-003", "1F", "北院边界花境", "planting", [{ x: 1100, y: -1500 }, { x: 3050, y: -1500 }, { x: 3050, y: 120 }, { x: 1100, y: 120 }]), material: "shrub" },
+      { ...surface("OS-1F-SOUTH-001", "1F", "南院石板会客平台", "hardscape", [{ x: 4200, y: 8350 }, { x: 7600, y: 8350 }, { x: 7600, y: 9650 }, { x: 4200, y: 9650 }]), material: "stone" },
+      { ...surface("OS-1F-SOUTH-002", "1F", "南院木平台", "hardscape", [{ x: 7650, y: 8350 }, { x: 9250, y: 8350 }, { x: 9250, y: 9400 }, { x: 7650, y: 9400 }]), material: "wood" },
+      { ...surface("OS-1F-SOUTH-003", "1F", "南院鹅卵石小路", "path", [{ x: 3300, y: 9300 }, { x: 4300, y: 9300 }, { x: 7650, y: 10400 }, { x: 7400, y: 11250 }, { x: 3900, y: 10150 }]), material: "pebble" },
+      { ...surface("OS-1F-SOUTH-004", "1F", "南院花境", "planting", [{ x: 1100, y: 8250 }, { x: 3200, y: 8250 }, { x: 3200, y: 11550 }, { x: 1100, y: 11550 }]), material: "shrub" }
     ],
     stairs: [stair("ST-1F-001", "1F", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
   }),
@@ -230,9 +231,9 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
       createFence("FN-YARD-002", "YARD", { x: 10700, y: 850 }, { x: 10700, y: 7100 })
     ],
     outdoorSurfaces: [
-      createOutdoorSurface("OS-YARD-001", "YARD", "hardscape", [{ x: 1600, y: 1400 }, { x: 4600, y: 1400 }, { x: 4600, y: 3200 }, { x: 1600, y: 3200 }]),
-      createOutdoorSurface("OS-YARD-002", "YARD", "path", [{ x: 4550, y: 2300 }, { x: 5550, y: 2300 }, { x: 9050, y: 6100 }, { x: 8050, y: 6100 }]),
-      createOutdoorSurface("OS-YARD-003", "YARD", "planting", [{ x: 1300, y: 3900 }, { x: 4200, y: 3900 }, { x: 4200, y: 6600 }, { x: 1300, y: 6600 }])
+      { ...createOutdoorSurface("OS-YARD-001", "YARD", "hardscape", [{ x: 1600, y: 1400 }, { x: 4600, y: 1400 }, { x: 4600, y: 3200 }, { x: 1600, y: 3200 }]), name: "石板休闲平台", material: "stone" },
+      { ...createOutdoorSurface("OS-YARD-002", "YARD", "path", [{ x: 4550, y: 2300 }, { x: 5550, y: 2300 }, { x: 9050, y: 6100 }, { x: 8050, y: 6100 }]), name: "鹅卵石步道", material: "pebble" },
+      { ...createOutdoorSurface("OS-YARD-003", "YARD", "planting", [{ x: 1300, y: 3900 }, { x: 4200, y: 3900 }, { x: 4200, y: 6600 }, { x: 1300, y: 6600 }]), name: "边界花境", material: "shrub" }
     ]
   })
 };

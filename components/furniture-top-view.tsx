@@ -9,17 +9,18 @@ type Props = {
   showLabel?: boolean;
   frameless?: boolean;
   imageSrc?: string;
+  stretchToFill?: boolean;
 };
 
-function SymbolShell({ children }: { children: ReactNode }) {
+function SymbolShell({ children, stretchToFill = false }: { children: ReactNode; stretchToFill?: boolean }) {
   return (
-    <svg aria-hidden="true" className="h-full w-full" viewBox="0 0 100 100">
+    <svg aria-hidden="true" className="h-full w-full" preserveAspectRatio={stretchToFill ? "none" : "xMidYMid meet"} viewBox="0 0 100 100">
       {children}
     </svg>
   );
 }
 
-function renderSymbol(type: FurnitureType, color: string) {
+function renderSymbol(type: FurnitureType, color: string, stretchToFill = false) {
   const stroke = "#334155";
   const light = "#f8fafc";
   const glass = "#dbeafe";
@@ -29,7 +30,7 @@ function renderSymbol(type: FurnitureType, color: string) {
   switch (type) {
     case "sofa":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="14" y="26" width="72" height="48" rx="14" fill={color} stroke={stroke} strokeWidth="5" />
           <rect x="20" y="16" width="60" height="20" rx="10" fill={color} stroke={stroke} strokeWidth="4" />
           <line x1="50" y1="24" x2="50" y2="72" stroke={stroke} strokeWidth="3" opacity="0.35" />
@@ -39,7 +40,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "table":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           {[0, 60, 120, 180, 240, 300].map((angle) => (
             <g key={angle} transform={`rotate(${angle} 50 50)`}>
               <rect x="41" y="5" width="18" height="22" rx="8" fill="#d9c4a7" />
@@ -56,7 +57,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "bed":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="18" y="12" width="64" height="78" rx="8" fill={color} stroke={stroke} strokeWidth="5" />
           <rect x="26" y="20" width="48" height="18" rx="5" fill={light} stroke={stroke} strokeWidth="3" />
           <line x1="18" y1="44" x2="82" y2="44" stroke={stroke} strokeWidth="3" opacity="0.45" />
@@ -64,7 +65,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "nightstand":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="22" y="20" width="56" height="60" rx="8" fill={color} stroke={stroke} strokeWidth="5" />
           <line x1="28" y1="42" x2="72" y2="42" stroke={stroke} strokeWidth="3" opacity="0.35" />
           <line x1="28" y1="62" x2="72" y2="62" stroke={stroke} strokeWidth="3" opacity="0.35" />
@@ -73,7 +74,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "island":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="12" y="22" width="76" height="56" rx="10" fill={color} stroke={stroke} strokeWidth="5" />
           <rect x="24" y="32" width="24" height="20" rx="6" fill={glass} stroke={stroke} strokeWidth="3" />
           <circle cx="36" cy="42" r="3" fill={stroke} opacity="0.55" />
@@ -83,7 +84,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "cooktop":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="18" y="20" width="64" height="60" rx="8" fill={dark} stroke={stroke} strokeWidth="5" />
           {[34, 66].map((x) => [38, 62].map((y) => (
             <circle key={`${x}-${y}`} cx={x} cy={y} r="10" fill="none" stroke={light} strokeWidth="4" />
@@ -92,7 +93,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "sink":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="18" y="24" width="64" height="52" rx="8" fill={color} stroke={stroke} strokeWidth="5" />
           <rect x="28" y="34" width="44" height="32" rx="9" fill={glass} stroke={stroke} strokeWidth="4" />
           <circle cx="50" cy="50" r="4" fill={stroke} opacity="0.65" />
@@ -100,7 +101,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "fridge":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="25" y="10" width="50" height="80" rx="6" fill={color} stroke={stroke} strokeWidth="5" />
           <line x1="25" y1="42" x2="75" y2="42" stroke={stroke} strokeWidth="4" />
           <line x1="63" y1="20" x2="63" y2="34" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
@@ -112,8 +113,10 @@ function renderSymbol(type: FurnitureType, color: string) {
     case "entryCabinet":
     case "sideboard":
     case "cabinet":
+    case "snackCabinet":
+    case "kitchenCabinet":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="14" y="16" width="72" height="68" rx="7" fill={color} stroke={stroke} strokeWidth="5" />
           <line x1="50" y1="18" x2="50" y2="82" stroke={stroke} strokeWidth="3" opacity="0.45" />
           <line x1="22" y1="40" x2="78" y2="40" stroke={stroke} strokeWidth="3" opacity="0.28" />
@@ -122,9 +125,34 @@ function renderSymbol(type: FurnitureType, color: string) {
           <circle cx="56" cy="50" r="3" fill={stroke} opacity="0.55" />
         </SymbolShell>
       );
+    case "pegboard":
+      return (
+        <SymbolShell stretchToFill={stretchToFill}>
+          <rect x="14" y="12" width="72" height="76" rx="7" fill={color} stroke={stroke} strokeWidth="5" />
+          {Array.from({ length: 5 }).map((_, row) => Array.from({ length: 5 }).map((__, column) => (
+            <circle key={`${row}-${column}`} cx={26 + column * 12} cy={24 + row * 12} r="2.2" fill={stroke} opacity="0.55" />
+          )))}
+          <path d="M28 72 H48 M58 62 H74" stroke={stroke} strokeWidth="4" strokeLinecap="round" opacity="0.55" />
+        </SymbolShell>
+      );
+    case "bookshelf":
+      return (
+        <SymbolShell stretchToFill={stretchToFill}>
+          <rect x="14" y="12" width="72" height="76" rx="7" fill={color} stroke={stroke} strokeWidth="5" />
+          {[32, 52, 72].map((y) => (
+            <line key={y} x1="18" y1={y} x2="82" y2={y} stroke={stroke} strokeWidth="3" opacity="0.42" />
+          ))}
+          {[32, 50, 68].map((x) => (
+            <line key={x} x1={x} y1="16" x2={x} y2="84" stroke={stroke} strokeWidth="3" opacity="0.28" />
+          ))}
+          <rect x="22" y="19" width="6" height="12" rx="1.5" fill="#f8fafc" opacity="0.8" />
+          <rect x="31" y="19" width="8" height="12" rx="1.5" fill="#94a3b8" opacity="0.8" />
+          <rect x="56" y="55" width="18" height="13" rx="3" fill="#f8fafc" opacity="0.65" />
+        </SymbolShell>
+      );
     case "toilet":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="30" y="12" width="40" height="22" rx="6" fill={light} stroke={stroke} strokeWidth="5" />
           <ellipse cx="50" cy="58" rx="25" ry="31" fill={color} stroke={stroke} strokeWidth="5" />
           <ellipse cx="50" cy="60" rx="12" ry="17" fill={light} stroke={stroke} strokeWidth="3" />
@@ -132,7 +160,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "bathtub":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="12" y="24" width="76" height="52" rx="24" fill={color} stroke={stroke} strokeWidth="5" />
           <rect x="24" y="34" width="52" height="32" rx="16" fill={light} stroke={stroke} strokeWidth="3" opacity="0.88" />
           <circle cx="29" cy="49" r="4" fill={metal} />
@@ -140,7 +168,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "shower":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="18" y="18" width="64" height="64" rx="8" fill={glass} stroke={stroke} strokeWidth="5" />
           <path d="M28 72 L72 28" stroke={stroke} strokeWidth="4" opacity="0.5" />
           <circle cx="64" cy="64" r="5" fill={stroke} opacity="0.55" />
@@ -149,7 +177,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "vanity":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="16" y="34" width="68" height="46" rx="7" fill={color} stroke={stroke} strokeWidth="5" />
           <ellipse cx="50" cy="48" rx="20" ry="10" fill={light} stroke={stroke} strokeWidth="3" />
           <circle cx="50" cy="48" r="3" fill={stroke} opacity="0.5" />
@@ -158,7 +186,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     case "plant":
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <circle cx="50" cy="50" r="18" fill="#8b6f47" stroke={stroke} strokeWidth="4" />
           {[0, 60, 120, 180, 240, 300].map((angle) => (
             <ellipse
@@ -177,7 +205,7 @@ function renderSymbol(type: FurnitureType, color: string) {
       );
     default:
       return (
-        <SymbolShell>
+        <SymbolShell stretchToFill={stretchToFill}>
           <rect x="16" y="20" width="68" height="60" rx="10" fill={color} stroke={stroke} strokeWidth="5" />
           <path d="M28 38 H72 M28 52 H72 M28 66 H56" stroke={stroke} strokeWidth="4" strokeLinecap="round" opacity="0.45" />
         </SymbolShell>
@@ -185,14 +213,18 @@ function renderSymbol(type: FurnitureType, color: string) {
   }
 }
 
-export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false, imageSrc }: Props) {
+export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false, imageSrc, stretchToFill = false }: Props) {
   return (
     <div className={`relative grid place-items-center overflow-hidden rounded-lg ${frameless ? "bg-transparent" : "bg-white"} ${className}`}>
       {imageSrc ? (
-        <img alt={label ?? "家具图片"} className={`${frameless ? "absolute inset-0" : "absolute inset-1"} h-auto max-h-full w-auto max-w-full object-contain`} src={imageSrc} />
+        <img
+          alt={label ?? "家具图片"}
+          className={stretchToFill ? `${frameless ? "absolute inset-0" : "absolute inset-1"} h-full w-full object-fill` : `${frameless ? "absolute inset-0" : "absolute inset-1"} h-auto max-h-full w-auto max-w-full object-contain`}
+          src={imageSrc}
+        />
       ) : (
         <div className={frameless ? "absolute inset-0" : "absolute inset-1"}>
-          {renderSymbol(type, color)}
+          {renderSymbol(type, color, stretchToFill)}
         </div>
       )}
       {showLabel && label && (

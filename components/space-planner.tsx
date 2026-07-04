@@ -12,10 +12,10 @@ import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { initialHouseStructures } from "@/data/mock-house-structure";
 import { initialSemanticObjects } from "@/data/mock-semantic-map";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
-import { createEmptyStructure } from "@/lib/house-geometry";
+import { createEmptyStructure, createOutdoor, getLineLength } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import type { CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseRoom, HouseStructure, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { CabinetDesign, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStructure, HouseWall, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
 type ModelSnapshot = {
@@ -30,7 +30,7 @@ type FloorHistory = {
 
 type RightPanelKey = "floors" | "status" | "modules" | "object" | "semantic";
 
-const WEB_WORKSPACE_SCHEMA_VERSION = 2;
+const WEB_WORKSPACE_SCHEMA_VERSION = 4;
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -51,6 +51,24 @@ const furnitureDimensionFields: Array<["width" | "depth" | "height", string]> = 
   ["depth", "深 cm"],
   ["height", "高 cm"]
 ];
+const outdoorSurfaceMaterials: Array<{ value: HouseOutdoorSurface["material"]; label: string }> = [
+  { value: "pebble", label: "鹅卵石" },
+  { value: "stone", label: "石板" },
+  { value: "wood", label: "木板" },
+  { value: "concrete", label: "水泥地" },
+  { value: "grass", label: "草坪" },
+  { value: "shrub", label: "花境" }
+];
+const protectedYardOutdoors: HouseOutdoor[] = [
+  {
+    ...createOutdoor("OD-1F-NORTH-001", "1F", [{ x: 950, y: -1650 }, { x: 9495, y: -1650 }, { x: 9495, y: 350 }, { x: 950, y: 350 }]),
+    name: "北院 / 入户庭院 · 2m"
+  },
+  {
+    ...createOutdoor("OD-1F-SOUTH-001", "1F", [{ x: 950, y: 7800 }, { x: 9495, y: 7800 }, { x: 9495, y: 11800 }, { x: 950, y: 11800 }]),
+    name: "南院 / 生活庭院 · 4m"
+  }
+];
 const wardrobeCellLabels: Record<WardrobeCellKind, string> = {
   "hanging-long": "长衣",
   "hanging-short": "短衣",
@@ -70,6 +88,117 @@ const wardrobeModuleDefaults: Record<WardrobeCellKind, { width: number; height: 
   blank: { width: 22, height: 18, minWidth: 12, minHeight: 10 }
 };
 
+function clampPercent(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function normalizeWardrobeColumnWidths(widths: number[] | undefined, columns: number) {
+  const minWidth = 10;
+  const rawWidths = widths?.length === columns ? widths : Array.from({ length: columns }).map(() => 100 / columns);
+  const clampedWidths = rawWidths.map((width) => Math.max(minWidth, Number.isFinite(width) ? width : 100 / columns));
+  const total = clampedWidths.reduce((sum, width) => sum + width, 0) || 100;
+  return clampedWidths.map((width) => Number(((width / total) * 100).toFixed(2)));
+}
+
+function normalizeWardrobePartHeights(heights: number[] | undefined, count: number) {
+  const safeCount = Math.max(1, count);
+  const minHeight = 6;
+  const rawHeights = heights?.length === safeCount ? heights : Array.from({ length: safeCount }).map(() => 100 / safeCount);
+  const clampedHeights = rawHeights.map((height) => Math.max(minHeight, Number.isFinite(height) ? height : 100 / safeCount));
+  const total = clampedHeights.reduce((sum, height) => sum + height, 0) || 100;
+  return clampedHeights.map((height) => Number(((height / total) * 100).toFixed(2)));
+}
+
+function setWardrobePartHeight(heights: number[] | undefined, index: number, value: number, count: number) {
+  const minHeight = 6;
+  const current = normalizeWardrobePartHeights(heights, count);
+  const next = [...current];
+  const targetIndex = Math.min(next.length - 1, Math.max(0, index));
+  const desired = Math.min(100 - minHeight * (next.length - 1), Math.max(minHeight, Number(value) || minHeight));
+  const diff = desired - next[targetIndex];
+  next[targetIndex] = desired;
+  const otherIndexes = next.map((_, partIndex) => partIndex).filter((partIndex) => partIndex !== targetIndex);
+
+  if (diff > 0) {
+    let remaining = diff;
+    const surplusTotal = otherIndexes.reduce((sum, partIndex) => sum + Math.max(0, next[partIndex] - minHeight), 0);
+    otherIndexes.forEach((partIndex, order) => {
+      const isLast = order === otherIndexes.length - 1;
+      const available = Math.max(0, next[partIndex] - minHeight);
+      const share = isLast ? remaining : surplusTotal ? diff * (available / surplusTotal) : remaining / (otherIndexes.length - order);
+      const reduction = Math.min(available, share);
+      next[partIndex] -= reduction;
+      remaining -= reduction;
+    });
+  } else if (diff < 0) {
+    const increase = Math.abs(diff);
+    otherIndexes.forEach((partIndex) => {
+      next[partIndex] += increase / otherIndexes.length;
+    });
+  }
+
+  return normalizeWardrobePartHeights(next, count);
+}
+
+function getCumulativePercents(parts: number[]) {
+  let cursor = 0;
+  return parts.slice(0, -1).map((part) => {
+    cursor += part;
+    return cursor;
+  });
+}
+
+function getWardrobeColumnMetrics(widths: number[]) {
+  let cursor = 0;
+  return widths.map((width, index) => {
+    const metric = { index, x: cursor, width };
+    cursor += width;
+    return metric;
+  });
+}
+
+function getWardrobeModuleLayout(module: NonNullable<WardrobeDesign["modules"]>[number], columnWidths: number[]) {
+  if (typeof module.column !== "number") {
+    return { x: module.x, y: module.y, width: module.width, height: module.height };
+  }
+  const columns = getWardrobeColumnMetrics(columnWidths);
+  const column = Math.min(columns.length - 1, Math.max(0, Math.round(module.column)));
+  const span = Math.min(columns.length - column, Math.max(1, Math.round(module.columnSpan ?? 1)));
+  const x = columns[column]?.x ?? module.x;
+  const width = columns.slice(column, column + span).reduce((sum, item) => sum + item.width, 0);
+  return { x, y: module.y, width, height: module.height };
+}
+
+function createRecommendedWardrobeDesign(dimensions: Furniture["dimensions"]): WardrobeDesign {
+  const height = Math.max(180, dimensions.height || 240);
+  const width = Math.max(160, dimensions.width || 300);
+  const topHeight = clampPercent((42 / height) * 100, 15, 22);
+  const drawerHeight = clampPercent((54 / height) * 100, 16, 24);
+  const shoeHeight = clampPercent((34 / height) * 100, 12, 18);
+  const leftWidth = width >= 320 ? 32 : width >= 260 ? 34 : 38;
+  const middleWidth = width >= 260 ? 34 : 32;
+  const rightWidth = Math.max(22, 100 - leftWidth - middleWidth);
+  const lowerY = topHeight;
+  const lowerHeight = 100 - topHeight;
+  const columnWidths = normalizeWardrobeColumnWidths([leftWidth, middleWidth, rightWidth], 3);
+  const modules: NonNullable<WardrobeDesign["modules"]> = [
+    { id: "recommended-seasonal", kind: "open", label: "顶部换季区", column: 0, columnSpan: 3, x: 0, y: 0, width: 100, height: topHeight },
+    { id: "recommended-long", kind: "hanging-long", label: "长衣区", column: 0, columnSpan: 1, x: 0, y: lowerY, width: columnWidths[0], height: lowerHeight },
+    { id: "recommended-short", kind: "hanging-short", label: "短衣区", column: 1, columnSpan: 1, x: columnWidths[0], y: lowerY, width: columnWidths[1], height: lowerHeight - drawerHeight },
+    { id: "recommended-drawer", kind: "drawer", label: "抽屉区", column: 1, columnSpan: 1, drawerRows: 3, drawerColumns: 1, drawerRowHeights: normalizeWardrobePartHeights(undefined, 3), x: columnWidths[0], y: 100 - drawerHeight, width: columnWidths[1], height: drawerHeight },
+    { id: "recommended-folded", kind: "folded", label: "叠放区", column: 2, columnSpan: 1, shelfCount: 4, shelfLayerHeights: normalizeWardrobePartHeights(undefined, 5), x: columnWidths[0] + columnWidths[1], y: lowerY, width: columnWidths[2], height: lowerHeight - shoeHeight },
+    { id: "recommended-shoe", kind: "shoe", label: "鞋包区", column: 2, columnSpan: 1, x: columnWidths[0] + columnWidths[1], y: 100 - shoeHeight, width: columnWidths[2], height: shoeHeight }
+  ];
+  return {
+    columns: 3,
+    rows: 4,
+    cells: createWardrobeCells(3, 4),
+    modules,
+    columnWidths,
+    notes: "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
+  };
+}
+
 function createWardrobeCells(columns: number, rows: number, existing: WardrobeDesign["cells"] = []): WardrobeDesign["cells"] {
   return Array.from({ length: columns * rows }).map((_, index) => {
     const column = index % columns;
@@ -83,6 +212,23 @@ function createWardrobeCells(columns: number, rows: number, existing: WardrobeDe
       kind
     };
   });
+}
+
+function normalizeWardrobeModuleDetails(module: NonNullable<WardrobeDesign["modules"]>[number], columns = 3): NonNullable<WardrobeDesign["modules"]>[number] {
+  const inferredColumn = Math.min(columns - 1, Math.max(0, Math.floor(((module.x ?? 0) / 100) * columns)));
+  const inferredSpan = module.width >= 90 ? columns - inferredColumn : Math.max(1, Math.round(((module.width ?? (100 / columns)) / 100) * columns));
+  const column = typeof module.column === "number" ? Math.min(columns - 1, Math.max(0, Math.round(module.column))) : inferredColumn;
+  const columnSpan = Math.min(columns - column, Math.max(1, Math.round(module.columnSpan ?? inferredSpan)));
+  return {
+    ...module,
+    column,
+    columnSpan,
+    drawerRows: module.kind === "drawer" ? Math.min(8, Math.max(1, Math.round(module.drawerRows ?? 3))) : undefined,
+    drawerColumns: module.kind === "drawer" ? Math.min(4, Math.max(1, Math.round(module.drawerColumns ?? 1))) : undefined,
+    drawerRowHeights: module.kind === "drawer" ? normalizeWardrobePartHeights(module.drawerRowHeights, Math.min(8, Math.max(1, Math.round(module.drawerRows ?? 3)))) : undefined,
+    shelfCount: module.kind === "folded" ? Math.min(8, Math.max(1, Math.round(module.shelfCount ?? 4))) : undefined,
+    shelfLayerHeights: module.kind === "folded" ? normalizeWardrobePartHeights(module.shelfLayerHeights, Math.min(8, Math.max(1, Math.round(module.shelfCount ?? 4))) + 1) : undefined
+  };
 }
 
 function normalizeWardrobeDesign(design?: WardrobeDesign): WardrobeDesign {
@@ -100,6 +246,13 @@ function normalizeWardrobeDesign(design?: WardrobeDesign): WardrobeDesign {
   const legacyModules = baseCells.map((cell) => ({
     id: `module-${cell.column}-${cell.row}`,
     kind: cell.kind,
+    column: cell.column,
+    columnSpan: 1,
+    drawerRows: cell.kind === "drawer" ? 3 : undefined,
+    drawerColumns: cell.kind === "drawer" ? 1 : undefined,
+    drawerRowHeights: cell.kind === "drawer" ? normalizeWardrobePartHeights(undefined, 3) : undefined,
+    shelfCount: cell.kind === "folded" ? 4 : undefined,
+    shelfLayerHeights: cell.kind === "folded" ? normalizeWardrobePartHeights(undefined, 5) : undefined,
     x: Math.round((cell.column / columns) * 100),
     y: Math.round((cell.row / rows) * 100),
     width: Math.round(100 / columns),
@@ -109,7 +262,8 @@ function normalizeWardrobeDesign(design?: WardrobeDesign): WardrobeDesign {
     columns,
     rows,
     cells: createWardrobeCells(columns, rows, baseCells),
-    modules: design?.modules?.length ? design.modules : legacyModules,
+    modules: (design?.modules?.length ? design.modules : legacyModules).map((module) => normalizeWardrobeModuleDetails(module, columns)),
+    columnWidths: normalizeWardrobeColumnWidths(design?.columnWidths, columns),
     notes: design?.notes ?? "预留长衣区、短衣区和可调层板，深化时按实际衣物数量调整。"
   };
 }
@@ -118,11 +272,61 @@ const defaultWardrobeDesign: WardrobeDesign = {
   columns: 3,
   rows: 4,
   cells: createWardrobeCells(3, 4),
+  modules: createRecommendedWardrobeDesign({ width: 300, depth: 60, height: 240, unit: "cm" }).modules,
+  columnWidths: createRecommendedWardrobeDesign({ width: 300, depth: 60, height: 240, unit: "cm" }).columnWidths,
   notes: "预留长衣区、短衣区和可调层板，深化时按实际衣物数量调整。"
 };
 
+function cloneCabinetDesign(design: CabinetDesign | undefined): CabinetDesign | undefined {
+  if (!design) return undefined;
+  return {
+    ...design,
+    layoutNotes: [...design.layoutNotes],
+    cautionNotes: [...design.cautionNotes],
+    zones: design.zones.map((zone) => ({ ...zone }))
+  };
+}
+
+function isHouseWallObject(object: unknown): object is HouseWall {
+  if (!object || typeof object !== "object") return false;
+  const candidate = object as Partial<HouseWall>;
+  return candidate.kind === "straight" || candidate.kind === "arc";
+}
+
+function resizeHouseWallToLength(wall: HouseWall, nextLengthValue: number): HouseWall {
+  const nextLength = Math.max(100, Math.round(nextLengthValue) || 100);
+  if (wall.kind === "arc") {
+    const angle = Math.max(1, Math.abs(wall.endAngle - wall.startAngle));
+    const radius = Math.max(100, Math.round((nextLength * 180) / (Math.PI * angle)));
+    return {
+      ...wall,
+      radius,
+      length: Math.round((angle * Math.PI * radius) / 180)
+    };
+  }
+
+  const currentLength = Math.max(1, getLineLength(wall.start, wall.end));
+  const ux = (wall.end.x - wall.start.x) / currentLength;
+  const uy = (wall.end.y - wall.start.y) / currentLength;
+  const end = {
+    x: Math.round(wall.start.x + ux * nextLength),
+    y: Math.round(wall.start.y + uy * nextLength)
+  };
+  return {
+    ...wall,
+    end,
+    length: getLineLength(wall.start, end)
+  };
+}
+
 function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
   return furnitureItems.map((item) => {
+    if ((item.type === "wardrobe" || item.moduleType === "wardrobe") && !item.wardrobeDesign?.modules?.length) {
+      return {
+        ...item,
+        wardrobeDesign: createRecommendedWardrobeDesign(item.dimensions)
+      };
+    }
     const looksLikeOldRoundTable = item.type === "table" && item.dimensions.width <= 160 && item.dimensions.depth <= 160;
     if (!looksLikeOldRoundTable) return item;
     return {
@@ -138,6 +342,83 @@ function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
       note: item.note.includes("通道") || item.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : item.note
     };
   });
+}
+
+function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, HouseStructure>, options: { resetOneFloorYardSurfaces?: boolean } = {}) {
+  const defaultSurfaceById = new Map(Object.values(initialHouseStructures).flatMap((structure) => structure.outdoorSurfaces.map((surface) => [surface.id, surface] as const)));
+  const legacySurfaceNames = new Set(["北院入户硬地", "北院引导小路", "北院绿化带", "南院会客平台", "南院草坪", "南院步道", "Hardscape 001", "Path 002", "Planting 003"]);
+  return Object.fromEntries(Object.entries(structuresByFloor).map(([floorId, structure]) => [
+    floorId,
+    {
+      ...structure,
+      outdoorSurfaces: floorId === "1F" && options.resetOneFloorYardSurfaces ? [] : [
+        ...structure.outdoorSurfaces.map((surface) => {
+          const defaultSurface = defaultSurfaceById.get(surface.id);
+          const isLegacySurface = legacySurfaceNames.has(surface.name) || (surface.surfaceType === "path" && surface.material === "gravel");
+          if (!defaultSurface || !isLegacySurface) {
+            return surface.surfaceType === "path" && surface.material === "gravel" ? { ...surface, material: "pebble" as const } : surface;
+          }
+          return {
+            ...surface,
+            name: defaultSurface.name,
+            surfaceType: defaultSurface.surfaceType,
+            polygon: defaultSurface.polygon,
+            area: defaultSurface.area,
+            material: defaultSurface.material
+          };
+        }),
+        ...(floorId === "1F" && structure.outdoorSurfaces.some((surface) => legacySurfaceNames.has(surface.name)) && !structure.outdoorSurfaces.some((surface) => surface.id === "OS-1F-SOUTH-004")
+          ? [defaultSurfaceById.get("OS-1F-SOUTH-004")].filter(Boolean) as HouseOutdoorSurface[]
+          : [])
+      ],
+      outdoors: floorId === "1F"
+        ? [
+          ...protectedYardOutdoors,
+          ...structure.outdoors.filter((outdoor) => !protectedYardOutdoors.some((protectedOutdoor) => protectedOutdoor.id === outdoor.id))
+        ]
+        : structure.outdoors
+    }
+  ])) as Record<FloorId, HouseStructure>;
+}
+
+function normalizeSemanticDefaults(objects: SemanticObject[]) {
+  const hasEntryZone = objects.some((object) => object.id === "Z-1F-ENTRY");
+  const nextObjects = objects.map((object) => {
+    if (object.id === "R-1F-001" && object.name === "1F 客餐厅") {
+      return {
+        ...object,
+        name: "1F 公共区",
+        notes: "一层主要公共空间，具体功能区以玄关、客厅、厨房、卫生间等标签为准。"
+      };
+    }
+    if (object.id === "Z-1F-001" && (object.name === "1F 餐厨区" || object.name === "餐厨区")) {
+      return {
+        ...object,
+        name: "1F 客厅",
+        type: "living",
+        notes: "六人圆餐桌所在的客厅活动区。",
+        position: { x: 72, y: 54 }
+      };
+    }
+    return object;
+  });
+  if (hasEntryZone) return nextObjects;
+  return [
+    ...nextObjects,
+    {
+      id: "Z-1F-ENTRY",
+      name: "1F 玄关",
+      floorId: "1F",
+      category: "Zone",
+      type: "entry",
+      notes: "厨房左侧的入户/玄关过渡空间。",
+      position: { x: 45, y: 28 },
+      details: {
+        roomId: "ROOM-1F-001",
+        boundary: [{ x: 36, y: 18 }, { x: 54, y: 18 }, { x: 54, y: 42 }, { x: 36, y: 42 }]
+      }
+    } satisfies SemanticObject
+  ];
 }
 
 type PersistedWebWorkspace = {
@@ -157,12 +438,25 @@ function getDefaultRoomNumber(floorId: FloorId, index: number) {
   return `R-${floorId}-${String(index + 1).padStart(3, "0")}`;
 }
 
+const defaultRoomNameOverrides: Partial<Record<FloorId, Record<string, string>>> = {
+  "1F": {
+    "ROOM-1F-001": "玄关",
+    "ROOM-1F-002": "厨房",
+    "ROOM-1F-003": "卫生间",
+    "ROOM-1F-004": "卧室"
+  }
+};
+
 function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseRoom {
+  const overrideName = defaultRoomNameOverrides[floorId]?.[room.id];
+  const defaultName = `${floorId} 房间 ${index + 1}`;
+  const canApplyOverride = Boolean(overrideName) && (!room.name || room.name === defaultName || /^1F 房间 [1-4]$/.test(room.name));
+  const nextName = canApplyOverride && overrideName ? overrideName : room.name || defaultName;
   return {
     ...room,
     floorId,
     roomNumber: room.roomNumber || getDefaultRoomNumber(floorId, index),
-    name: room.name || `${floorId} 房间 ${index + 1}`,
+    name: nextName,
     boundary: room.boundary ?? [],
     sourceWallIds: room.sourceWallIds ?? []
   };
@@ -281,19 +575,21 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [selectedFloorId, setSelectedFloorId] = useState<FloorId>("1F");
   const [furniture, setFurniture] = useState<Furniture[]>(() => normalizeFurnitureDefaults(data.furniture));
   const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture[0]?.id ?? "");
-  const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(initialSemanticObjects);
-  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(initialSemanticObjects.find((object) => object.floorId === "1F")?.id ?? "");
+  const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => normalizeSemanticDefaults(initialSemanticObjects));
+  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(normalizeSemanticDefaults(initialSemanticObjects).find((object) => object.floorId === "1F")?.id ?? "");
   const [viewMode, setViewMode] = useState<ViewMode>("2d");
   const [plannerMode, setPlannerMode] = useState<PlannerMode>("edit");
   const [drawTool, setDrawTool] = useState<DrawTool>("select");
   const [floorPlanScale, setFloorPlanScale] = useState(1);
   const [visualSettingsByFloor, setVisualSettingsByFloor] = useState<Record<FloorId, FloorPlanVisualSettings>>(initialVisualSettings);
   const [cleanPatchesByFloor, setCleanPatchesByFloor] = useState<Record<FloorId, CleanPatch[]>>(initialCleanPatches);
-  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(initialHouseStructures);
+  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(() => normalizeOutdoorSurfaceDefaults(initialHouseStructures, { resetOneFloorYardSurfaces: true }));
   const [wallSyncOverrides, setWallSyncOverrides] = useState<WallSyncOverrides>({});
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
   const [furnitureImmersiveMode, setFurnitureImmersiveMode] = useState(false);
+  const [yardImmersiveMode, setYardImmersiveMode] = useState(false);
+  const [yardFocus, setYardFocus] = useState<"north" | "south">("south");
   const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
   const [command, setCommand] = useState("");
   const [activeObjectId, setActiveObjectId] = useState("");
@@ -323,11 +619,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const suppressHistoryRef = useRef(false);
   const suppressDirtyStatusRef = useRef(true);
   const latestWorkspaceRef = useRef<PersistedWebWorkspace | null>(null);
+  const wardrobeCanvasRef = useRef<HTMLDivElement | null>(null);
   const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
     Object.fromEntries(data.floors.map((floor) => [
       floor.id,
       {
-        structure: initialHouseStructures[floor.id] ?? createEmptyStructure(floor.id),
+        structure: normalizeOutdoorSurfaceDefaults(initialHouseStructures, { resetOneFloorYardSurfaces: true })[floor.id] ?? createEmptyStructure(floor.id),
         furniture: data.furniture.filter((item) => item.floorId === floor.id)
       }
     ])) as Partial<Record<FloorId, ModelSnapshot>>
@@ -371,9 +668,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
   const wardrobeDesignFurniture = floorFurniture.find((item) => item.id === wardrobeDesignFurnitureId) ?? null;
   const wardrobeDesign = normalizeWardrobeDesign(wardrobeDesignFurniture?.wardrobeDesign);
+  const wardrobeColumnWidths = wardrobeDesign.columnWidths ?? normalizeWardrobeColumnWidths(undefined, wardrobeDesign.columns);
+  const wardrobeColumnMetrics = getWardrobeColumnMetrics(wardrobeColumnWidths);
   const activeRoomObject = activeStructureObject && "spaceType" in activeStructureObject && activeStructureObject.spaceType === "Room"
     ? activeStructureObject
     : null;
+  const activeWallObject = isHouseWallObject(activeStructureObject) ? activeStructureObject : null;
   const floorStructureRooms = useMemo(
     () => [...floorHouseStructure.rooms].sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true })),
     [floorHouseStructure.rooms]
@@ -382,6 +682,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     category,
     items: interiorModuleCatalog.filter((item) => item.category === category)
   })), []);
+  const visibleModuleCatalogGroups = useMemo(() => {
+    if (!yardImmersiveMode) return moduleCatalogGroups;
+    return moduleCatalogGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.category === "decor" || item.moduleType === "plant")
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [moduleCatalogGroups, yardImmersiveMode]);
   const floorFurnitureByCategory = useMemo(() => (
     moduleCategoryOrder.reduce((countsByCategory, category) => {
       countsByCategory[category] = floorFurniture.filter((item) => item.moduleCategory === category).length;
@@ -417,10 +726,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         return;
       }
 
-      const nextStructures = data.floors.reduce((structuresByFloor, floor) => {
+      const loadedStructures = data.floors.reduce((structuresByFloor, floor) => {
         structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, parsed.houseStructuresByFloor?.[floor.id], initialHouseStructures[floor.id]);
         return structuresByFloor;
       }, {} as Record<FloorId, HouseStructure>);
+      const nextStructures = normalizeOutdoorSurfaceDefaults(loadedStructures, { resetOneFloorYardSurfaces: (parsed.schemaVersion ?? 0) < WEB_WORKSPACE_SCHEMA_VERSION });
       const nextSelectedFloorId = parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
         ? parsed.selectedFloorId
         : selectedFloorId;
@@ -428,7 +738,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       setSelectedFloorId(nextSelectedFloorId);
       const nextFurniture = normalizeFurnitureDefaults(parsed.furniture ?? data.furniture);
       setFurniture(nextFurniture);
-      setSemanticObjects(parsed.semanticObjects ?? initialSemanticObjects);
+      const nextSemanticObjects = normalizeSemanticDefaults(parsed.semanticObjects ?? initialSemanticObjects);
+      setSemanticObjects(nextSemanticObjects);
       setVisualSettingsByFloor(parsed.visualSettingsByFloor ?? initialVisualSettings);
       setCleanPatchesByFloor(parsed.cleanPatchesByFloor ?? initialCleanPatches);
       setWallSyncOverrides(parsed.wallSyncOverrides ?? {});
@@ -441,7 +752,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         }
       ])) as Partial<Record<FloorId, ModelSnapshot>>;
       setSelectedFurnitureId(nextFurniture.find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
-      setSelectedSemanticObjectId((parsed.semanticObjects ?? initialSemanticObjects).find((object) => object.floorId === nextSelectedFloorId)?.id ?? "");
+      setSelectedSemanticObjectId(nextSemanticObjects.find((object) => object.floorId === nextSelectedFloorId)?.id ?? "");
       setHasLoadedWebWorkspace(true);
       setWebSaveStatus("saved");
     } catch {
@@ -544,10 +855,35 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setLocateObjectRequest(null);
   }
 
-  function handleFocusYard(yard: "north" | "south") {
+  function enterYardImmersive(yard?: "north" | "south") {
+    const nextYard = yard ?? "south";
+    setFocusMode(false);
+    setFurnitureImmersiveMode(false);
+    setYardImmersiveMode(true);
+    setYardFocus(nextYard);
     setSelectedFloorId("1F");
     setSelectedFurnitureId("");
     setSelectedSemanticObjectId("");
+    setPlannerMode("edit");
+    setDrawTool("select");
+    setOpenModuleCategories((current) => ({ ...current, decor: true }));
+    if (nextYard) {
+      const objectId = nextYard === "north" ? "OD-1F-NORTH-001" : "OD-1F-SOUTH-001";
+      setActiveObjectId(objectId);
+      setLocateObjectRequest({ id: objectId, nonce: Date.now() });
+      return;
+    }
+    setActiveObjectId("");
+  }
+
+  function handleFocusYard(yard: "north" | "south") {
+    setYardFocus(yard);
+    setSelectedFloorId("1F");
+    setSelectedFurnitureId("");
+    setSelectedSemanticObjectId("");
+    setFocusMode(false);
+    setFurnitureImmersiveMode(false);
+    setYardImmersiveMode(true);
     setDrawTool("select");
     setPlannerMode("edit");
     const objectId = yard === "north" ? "OD-1F-NORTH-001" : "OD-1F-SOUTH-001";
@@ -573,6 +909,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         cooktop: ["灶", "灶台"],
         sink: ["水槽", "洗菜盆"],
         fridge: ["冰箱"],
+        kitchenCabinet: ["橱柜", "厨房柜", "一字型橱柜"],
+        snackCabinet: ["零食柜", "零食", "囤货柜"],
+        pegboard: ["洞洞板", "挂板", "工具墙"],
+        bookshelf: ["书架", "书柜"],
         wardrobe: ["衣柜"],
         entryCabinet: ["玄关柜", "鞋柜"],
         sideboard: ["餐边柜"],
@@ -987,7 +1327,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       constructionNote: item.note,
       serviceRequirements: { ...item.serviceRequirements },
       position: { ...position, rotation: 0 },
-      color: item.color
+      color: item.color,
+      wardrobeDesign: item.moduleType === "wardrobe" ? createRecommendedWardrobeDesign(item.dimensions) : undefined,
+      cabinetDesign: cloneCabinetDesign(item.cabinetDesign)
     };
 
     handleFloorFurnitureChange([...floorFurniture, nextModule]);
@@ -1117,10 +1459,26 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     handleFloorFurnitureChange(floorFurniture.map((item) => item.id === wardrobeDesignFurniture.id ? { ...item, dimensions: nextDimensions } : item));
   }
 
+  function generateRecommendedWardrobe() {
+    if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
+    const recommendedDesign = createRecommendedWardrobeDesign(wardrobeDesignFurniture.dimensions);
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === wardrobeDesignFurniture.id ? { ...item, wardrobeDesign: recommendedDesign } : item));
+    setValidatorRepairLog(["已按当前柜体尺寸生成推荐衣柜，可继续微调模块。"]);
+  }
+
   function resizeWardrobeGrid(field: "columns" | "rows", value: number) {
     const max = field === "columns" ? 6 : 8;
     const nextValue = Math.min(max, Math.max(1, Math.round(value) || 1));
-    updateWardrobeDesign({ [field]: nextValue } as Partial<WardrobeDesign>);
+    const nextPatch: Partial<WardrobeDesign> = { [field]: nextValue } as Partial<WardrobeDesign>;
+    if (field === "columns") {
+      nextPatch.columnWidths = normalizeWardrobeColumnWidths(undefined, nextValue);
+      nextPatch.modules = (wardrobeDesign.modules ?? []).map((module) => ({
+        ...module,
+        column: typeof module.column === "number" ? Math.min(nextValue - 1, module.column) : module.column,
+        columnSpan: typeof module.column === "number" ? Math.min(nextValue - Math.min(nextValue - 1, module.column), module.columnSpan ?? 1) : module.columnSpan
+      }));
+    }
+    updateWardrobeDesign(nextPatch);
   }
 
   function updateWardrobeCell(column: number, row: number, kind: WardrobeCellKind) {
@@ -1131,10 +1489,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   function wardrobeModulesOverlap(left: NonNullable<WardrobeDesign["modules"]>[number], right: NonNullable<WardrobeDesign["modules"]>[number]) {
     if (left.kind === "blank" || right.kind === "blank") return false;
-    return left.x < right.x + right.width &&
-      left.x + left.width > right.x &&
-      left.y < right.y + right.height &&
-      left.y + left.height > right.y;
+    const leftLayout = getWardrobeModuleLayout(left, wardrobeColumnWidths);
+    const rightLayout = getWardrobeModuleLayout(right, wardrobeColumnWidths);
+    return leftLayout.x < rightLayout.x + rightLayout.width &&
+      leftLayout.x + leftLayout.width > rightLayout.x &&
+      leftLayout.y < rightLayout.y + rightLayout.height &&
+      leftLayout.y + leftLayout.height > rightLayout.y;
   }
 
   function hasWardrobeModuleConflict(candidate: NonNullable<WardrobeDesign["modules"]>[number], modules: NonNullable<WardrobeDesign["modules"]>) {
@@ -1144,12 +1504,28 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   function getClampedWardrobeModule(module: NonNullable<WardrobeDesign["modules"]>[number], patch: Partial<NonNullable<WardrobeDesign["modules"]>[number]>) {
     const nextKind = patch.kind ?? module.kind;
     const limits = wardrobeModuleDefaults[nextKind];
+    const nextColumn = typeof patch.column === "number" ? Math.min(wardrobeDesign.columns - 1, Math.max(0, Math.round(patch.column))) : module.column;
+    const nextColumnSpan = typeof nextColumn === "number"
+      ? Math.min(wardrobeDesign.columns - nextColumn, Math.max(1, Math.round(patch.columnSpan ?? module.columnSpan ?? 1)))
+      : undefined;
     const nextWidth = Math.min(100, Math.max(limits.minWidth, Math.round(patch.width ?? module.width)));
     const nextHeight = Math.min(100, Math.max(limits.minHeight, Math.round(patch.height ?? module.height)));
+    const drawerRows = nextKind === "drawer" ? Math.min(8, Math.max(1, Math.round(patch.drawerRows ?? module.drawerRows ?? 3))) : undefined;
+    const drawerColumns = nextKind === "drawer" ? Math.min(4, Math.max(1, Math.round(patch.drawerColumns ?? module.drawerColumns ?? 1))) : undefined;
+    const shelfCount = nextKind === "folded" ? Math.min(8, Math.max(1, Math.round(patch.shelfCount ?? module.shelfCount ?? 4))) : undefined;
+    const drawerRowHeights = nextKind === "drawer" ? normalizeWardrobePartHeights(patch.drawerRowHeights ?? module.drawerRowHeights, drawerRows ?? 3) : undefined;
+    const shelfLayerHeights = nextKind === "folded" ? normalizeWardrobePartHeights(patch.shelfLayerHeights ?? module.shelfLayerHeights, (shelfCount ?? 4) + 1) : undefined;
     return {
       ...module,
       ...patch,
       kind: nextKind,
+      column: nextColumn,
+      columnSpan: nextColumnSpan,
+      drawerRows,
+      drawerColumns,
+      shelfCount,
+      drawerRowHeights,
+      shelfLayerHeights,
       width: nextWidth,
       height: nextHeight,
       x: Math.min(100 - nextWidth, Math.max(0, Math.round(patch.x ?? module.x))),
@@ -1157,14 +1533,111 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     };
   }
 
+  function updateWardrobeColumnWidth(dividerIndex: number, clientX: number) {
+    const rect = wardrobeCanvasRef.current?.getBoundingClientRect();
+    if (!rect || wardrobeDesignFurniture?.locked) return;
+    const before = wardrobeColumnWidths.slice(0, dividerIndex).reduce((sum, width) => sum + width, 0);
+    const after = wardrobeColumnWidths.slice(0, dividerIndex + 2).reduce((sum, width) => sum + width, 0);
+    const pointerPercent = Math.min(after - 10, Math.max(before + 10, ((clientX - rect.left) / rect.width) * 100));
+    const nextWidths = [...wardrobeColumnWidths];
+    nextWidths[dividerIndex] = Number((pointerPercent - before).toFixed(2));
+    nextWidths[dividerIndex + 1] = Number((after - pointerPercent).toFixed(2));
+    updateWardrobeDesign({ columnWidths: nextWidths });
+  }
+
+  function addWardrobeColumn() {
+    if (wardrobeDesignFurniture?.locked || wardrobeDesign.columns >= 6) return;
+    const nextColumns = wardrobeDesign.columns + 1;
+    updateWardrobeDesign({
+      columns: nextColumns,
+      columnWidths: normalizeWardrobeColumnWidths(undefined, nextColumns),
+      modules: (wardrobeDesign.modules ?? []).map((module) => ({
+        ...module,
+        columnSpan: typeof module.column === "number" ? Math.min(nextColumns - module.column, module.columnSpan ?? 1) : module.columnSpan
+      }))
+    });
+  }
+
+  function removeWardrobeColumn() {
+    if (wardrobeDesignFurniture?.locked || wardrobeDesign.columns <= 1) return;
+    const nextColumns = wardrobeDesign.columns - 1;
+    updateWardrobeDesign({
+      columns: nextColumns,
+      columnWidths: normalizeWardrobeColumnWidths(undefined, nextColumns),
+      modules: (wardrobeDesign.modules ?? []).map((module) => ({
+        ...module,
+        column: typeof module.column === "number" ? Math.min(nextColumns - 1, module.column) : module.column,
+        columnSpan: typeof module.column === "number" ? Math.min(nextColumns - Math.min(nextColumns - 1, module.column), module.columnSpan ?? 1) : module.columnSpan
+      }))
+    });
+  }
+
+  function resizeWardrobeModuleBottom(moduleId: string, clientY: number) {
+    const rect = wardrobeCanvasRef.current?.getBoundingClientRect();
+    if (!rect || wardrobeDesignFurniture?.locked) return;
+    const modules = wardrobeDesign.modules ?? [];
+    const target = modules.find((module) => module.id === moduleId);
+    if (!target) return;
+    const targetLayout = getWardrobeModuleLayout(target, wardrobeColumnWidths);
+    const limits = wardrobeModuleDefaults[target.kind];
+    const horizontallyTouchesTarget = (module: NonNullable<WardrobeDesign["modules"]>[number]) => {
+      const layout = getWardrobeModuleLayout(module, wardrobeColumnWidths);
+      return layout.x < targetLayout.x + targetLayout.width - 0.5 && layout.x + layout.width > targetLayout.x + 0.5;
+    };
+    const oldBottom = target.y + target.height;
+    const neighbors = modules.filter((module) => module.id !== target.id && horizontallyTouchesTarget(module) && Math.abs(module.y - oldBottom) <= 2);
+    const lowerLimit = neighbors.length
+      ? Math.min(...neighbors.map((module) => module.y + module.height - wardrobeModuleDefaults[module.kind].minHeight))
+      : 100;
+    const pointerPercent = ((clientY - rect.top) / rect.height) * 100;
+    const nextBottom = Math.min(lowerLimit, Math.max(target.y + limits.minHeight, pointerPercent));
+    const nextModules = modules.map((module) => {
+      if (module.id === target.id) {
+        return getClampedWardrobeModule(module, { height: Number((nextBottom - target.y).toFixed(2)) });
+      }
+      const neighbor = neighbors.find((item) => item.id === module.id);
+      if (neighbor) {
+        const neighborBottom = neighbor.y + neighbor.height;
+        return getClampedWardrobeModule(module, {
+          y: Number(nextBottom.toFixed(2)),
+          height: Number((neighborBottom - nextBottom).toFixed(2))
+        });
+      }
+      return module;
+    });
+    updateWardrobeDesign({ modules: nextModules });
+  }
+
+  function updateWardrobeModulePartHeight(moduleId: string, field: "drawerRowHeights" | "shelfLayerHeights", index: number, value: number) {
+    const module = (wardrobeDesign.modules ?? []).find((item) => item.id === moduleId);
+    if (!module) return;
+    const count = field === "drawerRowHeights"
+      ? Math.min(8, Math.max(1, module.drawerRows ?? 3))
+      : Math.min(8, Math.max(1, module.shelfCount ?? 4)) + 1;
+    updateWardrobeModule(moduleId, {
+      [field]: setWardrobePartHeight(module[field], index, value, count)
+    } as Partial<typeof module>);
+  }
+
+  function updateWardrobeShelfCount(moduleId: string, value: number) {
+    const module = (wardrobeDesign.modules ?? []).find((item) => item.id === moduleId);
+    if (!module || module.kind !== "folded") return;
+    const nextShelfCount = Math.min(8, Math.max(1, Math.round(value) || 1));
+    updateWardrobeModule(moduleId, {
+      shelfCount: nextShelfCount,
+      shelfLayerHeights: normalizeWardrobePartHeights(undefined, nextShelfCount + 1)
+    });
+  }
+
   function updateWardrobeModule(moduleId: string, patch: Partial<NonNullable<WardrobeDesign["modules"]>[number]>) {
     const modules = wardrobeDesign.modules ?? [];
+    const changesLayout = ["kind", "column", "columnSpan", "x", "y", "width", "height"].some((field) => field in patch);
     let blockedByOverlap = false;
     updateWardrobeDesign({
       modules: modules.map((module) => {
         if (module.id !== moduleId) return module;
         const candidate = getClampedWardrobeModule(module, patch);
-        if (hasWardrobeModuleConflict(candidate, modules)) {
+        if (changesLayout && hasWardrobeModuleConflict(candidate, modules)) {
           blockedByOverlap = true;
           return module;
         }
@@ -1183,14 +1656,28 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     let nextModule = {
       id: nextId,
       kind,
+      column: 0,
+      columnSpan: 1,
+      drawerRows: kind === "drawer" ? 3 : undefined,
+      drawerColumns: kind === "drawer" ? 1 : undefined,
+      drawerRowHeights: kind === "drawer" ? normalizeWardrobePartHeights(undefined, 3) : undefined,
+      shelfCount: kind === "folded" ? 4 : undefined,
+      shelfLayerHeights: kind === "folded" ? normalizeWardrobePartHeights(undefined, 5) : undefined,
       x: 0,
       y: 0,
-      width: defaults.width,
+      width: wardrobeColumnWidths[0] ?? defaults.width,
       height: defaults.height
     };
     for (let y = 0; y <= 100 - defaults.height; y += 1) {
-      for (let x = 0; x <= 100 - defaults.width; x += 1) {
-        const candidate = { ...nextModule, x, y };
+      for (let column = 0; column < wardrobeDesign.columns; column += 1) {
+        const candidate = {
+          ...nextModule,
+          column,
+          columnSpan: 1,
+          x: wardrobeColumnMetrics[column]?.x ?? 0,
+          y,
+          width: wardrobeColumnMetrics[column]?.width ?? defaults.width
+        };
         if (!hasWardrobeModuleConflict(candidate, modules)) {
           nextModule = candidate;
           updateWardrobeDesign({ modules: [...modules, nextModule] });
@@ -1207,8 +1694,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     });
   }
 
-  function handleAutoRepairHouse() {
-    let nextFurniture = furniture;
+  function calibrateWholeHouse(
+    sourceStructuresByFloor: Record<FloorId, HouseStructure>,
+    sourceFurniture: Furniture[],
+    leadingRepairLog: string[] = []
+  ) {
+    let nextFurniture = sourceFurniture;
     const repairLog: string[] = [];
     const repairedStructures = data.floors.reduce((structures, floor) => {
       const structure = structures[floor.id] ?? createEmptyStructure(floor.id);
@@ -1220,11 +1711,38 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ];
       repairLog.push(...result.repairs.map((item) => `${floor.label}: ${item}`));
       return structures;
-    }, { ...houseStructuresByFloor } as Record<FloorId, HouseStructure>);
+    }, { ...sourceStructuresByFloor } as Record<FloorId, HouseStructure>);
 
     setHouseStructuresByFloor(repairedStructures);
     setFurniture(nextFurniture);
-    setValidatorRepairLog(repairLog.length > 0 ? repairLog : ["全屋未发现可自动修复的表达问题。"]);
+    const logs = [...leadingRepairLog, ...repairLog];
+    setValidatorRepairLog(logs.length > 0 ? logs : ["全屋未发现可自动修复的表达问题。"]);
+  }
+
+  function handleAutoRepairHouse() {
+    calibrateWholeHouse(houseStructuresByFloor, furniture);
+  }
+
+  function handleWallLengthChange(wallId: string, nextLengthValue: number) {
+    const targetWall = floorHouseStructure.walls.find((wall) => wall.id === wallId);
+    if (!targetWall) return;
+    const nextLength = Math.max(100, Math.round(nextLengthValue) || targetWall.length);
+    const nextStructure: HouseStructure = {
+      ...floorHouseStructure,
+      walls: floorHouseStructure.walls.map((wall) => wall.id === wallId ? resizeHouseWallToLength(wall, nextLength) : wall)
+    };
+    const nextStructuresByFloor = {
+      ...houseStructuresByFloor,
+      [selectedFloorId]: nextStructure
+    };
+    calibrateWholeHouse(nextStructuresByFloor, furniture, [`${currentFloor.label}: 已把 ${targetWall.name} 长度改为 ${nextLength} mm，并重新校准全屋比例。`]);
+    setActiveObjectId(wallId);
+    setLocateObjectRequest({ id: wallId, nonce: Date.now() });
+    setOpenRightPanels((currentPanels) => ({
+      ...currentPanels,
+      status: true,
+      object: true
+    }));
   }
 
   function handleFloorFurnitureChange(nextFloorFurniture: Furniture[]) {
@@ -1259,19 +1777,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setActiveObjectId(furnitureId);
   }
 
-  const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode;
+  const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode && !yardImmersiveMode;
+  const isYardWorkspace = yardImmersiveMode && !focusMode && !furnitureImmersiveMode;
+  const isImmersiveWorkspace = focusMode || isFurnitureWorkspace || isYardWorkspace;
 
   return (
-    <main className={`box-border h-screen overflow-hidden ${focusMode || isFurnitureWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
+    <main className={`box-border h-screen overflow-hidden ${isImmersiveWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
       {defaultWorkspacePayload ? (
         <pre className="hidden" data-testid="villa-default-workspace-payload">
           {defaultWorkspacePayload}
         </pre>
       ) : null}
       <section className={`mx-auto flex h-full min-h-0 flex-col overflow-hidden border border-white/70 bg-white/72 shadow-soft backdrop-blur ${
-        focusMode
-          ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-1"
-          : isFurnitureWorkspace
+        isImmersiveWorkspace
             ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-[minmax(0,1fr)_340px]"
             : "max-w-7xl rounded-[2rem] lg:grid lg:grid-cols-[minmax(0,1fr)_320px]"
       }`}>
@@ -1289,9 +1807,37 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
                 <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={solidifyDefaultWorkspace} type="button">固化默认户型</button>
               </div>
-              <button className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(true)} type="button">
-                家具沉浸
-              </button>
+              <div className="flex rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500">
+                <button
+                  className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
+                  onClick={() => {
+                    setYardImmersiveMode(false);
+                    setFurnitureImmersiveMode(false);
+                    setFocusMode(true);
+                  }}
+                  type="button"
+                >
+                  户型沉浸
+                </button>
+                <button
+                  className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
+                  onClick={() => {
+                    setYardImmersiveMode(false);
+                    setFocusMode(false);
+                    setFurnitureImmersiveMode(true);
+                  }}
+                  type="button"
+                >
+                  家具沉浸
+                </button>
+                <button
+                  className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
+                  onClick={() => enterYardImmersive()}
+                  type="button"
+                >
+                  庭院沉浸
+                </button>
+              </div>
               <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
                 <span className="shrink-0 text-stone-500">楼层</span>
                 <select
@@ -1341,13 +1887,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             cleanPatches={floorCleanPatches}
             focusMode={focusMode}
             furnitureImmersiveMode={isFurnitureWorkspace}
+            yardImmersiveMode={isYardWorkspace}
+            yardFocus={yardFocus}
             showFurnitureLabels={showFurnitureLabels}
             activeFurnitureId={activeFurniture?.id ?? ""}
             locateObjectRequest={locateObjectRequest}
             canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
             canRedo={floorHistory.future.length > 0}
             onScaleChange={handleScaleChange}
-            onFocusModeChange={setFocusMode}
             onSelectFloor={handleFloorChange}
             onActiveObjectChange={setActiveObjectId}
             onUndo={handleUndo}
@@ -1355,6 +1902,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             onPlannerModeChange={setPlannerMode}
             onDrawToolChange={setDrawTool}
             onHouseStructureChange={handleHouseStructureChange}
+            onWallLengthChange={handleWallLengthChange}
             onWallSyncOverridesChange={handleWallSyncOverridesChange}
             onFloorPlanVisualSettingsChange={handleFloorPlanVisualSettingsChange}
             onCleanPatchesChange={handleCleanPatchesChange}
@@ -1367,23 +1915,47 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           />
         </section>
 
-        {!focusMode && <aside className="hidden h-full min-h-0 overflow-y-auto overscroll-contain border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
+        <aside className="hidden h-full min-h-0 overflow-y-auto overscroll-contain border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
           <div className="space-y-3">
             <div className="px-1 pb-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isFurnitureWorkspace ? "Furniture" : "Inspector"}</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">{isFurnitureWorkspace ? "家具布置台" : "结构检查器"}</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isYardWorkspace ? "Yard" : isFurnitureWorkspace ? "Furniture" : focusMode ? "Focus" : "Inspector"}</p>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{isYardWorkspace ? "庭院绘制台" : isFurnitureWorkspace ? "家具布置台" : focusMode ? "户型绘制台" : "结构检查器"}</h2>
             </div>
+            {focusMode && (
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3 text-xs leading-5 text-blue-900">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">户型沉浸</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-700">{currentFloor.label}</span>
+                </div>
+                <p className="mt-2">画布保留最大操作面积，绘制工具在画布右侧，楼层、对象和状态仍在右侧菜单栏。</p>
+                <button className="mt-3 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800" onClick={() => setFocusMode(false)} type="button">退出户型沉浸</button>
+              </div>
+            )}
+            {isYardWorkspace && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3 text-xs leading-5 text-emerald-950">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">庭院沉浸</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700">1F 南北院</span>
+                </div>
+                <p className="mt-2">默认底色就是绿地；先定位南院/北院，再用画布右侧“庭院绘制”选择小路、硬地、绿化和篱笆。</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button className={`rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${yardFocus === "north" ? "bg-emerald-700 text-white" : "bg-white text-emerald-800 hover:bg-emerald-100"}`} onClick={() => enterYardImmersive("north")} type="button">北院</button>
+                  <button className={`rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${yardFocus === "south" ? "bg-emerald-700 text-white" : "bg-white text-emerald-800 hover:bg-emerald-100"}`} onClick={() => enterYardImmersive("south")} type="button">南院</button>
+                </div>
+                <button className="mt-2 w-full rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800" onClick={() => setYardImmersiveMode(false)} type="button">退出庭院沉浸</button>
+              </div>
+            )}
 
             <RightPanelCard
               id="floors"
-              eyebrow="Floors"
-              title="楼层 / 庭院"
-              summary={`${currentFloor.label} · ${currentFloor.subtitle}`}
+              eyebrow={isYardWorkspace ? "Courtyard" : "Floors"}
+              title={isYardWorkspace ? "南院 / 北院" : "楼层 / 庭院"}
+              summary={isYardWorkspace ? "默认绿地 · 叠加铺装" : `${currentFloor.label} · ${currentFloor.subtitle}`}
               open={openRightPanels.floors}
               onToggle={toggleRightPanel}
             >
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
+                {!isYardWorkspace && <div className="grid grid-cols-2 gap-2">
                   {data.floors.filter((floor) => floor.id !== "YARD").map((floor) => {
                     const isActive = floor.id === selectedFloorId;
                     return (
@@ -1402,20 +1974,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </button>
                     );
                   })}
-                </div>
+                </div>}
                 {!isFurnitureWorkspace && (
                   <>
                     <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
-                      <button className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-xs font-semibold text-stone-600 hover:bg-stone-50" onClick={() => handleFocusYard("north")} type="button">
+                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${isYardWorkspace && yardFocus === "north" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("north")} type="button">
                         北院
                         <span className="mt-0.5 block text-[11px] font-normal text-stone-400">入户庭院 · 2m</span>
                       </button>
-                      <button className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-xs font-semibold text-stone-600 hover:bg-stone-50" onClick={() => handleFocusYard("south")} type="button">
+                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${isYardWorkspace && yardFocus === "south" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("south")} type="button">
                         南院
                         <span className="mt-0.5 block text-[11px] font-normal text-stone-400">生活庭院 · 4m</span>
                       </button>
                     </div>
-                    <div className="border-t border-stone-100 pt-3">
+                    {!isYardWorkspace && <div className="border-t border-stone-100 pt-3">
                       <p className="text-xs font-semibold text-ink">自然语言操作</p>
                       <textarea
                         className="mt-2 min-h-20 w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-ink outline-none focus:border-clay"
@@ -1444,7 +2016,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       >
                         执行
                       </button>
-                    </div>
+                    </div>}
                   </>
                 )}
               </div>
@@ -1469,7 +2041,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   家具标签：{showFurnitureLabels ? "显示中" : "已隐藏"}
                 </button>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(false)} type="button">退出沉浸</button>
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(false)} type="button">退出家具沉浸</button>
                   <button className="rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800 disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={solidifyDefaultWorkspace} type="button">固化并发布</button>
                 </div>
               </div>
@@ -1488,7 +2060,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   {houseValidation.valid ? "结构通过" : "需检查"}
                 </span>
                 <button className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-ink/90" onClick={handleAutoRepairHouse} type="button">
-                  自动修复
+                  校准全屋比例
                 </button>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -1527,8 +2099,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             <RightPanelCard
               id="modules"
               eyebrow="Library"
-              title="物品模块库"
-              summary={`${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}`}
+              title={isYardWorkspace ? "景观模块库" : "物品模块库"}
+              summary={isYardWorkspace ? "植物 / 户外物件" : `${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}`}
               open={openRightPanels.modules}
               onToggle={toggleRightPanel}
             >
@@ -1537,7 +2109,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   <span className="font-semibold text-ink">目标</span>
                   <span className="ml-2">{moduleTargetLabel}</span>
                 </div>
-                {moduleCatalogGroups.map(({ category, items }) => {
+                {visibleModuleCatalogGroups.map(({ category, items }) => {
                   const isOpen = openModuleCategories[category];
                   const placedCount = floorFurnitureByCategory[category] ?? 0;
                   return (
@@ -1578,6 +2150,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                                         </span>
                                       ))}
                                     </div>
+                                    {item.cabinetDesign && (
+                                      <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-stone-500">{item.cabinetDesign.designThinking}</p>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1734,6 +2309,38 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 		                          <button className={`col-span-2 rounded-lg px-2 py-2 font-semibold disabled:opacity-40 ${activeFurniture.position.flipY ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`} disabled={activeFurniture.locked} onClick={() => flipActiveFurniture("y")} type="button">前后翻转</button>
 		                        </div>
 		                      </div>
+                      {activeFurniture.cabinetDesign && (
+                        <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/80 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-amber-900">{activeFurniture.cabinetDesign.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-amber-950">{activeFurniture.cabinetDesign.designThinking}</p>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700">柜体方案</span>
+                          </div>
+                          <p className="mt-3 text-[11px] leading-4 text-amber-800">建议位置：{activeFurniture.cabinetDesign.recommendedPlacement}</p>
+                          <div className="mt-3 space-y-2">
+                            {activeFurniture.cabinetDesign.zones.map((zone) => (
+                              <div key={zone.id} className="rounded-lg bg-white/80 p-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-xs font-semibold text-ink">{zone.label}</p>
+                                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">{zone.role}</span>
+                                </div>
+                                <p className="mt-1 text-[11px] leading-4 text-stone-600">{zone.detail}</p>
+                                {zone.serviceNote && <p className="mt-1 text-[11px] font-semibold leading-4 text-blue-700">{zone.serviceNote}</p>}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-3 grid gap-2 text-[11px] leading-4 text-amber-900">
+                            {activeFurniture.cabinetDesign.layoutNotes.map((note) => (
+                              <p key={`layout-${note}`} className="rounded-lg bg-white/65 px-2 py-1.5">{note}</p>
+                            ))}
+                            {activeFurniture.cabinetDesign.cautionNotes.map((note) => (
+                              <p key={`caution-${note}`} className="rounded-lg bg-white/65 px-2 py-1.5 font-semibold">{note}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 	                      {(activeFurniture.type === "wardrobe" || activeFurniture.moduleType === "wardrobe") && (
 	                        <button
 	                          className="mt-3 w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
@@ -1760,10 +2367,26 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </label>
                     </div>
                   ) : activeStructureObject ? (
-                    <label className="mt-3 block text-xs text-stone-500">
-                      名称
-                      <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
-                    </label>
+                    <div className="mt-3 space-y-3">
+                      <label className="block text-xs text-stone-500">
+                        名称
+                        <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
+                      </label>
+                      {"surfaceType" in activeStructureObject && (
+                        <label className="block text-xs text-stone-500">
+                          铺装材料
+                          <select
+                            className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-semibold text-ink outline-none focus:border-emerald-400"
+                            value={activeStructureObject.material}
+                            onChange={(event) => updateActiveObject({ material: event.target.value })}
+                          >
+                            {outdoorSurfaceMaterials.map((material) => (
+                              <option key={material.value} value={material.value}>{material.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                    </div>
 	                  ) : (
 	                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">{isFurnitureWorkspace ? "从模块库添加家具，或在画布上选择已有家具后，这里会显示尺寸、旋转、翻转和备注。" : "选择一个房间后，可以在这里输入名称，例如“厨房”。"}</p>
 	                  )}
@@ -1779,7 +2402,36 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="100" type="number" value={activeStructureObject.height} onChange={(event) => updateActiveObject({ height: Number(event.target.value) })} />
                     </label>
                   )}
-                  {activeStructureObject && "length" in activeStructureObject && <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">长度：{activeStructureObject.length} mm</p>}
+                  {activeWallObject && (
+                    <form
+                      className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const formData = new FormData(event.currentTarget);
+                        handleWallLengthChange(activeWallObject.id, Number(formData.get("wallLength")));
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-blue-900">墙体长度</p>
+                        <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-700">{activeWallObject.kind === "arc" ? "弧墙" : "直墙"}</span>
+                      </div>
+                      <label className="mt-2 block text-xs text-stone-500">
+                        长度 mm
+                        <input
+                          key={`${activeWallObject.id}-${activeWallObject.length}`}
+                          className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 font-semibold text-ink outline-none focus:border-blue-500"
+                          min="100"
+                          name="wallLength"
+                          type="number"
+                          defaultValue={activeWallObject.length}
+                        />
+                      </label>
+                      <button className="mt-2 w-full rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800" type="submit">
+                        应用并校准全屋比例
+                      </button>
+                      <p className="mt-2 text-[11px] leading-4 text-blue-800">直墙会沿原方向改变终点；弧墙保持弧度角度并调整半径。提交后结构检查器会重新整理全屋。</p>
+                    </form>
+                  )}
                   {activeStructureObject && "radius" in activeStructureObject && (
                     <label className="mt-3 block text-xs text-stone-500">
                       弧墙半径 mm
@@ -1892,7 +2544,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </RightPanelCard>
             }
           </div>
-        </aside>}
+        </aside>
       </section>
 
       {wardrobeDesignFurniture && (
@@ -1910,9 +2562,35 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
             <div className="grid min-h-0 flex-1 gap-4 overflow-auto bg-[#f3efe7] p-4 lg:grid-cols-[minmax(0,1fr)_360px]">
               <div className="flex min-h-[520px] items-center justify-center rounded-2xl border border-white/80 bg-white/80 p-4">
-                <div className="relative aspect-[4/3] w-full max-w-4xl rounded-xl border-[10px] border-[#8b6f47] bg-[#f8f4ed] shadow-inner">
+                <div ref={wardrobeCanvasRef} className="relative aspect-[4/3] w-full max-w-4xl rounded-xl border-[10px] border-[#8b6f47] bg-[#f8f4ed] shadow-inner">
 	                  <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(139,111,71,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,111,71,0.18)_1px,transparent_1px)] bg-[size:10%_10%]" />
-		                  {[...(wardrobeDesign.modules ?? [])].sort((left, right) => (left.kind === "blank" ? 0 : 1) - (right.kind === "blank" ? 0 : 1)).map((module) => {
+                    {wardrobeColumnMetrics.slice(0, -1).map((column, dividerIndex) => {
+                      const left = wardrobeColumnMetrics.slice(0, dividerIndex + 1).reduce((sum, item) => sum + item.width, 0);
+                      return (
+                        <span
+                          key={`wardrobe-divider-${dividerIndex}`}
+                          className="absolute bottom-0 top-0 z-20 w-4 -translate-x-1/2 cursor-col-resize touch-none"
+                          style={{ left: `${left}%` }}
+                          onPointerDown={(event) => {
+                            event.currentTarget.setPointerCapture(event.pointerId);
+                            updateWardrobeColumnWidth(dividerIndex, event.clientX);
+                          }}
+                          onPointerMove={(event) => {
+                            if (event.buttons !== 1) return;
+                            updateWardrobeColumnWidth(dividerIndex, event.clientX);
+                          }}
+                        >
+                          <span className="absolute bottom-0 left-1/2 top-0 w-1 -translate-x-1/2 rounded-full bg-emerald-700/70 shadow-[0_0_0_2px_rgba(255,255,255,0.7)]" />
+                          <span className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] font-black text-white shadow-sm">
+                            拖
+                          </span>
+                        </span>
+                      );
+                    })}
+		                  {(() => {
+		                    const moduleNumberById = new Map((wardrobeDesign.modules ?? []).map((module, index) => [module.id, String(index + 1).padStart(2, "0")]));
+		                    return [...(wardrobeDesign.modules ?? [])].sort((left, right) => (left.kind === "blank" ? 0 : 1) - (right.kind === "blank" ? 0 : 1)).map((module) => {
+                          const moduleLayout = getWardrobeModuleLayout(module, wardrobeColumnWidths);
 		                      const kindClass: Record<WardrobeCellKind, string> = {
 		                        "hanging-long": "bg-sky-50 text-sky-800",
 		                        "hanging-short": "bg-indigo-50 text-indigo-800",
@@ -1922,11 +2600,17 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 	                        shoe: "bg-emerald-50 text-emerald-800",
 	                        blank: "border-dashed bg-transparent text-stone-300 shadow-none"
 		                      };
+	                      const drawerRows = Math.min(8, Math.max(1, module.drawerRows ?? 3));
+	                      const drawerColumns = Math.min(4, Math.max(1, module.drawerColumns ?? 1));
+	                      const shelfCount = Math.min(8, Math.max(1, module.shelfCount ?? 4));
+	                      const drawerRowHeights = normalizeWardrobePartHeights(module.drawerRowHeights, drawerRows);
+	                      const shelfLayerHeights = normalizeWardrobePartHeights(module.shelfLayerHeights, shelfCount + 1);
+	                      const moduleNumber = moduleNumberById.get(module.id) ?? "??";
 	                      return (
 	                        <button
 	                          key={module.id}
 		                          className={`absolute grid place-items-center rounded-lg border-2 border-[#8b6f47]/45 p-1 text-xs font-semibold shadow-sm transition hover:ring-2 hover:ring-emerald-500 ${kindClass[module.kind]}`}
-		                          style={{ left: `${module.x}%`, top: `${module.y}%`, width: `${module.width}%`, height: `${module.height}%`, zIndex: module.kind === "blank" ? 1 : 2 }}
+		                          style={{ left: `${moduleLayout.x}%`, top: `${moduleLayout.y}%`, width: `${moduleLayout.width}%`, height: `${moduleLayout.height}%`, zIndex: module.kind === "blank" ? 1 : 2 }}
 	                          onClick={() => {
 	                            const kinds = Object.keys(wardrobeCellLabels) as WardrobeCellKind[];
 	                            const nextKind = kinds[(kinds.indexOf(module.kind) + 1) % kinds.length];
@@ -1934,12 +2618,53 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 	                          }}
 	                          type="button"
 	                        >
+	                          <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-slate-950 px-2 py-0.5 text-[10px] font-black leading-none text-white shadow-sm ring-1 ring-white/70">
+	                            {moduleNumber}
+	                          </span>
 	                          {(module.kind === "hanging-long" || module.kind === "hanging-short") && <span className="absolute left-3 right-3 top-4 h-1 rounded-full bg-slate-700" />}
-	                          {module.kind === "drawer" && <span className="absolute inset-x-3 bottom-3 border-t-2 border-[#8b6f47]/70" />}
-	                          <span className="rounded-full bg-white/80 px-2 py-1">{wardrobeCellLabels[module.kind]}</span>
+	                          {module.kind === "drawer" && (
+	                            <span className="absolute inset-2 grid overflow-hidden rounded border border-[#8b6f47]/35 bg-[#f1e3cc]/70" style={{ gridTemplateColumns: `repeat(${drawerColumns}, minmax(0, 1fr))`, gridTemplateRows: drawerRowHeights.map((height) => `${height}fr`).join(" ") }}>
+	                              {Array.from({ length: drawerRows * drawerColumns }).map((_, drawerIndex) => (
+	                                <span key={`${module.id}-drawer-${drawerIndex}`} className="relative border border-[#8b6f47]/35 bg-[#ead8ba]/75">
+	                                  <span className="absolute left-1/2 top-1/2 h-1.5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8b6f47]/55" />
+	                                </span>
+	                              ))}
+	                            </span>
+	                          )}
+	                          {module.kind === "folded" && (
+	                            <span className="absolute inset-x-3 inset-y-4">
+	                              {getCumulativePercents(shelfLayerHeights).map((top, shelfIndex) => (
+	                                <span
+	                                  key={`${module.id}-shelf-${shelfIndex}`}
+	                                  className="absolute left-0 right-0 border-t-2 border-amber-700/35"
+	                                  style={{ top: `${top}%` }}
+	                                />
+	                              ))}
+	                            </span>
+	                          )}
+	                          <span className="relative rounded-full bg-white/85 px-2 py-1 text-center leading-tight shadow-sm">{module.label ?? wardrobeCellLabels[module.kind]}</span>
+	                          <span className="absolute bottom-1 right-1 rounded bg-white/75 px-1 text-[9px] font-bold text-stone-500">
+	                            {Math.round((wardrobeDesignFurniture.dimensions.width * moduleLayout.width) / 100)}x{Math.round((wardrobeDesignFurniture.dimensions.height * moduleLayout.height) / 100)}cm
+	                          </span>
+                            <span
+                              className="absolute -bottom-2 left-3 right-3 h-4 cursor-row-resize touch-none rounded-full bg-emerald-700/80 shadow-[0_0_0_2px_rgba(255,255,255,0.8)]"
+                              title="拖动调整上下区域高度"
+                              onClick={(event) => event.stopPropagation()}
+                              onPointerDown={(event) => {
+                                event.stopPropagation();
+                                event.currentTarget.setPointerCapture(event.pointerId);
+                                resizeWardrobeModuleBottom(module.id, event.clientY);
+                              }}
+                              onPointerMove={(event) => {
+                                if (event.buttons !== 1) return;
+                                event.stopPropagation();
+                                resizeWardrobeModuleBottom(module.id, event.clientY);
+                              }}
+                            />
 	                        </button>
 	                      );
-	                    })}
+		                    });
+		                  })()}
                 </div>
               </div>
 
@@ -1961,22 +2686,47 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </label>
                     ))}
                   </div>
-                  {([
-                    ["columns", "竖向列数", 1, 6],
-                    ["rows", "横向层数", 1, 8]
-                  ] as const).map(([field, label, min, max]) => (
-                    <label key={field} className="block text-xs font-semibold text-stone-500">
-                      {label}
+                  <button
+                    className="w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:bg-stone-300"
+                    disabled={wardrobeDesignFurniture.locked}
+                    onClick={generateRecommendedWardrobe}
+                    type="button"
+                  >
+                    生成推荐衣柜
+                  </button>
+                  <div className="rounded-xl bg-emerald-50 p-3 text-xs leading-5 text-emerald-900">
+                    默认生成顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区；改完柜体长宽高后可重新生成，再微调每个模块。
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold text-ink">列式柜体</p>
+                        <p className="mt-1 text-[11px] font-semibold text-stone-500">竖向列宽上下统一，拖画布绿线可调整。</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button className="rounded-lg bg-white px-2 py-1.5 text-xs font-semibold text-ink shadow-sm disabled:text-stone-300" disabled={wardrobeDesign.columns <= 1} onClick={removeWardrobeColumn} type="button">减列</button>
+                        <button className="rounded-lg bg-ink px-2 py-1.5 text-xs font-semibold text-white disabled:bg-stone-300" disabled={wardrobeDesign.columns >= 6} onClick={addWardrobeColumn} type="button">加列</button>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-semibold text-stone-500">
+                      {wardrobeColumnWidths.map((width, index) => (
+                        <span key={`wardrobe-column-width-${index}`} className="rounded-lg bg-white px-2 py-1.5 text-center text-ink shadow-sm">
+                          第{index + 1}列 · {Math.round(width)}%
+                        </span>
+                      ))}
+                    </div>
+                    <label className="mt-3 block text-xs font-semibold text-stone-500">
+                      参考层数
                       <input
                         className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-emerald-400"
-                        max={max}
-                        min={min}
+                        max="8"
+                        min="1"
                         type="number"
-                        value={wardrobeDesign[field]}
-                        onChange={(event) => resizeWardrobeGrid(field, Number(event.target.value))}
+                        value={wardrobeDesign.rows}
+                        onChange={(event) => resizeWardrobeGrid("rows", Number(event.target.value))}
                       />
                     </label>
-                  ))}
+                  </div>
                   <div className="rounded-xl bg-slate-50 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-semibold text-ink">模块积木</p>
@@ -1991,6 +2741,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       {(wardrobeDesign.modules ?? []).map((module, index) => (
                         <div key={`module-control-${module.id}`} className="rounded-lg border border-stone-200 bg-white p-2">
                           <div className="flex items-center justify-between gap-2">
+                            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
                             <select
                               className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-2 py-2 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
                               value={module.kind}
@@ -2002,11 +2755,37 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                             </select>
                             <button className="rounded-lg bg-red-50 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-100" onClick={() => removeWardrobeModule(module.id)} type="button">删</button>
                           </div>
+                          <input
+                            className="mt-2 w-full rounded-lg border border-stone-200 px-2 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                            placeholder={wardrobeCellLabels[module.kind]}
+                            value={module.label ?? ""}
+                            onChange={(event) => updateWardrobeModule(module.id, { label: event.target.value })}
+                          />
                           <div className="mt-2 grid grid-cols-4 gap-1">
+                            <label className="block text-[10px] font-semibold text-stone-500">
+                              列
+                              <input
+                                className="mt-1 w-full rounded-lg border border-stone-200 px-1.5 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                min="1"
+                                max={wardrobeDesign.columns}
+                                type="number"
+                                value={(module.column ?? 0) + 1}
+                                onChange={(event) => updateWardrobeModule(module.id, { column: Number(event.target.value) - 1 })}
+                              />
+                            </label>
+                            <label className="block text-[10px] font-semibold text-stone-500">
+                              跨列
+                              <input
+                                className="mt-1 w-full rounded-lg border border-stone-200 px-1.5 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                min="1"
+                                max={wardrobeDesign.columns - (module.column ?? 0)}
+                                type="number"
+                                value={module.columnSpan ?? 1}
+                                onChange={(event) => updateWardrobeModule(module.id, { columnSpan: Number(event.target.value) })}
+                              />
+                            </label>
                             {([
-                              ["x", "左"],
                               ["y", "上"],
-                              ["width", "宽"],
                               ["height", "高"]
                             ] as const).map(([field, label]) => (
                               <label key={`${module.id}-${field}`} className="block text-[10px] font-semibold text-stone-500">
@@ -2022,6 +2801,93 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                               </label>
                             ))}
                           </div>
+                          {module.kind === "drawer" && (
+                            <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-[#f8f1e6] p-2">
+                              {([
+                                ["drawerRows", "抽屉层数", 1, 8],
+                                ["drawerColumns", "抽屉列数", 1, 4]
+                              ] as const).map(([field, label, min, max]) => (
+                                <label key={`${module.id}-${field}`} className="block text-[10px] font-semibold text-[#6b4f2f]">
+                                  {label}
+                                  <input
+                                    className="mt-1 w-full rounded-lg border border-[#dcc8aa] bg-white px-2 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                    min={min}
+                                    max={max}
+                                    type="number"
+                                    value={module[field] ?? (field === "drawerRows" ? 3 : 1)}
+                                    onChange={(event) => updateWardrobeModule(module.id, { [field]: Number(event.target.value) } as Partial<typeof module>)}
+                                  />
+                                </label>
+                              ))}
+                              <div className="col-span-2 rounded-lg bg-white/70 p-2">
+                                <p className="text-[10px] font-semibold text-[#6b4f2f]">单抽高度</p>
+                                <div className="mt-2 grid grid-cols-3 gap-1">
+                                  {normalizeWardrobePartHeights(module.drawerRowHeights, Math.min(8, Math.max(1, module.drawerRows ?? 3))).map((height, drawerIndex) => (
+                                    <label key={`${module.id}-drawer-height-${drawerIndex}`} className="block text-[10px] font-semibold text-[#6b4f2f]">
+                                      第{drawerIndex + 1}抽%
+                                      <input
+                                        className="mt-1 w-full rounded-lg border border-[#dcc8aa] bg-white px-1.5 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                        min="6"
+                                        max="94"
+                                        type="number"
+                                        value={Math.round(height)}
+                                        onChange={(event) => updateWardrobeModulePartHeight(module.id, "drawerRowHeights", drawerIndex, Number(event.target.value))}
+                                      />
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {module.kind === "folded" && (
+                            <div className="mt-2 rounded-lg bg-amber-50 p-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-[10px] font-semibold text-amber-800">隔板数量</p>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    className="grid size-7 place-items-center rounded-lg bg-white text-sm font-black text-amber-900 shadow-sm disabled:text-stone-300"
+                                    disabled={(module.shelfCount ?? 4) <= 1}
+                                    onClick={() => updateWardrobeShelfCount(module.id, (module.shelfCount ?? 4) - 1)}
+                                    type="button"
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    className="h-7 w-12 rounded-lg border border-amber-200 bg-white px-1 text-center text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                    min="1"
+                                    max="8"
+                                    type="number"
+                                    value={module.shelfCount ?? 4}
+                                    onChange={(event) => updateWardrobeShelfCount(module.id, Number(event.target.value))}
+                                  />
+                                  <button
+                                    className="grid size-7 place-items-center rounded-lg bg-white text-sm font-black text-amber-900 shadow-sm disabled:text-stone-300"
+                                    disabled={(module.shelfCount ?? 4) >= 8}
+                                    onClick={() => updateWardrobeShelfCount(module.id, (module.shelfCount ?? 4) + 1)}
+                                    type="button"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="mt-2 text-[10px] font-semibold text-amber-800">叠放层高度</p>
+                              <div className="mt-2 grid grid-cols-3 gap-1">
+                                {normalizeWardrobePartHeights(module.shelfLayerHeights, Math.min(8, Math.max(1, module.shelfCount ?? 4)) + 1).map((height, shelfIndex) => (
+                                  <label key={`${module.id}-shelf-height-${shelfIndex}`} className="block text-[10px] font-semibold text-amber-800">
+                                    第{shelfIndex + 1}层%
+                                    <input
+                                      className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-1.5 py-1.5 text-xs font-semibold text-ink outline-none focus:border-emerald-400"
+                                      min="6"
+                                      max="94"
+                                      type="number"
+                                      value={Math.round(height)}
+                                      onChange={(event) => updateWardrobeModulePartHeight(module.id, "shelfLayerHeights", shelfIndex, Number(event.target.value))}
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
