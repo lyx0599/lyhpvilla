@@ -494,6 +494,14 @@ export function PlanCanvas({
   }, [yardImmersiveMode, onDrawToolChange, onPlannerModeChange]);
 
   useEffect(() => {
+    if (!focusMode) return;
+    setSheetMode("structure");
+    onPlannerModeChange("edit");
+    onDrawToolChange("select");
+    setLabelFilter("all");
+  }, [focusMode, onDrawToolChange, onPlannerModeChange]);
+
+  useEffect(() => {
     if (sheetMode !== "sync") return;
     if (houseStructure.walls.some((wall) => wall.id === selectedStructureId)) {
       setSelectedSyncWallId(selectedStructureId);
@@ -4683,7 +4691,7 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
+                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
                     </div>
                     {isFurnitureSheetMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && (
                       <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
