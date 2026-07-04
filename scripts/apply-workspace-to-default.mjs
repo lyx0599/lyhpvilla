@@ -1,10 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const sourcePath = process.argv[2];
+const sourcePath = process.argv[2] ?? ".codex-current-browser-workspace.json";
 
 if (!sourcePath) {
-  console.error("Usage: node scripts/apply-workspace-to-default.mjs <workspace-json>");
+  console.error("Usage: node scripts/apply-workspace-to-default.mjs [workspace-json]");
   process.exit(1);
 }
 

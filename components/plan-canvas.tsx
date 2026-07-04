@@ -110,6 +110,7 @@ type Props = {
   onFurnitureChange: (furniture: Furniture[]) => void;
   onShowFurnitureLabelsChange?: (visible: boolean) => void;
   onOpenWardrobeDesigner?: (furnitureId: string) => void;
+  onOpenStairDesigner?: (stairId: string) => void;
   onSelectSemanticObject: (object: SemanticObject) => void;
   onMoveSemanticObject: (objectId: string, position: { x: number; y: number }) => void;
 };
@@ -405,6 +406,7 @@ export function PlanCanvas({
   onFurnitureChange,
   onShowFurnitureLabelsChange,
   onOpenWardrobeDesigner,
+  onOpenStairDesigner,
   onSelectSemanticObject,
   onMoveSemanticObject
 }: Props) {
@@ -3699,6 +3701,7 @@ export function PlanCanvas({
                         <button className="rounded-xl bg-white px-2 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={() => resizeSelectedStair(100)} type="button">+100</button>
                         <button className="rounded-xl bg-white px-2 py-2 font-semibold text-ink ring-1 ring-stone-200 hover:bg-stone-50" onClick={() => resizeSelectedStair(500)} type="button">+500</button>
                       </div>
+                      <button className="mt-2 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800 disabled:bg-stone-300" disabled={!onOpenStairDesigner} onClick={() => onOpenStairDesigner?.(selectedStair.id)} type="button">进入楼梯设计</button>
                     </div>
                   )}
                   {selectedDoor && (

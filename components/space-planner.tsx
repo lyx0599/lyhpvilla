@@ -15,12 +15,30 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { createEmptyStructure, createOutdoor, getLineLength } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import type { CabinetDesign, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStructure, HouseWall, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStair, HouseStructure, HouseWall, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
 type ModelSnapshot = {
   structure: HouseStructure;
   furniture: Furniture[];
+};
+
+type DesignPageRequest = {
+  kind: "furniture" | "stair";
+  id: string;
+};
+
+type DesignPageData = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  subject: string;
+  designThinking: string;
+  recommendedPlacement: string;
+  layoutNotes: string[];
+  zones: CabinetDesignZone[];
+  cautionNotes: string[];
+  metrics: Array<{ label: string; value: string; note?: string }>;
 };
 
 type FloorHistory = {
@@ -29,9 +47,27 @@ type FloorHistory = {
 };
 
 type RightPanelKey = "floors" | "status" | "modules" | "object" | "semantic";
+type LocalCodeFileStatus = "checking" | "unsupported" | "unbound" | "bound" | "syncing" | "synced" | "error";
+type LocalCodeWritableFile = {
+  write: (content: string) => Promise<void> | void;
+  close: () => Promise<void> | void;
+};
+type LocalCodeFileHandle = {
+  name: string;
+  kind?: string;
+  createWritable: () => Promise<LocalCodeWritableFile>;
+  queryPermission?: (descriptor: { mode: "readwrite" }) => Promise<PermissionState>;
+  requestPermission?: (descriptor: { mode: "readwrite" }) => Promise<PermissionState>;
+};
+type LocalFilePickerWindow = Window & {
+  showOpenFilePicker?: (options?: {
+    multiple?: boolean;
+    types?: Array<{ description: string; accept: Record<string, string[]> }>;
+  }) => Promise<LocalCodeFileHandle[]>;
+};
 
 const WEB_WORKSPACE_SCHEMA_VERSION = 4;
-const DEFAULT_WORKSPACE_REVISION = "2026-07-04-doors-yard";
+const DEFAULT_WORKSPACE_REVISION = "2026-07-04-2f-cloakroom-v2";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -46,7 +82,14 @@ const GITHUB_SOLIDIFY_REPO = "lyhpvilla";
 const GITHUB_SOLIDIFY_BRANCH = "main";
 const GITHUB_SOLIDIFY_PATH = "data/default-workspace.json";
 const GITHUB_SOLIDIFY_TOKEN_KEY = "villa-space-github-solidify-token";
+const LOCAL_CODE_FILE_DB_NAME = "villa-space-local-code-file";
+const LOCAL_CODE_FILE_STORE_NAME = "handles";
+const LOCAL_CODE_FILE_HANDLE_KEY = "default-workspace";
+const LOCAL_CODE_AUTO_SYNC_KEY = "villa-space-local-code-auto-sync";
+const LOCAL_CODE_SYNC_ENDPOINT = "http://127.0.0.1:3011/default-workspace";
+const LOCAL_CODE_SYNC_HEALTH_ENDPOINT = "http://127.0.0.1:3011/health";
 const moduleCategoryOrder: InteriorModuleCategory[] = ["living", "bedroom", "kitchen", "bath", "storage", "decor"];
+const retiredDefaultFurnitureIds = new Set(["furn-bed-001"]);
 const furnitureDimensionFields: Array<["width" | "depth" | "height", string]> = [
   ["width", "宽 cm"],
   ["depth", "深 cm"],
@@ -320,6 +363,63 @@ function resizeHouseWallToLength(wall: HouseWall, nextLengthValue: number): Hous
   };
 }
 
+function getFurnitureDesignPageData(furniture: Furniture): DesignPageData | null {
+  if (!furniture.cabinetDesign) return null;
+  const design = furniture.cabinetDesign;
+  const activeServices = serviceRequirementLabels.filter((service) => furniture.serviceRequirements?.[service.key]).map((service) => service.label);
+  return {
+    id: furniture.id,
+    eyebrow: furniture.moduleType === "island" ? "Island Design" : furniture.moduleType === "entryCabinet" ? "Entry Cabinet" : "Module Design",
+    title: design.title,
+    subject: `${furniture.code} · ${furniture.name}`,
+    designThinking: design.designThinking,
+    recommendedPlacement: design.recommendedPlacement,
+    layoutNotes: design.layoutNotes,
+    zones: design.zones,
+    cautionNotes: design.cautionNotes,
+    metrics: [
+      { label: "宽", value: `${furniture.dimensions.width} cm`, note: "平面占位" },
+      { label: "深", value: `${furniture.dimensions.depth} cm`, note: "通道校核" },
+      { label: "高", value: `${furniture.dimensions.height} cm`, note: "立面体量" },
+      { label: "机电", value: activeServices.length ? activeServices.join(" / ") : "无", note: furniture.material }
+    ]
+  };
+}
+
+function getStairDesignPageData(stair: HouseStair): DesignPageData {
+  const stairLength = getLineLength(stair.start, stair.end);
+  const treadDepth = Math.max(180, Math.round(stairLength / Math.max(1, stair.stepCount)));
+  const riserHeight = Math.max(120, Math.round(stair.height / Math.max(1, stair.stepCount)));
+  return {
+    id: stair.id,
+    eyebrow: "Stair Design",
+    title: "楼梯设计",
+    subject: `${stair.name} · ${stair.direction === "up" ? "上行" : "下行"}`,
+    designThinking: "楼梯先看安全和节奏，再看造型。踏步深度、扶手、照明和上下口缓冲区要一起校核，后续 3D 白模会重点检查压迫感。",
+    recommendedPlacement: "保持现有结构楼梯位置，先用当前长度、宽度和踏步数做通行节奏，再结合上下层洞口复核。",
+    layoutNotes: ["上下口留缓冲，不让门洞或家具贴着第一步", "踏步节奏要稳定，避免中途突然变高或变窄", "扶手、踢脚灯和双控开关一起深化"],
+    zones: [
+      { id: "landing-start", label: "起步缓冲", role: "入梯停留", widthPercent: 24, heightPercent: 56, detail: "第一步前留出停顿空间，避免和门、柜体、餐椅冲突。", serviceNote: "楼梯口建议预留双控开关。" },
+      { id: "treads", label: "踏步段", role: `${stair.stepCount} 级`, widthPercent: 52, heightPercent: 74, detail: `当前估算踏面约 ${treadDepth} mm，踢面约 ${riserHeight} mm，拿到精确层高后再复核。` },
+      { id: "landing-end", label: "到达缓冲", role: "转身 / 分流", widthPercent: 24, heightPercent: 56, detail: "到达处需要转身、开门或进入走廊的空间，不能只看楼梯本体。", serviceNote: "可结合感应夜灯或扶手灯。" }
+    ],
+    cautionNotes: ["最终踏步尺寸必须按现场层高、梁位和洞口复核。", "如果做开放楼梯，需要额外检查儿童安全、扶手高度和防坠细节。"],
+    metrics: [
+      { label: "长度", value: `${stairLength} mm`, note: "当前平面投影" },
+      { label: "宽度", value: `${stair.width} mm`, note: "净通行宽" },
+      { label: "踏步", value: `${stair.stepCount} 级`, note: `${treadDepth} mm / 级` },
+      { label: "高度", value: `${stair.height} mm`, note: `${riserHeight} mm / 级` }
+    ]
+  };
+}
+
+function getFurnitureDesignButtonLabel(furniture: Furniture) {
+  if (furniture.moduleType === "entryCabinet") return "进入玄关柜设计";
+  if (furniture.moduleType === "island") return "进入岛台设计";
+  if (furniture.moduleType === "fireplace") return "进入壁炉设计";
+  return "进入模块设计";
+}
+
 function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
   return furnitureItems.map((item) => {
     if ((item.type === "wardrobe" || item.moduleType === "wardrobe") && !item.wardrobeDesign?.modules?.length) {
@@ -384,6 +484,7 @@ function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, Hous
 
 function normalizeSemanticDefaults(objects: SemanticObject[]) {
   const hasEntryZone = objects.some((object) => object.id === "Z-1F-ENTRY");
+  const hasCloakroomZone = objects.some((object) => object.id === "Z-2F-CLOAKROOM");
   const nextObjects = objects.map((object) => {
     if (object.id === "R-1F-001" && object.name === "1F 客餐厅") {
       return {
@@ -403,9 +504,9 @@ function normalizeSemanticDefaults(objects: SemanticObject[]) {
     }
     return object;
   });
-  if (hasEntryZone) return nextObjects;
   return [
     ...nextObjects,
+    ...(!hasEntryZone ? [
     {
       id: "Z-1F-ENTRY",
       name: "1F 玄关",
@@ -419,6 +520,22 @@ function normalizeSemanticDefaults(objects: SemanticObject[]) {
         boundary: [{ x: 36, y: 18 }, { x: 54, y: 18 }, { x: 54, y: 42 }, { x: 36, y: 42 }]
       }
     } satisfies SemanticObject
+    ] : []),
+    ...(!hasCloakroomZone ? [
+    {
+      id: "Z-2F-CLOAKROOM",
+      name: "2F 衣帽间方案",
+      floorId: "2F",
+      category: "Zone",
+      type: "storage",
+      notes: "左右墙做挂衣柜，中间靠窗放整理桌；挂衣、包包和被褥优先，叠放区压缩到最少。",
+      position: { x: 58, y: 38 },
+      details: {
+        roomId: "ROOM-2F-002",
+        boundary: [{ x: 30, y: 8 }, { x: 86, y: 8 }, { x: 86, y: 82 }, { x: 30, y: 82 }]
+      }
+    } satisfies SemanticObject
+    ] : [])
   ];
 }
 
@@ -494,6 +611,11 @@ function appendMissingById<T extends { id: string }>(items: T[], defaultItems: T
   ];
 }
 
+function applyDefaultFurnitureRevision(furnitureItems: Furniture[], defaultFurniture: Furniture[]) {
+  const nextFurniture = furnitureItems.filter((item) => !retiredDefaultFurnitureIds.has(item.id));
+  return appendMissingById(nextFurniture, defaultFurniture.filter((item) => !retiredDefaultFurnitureIds.has(item.id)));
+}
+
 function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseStructure>) {
   return Object.fromEntries(Object.entries(structuresByFloor).map(([floorId, structure]) => {
     const defaultStructure = initialHouseStructures[floorId as FloorId];
@@ -534,9 +656,19 @@ function getWorkspaceTimestamp(workspace: Partial<PersistedWebWorkspace>) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+function hasPersistedWorkspaceContent(workspace: Partial<PersistedWebWorkspace>) {
+  return Boolean(
+    workspace.houseStructuresByFloor ||
+    workspace.furniture?.length ||
+    workspace.semanticObjects?.length ||
+    workspace.visualSettingsByFloor ||
+    workspace.cleanPatchesByFloor
+  );
+}
+
 function pickBestWorkspace(candidates: Partial<PersistedWebWorkspace>[]) {
   return candidates
-    .filter((workspace): workspace is Partial<PersistedWebWorkspace> & Pick<PersistedWebWorkspace, "houseStructuresByFloor"> => Boolean(workspace.houseStructuresByFloor))
+    .filter(hasPersistedWorkspaceContent)
     .sort((left, right) => {
       const timeDelta = getWorkspaceTimestamp(right) - getWorkspaceTimestamp(left);
       if (timeDelta !== 0) return timeDelta;
@@ -553,6 +685,72 @@ function encodeUtf8Base64(value: string) {
     binary += String.fromCharCode.apply(null, Array.from(chunk));
   }
   return btoa(binary);
+}
+
+function supportsLocalCodeFileAccess() {
+  if (typeof window === "undefined") return false;
+  return Boolean((window as LocalFilePickerWindow).showOpenFilePicker && window.indexedDB);
+}
+
+function openLocalCodeFileDb() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = window.indexedDB.open(LOCAL_CODE_FILE_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(LOCAL_CODE_FILE_STORE_NAME)) {
+        request.result.createObjectStore(LOCAL_CODE_FILE_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readLocalCodeFileHandle() {
+  return new Promise<LocalCodeFileHandle | null>(async (resolve, reject) => {
+    try {
+      if (!supportsLocalCodeFileAccess()) {
+        resolve(null);
+        return;
+      }
+      const db = await openLocalCodeFileDb();
+      const transaction = db.transaction(LOCAL_CODE_FILE_STORE_NAME, "readonly");
+      const request = transaction.objectStore(LOCAL_CODE_FILE_STORE_NAME).get(LOCAL_CODE_FILE_HANDLE_KEY);
+      request.onsuccess = () => resolve((request.result as LocalCodeFileHandle | undefined) ?? null);
+      request.onerror = () => reject(request.error);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function storeLocalCodeFileHandle(handle: LocalCodeFileHandle) {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      const db = await openLocalCodeFileDb();
+      const transaction = db.transaction(LOCAL_CODE_FILE_STORE_NAME, "readwrite");
+      const request = transaction.objectStore(LOCAL_CODE_FILE_STORE_NAME).put(handle, LOCAL_CODE_FILE_HANDLE_KEY);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function ensureLocalCodeFilePermission(handle: LocalCodeFileHandle) {
+  const descriptor = { mode: "readwrite" as const };
+  const currentPermission = await handle.queryPermission?.(descriptor);
+  if (!currentPermission || currentPermission === "granted") return true;
+  const nextPermission = await handle.requestPermission?.(descriptor);
+  return nextPermission === "granted";
+}
+
+async function writeLocalCodeFile(handle: LocalCodeFileHandle, payload: string) {
+  const hasPermission = await ensureLocalCodeFilePermission(handle);
+  if (!hasPermission) throw new Error("没有获得代码文件写入权限。");
+  const writable = await handle.createWritable();
+  await writable.write(`${payload.trim()}\n`);
+  await writable.close();
 }
 
 function RightPanelCard({
@@ -592,6 +790,8 @@ function RightPanelCard({
 }
 
 export function SpacePlanner({ data }: { data: SpaceData }) {
+  const defaultSelectedFloorId: FloorId = data.selectedFloorId ?? "1F";
+  const initialSelectedFloorId: FloorId = data.floors.some((floor) => floor.id === defaultSelectedFloorId) ? defaultSelectedFloorId : "1F";
   const initialVisualSettings = data.floors.reduce((settingsByFloor, floor) => {
     settingsByFloor[floor.id] = floor.visualSettings ?? getDefaultVisualSettings();
     return settingsByFloor;
@@ -601,11 +801,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return patchesByFloor;
   }, {} as Record<FloorId, CleanPatch[]>);
 
-  const [selectedFloorId, setSelectedFloorId] = useState<FloorId>("1F");
+  const [selectedFloorId, setSelectedFloorId] = useState<FloorId>(initialSelectedFloorId);
   const [furniture, setFurniture] = useState<Furniture[]>(() => normalizeFurnitureDefaults(data.furniture));
-  const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture[0]?.id ?? "");
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture.find((item) => item.floorId === initialSelectedFloorId)?.id ?? data.furniture[0]?.id ?? "");
   const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => normalizeSemanticDefaults(initialSemanticObjects));
-  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(normalizeSemanticDefaults(initialSemanticObjects).find((object) => object.floorId === "1F")?.id ?? "");
+  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(normalizeSemanticDefaults(initialSemanticObjects).find((object) => object.floorId === initialSelectedFloorId)?.id ?? "");
   const [viewMode, setViewMode] = useState<ViewMode>("2d");
   const [plannerMode, setPlannerMode] = useState<PlannerMode>("edit");
   const [drawTool, setDrawTool] = useState<DrawTool>("select");
@@ -623,9 +823,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [command, setCommand] = useState("");
   const [activeObjectId, setActiveObjectId] = useState("");
   const [wardrobeDesignFurnitureId, setWardrobeDesignFurnitureId] = useState("");
+  const [designPageRequest, setDesignPageRequest] = useState<DesignPageRequest | null>(null);
   const [locateObjectRequest, setLocateObjectRequest] = useState<{ id: string; nonce: number } | null>(null);
   const [hasLoadedWebWorkspace, setHasLoadedWebWorkspace] = useState(false);
   const [webSaveStatus, setWebSaveStatus] = useState<"loading" | "saved" | "dirty" | "saving" | "error">("loading");
+  const [localCodeFileStatus, setLocalCodeFileStatus] = useState<LocalCodeFileStatus>("checking");
+  const [localCodeFileHandle, setLocalCodeFileHandle] = useState<LocalCodeFileHandle | null>(null);
+  const [localCodeFileName, setLocalCodeFileName] = useState("");
+  const [localCodeAutoSync, setLocalCodeAutoSync] = useState(false);
+  const [localCodeServerOnline, setLocalCodeServerOnline] = useState(false);
   const [defaultWorkspacePayload, setDefaultWorkspacePayload] = useState("");
   const [openRightPanels, setOpenRightPanels] = useState<Record<RightPanelKey, boolean>>({
     floors: true,
@@ -734,6 +940,50 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     : activeFurniture
       ? `${activeFurniture.code} · ${activeFurniture.name}`
       : activeObjectId || "未选择对象";
+  const designPageData = useMemo(() => {
+    if (!designPageRequest) return null;
+    if (designPageRequest.kind === "furniture") {
+      const targetFurniture = furniture.find((item) => item.id === designPageRequest.id);
+      return targetFurniture ? getFurnitureDesignPageData(targetFurniture) : null;
+    }
+    const targetStair = Object.values(houseStructuresByFloor)
+      .flatMap((structure) => structure.stairs)
+      .find((stair) => stair.id === designPageRequest.id);
+    return targetStair ? getStairDesignPageData(targetStair) : null;
+  }, [designPageRequest, furniture, houseStructuresByFloor]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function restoreLocalCodeFile() {
+      const savedAutoSyncSetting = window.localStorage.getItem(LOCAL_CODE_AUTO_SYNC_KEY);
+      const savedAutoSync = savedAutoSyncSetting === null ? true : savedAutoSyncSetting === "true";
+      if (!supportsLocalCodeFileAccess()) {
+        const serverReady = await checkLocalCodeSyncServer(savedAutoSync);
+        if (!serverReady && !cancelled) setLocalCodeFileStatus("unsupported");
+        return;
+      }
+      try {
+        const handle = await readLocalCodeFileHandle();
+        if (cancelled) return;
+        if (!handle) {
+          const serverReady = await checkLocalCodeSyncServer(savedAutoSync);
+          if (!serverReady && !cancelled) setLocalCodeFileStatus("unbound");
+          return;
+        }
+        setLocalCodeFileHandle(handle);
+        setLocalCodeFileName(handle.name);
+        setLocalCodeFileStatus("bound");
+        setLocalCodeAutoSync(savedAutoSync);
+      } catch {
+        const serverReady = await checkLocalCodeSyncServer(savedAutoSync);
+        if (!serverReady && !cancelled) setLocalCodeFileStatus("unbound");
+      }
+    }
+    restoreLocalCodeFile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -762,12 +1012,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       const shouldApplyDefaultRevision = parsed.defaultWorkspaceRevision !== DEFAULT_WORKSPACE_REVISION;
       const normalizedStructures = normalizeOutdoorSurfaceDefaults(loadedStructures, { resetOneFloorYardSurfaces: (parsed.schemaVersion ?? 0) < WEB_WORKSPACE_SCHEMA_VERSION && !shouldApplyDefaultRevision });
       const nextStructures = shouldApplyDefaultRevision ? applyDefaultWorkspaceRevision(normalizedStructures) : normalizedStructures;
-      const nextSelectedFloorId = parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
+      const nextSelectedFloorId = !shouldApplyDefaultRevision && parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
         ? parsed.selectedFloorId
-        : selectedFloorId;
+        : initialSelectedFloorId;
 
       setSelectedFloorId(nextSelectedFloorId);
-      const nextFurniture = normalizeFurnitureDefaults(parsed.furniture ?? data.furniture);
+      const nextFurniture = normalizeFurnitureDefaults(shouldApplyDefaultRevision
+        ? applyDefaultFurnitureRevision(parsed.furniture ?? data.furniture, data.furniture)
+        : parsed.furniture ?? data.furniture);
       setFurniture(nextFurniture);
       const nextSemanticObjects = normalizeSemanticDefaults(parsed.semanticObjects ?? initialSemanticObjects);
       setSemanticObjects(nextSemanticObjects);
@@ -804,6 +1056,28 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return () => window.clearTimeout(draftTimer);
   }, [
     hasLoadedWebWorkspace,
+    selectedFloorId,
+    furniture,
+    semanticObjects,
+    visualSettingsByFloor,
+    cleanPatchesByFloor,
+    houseStructuresByFloor,
+    wallSyncOverrides
+  ]);
+
+  useEffect(() => {
+    if (!hasLoadedWebWorkspace || !localCodeAutoSync || (!localCodeFileHandle && !localCodeServerOnline)) return;
+    const codeSyncTimer = window.setTimeout(() => {
+      const payload = getDefaultWorkspacePayload("manual");
+      setDefaultWorkspacePayload(payload);
+      void writeDefaultWorkspaceToLocalCodeFile(payload, true);
+    }, 1200);
+    return () => window.clearTimeout(codeSyncTimer);
+  }, [
+    hasLoadedWebWorkspace,
+    localCodeAutoSync,
+    localCodeFileHandle,
+    localCodeServerOnline,
     selectedFloorId,
     furniture,
     semanticObjects,
@@ -933,6 +1207,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     )) ?? interiorModuleCatalog.find((item) => {
       const aliases: Record<string, string[]> = {
         sofa: ["沙发"],
+        fireplace: ["壁炉", "火炉", "电子壁炉"],
         table: ["餐桌", "桌"],
         bed: ["床"],
         nightstand: ["床头柜", "床边柜"],
@@ -1014,8 +1289,113 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     const storageKeys = saveMode === "manual"
       ? [...WEB_WORKSPACE_STORAGE_KEYS, WEB_WORKSPACE_DRAFT_KEY]
       : [WEB_WORKSPACE_DRAFT_KEY];
-    storageKeys.forEach((storageKey) => window.localStorage.setItem(storageKey, payload));
+    try {
+      storageKeys.forEach((storageKey) => window.localStorage.setItem(storageKey, payload));
+    } catch {
+      setWebSaveStatus("error");
+      setValidatorRepairLog(["本机浏览器草稿保存失败：请检查是否开启了隐私模式、站点存储限制，或直接导出方案让我固化到代码。"]);
+    }
     return finalizedWorkspace;
+  }
+
+  function getDefaultWorkspacePayload(saveMode: "manual" | "draft" = "manual") {
+    return JSON.stringify(finalizeWorkspace(getCurrentWorkspace(saveMode), saveMode), null, 2);
+  }
+
+  async function writeDefaultWorkspaceToLocalCodeFile(payload: string, silent = false) {
+    try {
+      if (!silent) setLocalCodeFileStatus("syncing");
+      if (localCodeFileHandle) {
+        await writeLocalCodeFile(localCodeFileHandle, payload);
+      } else {
+        const response = await fetch(LOCAL_CODE_SYNC_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload
+        });
+        if (!response.ok) throw new Error(`本地写入服务失败：${response.status}`);
+      }
+      setLocalCodeFileStatus("synced");
+      return true;
+    } catch (error) {
+      setLocalCodeFileStatus("error");
+      if (!silent) {
+        setValidatorRepairLog([error instanceof Error ? error.message : "写入本地代码文件失败，请重新绑定 data/default-workspace.json。"]);
+      }
+      return false;
+    }
+  }
+
+  async function checkLocalCodeSyncServer(enableAutoSync = false) {
+    try {
+      const response = await fetch(LOCAL_CODE_SYNC_HEALTH_ENDPOINT, { cache: "no-store" });
+      if (!response.ok) throw new Error(`本地写入服务不可用：${response.status}`);
+      setLocalCodeServerOnline(true);
+      if (!localCodeFileHandle) {
+        setLocalCodeFileName("本地写入服务");
+        setLocalCodeFileStatus("bound");
+      }
+      if (enableAutoSync) setLocalCodeAutoSync(true);
+      return true;
+    } catch {
+      setLocalCodeServerOnline(false);
+      return false;
+    }
+  }
+
+  async function bindLocalCodeFile() {
+    const serverReady = await checkLocalCodeSyncServer(true);
+    if (serverReady && !localCodeFileHandle) {
+      window.localStorage.setItem(LOCAL_CODE_AUTO_SYNC_KEY, "true");
+      const payload = getDefaultWorkspacePayload("manual");
+      setDefaultWorkspacePayload(payload);
+      const savedToServer = await writeDefaultWorkspaceToLocalCodeFile(payload);
+      if (savedToServer) {
+        setValidatorRepairLog(["已连接本地写入服务。后续页面改动会自动写入 data/default-workspace.json。"]);
+        return;
+      }
+    }
+    if (!supportsLocalCodeFileAccess()) {
+      setLocalCodeFileStatus("unsupported");
+      setValidatorRepairLog(["当前浏览器不支持直接绑定本地代码文件，本地写入服务也没有连上。"]);
+      return;
+    }
+    try {
+      const picker = window as LocalFilePickerWindow;
+      const handles = await picker.showOpenFilePicker?.({
+        multiple: false,
+        types: [{ description: "默认户型 JSON", accept: { "application/json": [".json"] } }]
+      });
+      const handle = handles?.[0];
+      if (!handle) return;
+      await storeLocalCodeFileHandle(handle);
+      setLocalCodeFileHandle(handle);
+      setLocalCodeFileName(handle.name);
+      setLocalCodeAutoSync(true);
+      window.localStorage.setItem(LOCAL_CODE_AUTO_SYNC_KEY, "true");
+      const payload = getDefaultWorkspacePayload("manual");
+      setDefaultWorkspacePayload(payload);
+      setLocalCodeFileStatus("syncing");
+      await writeLocalCodeFile(handle, payload);
+      setLocalCodeFileStatus("synced");
+      setValidatorRepairLog([`已绑定并写入 ${handle.name}。后续页面改动会自动同步到这个代码文件。`]);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setLocalCodeFileStatus("error");
+      setValidatorRepairLog([error instanceof Error ? error.message : "绑定本地代码文件失败。"]);
+    }
+  }
+
+  function toggleLocalCodeAutoSync() {
+    if (!localCodeFileHandle && !localCodeServerOnline) {
+      bindLocalCodeFile();
+      return;
+    }
+    setLocalCodeAutoSync((current) => {
+      const nextValue = !current;
+      window.localStorage.setItem(LOCAL_CODE_AUTO_SYNC_KEY, String(nextValue));
+      return nextValue;
+    });
   }
 
   function downloadJsonFile(fileName: string, payload: unknown) {
@@ -1099,6 +1479,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           await navigator.clipboard.writeText(defaultWorkspacePayload);
         } catch {
           // Clipboard access depends on browser permissions; the hidden payload still keeps the default workspace available.
+        }
+      }
+      if (localCodeFileHandle) {
+        const localCodeSaved = await writeDefaultWorkspaceToLocalCodeFile(defaultWorkspacePayload);
+        if (localCodeSaved) {
+          setWebSaveStatus("saved");
+          setValidatorRepairLog([`已写入本地代码文件 ${localCodeFileName || localCodeFileHandle.name}。`]);
+          return;
         }
       }
       const solidifyResult = await commitDefaultWorkspaceToGitHub(defaultWorkspacePayload);
@@ -1477,6 +1865,25 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     }
   }
 
+  function openFurnitureDesignPage(furnitureId: string) {
+    const target = furniture.find((item) => item.id === furnitureId);
+    if (!target || !target.cabinetDesign) return;
+    setSelectedFloorId(target.floorId);
+    setSelectedFurnitureId(target.id);
+    setActiveObjectId(target.id);
+    setFurnitureImmersiveMode(true);
+    setDesignPageRequest({ kind: "furniture", id: target.id });
+  }
+
+  function openStairDesignPage(stairId: string) {
+    const stairFloor = Object.entries(houseStructuresByFloor).find(([, structure]) => structure.stairs.some((stair) => stair.id === stairId))?.[0] as FloorId | undefined;
+    if (stairFloor) setSelectedFloorId(stairFloor);
+    setActiveObjectId(stairId);
+    setPlannerMode("edit");
+    setDrawTool("select");
+    setDesignPageRequest({ kind: "stair", id: stairId });
+  }
+
   function updateWardrobeDesign(patch: Partial<WardrobeDesign>) {
     if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
     const nextDesign = normalizeWardrobeDesign({ ...wardrobeDesign, ...patch });
@@ -1813,6 +2220,18 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode && !yardImmersiveMode;
   const isYardWorkspace = yardImmersiveMode && !focusMode && !furnitureImmersiveMode;
   const isImmersiveWorkspace = focusMode || isFurnitureWorkspace || isYardWorkspace;
+  const localCodeFileReady = Boolean(localCodeFileHandle) || localCodeServerOnline;
+  const localCodeFileLabel = localCodeServerOnline && !localCodeFileHandle
+    ? "写入服务已连"
+    : localCodeFileStatus === "unsupported"
+    ? "浏览器不支持"
+    : localCodeFileStatus === "syncing"
+      ? "代码写入中"
+      : localCodeFileStatus === "synced"
+        ? "代码已同步"
+        : localCodeFileReady
+          ? "代码已绑定"
+          : "绑定代码文件";
 
   return (
     <main className={`box-border h-screen overflow-hidden ${isImmersiveWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
@@ -1836,9 +2255,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             <div className="flex items-center gap-3">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm">
                 <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" || webSaveStatus === "dirty" ? "bg-amber-500" : "bg-emerald-500"}`} />
-                <span>{webSaveStatus === "error" ? "固化失败" : webSaveStatus === "saving" ? "固化中" : webSaveStatus === "loading" ? "加载中" : webSaveStatus === "dirty" ? "有未固化修改" : "已固化"}</span>
+                <span>{webSaveStatus === "error" ? "固化失败" : webSaveStatus === "saving" ? "固化中" : webSaveStatus === "loading" ? "加载中" : webSaveStatus === "dirty" ? "有本机草稿" : "本机已保存"}</span>
                 <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
                 <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay disabled:bg-stone-300" disabled={webSaveStatus === "loading" || webSaveStatus === "saving"} onClick={solidifyDefaultWorkspace} type="button">固化默认户型</button>
+                <button className="rounded-lg bg-stone-100 px-2 py-1 text-stone-600 hover:bg-stone-200 disabled:text-stone-300" disabled={localCodeFileStatus === "checking" || localCodeFileStatus === "syncing"} onClick={bindLocalCodeFile} type="button">{localCodeFileLabel}</button>
+                <label className={`flex items-center gap-1 rounded-lg px-2 py-1 ${localCodeFileReady ? "bg-emerald-50 text-emerald-800" : "bg-stone-50 text-stone-400"}`}>
+                  <input checked={localCodeAutoSync} disabled={!localCodeFileReady} onChange={toggleLocalCodeAutoSync} type="checkbox" />
+                  自动写代码
+                </label>
               </div>
               <div className="flex rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500">
                 <button
@@ -1943,6 +2367,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             onFurnitureChange={handleFloorFurnitureChange}
             onShowFurnitureLabelsChange={setShowFurnitureLabels}
             onOpenWardrobeDesigner={openWardrobeDesigner}
+            onOpenStairDesigner={openStairDesignPage}
             onSelectSemanticObject={handleSemanticObjectSelect}
             onMoveSemanticObject={handleMoveSemanticObject}
           />
@@ -2060,10 +2485,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold">在线方案保存</span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${webSaveStatus === "error" ? "bg-red-100 text-red-700" : webSaveStatus === "dirty" ? "bg-amber-100 text-amber-700" : "bg-white text-emerald-700"}`}>
-                    {webSaveStatus === "error" ? "固化失败" : webSaveStatus === "dirty" ? "本机已草稿保存" : webSaveStatus === "saving" ? "固化中" : "已保存"}
+                    {webSaveStatus === "error" ? "固化失败" : webSaveStatus === "dirty" ? "本机草稿待固化" : webSaveStatus === "saving" ? "固化中" : "本机已保存"}
                   </span>
                 </div>
-                <p className="mt-2">家具会自动存到这台电脑的浏览器里；要让 GitHub Pages 线上也长期保留，点“固化并发布默认方案”。</p>
+                <p className="mt-2">房间命名、结构和家具布置会先自动存到浏览器；绑定代码文件并开启自动写代码后，会同步写入默认户型文件。</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100 disabled:text-stone-300" disabled={localCodeFileStatus === "checking" || localCodeFileStatus === "syncing"} onClick={bindLocalCodeFile} type="button">{localCodeFileLabel}</button>
+                  <button className={`rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${localCodeAutoSync ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-emerald-800 hover:bg-emerald-100"} disabled:bg-stone-100 disabled:text-stone-300`} disabled={!localCodeFileReady} onClick={toggleLocalCodeAutoSync} type="button">
+                    自动写代码：{localCodeAutoSync ? "开" : "关"}
+                  </button>
+                </div>
                 <button
                   className={`mt-3 w-full rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${
                     showFurnitureLabels ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-emerald-800 hover:bg-emerald-100"
@@ -2374,6 +2805,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                           </div>
                         </div>
                       )}
+                      {activeFurniture.cabinetDesign && (
+                        <button
+                          className="mt-3 w-full rounded-xl bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                          onClick={() => openFurnitureDesignPage(activeFurniture.id)}
+                          type="button"
+                        >
+                          {getFurnitureDesignButtonLabel(activeFurniture)}
+                        </button>
+                      )}
 	                      {(activeFurniture.type === "wardrobe" || activeFurniture.moduleType === "wardrobe") && (
 	                        <button
 	                          className="mt-3 w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
@@ -2538,6 +2978,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </select>
                     </label>
                   )}
+                  {activeStructureObject && "stepCount" in activeStructureObject && (
+                    <button
+                      className="mt-3 w-full rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                      onClick={() => openStairDesignPage(activeStructureObject.id)}
+                      type="button"
+                    >
+                      进入楼梯设计
+                    </button>
+                  )}
                   {activeStructureObject && "openDirection" in activeStructureObject && (
                     <label className="mt-3 block text-xs text-stone-500">
                       开启方向
@@ -2579,6 +3028,89 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           </div>
         </aside>
       </section>
+
+      {designPageData && (
+        <section className="fixed inset-3 z-[75] overflow-hidden rounded-2xl border border-white/80 bg-white shadow-soft lg:inset-6">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between gap-3 border-b border-stone-200 bg-slate-50 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">{designPageData.eyebrow}</p>
+                <h2 className="mt-1 truncate text-lg font-semibold text-ink">{designPageData.subject} · {designPageData.title}</h2>
+              </div>
+              <button className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-clay" onClick={() => setDesignPageRequest(null)} type="button">
+                完成
+              </button>
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-4 overflow-auto bg-[#eef3f2] p-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+              <div className="flex min-h-[520px] flex-col rounded-2xl border border-white/80 bg-white/90 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-400">Layout</p>
+                    <h3 className="mt-1 text-base font-semibold text-ink">功能分区示意</h3>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{designPageData.zones.length} 个重点区</span>
+                </div>
+
+                <div className="mt-4 flex min-h-[360px] flex-1 items-stretch overflow-hidden rounded-xl border-[10px] border-[#718678] bg-[#f8faf8] p-3 shadow-inner">
+                  <div className="flex w-full flex-wrap content-stretch gap-3">
+                    {designPageData.zones.map((zone, index) => (
+                      <div
+                        key={zone.id}
+                        className="relative min-w-[170px] flex-1 overflow-hidden rounded-lg border border-[#718678]/35 bg-white p-3 shadow-sm"
+                        style={{ flexBasis: `${Math.max(22, Math.min(100, zone.widthPercent))}%`, minHeight: `${Math.max(128, Math.min(260, zone.heightPercent * 2.2))}px` }}
+                      >
+                        <div className="absolute right-3 top-3 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-black text-white">{String(index + 1).padStart(2, "0")}</div>
+                        <p className="pr-10 text-sm font-semibold text-ink">{zone.label}</p>
+                        <p className="mt-1 text-xs font-semibold text-blue-700">{zone.role}</p>
+                        <p className="mt-4 text-xs leading-5 text-stone-600">{zone.detail}</p>
+                        {zone.serviceNote && <p className="mt-3 rounded-lg bg-blue-50 px-2 py-1.5 text-[11px] font-semibold leading-4 text-blue-800">{zone.serviceNote}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <aside className="rounded-2xl border border-white/80 bg-white p-4 text-sm shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Design Logic</p>
+                <h3 className="mt-1 text-base font-semibold text-ink">设计思路</h3>
+                <p className="mt-3 rounded-xl bg-blue-50 p-3 text-xs leading-5 text-blue-950">{designPageData.designThinking}</p>
+                <p className="mt-3 text-xs leading-5 text-stone-600">
+                  <span className="font-semibold text-ink">建议位置：</span>{designPageData.recommendedPlacement}
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {designPageData.metrics.map((metric) => (
+                    <div key={`${metric.label}-${metric.value}`} className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-[11px] font-semibold text-stone-500">{metric.label}</p>
+                      <p className="mt-1 text-sm font-semibold text-ink">{metric.value}</p>
+                      {metric.note && <p className="mt-1 text-[10px] leading-4 text-stone-400">{metric.note}</p>}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-ink">深化要点</p>
+                  <div className="mt-2 space-y-2">
+                    {designPageData.layoutNotes.map((note) => (
+                      <p key={`design-layout-${note}`} className="rounded-lg bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-950">{note}</p>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-ink">注意事项</p>
+                  <div className="mt-2 space-y-2">
+                    {designPageData.cautionNotes.map((note) => (
+                      <p key={`design-caution-${note}`} className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">{note}</p>
+                    ))}
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+      )}
 
       {wardrobeDesignFurniture && (
         <section className="fixed inset-3 z-[80] overflow-hidden rounded-2xl border border-white/80 bg-white shadow-soft lg:inset-6">

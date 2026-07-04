@@ -83,6 +83,7 @@ export type InteriorModuleType =
   | "nightstand"
   | "plant"
   | "cabinet"
+  | "fireplace"
   | "kitchenCabinet"
   | "snackCabinet"
   | "pegboard"
@@ -181,7 +182,7 @@ export type CabinetDesignZone = {
 };
 
 export type CabinetDesign = {
-  template: "kitchenCabinet" | "snackCabinet" | "entryCabinet" | "pegboard" | "bookshelf" | "sideboard" | "tallCabinet" | "cabinet";
+  template: "kitchenCabinet" | "snackCabinet" | "entryCabinet" | "pegboard" | "bookshelf" | "sideboard" | "tallCabinet" | "cabinet" | "island" | "fireplace";
   title: string;
   designThinking: string;
   recommendedPlacement: string;
@@ -460,6 +461,7 @@ export type Floor = {
 };
 
 export type SpaceData = {
+  selectedFloorId?: FloorId;
   floors: Floor[];
   rooms: Room[];
   walls: Wall[];

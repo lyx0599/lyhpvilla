@@ -184,6 +184,16 @@ function renderSymbol(type: FurnitureType, color: string) {
           <line x1="63" y1="52" x2="63" y2="78" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
         </SymbolShell>
       );
+    case "fireplace":
+      return (
+        <SymbolShell>
+          <rect x="12" y="20" width="76" height="60" rx="8" fill={color} stroke={stroke} strokeWidth="5" />
+          <rect x="25" y="31" width="50" height="38" rx="6" fill="#111827" stroke={stroke} strokeWidth="3" />
+          <path d="M50 64 C36 55 43 43 48 36 C50 44 60 47 58 57 C57 62 54 64 50 64Z" fill="#f97316" />
+          <path d="M50 63 C44 58 47 51 51 47 C52 52 57 55 54 61 C53 62 52 63 50 63Z" fill="#fde68a" />
+          <line x1="20" y1="80" x2="80" y2="80" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
+        </SymbolShell>
+      );
     case "tallCabinet":
     case "wardrobe":
     case "entryCabinet":

@@ -31,6 +31,7 @@ export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
   nightstand: "床头柜",
   plant: "绿植",
   cabinet: "矮柜",
+  fireplace: "壁炉",
   kitchenCabinet: "橱柜",
   snackCabinet: "零食柜",
   pegboard: "洞洞板",
@@ -97,6 +98,32 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
   },
   {
+    id: "living-fireplace",
+    category: "living",
+    moduleType: "fireplace",
+    furnitureType: "fireplace",
+    codePrefix: "FP",
+    name: "壁炉",
+    dimensions: { width: 160, depth: 32, height: 90, unit: "cm" },
+    color: "#b86f52",
+    material: "电子雾化壁炉 / 酒精壁炉预留",
+    note: "适合作为客厅或地下休闲区视觉焦点，优先按电子雾化壁炉占位，真实燃烧方案需复核排烟和防火。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "fireplace",
+      title: "壁炉设计",
+      designThinking: "壁炉先承担视觉焦点和氛围功能，再和电视、收纳、座位距离一起校核，避免只好看不好用。",
+      recommendedPlacement: "客厅主视觉墙、地下休闲区或南院室内侧墙，避开门洞和主要通道。",
+      layoutNotes: ["壁炉上方可留画面或电视位", "两侧可结合开放格或矮柜", "地面前方保持可停留的舒适距离"],
+      zones: [
+        { id: "flame", label: "火焰核心", role: "氛围焦点", widthPercent: 54, heightPercent: 58, detail: "控制在视线中心，不让设备尺寸压过墙面比例。", serviceNote: "电子雾化壁炉预留电源和补水维护空间。" },
+        { id: "mantel", label: "壁炉台面", role: "展示 / 置物", widthPercent: 100, heightPercent: 18, detail: "台面只放少量装饰，避免靠近发热或雾化出风位置。" },
+        { id: "side-storage", label: "两侧收纳", role: "书 / 香氛 / 音响", widthPercent: 46, heightPercent: 42, detail: "两侧用浅柜或开放格平衡墙面，弱化设备感。" }
+      ],
+      cautionNotes: ["真实燃烧壁炉必须单独复核排烟、防火和物业限制。", "壁炉与电视同墙时要确认设备发热和观看高度。"]
+    }
+  },
+  {
     id: "bedroom-bed",
     category: "bedroom",
     moduleType: "bed",
@@ -133,7 +160,20 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#d8ddd9",
     material: "岩板台面 + 储物柜体",
     note: "预留岛台地插、净水和排水可选方案。",
-    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false }
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
+    cabinetDesign: {
+      template: "island",
+      title: "岛台设计",
+      designThinking: "岛台不是单独的桌子，而是厨房和餐厅之间的第二操作台：备餐、简餐、收纳和社交要同时成立。",
+      recommendedPlacement: "放在厨房外侧或餐厨中轴，四周通道优先保证 950-1100 mm。",
+      layoutNotes: ["靠厨房一侧做备餐和水槽", "靠餐厅一侧可做吧台坐席", "端头预留插座和小家电临时位"],
+      zones: [
+        { id: "prep", label: "备餐台面", role: "切配 / 装盘", widthPercent: 44, heightPercent: 100, detail: "保留最大连续台面，成为厨房外的第二操作区。", serviceNote: "台面下方预留地插或侧插。" },
+        { id: "sink", label: "水槽/净水", role: "洗杯 / 洗果", widthPercent: 26, heightPercent: 100, detail: "可选小水槽，适合饮水、咖啡和水果清洗。", serviceNote: "若做水槽，需确认给水、排水和防水收口。" },
+        { id: "seating", label: "吧台坐席", role: "早餐 / 陪伴", widthPercent: 30, heightPercent: 100, detail: "外侧留膝部空间，坐人时不影响厨房主通道。" }
+      ],
+      cautionNotes: ["户型尺寸未最终确认前，岛台先按可移动体块校核通道。", "岛台排水如果跨距离太远，建议改为无水岛台或仅预留电源。"]
+    }
   },
   {
     id: "kitchen-cooktop",

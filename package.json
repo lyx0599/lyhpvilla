@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "apply-workspace": "node scripts/apply-workspace-to-default.mjs",
+    "local-code-sync": "node scripts/local-code-sync-server.mjs",
     "start": "next start",
     "lint": "next lint"
   },
