@@ -1,4 +1,4 @@
-# Villa Space Studio 发布说明
+# 别野效果展示模型发布说明
 
 这个项目现在使用 GitHub Pages 作为正式发布入口。
 

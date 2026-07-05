@@ -45,6 +45,7 @@ function getFurnitureAspectRatio(footprint?: Props["footprint"]) {
 function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: Props["footprint"]) {
   const stroke = "#334155";
   const light = "#f8fafc";
+  const glass = "#dbeafe";
   const aspectRatio = getFurnitureAspectRatio(footprint);
   const edgeX = clamp(3, 10 / aspectRatio, 8);
   const sofaArmWidth = clamp(4, 14 / aspectRatio, 9);
@@ -53,6 +54,39 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
   const strokeProps = { vectorEffect: "non-scaling-stroke" as const };
 
   switch (type) {
+    case "shower":
+      return (
+        <FootprintSymbolShell>
+          <rect x="1.5" y="1.5" width="97" height="97" rx="5" fill={`${glass}bb`} stroke={stroke} strokeWidth="2.2" {...strokeProps} />
+          <rect x="7" y="7" width="86" height="86" rx="4" fill={`${color}55`} stroke="#2563eb" strokeWidth="1.6" strokeDasharray="5 4" {...strokeProps} />
+          <path d="M12 86 L88 12" stroke={stroke} strokeWidth="1.8" opacity="0.45" {...strokeProps} />
+          <circle cx="82" cy="80" r="4.5" fill={stroke} opacity="0.55" />
+          <path d="M18 22 C30 10 48 10 62 22" fill="none" stroke={stroke} strokeWidth="2" {...strokeProps} />
+        </FootprintSymbolShell>
+      );
+    case "island":
+      return (
+        <FootprintSymbolShell>
+          <rect x="1.5" y="12" width="97" height="76" rx="7" fill={`${color}26`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <rect x="7" y="18" width="86" height="64" rx="6" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} />
+          <line x1="35" y1="20" x2="35" y2="80" stroke={stroke} strokeWidth="1.5" opacity="0.35" {...strokeProps} />
+          <line x1="66" y1="20" x2="66" y2="80" stroke={stroke} strokeWidth="1.5" opacity="0.35" {...strokeProps} />
+          <line x1="10" y1="50" x2="90" y2="50" stroke={light} strokeWidth="1.3" opacity="0.48" {...strokeProps} />
+          <circle cx="20" cy="50" r="2.5" fill={stroke} opacity="0.5" />
+          <circle cx="50" cy="50" r="2.5" fill={stroke} opacity="0.5" />
+          <circle cx="80" cy="50" r="2.5" fill={stroke} opacity="0.5" />
+        </FootprintSymbolShell>
+      );
+    case "fireplace":
+      return (
+        <FootprintSymbolShell>
+          <rect x="1.5" y="16" width="97" height="68" rx="5" fill={`${color}2b`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <rect x="7" y="22" width="86" height="56" rx="5" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} />
+          <rect x="29" y="32" width="42" height="36" rx="4" fill="#111827" stroke={stroke} strokeWidth="1.8" {...strokeProps} />
+          <path d="M50 65 C39 57 44 47 49 39 C51 47 60 50 58 58 C57 63 54 65 50 65Z" fill="#f97316" />
+          <path d="M50 64 C46 59 48 53 52 50 C53 55 56 58 54 62 C53 63 52 64 50 64Z" fill="#fde68a" />
+        </FootprintSymbolShell>
+      );
     case "sofa":
       return (
         <FootprintSymbolShell>
@@ -301,7 +335,7 @@ function renderSymbol(type: FurnitureType, color: string) {
 
 export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false, imageSrc, stretchToFill = false, footprint }: Props) {
   return (
-    <div className={`relative grid place-items-center overflow-hidden rounded-lg ${frameless ? "bg-transparent" : "bg-white"} ${className}`}>
+    <div className={`relative grid place-items-center ${frameless ? "overflow-visible bg-transparent" : "overflow-hidden bg-white"} rounded-lg ${className}`}>
       {imageSrc ? (
         <img
           alt={label ?? "家具图片"}
@@ -314,7 +348,7 @@ export function FurnitureTopView({ type, color, label, className = "", showLabel
         </div>
       )}
       {showLabel && label && (
-        <span className="absolute bottom-1 left-1/2 max-w-[88%] -translate-x-1/2 rounded bg-white/88 px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-slate-800 shadow-sm">
+        <span className="absolute bottom-1 left-1/2 max-w-[88%] -translate-x-1/2 whitespace-nowrap rounded bg-white/88 px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-slate-800 shadow-sm">
           {label}
         </span>
       )}

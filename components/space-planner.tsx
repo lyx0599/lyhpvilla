@@ -15,7 +15,7 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { createEmptyStructure, createOutdoor, getLineLength } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import type { CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStair, HouseStructure, HouseWall, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
 type ModelSnapshot = {
@@ -67,7 +67,7 @@ type LocalFilePickerWindow = Window & {
 };
 
 const WEB_WORKSPACE_SCHEMA_VERSION = 4;
-const DEFAULT_WORKSPACE_REVISION = "2026-07-04-2f-cloakroom-v2";
+const DEFAULT_WORKSPACE_REVISION = "2026-07-05-1f-snack-horizontal-v1";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -89,7 +89,26 @@ const LOCAL_CODE_AUTO_SYNC_KEY = "villa-space-local-code-auto-sync";
 const LOCAL_CODE_SYNC_ENDPOINT = "http://127.0.0.1:3011/default-workspace";
 const LOCAL_CODE_SYNC_HEALTH_ENDPOINT = "http://127.0.0.1:3011/health";
 const moduleCategoryOrder: InteriorModuleCategory[] = ["living", "bedroom", "kitchen", "bath", "storage", "decor"];
-const retiredDefaultFurnitureIds = new Set(["furn-bed-001"]);
+const retiredDefaultFurnitureIds = new Set(["furn-bed-001", "furn-island-001", "furn-sofa-001", "furn-tv-001"]);
+const retiredDefaultBayWindowIds = new Set(["BW-1F-001", "BW-1F-002"]);
+const oneFloorKitchenSlidingDoorOverride: Partial<HouseDoor> = {
+  name: "厨房半透明玻璃推拉门",
+  width: 900,
+  height: 2100,
+  operation: "sliding",
+  material: "translucentGlass",
+  transparency: 0.45
+};
+const oneFloorWindowOverrides: Record<string, Partial<HouseWindow>> = {
+  "WIN-1F-006": {
+    name: "客厅南院普通窗",
+    hostId: "W-1F-015",
+    hostType: "wall",
+    positionOnWall: 0.78,
+    width: 1200,
+    height: 1400
+  }
+};
 const furnitureDimensionFields: Array<["width" | "depth" | "height", string]> = [
   ["width", "宽 cm"],
   ["depth", "深 cm"],
@@ -390,20 +409,22 @@ function getStairDesignPageData(stair: HouseStair): DesignPageData {
   const stairLength = getLineLength(stair.start, stair.end);
   const treadDepth = Math.max(180, Math.round(stairLength / Math.max(1, stair.stepCount)));
   const riserHeight = Math.max(120, Math.round(stair.height / Math.max(1, stair.stepCount)));
+  const riserNote = riserHeight > 180 ? "目前踢面偏高，后续拿到真实层高和洞口后优先复核能否增加踏步数。" : "当前踢面节奏接近常规舒适区，仍需按真实层高复核。";
   return {
     id: stair.id,
     eyebrow: "Stair Design",
-    title: "楼梯设计",
+    title: "楼梯间设计",
     subject: `${stair.name} · ${stair.direction === "up" ? "上行" : "下行"}`,
-    designThinking: "楼梯先看安全和节奏，再看造型。踏步深度、扶手、照明和上下口缓冲区要一起校核，后续 3D 白模会重点检查压迫感。",
-    recommendedPlacement: "保持现有结构楼梯位置，先用当前长度、宽度和踏步数做通行节奏，再结合上下层洞口复核。",
-    layoutNotes: ["上下口留缓冲，不让门洞或家具贴着第一步", "踏步节奏要稳定，避免中途突然变高或变窄", "扶手、踢脚灯和双控开关一起深化"],
+    designThinking: "这一版先把楼梯间当成安全、收纳和光线的组合来设计：楼梯保持现有一字型位置，墙面做轻量扶手和踏步灯，楼梯下方利用为清洁工具、囤货或换季物品收纳。",
+    recommendedPlacement: "保持 ST-1F-001 的结构位置不变，先按 900mm 净宽和一字型踏步做楼梯间方案；后续 3D 白模重点检查上下口压迫感、扶手高度和楼梯下方可用空间。",
+    layoutNotes: ["楼梯下口留出转身缓冲，不让玄关、厨房和客厅动线互相顶住", "楼梯下方优先做封闭收纳，放清洁工具、行李箱和低频囤货", "墙面用浅色耐擦材质，搭配连续扶手、踏步灯和双控开关"],
     zones: [
-      { id: "landing-start", label: "起步缓冲", role: "入梯停留", widthPercent: 24, heightPercent: 56, detail: "第一步前留出停顿空间，避免和门、柜体、餐椅冲突。", serviceNote: "楼梯口建议预留双控开关。" },
-      { id: "treads", label: "踏步段", role: `${stair.stepCount} 级`, widthPercent: 52, heightPercent: 74, detail: `当前估算踏面约 ${treadDepth} mm，踢面约 ${riserHeight} mm，拿到精确层高后再复核。` },
-      { id: "landing-end", label: "到达缓冲", role: "转身 / 分流", widthPercent: 24, heightPercent: 56, detail: "到达处需要转身、开门或进入走廊的空间，不能只看楼梯本体。", serviceNote: "可结合感应夜灯或扶手灯。" }
+      { id: "lower-buffer", label: "下口缓冲", role: "转身 / 入梯", widthPercent: 22, heightPercent: 58, detail: "楼梯起步处保持空出来，作为进入楼梯间的缓冲，避免柜体或餐椅贴到第一步。", serviceNote: "下口预留双控开关和感应夜灯。" },
+      { id: "linear-treads", label: "一字踏步", role: `${stair.stepCount} 级上行`, widthPercent: 46, heightPercent: 76, detail: `当前估算踏面约 ${treadDepth} mm，踢面约 ${riserHeight} mm。${riserNote}` },
+      { id: "under-stair-storage", label: "楼梯下收纳", role: "清洁 / 囤货", widthPercent: 20, heightPercent: 64, detail: "利用斜向高度变化做分段柜：高处放吸尘器和行李箱，低处放工具箱、囤货和换季物品。" },
+      { id: "handrail-light", label: "扶手灯带", role: "安全 / 引导", widthPercent: 12, heightPercent: 70, detail: "靠墙做连续扶手，踏步侧补低位灯带，让夜间上楼不刺眼。", serviceNote: "灯带、感应器和检修口一起预留。" }
     ],
-    cautionNotes: ["最终踏步尺寸必须按现场层高、梁位和洞口复核。", "如果做开放楼梯，需要额外检查儿童安全、扶手高度和防坠细节。"],
+    cautionNotes: ["最终踏步尺寸必须按现场层高、梁位和洞口复核。", "当前 900mm 宽度偏向紧凑舒适，扶手和墙面收口不要再吃掉太多净宽。", "如果后续做开放楼梯，需要额外检查儿童安全、扶手高度和防坠细节。"],
     metrics: [
       { label: "长度", value: `${stairLength} mm`, note: "当前平面投影" },
       { label: "宽度", value: `${stair.width} mm`, note: "净通行宽" },
@@ -421,7 +442,27 @@ function getFurnitureDesignButtonLabel(furniture: Furniture) {
 }
 
 function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
-  return furnitureItems.map((item) => {
+  const normalizedFurniture = furnitureItems.filter((item) => !retiredDefaultFurnitureIds.has(item.id)).map((item) => {
+    const defaultOverride = oneFloorDefaultFurnitureOverrides[item.id];
+    if (defaultOverride) {
+      return {
+        ...item,
+        ...defaultOverride
+      };
+    }
+    if (item.id === "furn-table-001") {
+      return {
+        ...item,
+        roomId: "ROOM-1F-005",
+        note: "餐桌所在位置定义为客厅活动区，按整套餐桌椅占地估算并预留椅后通道。"
+      };
+    }
+    if (item.id === "module-1f-bed-002" || item.id === "module-1f-wardrobe-001") {
+      return {
+        ...item,
+        roomId: "ROOM-1F-004"
+      };
+    }
     if ((item.type === "wardrobe" || item.moduleType === "wardrobe") && !item.wardrobeDesign?.modules?.length) {
       return {
         ...item,
@@ -443,6 +484,7 @@ function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
       note: item.note.includes("通道") || item.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : item.note
     };
   });
+  return appendMissingById(normalizedFurniture, oneFloorDefaultFurniture);
 }
 
 function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, HouseStructure>, options: { resetOneFloorYardSurfaces?: boolean } = {}) {
@@ -484,22 +526,40 @@ function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, Hous
 
 function normalizeSemanticDefaults(objects: SemanticObject[]) {
   const hasEntryZone = objects.some((object) => object.id === "Z-1F-ENTRY");
+  const hasStairZone = objects.some((object) => object.id === "Z-1F-STAIR");
   const hasCloakroomZone = objects.some((object) => object.id === "Z-2F-CLOAKROOM");
   const nextObjects = objects.map((object) => {
-    if (object.id === "R-1F-001" && object.name === "1F 客餐厅") {
+    if (object.id === "R-1F-001" && (object.name === "1F 客餐厅" || object.name === "1F 客厅")) {
       return {
         ...object,
         name: "1F 公共区",
         notes: "一层主要公共空间，具体功能区以玄关、客厅、厨房、卫生间等标签为准。"
       };
     }
-    if (object.id === "Z-1F-001" && (object.name === "1F 餐厨区" || object.name === "餐厨区")) {
+    if (object.id === "Z-1F-001") {
       return {
         ...object,
-        name: "1F 客厅",
+        name: object.name === "1F 餐厨区" || object.name === "餐厨区" ? "1F 客厅" : object.name,
         type: "living",
         notes: "六人圆餐桌所在的客厅活动区。",
-        position: { x: 72, y: 54 }
+        position: { x: 72, y: 54 },
+        details: {
+          ...(object.details ?? {}),
+          roomId: "ROOM-1F-005"
+        }
+      };
+    }
+    if (object.id === "Z-1F-ENTRY") {
+      return {
+        ...object,
+        name: "1F 玄关",
+        type: "entry",
+        notes: "厨房左侧的入户/玄关过渡空间。",
+        position: { x: 45, y: 28 },
+        details: {
+          ...(object.details ?? {}),
+          roomId: "ROOM-1F-001"
+        }
       };
     }
     return object;
@@ -518,6 +578,22 @@ function normalizeSemanticDefaults(objects: SemanticObject[]) {
       details: {
         roomId: "ROOM-1F-001",
         boundary: [{ x: 36, y: 18 }, { x: 54, y: 18 }, { x: 54, y: 42 }, { x: 36, y: 42 }]
+      }
+    } satisfies SemanticObject
+    ] : []),
+    ...(!hasStairZone ? [
+    {
+      id: "Z-1F-STAIR",
+      name: "1F 楼梯间",
+      floorId: "1F",
+      category: "Zone",
+      type: "stair",
+      notes: "楼梯所在区域，作为上下层动线和施工校核重点。",
+      position: { x: 30, y: 45 },
+      details: {
+        roomId: "ROOM-1F-006",
+        stairId: "ST-1F-001",
+        boundary: [{ x: 10, y: 36 }, { x: 38, y: 36 }, { x: 38, y: 58 }, { x: 10, y: 58 }]
       }
     } satisfies SemanticObject
     ] : []),
@@ -562,15 +638,490 @@ const defaultRoomNameOverrides: Partial<Record<FloorId, Record<string, string>>>
     "ROOM-1F-001": "玄关",
     "ROOM-1F-002": "厨房",
     "ROOM-1F-003": "卫生间",
-    "ROOM-1F-004": "卧室"
+    "ROOM-1F-004": "卧室",
+    "ROOM-1F-005": "客厅",
+    "ROOM-1F-006": "楼梯间"
   }
 };
+
+const oneFloorEntryRoomBoundary = [
+  { x: 3676, y: 350 },
+  { x: 5383, y: 350 },
+  { x: 5383, y: 3050 },
+  { x: 3676, y: 3050 }
+];
+
+const oneFloorLivingRoomBoundary = [
+  { x: 4146, y: 3050 },
+  { x: 9495, y: 3050 },
+  { x: 9495, y: 7800 },
+  { x: 3897, y: 7800 },
+  { x: 3897, y: 5150 },
+  { x: 4146, y: 5150 }
+];
+
+const oneFloorStairRoomBoundary = [
+  { x: 950, y: 3050 },
+  { x: 4146, y: 3050 },
+  { x: 4146, y: 5150 },
+  { x: 950, y: 5150 }
+];
+
+const oneFloorDefinedRooms: HouseRoom[] = [
+  {
+    id: "ROOM-1F-001",
+    floorId: "1F",
+    roomNumber: "R-1F-001",
+    name: "玄关",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: oneFloorEntryRoomBoundary,
+    area: 4608900,
+    sourceWallIds: ["W-1F-001", "W-1F-004", "W-1F-003"]
+  },
+  {
+    id: "ROOM-1F-005",
+    floorId: "1F",
+    roomNumber: "R-1F-005",
+    name: "客厅",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: oneFloorLivingRoomBoundary,
+    area: 26067600,
+    sourceWallIds: ["W-1F-009", "W-1F-011", "W-1F-015", "W-1F-013"]
+  },
+  {
+    id: "ROOM-1F-006",
+    floorId: "1F",
+    roomNumber: "R-1F-006",
+    name: "楼梯间",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: oneFloorStairRoomBoundary,
+    area: 6711600,
+    sourceWallIds: ["W-1F-010", "W-1F-012", "W-1F-016"]
+  }
+];
+
+const oneFloorUKitchenDesign: CabinetDesign = {
+  template: "kitchenCabinet",
+  title: "1F U 型橱柜设计",
+  designThinking: "把厨房压缩成清晰的 U 型工作三角：左侧负责烹饪，靠窗顶端负责洗涤，右侧和右下角承担备餐、冰箱和高频取物。",
+  recommendedPlacement: "布置在 1F 厨房内，U 型顶端贴近北侧窗，灶台在左侧柜段，冰箱落在右下角。",
+  layoutNotes: ["靠窗顶端放两个水槽，适合洗菜、沥水和分区清洗", "左侧灶台两边留落锅和调味空间", "右下角冰箱靠近入口和备餐台，拿取后能直接进入台面操作"],
+  zones: [
+    { id: "cook-left", label: "左侧灶台", role: "烹饪 / 排烟", widthPercent: 30, heightPercent: 100, detail: "左侧柜段嵌入灶台，下方收锅具，旁边留调味和落锅台面。", serviceNote: "确认燃气/电源、排烟方向和止逆阀位置。" },
+    { id: "window-sinks", label: "靠窗双水槽", role: "洗菜 / 沥水 / 净水", widthPercent: 40, heightPercent: 100, detail: "顶端靠窗设置两个水槽，一个主洗，一个辅助/沥水，采光好也便于通风。", serviceNote: "集中预留冷热水、净水、排水和洗碗机可能的电源。" },
+    { id: "fridge-right", label: "右下角冰箱", role: "冷藏 / 高柜", widthPercent: 30, heightPercent: 100, detail: "冰箱放在 U 型右下角，避免打断靠窗操作面，也方便从客厅/餐桌拿取。", serviceNote: "冰箱建议独立回路，背部和侧边按设备要求留散热。" }
+  ],
+  cautionNotes: ["U 型内部通道后续要用精确户型尺寸复核，尽量保证 900 mm 以上。", "双水槽必须结合现场上下水位置确认，排水坡度不够时要调整水槽或洗碗机位置。"]
+};
+
+const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
+  "furn-kitchen-run-001": {
+    code: "KC-1F-U-T",
+    name: "U型橱柜靠窗双水槽段",
+    type: "kitchenCabinet",
+    catalogId: "kitchen-base-cabinet",
+    moduleCategory: "kitchen",
+    moduleType: "kitchenCabinet",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 210, depth: 65, height: 90, unit: "cm" },
+    material: "浅灰防潮柜体 + 石英石台面",
+    note: "U 型顶端靠窗，作为双水槽和主要洗涤台面。",
+    constructionNote: "靠窗顶端布置双水槽，集中复核冷热水、净水、排水和窗台高度。",
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
+    position: { x: 54.5, y: 7.5, rotation: 0 },
+    color: "#d9ddd5",
+    cabinetDesign: oneFloorUKitchenDesign
+  },
+  "furn-kitchen-u-left-run": {
+    code: "KC-1F-U-L",
+    name: "U型橱柜左侧灶台段",
+    type: "kitchenCabinet",
+    catalogId: "kitchen-base-cabinet",
+    moduleCategory: "kitchen",
+    moduleType: "kitchenCabinet",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 200, depth: 65, height: 90, unit: "cm" },
+    material: "浅灰柜体 + 耐污台面",
+    note: "左侧柜段承接灶台、调味和锅具收纳。",
+    constructionNote: "左侧灶台段优先校核烟道、燃气/电源和锅具抽屉高度。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: true },
+    position: { x: 48.5, y: 22.4, rotation: 90 },
+    color: "#d4d8cf",
+    cabinetDesign: oneFloorUKitchenDesign
+  },
+  "furn-kitchen-u-right-run": {
+    code: "KC-1F-U-R",
+    name: "U型橱柜右侧备餐段",
+    type: "kitchenCabinet",
+    catalogId: "kitchen-base-cabinet",
+    moduleCategory: "kitchen",
+    moduleType: "kitchenCabinet",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 130, depth: 65, height: 90, unit: "cm" },
+    material: "浅灰柜体 + 小电器抽拉层",
+    note: "右侧柜段连接冰箱和靠窗水槽，作为备餐、小电器和临时放置区。",
+    constructionNote: "右侧预留台面插座，避免冰箱开门和 U 型内部通道冲突。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 60.8, y: 18.5, rotation: 90 },
+    color: "#d7dbd2",
+    cabinetDesign: oneFloorUKitchenDesign
+  },
+  "furn-cooktop-001": {
+    code: "CK-1F-L",
+    name: "左侧嵌入式灶台",
+    type: "cooktop",
+    catalogId: "kitchen-cooktop",
+    moduleCategory: "kitchen",
+    moduleType: "cooktop",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 90, depth: 52, height: 12, unit: "cm" },
+    material: "燃气灶 / 电磁灶预留",
+    note: "灶台放在 U 型左侧，和靠窗双水槽形成洗切炒动线。",
+    constructionNote: "左侧灶台需和烟道、燃气阀、电源及排烟路径一起复核。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: true },
+    position: { x: 48.5, y: 24, rotation: 90 },
+    color: "#1f2937"
+  },
+  "furn-sink-001": {
+    code: "SK-1F-01",
+    name: "靠窗左水槽",
+    type: "sink",
+    catalogId: "kitchen-sink",
+    moduleCategory: "kitchen",
+    moduleType: "sink",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 72, depth: 48, height: 20, unit: "cm" },
+    material: "不锈钢台下盆",
+    note: "靠窗顶端左侧水槽，作为主洗菜盆。",
+    constructionNote: "与右水槽共用给排水集中校核。",
+    serviceRequirements: { water: true, drainage: true, power: false, exhaust: false },
+    position: { x: 51.5, y: 7.5, rotation: 0 },
+    color: "#9cc7d9"
+  },
+  "furn-sink-002": {
+    code: "SK-1F-02",
+    name: "靠窗右水槽",
+    type: "sink",
+    catalogId: "kitchen-sink",
+    moduleCategory: "kitchen",
+    moduleType: "sink",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 72, depth: 48, height: 20, unit: "cm" },
+    material: "不锈钢台下盆",
+    note: "靠窗顶端右侧水槽，作为辅助清洗/沥水盆。",
+    constructionNote: "双水槽下方预留排水汇合、净水和检修空间。",
+    serviceRequirements: { water: true, drainage: true, power: false, exhaust: false },
+    position: { x: 57.2, y: 7.5, rotation: 0 },
+    color: "#8fbdd0"
+  },
+  "furn-fridge-001": {
+    code: "RF-1F-R",
+    name: "右下角嵌入式冰箱位",
+    type: "fridge",
+    catalogId: "kitchen-fridge",
+    moduleCategory: "kitchen",
+    moduleType: "fridge",
+    roomId: "ROOM-1F-002",
+    dimensions: { width: 92, depth: 70, height: 190, unit: "cm" },
+    material: "高柜嵌入 + 侧边散热",
+    note: "冰箱放在厨房右下角，靠近 U 型右侧备餐段。",
+    constructionNote: "冰箱建议独立回路，按设备样本预留散热和开门空间。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 60, y: 29.8, rotation: 0 },
+    color: "#d9dee4"
+  }
+};
+
+const oneFloorKitchenDefaultFurniture = Object.entries(oneFloorKitchenFurnitureOverrides).map(([id, item]) => ({
+  id,
+  floorId: "1F",
+  ...item
+})) as Furniture[];
+
+const oneFloorBathroomFurnitureOverrides: Record<string, Partial<Furniture>> = {
+  "furn-bath-shower-001": {
+    code: "SH-1F-01",
+    name: "上方通长玻璃淋浴间",
+    type: "shower",
+    catalogId: "bath-shower",
+    moduleCategory: "bath",
+    moduleType: "shower",
+    roomId: "ROOM-1F-003",
+    dimensions: { width: 178, depth: 90, height: 210, unit: "cm" },
+    material: "透明玻璃隔断 + 防滑地面 + 挡水条",
+    note: "横向占满卫生间上方，形成完整玻璃淋浴区，和下方马桶、台盆柜分开。",
+    constructionNote: "优先复核花洒冷热水、地漏坡度、挡水条和玻璃门开启方向。",
+    serviceRequirements: { water: true, drainage: true, power: false, exhaust: false },
+    position: { x: 71.6, y: 9, rotation: 0 },
+    color: "#c7d2fe"
+  },
+  "furn-bath-toilet-001": {
+    code: "WC-1F-01",
+    name: "右侧马桶",
+    type: "toilet",
+    catalogId: "bath-toilet",
+    moduleCategory: "bath",
+    moduleType: "toilet",
+    roomId: "ROOM-1F-003",
+    dimensions: { width: 70, depth: 75, height: 78, unit: "cm" },
+    material: "智能马桶预留",
+    note: "放在卫生间右侧中下部，和台盆柜同侧排列，左下方留给进门转身。",
+    constructionNote: "复核坑距、给水角阀、智能马桶电源和门扇开启范围。",
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
+    position: { x: 76, y: 18.5, rotation: 90 },
+    color: "#f4f0ea"
+  },
+  "furn-bath-vanity-001": {
+    code: "VA-1F-01",
+    name: "右下洗手池",
+    type: "vanity",
+    catalogId: "bath-vanity",
+    moduleCategory: "bath",
+    moduleType: "vanity",
+    roomId: "ROOM-1F-003",
+    dimensions: { width: 90, depth: 50, height: 85, unit: "cm" },
+    material: "台盆柜 + 镜柜 + 镜前灯预留",
+    note: "放在卫生间右下方，靠近进门但不挡门，洗手和泡茶区补水动线都更短。",
+    constructionNote: "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。",
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
+    position: { x: 76.6, y: 27.5, rotation: 270 },
+    color: "#d6d9d7"
+  }
+};
+
+const oneFloorBathroomDefaultFurniture = Object.entries(oneFloorBathroomFurnitureOverrides).map(([id, item]) => ({
+  id,
+  floorId: "1F",
+  ...item
+})) as Furniture[];
+
+const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
+  "furn-living-waterbar-001": {
+    code: "WB-1F-01",
+    name: "餐桌右侧水吧台",
+    type: "sideboard",
+    catalogId: "storage-sideboard",
+    moduleCategory: "storage",
+    moduleType: "sideboard",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 160, depth: 55, height: 90, unit: "cm" },
+    material: "石英石台面 + 防潮柜体 + 小水槽/净饮预留",
+    note: "放在餐桌右侧、原右侧飘窗拆除后的墙面，服务咖啡、泡茶和杯具收纳。",
+    constructionNote: "预留净水/给水、排水、咖啡机和烧水设备插座；台面前方避开餐椅后退区。",
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
+    position: { x: 76.4, y: 71.3, rotation: 90 },
+    color: "#d8ddd9",
+    cabinetDesign: {
+      template: "sideboard",
+      title: "客厅水吧台设计",
+      designThinking: "把咖啡、泡茶、杯具和净饮集中在餐桌右侧，客厅能完成轻量饮品动作，不必每次进厨房。",
+      recommendedPlacement: "原客厅右侧飘窗拆除后的墙面，靠近餐桌但不压餐椅后退区。",
+      layoutNotes: ["下柜放净饮设备、茶具和咖啡器具", "台面保留连续操作面", "侧边预留多联插座和小水槽/净饮点位"],
+      zones: [
+        { id: "counter", label: "饮品台面", role: "咖啡 / 泡茶", widthPercent: 48, heightPercent: 100, detail: "台面放咖啡机、烧水壶和茶盘，旁边留备杯位置。", serviceNote: "预留净水、排水和防溅插座。" },
+        { id: "cups", label: "杯具区", role: "杯子 / 茶具", widthPercent: 28, heightPercent: 100, detail: "常用杯具放在最顺手的位置，下方抽屉收滤纸、茶包和勺具。" },
+        { id: "stock", label: "囤货区", role: "咖啡豆 / 茶叶", widthPercent: 24, heightPercent: 100, detail: "封闭收纳减少包装外露，让客厅保持清爽。" }
+      ],
+      cautionNotes: ["水吧台排水需要结合现场管位复核，距离过远时可改为无水净饮方案。", "台面电器和吊柜下沿要预留足够操作高度。"]
+    }
+  },
+  "furn-living-waterbar-upper-001": {
+    code: "WBC-1F-01",
+    name: "水吧台吊柜",
+    type: "cabinet",
+    catalogId: "storage-sideboard",
+    moduleCategory: "storage",
+    moduleType: "cabinet",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 160, depth: 32, height: 80, unit: "cm" },
+    material: "浅色吊柜 + 局部玻璃门 / 开放格",
+    note: "吊柜对应水吧台上方，收杯子、茶叶、咖啡豆和轻量展示品。",
+    constructionNote: "确认墙体基层承重、吊柜下沿高度、灯带和插座避让。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 77.65, y: 71.3, rotation: 90 },
+    color: "#f0e7d8"
+  },
+  "furn-kitchen-entry-island-001": {
+    code: "IS-1F-210",
+    name: "厨房门口加长储物岛台",
+    type: "island",
+    catalogId: "kitchen-island",
+    moduleCategory: "kitchen",
+    moduleType: "island",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 210, depth: 90, height: 90, unit: "cm" },
+    material: "岩板台面 + 下柜收纳",
+    note: "放在厨房推拉门口和客厅之间，长度对齐靠窗水槽段，作为备餐、端菜和储物岛台。",
+    constructionNote: "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 53.4, y: 43.3, rotation: 0 },
+    color: "#cfd8d3",
+    cabinetDesign: {
+      template: "island",
+      title: "厨房门口加长储物岛台设计",
+      designThinking: "岛台加长后承担两件事：厨房出菜/备餐的连续台面，以及客厅侧可拿取的储物。内部用抽屉、开放格和拉篮分开，避免一个大空腔不好用。",
+      recommendedPlacement: "厨房推拉门外侧、客厅入口上方，长度与靠窗水槽段接近，四周仍要保留可绕行动线。",
+      layoutNotes: ["台面长度 2100mm，和靠窗水槽段形成呼应", "厨房侧放托盘、锅垫、备餐工具", "客厅侧放茶点、纸巾、杯垫和低频餐具"],
+      zones: [
+        { id: "drawer-stack", label: "三层抽屉", role: "餐具 / 小工具", widthPercent: 30, heightPercent: 100, detail: "靠厨房一侧做三层抽屉，上层餐具，中层保鲜袋/杯垫，下层锅垫和餐垫。" },
+        { id: "open-shelf", label: "开放隔层", role: "托盘 / 常用盘", widthPercent: 28, heightPercent: 100, detail: "中段做开放隔层，放托盘和常用盘，端菜时不用开门。" },
+        { id: "pull-basket", label: "抽拉篮", role: "零食 / 茶点", widthPercent: 22, heightPercent: 100, detail: "客厅侧设置窄拉篮，放茶点、纸巾、备用杯子，拉出后正面可见。" },
+        { id: "closed-cabinet", label: "封闭柜", role: "低频收纳", widthPercent: 20, heightPercent: 100, detail: "端头封闭柜收低频器具，外观保持整洁。", serviceNote: "端头预留插座，给电火锅或临时小电器使用。" }
+      ],
+      cautionNotes: ["加长后需要复核厨房门外侧通道和餐桌椅后退空间。", "如果后续做固定岛台，再决定是否预留地插或侧插。"]
+    }
+  },
+  "furn-living-snack-pullout-001": {
+    code: "SC-1F-01",
+    name: "卫客墙面横向拉篮零食柜",
+    type: "snackCabinet",
+    catalogId: "storage-snack-cabinet",
+    moduleCategory: "storage",
+    moduleType: "snackCabinet",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 150, depth: 32, height: 120, unit: "cm" },
+    material: "横向浅柜 + 分段拉篮 + 封闭门板",
+    note: "横向贴在卫生间和客厅之间的 W-1F-009 下方墙面，整体往客厅内侧收，避免顶出房屋边界。",
+    constructionNote: "柜体贴 W-1F-009 客厅侧固定，右端避开外墙边界和卫生间门套；拉篮向客厅方向抽出，前方保留抽拉空间。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    position: { x: 71.5, y: 36.2, rotation: 0 },
+    color: "#f3d9b1",
+    cabinetDesign: {
+      template: "snackCabinet",
+      title: "横向拉篮零食柜设计",
+      designThinking: "零食柜改成横向浅柜后，体量从右侧外墙边界往房屋内侧收回来。它不再像一根窄高柜顶在角落，而是沿 W-1F-009 做一段浅收纳，拉篮横向分区，拿零食、蔬果和茶点更顺手。",
+      recommendedPlacement: "卫生间和客厅之间的 W-1F-009 客厅侧墙面，靠近餐桌和水吧台，但不贴到右侧外墙。",
+      layoutNotes: ["1500mm 横向展开，深度控制在 320mm 左右", "左段放零食和茶包，中段做蔬果拉篮，右段放饮料和纸巾", "柜门和拉篮向客厅侧打开，不影响卫生间门"],
+      zones: [
+        { id: "snack-drawer", label: "零食抽屉", role: "零食 / 茶包", widthPercent: 34, heightPercent: 100, detail: "小包装按口味横向分格，和水吧台形成补给区。" },
+        { id: "veg-basket", label: "蔬果拉篮", role: "蔬果 / 常用菜", widthPercent: 33, heightPercent: 100, detail: "中段做可抽拉透气篮，放土豆、洋葱、水果等需要顺手拿的食材。" },
+        { id: "stock-cabinet", label: "囤货柜", role: "饮料 / 纸巾", widthPercent: 33, heightPercent: 100, detail: "重物和整箱物品靠下放，门板封闭，客厅看起来更干净。" }
+      ],
+      cautionNotes: ["拉篮柜前方需要留出完整抽拉距离。", "现场要复核 W-1F-009 下方墙体、卫生间门套和踢脚线收口。"]
+    }
+  },
+  "furn-entry-slim-hanging-001": {
+    code: "EH-1F-01",
+    name: "W-1F-004 超薄外衣挂区",
+    type: "pegboard",
+    catalogId: "storage-pegboard",
+    moduleCategory: "storage",
+    moduleType: "pegboard",
+    roomId: "ROOM-1F-001",
+    dimensions: { width: 120, depth: 10, height: 180, unit: "cm" },
+    material: "超薄长条挂板 + 折叠挂钩 + 上方窄搁板",
+    note: "固定在 W-1F-004 玄关侧墙面，做成扁平狭长的外穿衣服临时挂放区，平时尽量不挡路。",
+    constructionNote: "贴 W-1F-004 墙固定到基层，挂钩避开入户门扇、厨房推拉门和转身动线；下方悬空，方便清洁。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 44.35, y: 18.8, rotation: 90 },
+    color: "#bfd7c9",
+    cabinetDesign: {
+      template: "pegboard",
+      title: "W-1F-004 超薄外衣挂区设计",
+      designThinking: "玄关墙面小，就不要做厚衣柜。沿 W-1F-004 做一条很浅的长挂板，用折叠挂钩和高处窄搁板把外套临时挂放需求压在墙面上，保持地面和通道空出来。",
+      recommendedPlacement: "贴 W-1F-004 的玄关侧墙面，避开入户门和厨房推拉门通行线。",
+      layoutNotes: ["1200mm 横向展开，深度控制在 100mm 左右", "挂钩折叠，没人挂衣服时几乎不凸出", "上方窄搁板放帽子、口罩和香氛", "下方悬空，不放厚鞋柜，减少堵路感"],
+      zones: [
+        { id: "fold-hooks", label: "折叠挂钩", role: "外套 / 包", widthPercent: 100, heightPercent: 48, detail: "只负责临时外衣，不承担全季衣柜功能。" },
+        { id: "top-shelf", label: "上方窄搁板", role: "帽子 / 小物", widthPercent: 100, heightPercent: 22, detail: "高处放轻物，不占通道视线。" },
+        { id: "lower-clear", label: "底部留空", role: "通行 / 清洁", widthPercent: 100, heightPercent: 30, detail: "底部不落地，让玄关更轻，减少挡路。" }
+      ],
+      cautionNotes: ["挂区深度控制在 100-120mm 内，超过就容易挡路。", "如果外衣很多，建议只做临时挂放，长期收纳放到衣帽间或卧室。"]
+    }
+  },
+  "furn-living-fireplace-south-001": {
+    code: "FP-1F-01",
+    name: "W-1F-013 嵌入式小壁炉",
+    type: "fireplace",
+    catalogId: "living-fireplace",
+    moduleCategory: "living",
+    moduleType: "fireplace",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 120, depth: 12, height: 70, unit: "cm" },
+    material: "浅嵌入电子雾化壁炉 + 防火饰面",
+    note: "嵌在 W-1F-013 墙面上，2D 平面只保留很浅的厚度，作为客厅墙面的氛围点而不是外凸柜体。",
+    constructionNote: "贴 W-1F-013 做浅嵌入，预留电源、检修口和防火收边；真实燃烧壁炉需另行复核排烟和物业要求。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 33, y: 72, rotation: 90 },
+    color: "#b86f52",
+    cabinetDesign: {
+      template: "fireplace",
+      title: "W-1F-013 浅嵌入小壁炉设计",
+      designThinking: "壁炉嵌到 W-1F-013 墙面里，不额外做厚壁炉墙。2D 只看到一条很浅的设备厚度，真实效果靠立面和后续 3D 表达，让客厅多一个温暖焦点但不占通道。",
+      recommendedPlacement: "客厅靠 W-1F-013 的墙面中下段，避开门洞、窗帘和主要家具动线。",
+      layoutNotes: ["平面深度控制在 120mm 左右", "壁炉上方可留画或小壁灯", "两侧保持留白，不做厚柜体", "下方用防火/耐热饰面收口"],
+      zones: [
+        { id: "flame", label: "壁炉核心", role: "氛围 / 视觉焦点", widthPercent: 62, heightPercent: 70, detail: "控制在小体量，嵌进墙面，不在平面里形成大块外凸。" },
+        { id: "flush-frame", label: "齐平收口", role: "墙面一体", widthPercent: 100, heightPercent: 18, detail: "用窄边框或同色饰面收口，让壁炉像墙面里的一个细节。" },
+        { id: "service", label: "检修预留", role: "电源 / 维护", widthPercent: 38, heightPercent: 30, detail: "电源和检修不要被固定家具挡住。", serviceNote: "电子雾化壁炉需确认电源和补水方式。" }
+      ],
+      cautionNotes: ["真实燃烧方案必须另做排烟和防火评估。", "嵌入式做法要确认 W-1F-013 墙体厚度、基层和检修方式。"]
+    }
+  }
+};
+
+const oneFloorLivingDefaultFurniture = Object.entries(oneFloorLivingFurnitureOverrides).map(([id, item]) => ({
+  id,
+  floorId: "1F",
+  ...item
+})) as Furniture[];
+
+const oneFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
+  ...oneFloorKitchenFurnitureOverrides,
+  ...oneFloorBathroomFurnitureOverrides,
+  ...oneFloorLivingFurnitureOverrides
+};
+
+const oneFloorDefaultFurniture = [
+  ...oneFloorKitchenDefaultFurniture,
+  ...oneFloorBathroomDefaultFurniture,
+  ...oneFloorLivingDefaultFurniture
+];
+
+const revisionControlledFurnitureIds = new Set(oneFloorDefaultFurniture.map((item) => item.id));
 
 function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseRoom {
   const overrideName = defaultRoomNameOverrides[floorId]?.[room.id];
   const defaultName = `${floorId} 房间 ${index + 1}`;
-  const canApplyOverride = Boolean(overrideName) && (!room.name || room.name === defaultName || /^1F 房间 [1-4]$/.test(room.name));
+  const isOneFloorDefinedRoom = floorId === "1F" && ["ROOM-1F-001", "ROOM-1F-005", "ROOM-1F-006"].includes(room.id);
+  const canApplyOverride = Boolean(overrideName) && (!room.name || room.name === defaultName || /^1F 房间 [1-6]$/.test(room.name) || isOneFloorDefinedRoom);
   const nextName = canApplyOverride && overrideName ? overrideName : room.name || defaultName;
+  if (floorId === "1F" && room.id === "ROOM-1F-001") {
+    return {
+      ...room,
+      floorId,
+      roomNumber: room.roomNumber || getDefaultRoomNumber(floorId, index),
+      name: nextName,
+      boundary: oneFloorEntryRoomBoundary,
+      area: 4608900,
+      sourceWallIds: ["W-1F-001", "W-1F-004", "W-1F-003"]
+    };
+  }
+  if (floorId === "1F" && room.id === "ROOM-1F-005") {
+    return {
+      ...room,
+      floorId,
+      roomNumber: room.roomNumber || "R-1F-005",
+      name: nextName,
+      boundary: oneFloorLivingRoomBoundary,
+      area: 26067600,
+      sourceWallIds: ["W-1F-009", "W-1F-011", "W-1F-015", "W-1F-013"]
+    };
+  }
+  if (floorId === "1F" && room.id === "ROOM-1F-006") {
+    return {
+      ...room,
+      floorId,
+      roomNumber: room.roomNumber || "R-1F-006",
+      name: nextName,
+      boundary: oneFloorStairRoomBoundary,
+      area: 6711600,
+      sourceWallIds: ["W-1F-010", "W-1F-012", "W-1F-016"]
+    };
+  }
   return {
     ...room,
     floorId,
@@ -584,20 +1135,30 @@ function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseR
 function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | undefined, fallback?: HouseStructure): HouseStructure {
   const emptyStructure = fallback ?? createEmptyStructure(floorId);
   if (!structure) return emptyStructure;
+  const normalizedRooms = (structure.rooms ?? []).map((room, index) => normalizeRoom(floorId, room, index));
+  const normalizedBayWindows = (structure.bayWindows ?? []).filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id));
+  const normalizedWindows = (structure.windows ?? []).map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id]
+    ? { ...windowObject, ...oneFloorWindowOverrides[windowObject.id] }
+    : windowObject);
+  const normalizedDoors = (structure.doors ?? []).map((door) => floorId === "1F" && door.id === "D-1F-004"
+    ? { ...door, ...oneFloorKitchenSlidingDoorOverride }
+    : door);
   return {
     ...emptyStructure,
     ...structure,
     floorId,
     coordinateSystem: structure.coordinateSystem ?? emptyStructure.coordinateSystem,
     walls: structure.walls ?? [],
-    rooms: (structure.rooms ?? []).map((room, index) => normalizeRoom(floorId, room, index)),
+    rooms: floorId === "1F"
+      ? appendMissingById(normalizedRooms, oneFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+      : normalizedRooms,
     partitions: structure.partitions ?? [],
     stairs: structure.stairs ?? [],
     fences: structure.fences ?? [],
     outdoorSurfaces: structure.outdoorSurfaces ?? [],
-    doors: structure.doors ?? [],
-    windows: structure.windows ?? [],
-    bayWindows: structure.bayWindows ?? [],
+    doors: normalizedDoors,
+    windows: normalizedWindows,
+    bayWindows: normalizedBayWindows,
     skylights: structure.skylights ?? [],
     outdoors: structure.outdoors ?? []
   };
@@ -612,7 +1173,10 @@ function appendMissingById<T extends { id: string }>(items: T[], defaultItems: T
 }
 
 function applyDefaultFurnitureRevision(furnitureItems: Furniture[], defaultFurniture: Furniture[]) {
-  const nextFurniture = furnitureItems.filter((item) => !retiredDefaultFurnitureIds.has(item.id));
+  const defaultFurnitureById = new Map(defaultFurniture.map((item) => [item.id, item]));
+  const nextFurniture = furnitureItems
+    .filter((item) => !retiredDefaultFurnitureIds.has(item.id))
+    .map((item) => revisionControlledFurnitureIds.has(item.id) ? defaultFurnitureById.get(item.id) ?? item : item);
   return appendMissingById(nextFurniture, defaultFurniture.filter((item) => !retiredDefaultFurnitureIds.has(item.id)));
 }
 
@@ -624,9 +1188,19 @@ function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseS
       floorId,
       {
         ...structure,
-        doors: appendMissingById(structure.doors, defaultStructure.doors),
-        windows: appendMissingById(structure.windows, defaultStructure.windows),
-        bayWindows: appendMissingById(structure.bayWindows, defaultStructure.bayWindows),
+        rooms: appendMissingById(structure.rooms, defaultStructure.rooms),
+        doors: appendMissingById(
+          structure.doors.map((door) => floorId === "1F" && door.id === "D-1F-004" ? { ...door, ...oneFloorKitchenSlidingDoorOverride } : door),
+          defaultStructure.doors
+        ),
+        windows: appendMissingById(
+          structure.windows.map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id] ? { ...windowObject, ...oneFloorWindowOverrides[windowObject.id] } : windowObject),
+          defaultStructure.windows.map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id] ? { ...windowObject, ...oneFloorWindowOverrides[windowObject.id] } : windowObject)
+        ),
+        bayWindows: appendMissingById(
+          structure.bayWindows.filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id)),
+          defaultStructure.bayWindows.filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id))
+        ),
         skylights: appendMissingById(structure.skylights, defaultStructure.skylights),
         outdoors: appendMissingById(structure.outdoors, defaultStructure.outdoors),
         outdoorSurfaces: appendMissingById(structure.outdoorSurfaces, defaultStructure.outdoorSurfaces)
@@ -2248,8 +2822,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {!focusMode && !isFurnitureWorkspace && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">Villa Space Studio</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">户型结构网站工作台</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">VILLA SPACE STUDIO</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">别野效果展示模型</h1>
               <p className="mt-1 text-sm text-stone-500">{currentFloor.label} · {currentFloor.subtitle} · 一套模型，多种表达</p>
             </div>
             <div className="flex items-center gap-3">

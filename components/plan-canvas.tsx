@@ -50,6 +50,7 @@ import {
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
+import { Floor3DView } from "@/components/floor-3d-view";
 import type {
   CleanPatch,
   DrawTool,
@@ -2426,7 +2427,7 @@ export function PlanCanvas({
 <body>
   <main>
     <section>
-      <p class="meta">Villa Space Studio · ${new Date().toLocaleDateString("zh-CN")} · 当前楼层 ${escapeHtml(floor.label)} / ${escapeHtml(floor.subtitle)}</p>
+      <p class="meta">别野效果展示模型 · ${new Date().toLocaleDateString("zh-CN")} · 当前楼层 ${escapeHtml(floor.label)} / ${escapeHtml(floor.subtitle)}</p>
       <h1>装修施工图纸包 · 概念样张</h1>
       <p>这份文件用于说明施工队通常需要看的图纸结构。当前尺寸与点位为模型推导和别墅经验值，正式施工前必须以现场复尺、设备样本和最终材料为准。</p>
     </section>
@@ -4308,13 +4309,17 @@ export function PlanCanvas({
                   const isSelected = isObjectSelected(door.id);
                   const isHovered = isObjectHovered(door.id);
                   const locked = objectIsLocked(door.id);
+                  const isSlidingDoor = door.operation === "sliding";
+                  const doorStroke = locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#0f172a" : isSlidingDoor ? "#38bdf8" : "#64748b";
+                  const glassOpacity = door.transparency ?? 0.45;
+                  const trackOffset = Math.max(26, host.thickness * 0.24);
                   return (
                     <g
                       key={door.id}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (shouldIgnoreStructureSelection("opening")) return;
-                        selectStructureObject(door.id, `${door.name} · ${door.width} mm`);
+                        selectStructureObject(door.id, `${door.name} · ${door.width} mm${isSlidingDoor ? " · 推拉门" : ""}`);
                       }}
                       onMouseEnter={() => hoverObject(door.id)}
                       onMouseLeave={() => clearHoverObject(door.id)}
@@ -4328,8 +4333,19 @@ export function PlanCanvas({
                       }}
                     >
                       <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="#ffffff" strokeLinecap="round" strokeWidth={host.thickness + 44} />
-                      <line x1={hinge.x} y1={hinge.y} x2={leafOpenEnd.x} y2={leafOpenEnd.y} stroke={locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#0f172a" : "#64748b"} strokeLinecap="round" strokeWidth={isSelected || isHovered ? 34 : 20} />
-                      <path d={`M ${hinge.x} ${hinge.y} Q ${qx} ${qy} ${leafEnd.x} ${leafEnd.y}`} fill="none" stroke={locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#0f172a" : "#64748b"} strokeWidth={isSelected || isHovered ? 34 : 20} />
+                      {isSlidingDoor ? (
+                        <>
+                          <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="#dbeafe" strokeLinecap="round" strokeOpacity={glassOpacity} strokeWidth={Math.max(54, host.thickness * 0.62)} />
+                          <line x1={segment.start.x + segment.normal.x * trackOffset} y1={segment.start.y + segment.normal.y * trackOffset} x2={segment.end.x + segment.normal.x * trackOffset} y2={segment.end.y + segment.normal.y * trackOffset} stroke={doorStroke} strokeLinecap="round" strokeWidth={isSelected || isHovered ? 18 : 12} />
+                          <line x1={segment.start.x - segment.normal.x * trackOffset} y1={segment.start.y - segment.normal.y * trackOffset} x2={segment.end.x - segment.normal.x * trackOffset} y2={segment.end.y - segment.normal.y * trackOffset} stroke={doorStroke} strokeLinecap="round" strokeOpacity="0.72" strokeWidth={isSelected || isHovered ? 18 : 12} />
+                          <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke={doorStroke} strokeLinecap="round" strokeOpacity="0.88" strokeWidth={isSelected || isHovered ? 28 : 18} />
+                        </>
+                      ) : (
+                        <>
+                          <line x1={hinge.x} y1={hinge.y} x2={leafOpenEnd.x} y2={leafOpenEnd.y} stroke={doorStroke} strokeLinecap="round" strokeWidth={isSelected || isHovered ? 34 : 20} />
+                          <path d={`M ${hinge.x} ${hinge.y} Q ${qx} ${qy} ${leafEnd.x} ${leafEnd.y}`} fill="none" stroke={doorStroke} strokeWidth={isSelected || isHovered ? 34 : 20} />
+                        </>
+                      )}
                     </g>
                   );
                 })}
@@ -4738,7 +4754,7 @@ export function PlanCanvas({
                       }}
                     >
                       <div className="font-extrabold">{item.id}</div>
-                      {(mode !== "debug" || selected) && <div className="mt-1 max-w-56 truncate text-xs font-semibold opacity-95">{item.name}</div>}
+                      {(mode !== "debug" || selected) && <div className="mt-1 max-w-56 whitespace-normal break-words text-xs font-semibold opacity-95">{item.name}</div>}
                       {mode === "hover" && <div className="mt-1 text-[10px] font-semibold uppercase opacity-70">Furniture</div>}
                     </div>
                   );
@@ -4926,108 +4942,27 @@ export function PlanCanvas({
           </div>
         </div>
       ) : (
-        <div className="grid h-full min-h-[560px] place-items-center rounded-[1.75rem] border border-white/70 bg-gradient-to-br from-stone-100 to-white p-6 shadow-inner">
-          <label className="absolute right-5 top-16 z-20 hidden cursor-pointer items-center gap-2 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-semibold text-stone-600 shadow-sm backdrop-blur hover:bg-white sm:flex">
-            <input checked={showObjectIds} onChange={(event) => setShowObjectIds(event.target.checked)} type="checkbox" />
-            显示对象 ID
-          </label>
-          <div className="relative h-[420px] w-full max-w-4xl rounded-[2rem] border border-stone-200 bg-white shadow-soft [perspective:1200px]">
-            <div className="absolute left-1/2 top-1/2 h-64 w-[34rem] max-w-[80%] rounded-3xl border-4 border-stone-300 bg-stone-50 shadow-2xl"
-              style={{ transform: "translate(-50%, -50%) rotateX(58deg) rotateZ(-18deg)" }}>
-              <svg className="absolute inset-0" viewBox={`0 0 ${STRUCTURE_WIDTH_MM} ${STRUCTURE_HEIGHT_MM}`}>
-                {houseStructure.rooms.map((room) => (
-                  <polygon
-                    key={room.id}
-                    points={room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}
-                    fill="rgba(255,255,255,0.72)"
-                    stroke="rgba(148,163,184,0.75)"
-                    strokeWidth={40}
-                  />
-                ))}
-                {houseStructure.walls.map((wall) => {
-                  if (wall.kind === "arc") {
-                    return (
-                      <path
-                        key={wall.id}
-                        d={getArcPath(wall)}
-                        fill="none"
-                        stroke={isObjectSelected(wall.id) ? "#2563eb" : "#9ca3af"}
-                        strokeWidth={wall.thickness}
-                        onClick={() => selectStructureObject(wall.id)}
-                        onMouseEnter={() => hoverObject(wall.id)}
-                        onMouseLeave={() => clearHoverObject(wall.id)}
-                      />
-                    );
-                  }
-                  return (
-                    <line
-                      key={wall.id}
-                      x1={wall.start.x}
-                      y1={wall.start.y}
-                      x2={wall.end.x}
-                      y2={wall.end.y}
-                      stroke={isObjectSelected(wall.id) ? "#2563eb" : "#9ca3af"}
-                      strokeWidth={wall.thickness}
-                      strokeLinecap="square"
-                      onClick={() => selectStructureObject(wall.id)}
-                      onMouseEnter={() => hoverObject(wall.id)}
-                      onMouseLeave={() => clearHoverObject(wall.id)}
-                    />
-                  );
-                })}
-                {renderStructureLabelLayer("3d")}
-              </svg>
-              {furniture.map((item) => {
-                const isSelected = item.id === selectedFurnitureId;
-                return (
-                  <button
-                    key={item.id}
-                    className={`absolute overflow-hidden rounded-lg border bg-white shadow-lg transition hover:-translate-y-1 ${isSelected ? "border-clay ring-4 ring-clay/20" : "border-stone-200"}`}
-                    style={{
-                      left: `${item.position.x}%`,
-                      top: `${item.position.y}%`,
-                      width: `${Math.max(28, item.dimensions.width / 5)}px`,
-                      height: `${Math.max(22, item.dimensions.depth / 5)}px`,
-                      transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
-                    }}
-                    onClick={() => {
-                      selectObject(item.id);
-                      onSelectFurniture(item);
-                    }}
-                    onMouseEnter={() => hoverObject(item.id)}
-                    onMouseLeave={() => clearHoverObject(item.id)}
-                    type="button"
-                    title={item.name}
-                  >
-                    <FurnitureTopView className="h-full w-full" color={item.color} imageSrc={item.referenceImageDataUrl} label={item.code} type={item.type} />
-                  </button>
-                );
-              })}
-              {furniture.map((item) => {
-                const selected = selectedInteractionObjectId === item.id;
-                const hovered = isObjectHovered(item.id);
-                if (!selected && !hovered && !showObjectIds) return null;
-                const mode = selected ? "selected" : hovered ? "hover" : "debug";
-                return (
-                  <div
-                    key={`3d-furniture-label-${item.id}`}
-                    className={`${mode === "selected" ? "block" : mode === "hover" ? "hidden [@media(hover:hover)]:block" : "hidden sm:block"} pointer-events-none absolute z-30 w-max max-w-56 -translate-x-1/2 -translate-y-full rounded-md border-2 px-3 py-2 text-center text-sm font-extrabold shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${
-                      mode === "selected" ? "border-blue-950 bg-blue-700 text-white ring-2 ring-white" : mode === "hover" ? "border-slate-950 bg-slate-950 text-white ring-2 ring-white" : "border-slate-700 bg-white/95 text-slate-950 ring-1 ring-white"
-                    }`}
-                    style={{ left: `${item.position.x}%`, top: `${item.position.y}%`, marginTop: "-8px" }}
-                  >
-                    <div>{item.id}</div>
-                    {mode !== "debug" && <div className="mt-1 text-xs font-semibold opacity-95">{item.name}</div>}
-                    {mode === "hover" && <div className="mt-1 text-[10px] uppercase opacity-70">Furniture</div>}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="absolute bottom-6 left-6 max-w-sm rounded-3xl border border-stone-200 bg-white/85 p-4 text-sm leading-6 text-stone-500 backdrop-blur">
-              第一版 3D 用轻量白模表达楼层、房间和家具位置；后续可替换为 React Three Fiber 场景，并复用同一份 JSON 数据。
-            </div>
-          </div>
-        </div>
+        <Floor3DView
+          floor={floor}
+          houseStructure={houseStructure}
+          furniture={furniture}
+          selectedObjectId={selectedInteractionObjectId}
+          selectedFurnitureId={selectedFurnitureId}
+          showObjectIds={showObjectIds}
+          onShowObjectIdsChange={setShowObjectIds}
+          onSelectStructure={(objectId) => {
+            setSelectedStructureId(objectId);
+            selectObject(objectId);
+            onActiveObjectChange(objectId);
+            setStructureMessage(`已在 3D 白模中选择 ${objectId}。`);
+          }}
+          onSelectFurniture={(item) => {
+            selectObject(item.id);
+            onSelectFurniture(item);
+          }}
+          onHoverObject={hoverObject}
+          onClearHoverObject={clearHoverObject}
+        />
       )}
     </div>
   );

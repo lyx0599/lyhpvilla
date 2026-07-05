@@ -19,7 +19,7 @@ export const initialSemanticObjects: SemanticObject[] = [
     type: "living",
     notes: "六人圆餐桌所在的客厅活动区。",
     position: { x: 72, y: 54 },
-    details: { roomId: "R-1F-001", boundary: [{ x: 62, y: 24 }, { x: 88, y: 24 }, { x: 88, y: 72 }, { x: 62, y: 72 }] }
+    details: { roomId: "ROOM-1F-005", boundary: [{ x: 62, y: 24 }, { x: 88, y: 24 }, { x: 88, y: 72 }, { x: 62, y: 72 }] }
   },
   {
     id: "Z-1F-ENTRY",
@@ -40,6 +40,16 @@ export const initialSemanticObjects: SemanticObject[] = [
     notes: "从当前 mock 家具同步来的语义对象示例。",
     position: { x: 28, y: 48 },
     details: { roomId: "R-1F-001", zoneId: "", size: { width: 240, depth: 90, height: 78, unit: "cm" }, position: { x: 28, y: 48 }, rotation: 0, materialId: "", relatedWallIds: [] }
+  },
+  {
+    id: "Z-1F-STAIR",
+    name: "1F 楼梯间",
+    floorId: "1F",
+    category: "Zone",
+    type: "stair",
+    notes: "楼梯所在区域，作为上下层动线和施工校核重点。",
+    position: { x: 30, y: 45 },
+    details: { roomId: "ROOM-1F-006", stairId: "ST-1F-001", boundary: [{ x: 10, y: 36 }, { x: 38, y: 36 }, { x: 38, y: 58 }, { x: 10, y: 58 }] }
   },
   {
     id: "R-B1-001",

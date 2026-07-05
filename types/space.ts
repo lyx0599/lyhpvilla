@@ -280,6 +280,9 @@ export type HouseDoor = {
   width: number;
   height: number;
   openDirection: "leftIn" | "rightIn" | "leftOut" | "rightOut";
+  operation?: "swing" | "sliding";
+  material?: "solid" | "glass" | "translucentGlass";
+  transparency?: number;
 };
 
 export type HouseWindow = {
