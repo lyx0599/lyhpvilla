@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "别野效果展示模型",
-  description: "用于别野结构建模、施工标注和空间沟通的可视化效果展示模型"
+  title: "林屿湖畔",
+  description: "用于林屿湖畔结构建模、施工标注和空间沟通的可视化效果展示模型"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

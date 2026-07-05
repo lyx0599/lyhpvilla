@@ -2427,7 +2427,7 @@ export function PlanCanvas({
 <body>
   <main>
     <section>
-      <p class="meta">别野效果展示模型 · ${new Date().toLocaleDateString("zh-CN")} · 当前楼层 ${escapeHtml(floor.label)} / ${escapeHtml(floor.subtitle)}</p>
+      <p class="meta">林屿湖畔 · ${new Date().toLocaleDateString("zh-CN")} · 当前楼层 ${escapeHtml(floor.label)} / ${escapeHtml(floor.subtitle)}</p>
       <h1>装修施工图纸包 · 概念样张</h1>
       <p>这份文件用于说明施工队通常需要看的图纸结构。当前尺寸与点位为模型推导和别墅经验值，正式施工前必须以现场复尺、设备样本和最终材料为准。</p>
     </section>

@@ -89,7 +89,15 @@ const LOCAL_CODE_AUTO_SYNC_KEY = "villa-space-local-code-auto-sync";
 const LOCAL_CODE_SYNC_ENDPOINT = "http://127.0.0.1:3011/default-workspace";
 const LOCAL_CODE_SYNC_HEALTH_ENDPOINT = "http://127.0.0.1:3011/health";
 const moduleCategoryOrder: InteriorModuleCategory[] = ["living", "bedroom", "kitchen", "bath", "storage", "decor"];
-const retiredDefaultFurnitureIds = new Set(["furn-bed-001", "furn-island-001", "furn-sofa-001", "furn-tv-001"]);
+const retiredDefaultFurnitureIds = new Set([
+  "furn-bed-001",
+  "furn-island-001",
+  "furn-sofa-001",
+  "furn-tv-001",
+  "furn-living-sofa-natural-001",
+  "furn-living-plant-001"
+]);
+const retiredSemanticObjectIds = new Set(["F-1F-001"]);
 const retiredDefaultBayWindowIds = new Set(["BW-1F-001", "BW-1F-002"]);
 const oneFloorKitchenSlidingDoorOverride: Partial<HouseDoor> = {
   name: "厨房半透明玻璃推拉门",
@@ -525,10 +533,11 @@ function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, Hous
 }
 
 function normalizeSemanticDefaults(objects: SemanticObject[]) {
-  const hasEntryZone = objects.some((object) => object.id === "Z-1F-ENTRY");
-  const hasStairZone = objects.some((object) => object.id === "Z-1F-STAIR");
-  const hasCloakroomZone = objects.some((object) => object.id === "Z-2F-CLOAKROOM");
-  const nextObjects = objects.map((object) => {
+  const activeObjects = objects.filter((object) => !retiredSemanticObjectIds.has(object.id));
+  const hasEntryZone = activeObjects.some((object) => object.id === "Z-1F-ENTRY");
+  const hasStairZone = activeObjects.some((object) => object.id === "Z-1F-STAIR");
+  const hasCloakroomZone = activeObjects.some((object) => object.id === "Z-2F-CLOAKROOM");
+  const nextObjects = activeObjects.map((object) => {
     if (object.id === "R-1F-001" && (object.name === "1F 客餐厅" || object.name === "1F 客厅")) {
       return {
         ...object,
@@ -899,6 +908,64 @@ const oneFloorBathroomDefaultFurniture = Object.entries(oneFloorBathroomFurnitur
 })) as Furniture[];
 
 const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
+  "furn-living-rug-natural-001": {
+    code: "RG-1F-01",
+    name: "客厅低饱和羊毛地毯",
+    type: "custom",
+    moduleCategory: "living",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 310, depth: 210, height: 2, unit: "cm" },
+    material: "低饱和羊毛地毯",
+    note: "作为客厅活动区的视觉底盘，先用低饱和浅米灰压住大理石地砖反光。",
+    constructionNote: "后期按真实坐具和茶几尺寸调整地毯边界，避免跨到房间或主要通道。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    position: { x: 35, y: 60.5, rotation: 0 },
+    color: "#d8d1c3"
+  },
+  "furn-living-coffee-table-001": {
+    code: "CT-1F-01",
+    name: "客厅浅木椭圆茶几",
+    type: "table",
+    moduleCategory: "living",
+    moduleType: "table",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 120, depth: 68, height: 38, unit: "cm" },
+    material: "浅木茶几 + 浅灰岩板托盘",
+    note: "先用低矮茶几控制客厅中心体量，方便后期换成圆形、异形或双拼茶几。",
+    constructionNote: "茶几到主要坐具前沿建议保留约 350-450 mm，真实尺寸拿到后再校准。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    position: { x: 35, y: 59.8, rotation: 0 },
+    color: "#c49a6f"
+  },
+  "furn-living-side-table-001": {
+    code: "ST-1F-01",
+    name: "客厅浅木圆几",
+    type: "table",
+    moduleCategory: "living",
+    moduleType: "table",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 48, depth: 48, height: 50, unit: "cm" },
+    material: "浅木边几",
+    note: "放在客厅活动区侧边，服务台灯、香氛、杯子和手机临时放置。",
+    constructionNote: "边几旁可预留地插/墙插，后期结合最终坐具位置确定。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    position: { x: 22.5, y: 62.2, rotation: 0 },
+    color: "#c49a6f"
+  },
+  "furn-living-lounge-chair-001": {
+    code: "LC-1F-01",
+    name: "客厅藤编休闲单椅",
+    type: "chair",
+    moduleCategory: "living",
+    roomId: "ROOM-1F-005",
+    dimensions: { width: 72, depth: 82, height: 82, unit: "cm" },
+    material: "浅木藤编 + 米白坐垫",
+    note: "作为客厅活动区的轻量补座，先做自然风单椅占位。",
+    constructionNote: "后期根据客厅动线调整角度，不压餐桌椅后退区和去楼梯的通道。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    position: { x: 47, y: 60.5, rotation: 320 },
+    color: "#d8c2a4"
+  },
   "furn-living-waterbar-001": {
     code: "WB-1F-01",
     name: "餐桌右侧水吧台",
@@ -2822,8 +2889,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {!focusMode && !isFurnitureWorkspace && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">VILLA SPACE STUDIO</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">别野效果展示模型</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">LINYU LAKESIDE</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">林屿湖畔</h1>
               <p className="mt-1 text-sm text-stone-500">{currentFloor.label} · {currentFloor.subtitle} · 一套模型，多种表达</p>
             </div>
             <div className="flex items-center gap-3">
