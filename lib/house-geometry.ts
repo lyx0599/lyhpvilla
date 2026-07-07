@@ -1,6 +1,7 @@
 import type {
   FloorId,
   HouseBayWindow,
+  HouseColumn,
   HouseDoor,
   FloorCoordinateSystem,
   HouseFence,
@@ -29,6 +30,8 @@ export const DEFAULT_PARTITION_HEIGHT_MM = 2400;
 export const DEFAULT_STAIR_WIDTH_MM = 1100;
 export const DEFAULT_STAIR_HEIGHT_MM = 2800;
 export const DEFAULT_STAIR_STEP_COUNT = 14;
+export const DEFAULT_COLUMN_RADIUS_MM = 360;
+export const DEFAULT_COLUMN_HEIGHT_MM = 2800;
 const SNAP_MM = 180;
 
 export function createFloorCoordinateSystem(floorId: FloorId): FloorCoordinateSystem {
@@ -219,6 +222,23 @@ export function createStair(id: string, floorId: FloorId, start: MmPoint, end: M
     height: DEFAULT_STAIR_HEIGHT_MM,
     stepCount: DEFAULT_STAIR_STEP_COUNT,
     direction: "up",
+    editable: true,
+    removable: true
+  };
+}
+
+export function createColumn(id: string, floorId: FloorId, center: MmPoint, radius = DEFAULT_COLUMN_RADIUS_MM): HouseColumn {
+  return {
+    id,
+    floorId,
+    name: `Column ${id.split("-").slice(-1)[0]}`,
+    geometryType: "point",
+    columnType: "cylindrical",
+    center,
+    radius,
+    height: DEFAULT_COLUMN_HEIGHT_MM,
+    material: "reinforcedConcrete",
+    supportsFloorId: floorId === "B2" ? "B1" : undefined,
     editable: true,
     removable: true
   };
@@ -416,7 +436,14 @@ export function generateRoomsFromWalls(floorId: FloorId, walls: HouseWall[], pre
   const straightWalls = walls.filter((wall): wall is StraightHouseWall => wall.kind === "straight");
   const previousRoomBySignature = new Map(previousRooms.map((room) => [getRoomSignature(room.sourceWallIds), room]));
   const gridRooms = generateGridRoomsFromWalls(floorId, straightWalls, previousRoomBySignature);
-  return gridRooms.length > 0 ? gridRooms : generateLoopRoomsFromWalls(floorId, straightWalls, previousRoomBySignature);
+  if (gridRooms.length > 0) return gridRooms;
+  const loopRooms = generateLoopRoomsFromWalls(floorId, straightWalls, previousRoomBySignature);
+  if (loopRooms.length > 0) return loopRooms;
+  return previousRooms.map((room) => ({
+    ...room,
+    floorId,
+    area: getPolygonArea(room.boundary)
+  }));
 }
 
 export function projectPointToSegment(point: MmPoint, start: MmPoint, end: MmPoint) {
@@ -554,6 +581,7 @@ export function createEmptyStructure(floorId: FloorId): HouseStructure {
     rooms: [],
     partitions: [],
     stairs: [],
+    columns: [],
     fences: [],
     outdoorSurfaces: [],
     doors: [],

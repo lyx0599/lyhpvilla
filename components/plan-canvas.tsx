@@ -18,6 +18,7 @@ import {
 import {
   createBayWindow,
   createArcWallFromEndpoints,
+  createColumn,
   createDoor,
   createFence,
   createOutdoor,
@@ -136,11 +137,11 @@ type SyncPaintRuleId = WallSyncRuleId | "default";
 type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
 type OutdoorSurfaceDrawTool = "hardscape" | "path" | "planting";
 type OutdoorSurfaceMaterial = HouseStructure["outdoorSurfaces"][number]["material"];
-type StructureInteractionKind = "wall" | "partition" | "stair" | "fence" | "opening" | "skylight" | "room" | "outdoor" | "outdoorSurface";
+type StructureInteractionKind = "wall" | "partition" | "stair" | "column" | "fence" | "opening" | "skylight" | "room" | "outdoor" | "outdoorSurface";
 type YardFocus = "north" | "south";
 type StructureObjectRow = {
   id: string;
-  kind: "wall" | "partition" | "stair" | "fence" | "door" | "window" | "bayWindow" | "skylight" | "room" | "outdoor" | "outdoorSurface" | "furniture";
+  kind: "wall" | "partition" | "stair" | "column" | "fence" | "door" | "window" | "bayWindow" | "skylight" | "room" | "outdoor" | "outdoorSurface" | "furniture";
   label: string;
   name: string;
   detail: string;
@@ -678,9 +679,11 @@ export function PlanCanvas({
   function getFurniturePosition(event: PointerEvent<Element>) {
     const point = getMmPosition(event);
     if (!point) return null;
+    const minY = floor.id === "1F" ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
+    const maxY = floor.id === "1F" ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
     return {
       x: Math.min(100, Math.max(0, (point.x / STRUCTURE_WIDTH_MM) * 100)),
-      y: Math.min(100, Math.max(0, (point.y / STRUCTURE_HEIGHT_MM) * 100))
+      y: Math.min(maxY, Math.max(minY, (point.y / STRUCTURE_HEIGHT_MM) * 100))
     };
   }
 
@@ -820,6 +823,7 @@ export function PlanCanvas({
       ...houseStructure.walls.map((object) => object.id),
       ...houseStructure.partitions.map((object) => object.id),
       ...houseStructure.stairs.map((object) => object.id),
+      ...(houseStructure.columns ?? []).map((object) => object.id),
       ...houseStructure.fences.map((object) => object.id),
       ...houseStructure.outdoorSurfaces.map((object) => object.id),
       ...houseStructure.doors.map((object) => object.id),
@@ -840,6 +844,7 @@ export function PlanCanvas({
       houseStructure.walls.find((object) => object.id === selectedStructureId) ??
       houseStructure.partitions.find((object) => object.id === selectedStructureId) ??
       houseStructure.stairs.find((object) => object.id === selectedStructureId) ??
+      (houseStructure.columns ?? []).find((object) => object.id === selectedStructureId) ??
       houseStructure.fences.find((object) => object.id === selectedStructureId) ??
       houseStructure.outdoorSurfaces.find((object) => object.id === selectedStructureId) ??
       houseStructure.rooms.find((object) => object.id === selectedStructureId) ??
@@ -856,6 +861,7 @@ export function PlanCanvas({
     if (houseStructure.walls.some((object) => object.id === objectId)) return "wall";
     if (houseStructure.partitions.some((object) => object.id === objectId)) return "partition";
     if (houseStructure.stairs.some((object) => object.id === objectId)) return "stair";
+    if ((houseStructure.columns ?? []).some((object) => object.id === objectId)) return "column";
     if (houseStructure.fences.some((object) => object.id === objectId)) return "fence";
     if (houseStructure.doors.some((object) => object.id === objectId)) return "opening";
     if (houseStructure.windows.some((object) => object.id === objectId)) return "opening";
@@ -871,6 +877,7 @@ export function PlanCanvas({
     if (tool === "wall-straight" || tool === "wall-arc") return "wall";
     if (tool === "partition") return "partition";
     if (tool === "stair") return "stair";
+    if (tool === "column") return "column";
     if (tool === "fence") return "fence";
     if (tool === "door" || tool === "window" || tool === "bay-window") return "opening";
     if (tool === "skylight") return "skylight";
@@ -929,6 +936,7 @@ export function PlanCanvas({
       ...getWallEndpoints(houseStructure.walls),
       ...houseStructure.partitions.flatMap((partition) => [partition.start, partition.end]),
       ...houseStructure.stairs.flatMap((stair) => [stair.start, stair.end]),
+      ...(houseStructure.columns ?? []).map((column) => column.center),
       ...houseStructure.fences.flatMap((fence) => [fence.start, fence.end]),
       ...houseStructure.outdoors.flatMap((outdoor) => outdoor.polygon),
       ...houseStructure.outdoorSurfaces.flatMap((surface) => surface.polygon)
@@ -1215,6 +1223,17 @@ export function PlanCanvas({
       selectObject(skylight.id);
       onActiveObjectChange(skylight.id);
       setStructureMessage("已放置天窗。天窗是独立结构对象，可在右侧调整宽度、进深和高度。");
+      return;
+    }
+
+    if (drawTool === "column") {
+      event.stopPropagation();
+      const column = createColumn(getNextStructureId("COL", (houseStructure.columns ?? []).length), floor.id, point);
+      onHouseStructureChange({ ...houseStructure, columns: [...(houseStructure.columns ?? []), column] });
+      setSelectedStructureId(column.id);
+      selectObject(column.id);
+      onActiveObjectChange(column.id);
+      setStructureMessage(`已放置圆柱立柱 ${column.id}。可在右侧调整半径和高度。`);
       return;
     }
 
@@ -1532,6 +1551,17 @@ export function PlanCanvas({
       return;
     }
 
+    if ((houseStructure.columns ?? []).some((column) => column.id === selectedStructureId)) {
+      onHouseStructureChange({
+        ...houseStructure,
+        columns: (houseStructure.columns ?? []).filter((column) => column.id !== selectedStructureId)
+      });
+      setStructureMessage("已删除立柱。");
+      setSelectedStructureId("");
+      onActiveObjectChange("");
+      return;
+    }
+
     if (houseStructure.fences.some((fence) => fence.id === selectedStructureId)) {
       onHouseStructureChange({
         ...houseStructure,
@@ -1607,6 +1637,51 @@ export function PlanCanvas({
       };
     });
     return { length, ux, uy, normal, steps };
+  }
+
+  function getStairLandingConnections(stairs: HouseStructure["stairs"]) {
+    if (floor.id === "B2" || floor.id === "2F" || floor.id === "YARD") return [];
+    const firstRun = stairs.find((stair) => stair.id.endsWith("-001"));
+    const secondRun = stairs.find((stair) => stair.id.endsWith("-002") && stair.direction === "down");
+    if (!firstRun || !secondRun) return [];
+    const length = getLineLength(firstRun.start, secondRun.start);
+    if (length <= 0 || length > 3400) return [];
+    const width = Math.min(firstRun.width, secondRun.width);
+    const minX = Math.min(firstRun.start.x, secondRun.start.x) - width / 2;
+    const maxX = Math.max(firstRun.start.x, secondRun.start.x) + width / 2;
+    const minY = Math.min(firstRun.start.y, secondRun.start.y) - width / 2;
+    const maxY = Math.max(firstRun.start.y, secondRun.start.y) + width / 2;
+    return [{
+      id: `${firstRun.id}-${secondRun.id}-landing`,
+      fromId: firstRun.id,
+      toId: secondRun.id,
+      start: firstRun.start,
+      end: secondRun.start,
+      width,
+      length,
+      bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+    }];
+  }
+
+  function getDownStairLabel() {
+    if (floor.id === "1F") return "下 B1";
+    if (floor.id === "B1") return "下 B2";
+    return "";
+  }
+
+  function isTwoFloorArrivalStair(stair: HouseStructure["stairs"][number]) {
+    return floor.id === "2F" && stair.id === "ST-2F-001";
+  }
+
+  function getStairMovementLabel(stair: HouseStructure["stairs"][number]) {
+    if (isTwoFloorArrivalStair(stair)) return "1F → 2F 到达";
+    if (stair.direction === "down") return getDownStairLabel();
+    return "";
+  }
+
+  function getStairDirectionDetail(stair: HouseStructure["stairs"][number]) {
+    if (isTwoFloorArrivalStair(stair)) return "1F→2F 到达";
+    return stair.direction === "up" ? "上行" : "下行";
   }
 
   function getArcPath(wall: Extract<HouseWall, { kind: "arc" }>) {
@@ -1842,7 +1917,16 @@ export function PlanCanvas({
         kind: "stair",
         label: "楼梯",
         name: stair.name,
-        detail: `${getLineLength(stair.start, stair.end)} x ${stair.width} mm · ${stair.stepCount} 踏 · ${stair.direction === "up" ? "上行" : "下行"}`
+        detail: `${getLineLength(stair.start, stair.end)} x ${stair.width} mm · ${stair.stepCount} 踏 · ${getStairDirectionDetail(stair)}`
+      });
+    });
+    (houseStructure.columns ?? []).forEach((column) => {
+      rows.push({
+        id: column.id,
+        kind: "column",
+        label: "立柱",
+        name: column.name,
+        detail: `Φ${column.radius * 2} x ${column.height} mm${column.supportsFloorId ? ` · 支撑${column.supportsFloorId}` : ""}`
       });
     });
     houseStructure.fences.forEach((fence) => {
@@ -1932,7 +2016,7 @@ export function PlanCanvas({
       (row.kind === "outdoor" || row.kind === "outdoorSurface" || row.kind === "fence") &&
       (row.id.includes(`-${yardToken}-`) || row.name.includes(focusedLabel))
     ));
-  }, [houseStructure, furniture, yardFocus, yardImmersiveMode, yardToken]);
+  }, [floor.id, houseStructure, furniture, yardFocus, yardImmersiveMode, yardToken]);
   const structureLabels = useMemo(() => {
     const labels: ObjectLabel[] = [];
 
@@ -1955,6 +2039,15 @@ export function PlanCanvas({
         type: "Stair",
         x: (stair.start.x + stair.end.x) / 2,
         y: (stair.start.y + stair.end.y) / 2
+      });
+    });
+    (houseStructure.columns ?? []).forEach((column) => {
+      labels.push({
+        id: column.id,
+        name: column.name,
+        type: "Column",
+        x: column.center.x,
+        y: column.center.y
       });
     });
     houseStructure.fences.forEach((fence) => {
@@ -2025,7 +2118,7 @@ export function PlanCanvas({
   }, [houseStructure, planBounds]);
   const filteredStructureLabels = useMemo(() => structureLabels.filter((label) => {
     if (labelFilter === "all") return true;
-    if (labelFilter === "walls") return label.type === "Wall" || label.type === "Arc Wall" || label.type === "Partition" || label.type === "Stair" || label.type === "Fence";
+    if (labelFilter === "walls") return label.type === "Wall" || label.type === "Arc Wall" || label.type === "Partition" || label.type === "Stair" || label.type === "Column" || label.type === "Fence";
     if (labelFilter === "openings") return label.type === "Door" || label.type === "Window" || label.type === "Bay Window" || label.type === "Skylight";
     if (labelFilter === "rooms") return label.type === "Room" || label.type === "Outdoor";
     if (labelFilter === "outdoor") return label.type === "Outdoor" || label.type === "Fence" || label.type === "Hardscape" || label.type === "Path" || label.type === "Planting";
@@ -2053,6 +2146,7 @@ export function PlanCanvas({
     "wall-arc": "弧墙",
     partition: "隔断",
     stair: "楼梯",
+    column: "立柱",
     fence: "篱笆",
     hardscape: "铺硬地",
     "hardscape-rect": "矩形平台",
@@ -2070,6 +2164,7 @@ export function PlanCanvas({
     "wall-arc": "点起点，再点终点",
     partition: "点起点，再点终点",
     stair: "点起点，再点终点",
+    column: "点击放置圆柱",
     fence: "点起点，再点终点",
     hardscape: "点边界铺任意形状",
     "hardscape-rect": "两点生成平台",
@@ -2082,7 +2177,7 @@ export function PlanCanvas({
     outdoor: "连续点边界"
   };
   const drawToolSections: Array<{ title: string; tools: DrawTool[] }> = [
-    { title: "结构主体", tools: ["select", "wall-straight", "wall-arc", "partition", "stair"] },
+    { title: "结构主体", tools: ["select", "wall-straight", "wall-arc", "partition", "stair", "column"] },
     { title: "洞口", tools: ["door", "window", "bay-window", "skylight"] },
     { title: "院子", tools: ["outdoor", "fence", "path", "hardscape-rect", "hardscape", "planting"] }
   ];
@@ -2114,6 +2209,7 @@ export function PlanCanvas({
     if (tool === "wall-arc") return "点击弧墙起点，移动鼠标预览，再点击终点完成连接。可先设置弧度角度。";
     if (tool === "partition") return "点击隔断起点，移动鼠标预览，再点击终点完成连接。";
     if (tool === "stair") return "点击楼梯起点，移动鼠标预览，再点击终点完成楼梯方向。";
+    if (tool === "column") return "点击画布放置圆柱形结构立柱，选中后可调整半径和高度。";
     if (tool === "fence") return "点击篱笆起点，移动鼠标预览，再点击终点完成连接。";
     if (tool === "outdoor") return "点击画布添加院子边界点。";
     if (tool === "path") return "点击小路中心线，系统会按宽度自动生成鹅卵石/石板小路。";
@@ -2396,6 +2492,7 @@ export function PlanCanvas({
       ["门", houseStructure.doors.length],
       ["窗", houseStructure.windows.length + houseStructure.bayWindows.length],
       ["楼梯", houseStructure.stairs.length],
+      ["立柱", (houseStructure.columns ?? []).length],
       ["房间", houseStructure.rooms.length],
       ["家具/硬装", furniture.length]
     ];
@@ -2568,10 +2665,11 @@ export function PlanCanvas({
                 key={`projection-wall-${wall.id}`}
                 d={getArcPath(wall)}
                 fill="none"
-                stroke="#475569"
-                strokeLinecap="round"
-                strokeOpacity={0.2}
-                strokeWidth={wall.thickness + 90}
+                stroke={isRailingWall(wall) ? "#0891b2" : "#475569"}
+                strokeDasharray={isRailingWall(wall) ? "120 86" : undefined}
+                strokeLinecap={isRailingWall(wall) ? "round" : "round"}
+                strokeOpacity={isRailingWall(wall) ? 0.34 : 0.2}
+                strokeWidth={isRailingWall(wall) ? wall.thickness + 34 : wall.thickness + 90}
               />
             );
           }
@@ -2582,10 +2680,11 @@ export function PlanCanvas({
               y1={wall.start.y}
               x2={wall.end.x}
               y2={wall.end.y}
-              stroke="#475569"
-              strokeLinecap="square"
-              strokeOpacity={0.22}
-              strokeWidth={wall.thickness + 90}
+              stroke={isRailingWall(wall) ? "#0891b2" : "#475569"}
+              strokeDasharray={isRailingWall(wall) ? "120 86" : undefined}
+              strokeLinecap={isRailingWall(wall) ? "round" : "square"}
+              strokeOpacity={isRailingWall(wall) ? 0.34 : 0.22}
+              strokeWidth={isRailingWall(wall) ? wall.thickness + 34 : wall.thickness + 90}
             />
           );
         })}
@@ -2616,6 +2715,17 @@ export function PlanCanvas({
             strokeWidth={stair.width}
           />
         ))}
+        {(houseStructure.columns ?? []).map((column) => (
+          <circle
+            key={`projection-column-${column.id}`}
+            cx={column.center.x}
+            cy={column.center.y}
+            r={column.radius}
+            fill="rgba(51,65,85,0.16)"
+            stroke="rgba(15,23,42,0.28)"
+            strokeWidth={34}
+          />
+        ))}
       </g>
     );
   }
@@ -2630,19 +2740,42 @@ export function PlanCanvas({
     };
   }
 
+  function isRailingWall(wall: HouseWall) {
+    return wall.barrierType === "railing";
+  }
+
+  function getWallObjectLabel(wall: HouseWall) {
+    if (isRailingWall(wall)) return "镂空栏杆";
+    return wall.kind === "arc" ? "弧形墙" : "墙";
+  }
+
   function getVisibleWallStroke(wall: HouseWall, isSelected: boolean, isHovered: boolean, locked: boolean) {
     if (isSyncSheetMode) {
       return {
         color: getSyncWallPresentation(wall).color,
         width: isSelected || isHovered ? wall.thickness + 76 : wall.thickness + 30,
-        opacity: locked ? 0.55 : 1
+        opacity: locked ? 0.55 : 1,
+        dasharray: undefined as string | undefined,
+        linecap: "square" as "square" | "round"
+      };
+    }
+
+    if (isRailingWall(wall)) {
+      return {
+        color: locked ? "#9ca3af" : isSelected ? "#0f766e" : isHovered ? "#0d9488" : "#0891b2",
+        width: isSelected || isHovered ? wall.thickness + 42 : wall.thickness + 18,
+        opacity: locked ? 0.55 : 0.95,
+        dasharray: "120 86",
+        linecap: "round" as const
       };
     }
 
     return {
       color: locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#334155" : "#5e6468",
       width: isSelected || isHovered ? wall.thickness + 34 : wall.thickness,
-      opacity: locked ? 0.55 : 1
+      opacity: locked ? 0.55 : 1,
+      dasharray: undefined as string | undefined,
+      linecap: "square" as "square" | "round"
     };
   }
 
@@ -3115,6 +3248,22 @@ export function PlanCanvas({
             textAnchor="middle"
           >
             {getLineLength(stair.start, stair.end)} mm
+          </text>
+        ))}
+        {(houseStructure.columns ?? []).map((column) => (
+          <text
+            key={`dimension-${column.id}`}
+            x={column.center.x}
+            y={column.center.y + column.radius + 250}
+            fill="#1f2937"
+            fontSize={132}
+            fontWeight={900}
+            paintOrder="stroke"
+            stroke="#ffffff"
+            strokeWidth={34}
+            textAnchor="middle"
+          >
+            Φ{column.radius * 2} mm
           </text>
         ))}
         {houseStructure.doors.map((door) => {
@@ -3888,6 +4037,16 @@ export function PlanCanvas({
                       if (shouldIgnoreStructureSelection("outdoor")) return;
                       selectStructureObject(outdoor.id, `${outdoor.name} · 默认绿地 · ${(outdoor.area / 1_000_000).toFixed(2)} m2`);
                     }}
+                    onPointerDown={(event) => {
+                      if (plannerMode !== "edit" || drawTool !== "select" || objectIsLocked(outdoor.id)) return;
+                      if (blockProtectedStructureEdit("outdoor", "移动院子边界")) return;
+                      const point = getMmPosition(event);
+                      if (!point) return;
+                      event.stopPropagation();
+                      structureMoveRef.current = { pointerId: event.pointerId, objectId: outdoor.id, lastPoint: point, moved: false };
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      selectStructureObject(outdoor.id, `${outdoor.name} · 拖动整体院子边界`);
+                    }}
                     onMouseEnter={() => hoverObject(outdoor.id)}
                     onMouseLeave={() => clearHoverObject(outdoor.id)}
                   />
@@ -3908,6 +4067,16 @@ export function PlanCanvas({
                           event.stopPropagation();
                           if (shouldIgnoreStructureSelection("outdoorSurface")) return;
                           selectStructureObject(surface.id, `${surface.name} · ${outdoorSurfaceMaterialLabels[surface.material] ?? "铺装"} · ${(surface.area / 1_000_000).toFixed(2)} m2`);
+                        }}
+                        onPointerDown={(event) => {
+                          if (plannerMode !== "edit" || drawTool !== "select" || objectIsLocked(surface.id)) return;
+                          if (blockProtectedStructureEdit("outdoorSurface", "移动庭院铺装")) return;
+                          const point = getMmPosition(event);
+                          if (!point) return;
+                          event.stopPropagation();
+                          structureMoveRef.current = { pointerId: event.pointerId, objectId: surface.id, lastPoint: point, moved: false };
+                          event.currentTarget.setPointerCapture(event.pointerId);
+                          selectStructureObject(surface.id, `${surface.name} · 拖动整体铺装`);
                         }}
                         onMouseEnter={() => hoverObject(surface.id)}
                         onMouseLeave={() => clearHoverObject(surface.id)}
@@ -4062,7 +4231,7 @@ export function PlanCanvas({
                           onClick={(event) => {
                             event.stopPropagation();
                             if (shouldIgnoreStructureSelection("wall")) return;
-                            selectStructureObject(wall.id, `${wall.name} · 弧形墙 · ${wall.length} mm`);
+                            selectStructureObject(wall.id, `${wall.name} · ${getWallObjectLabel(wall)} · ${wall.length} mm`);
                           }}
                           onPointerDown={(event) => {
                             if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
@@ -4072,7 +4241,7 @@ export function PlanCanvas({
                             event.stopPropagation();
                             structureMoveRef.current = { pointerId: event.pointerId, objectId: wall.id, lastPoint: point, moved: false };
                             event.currentTarget.setPointerCapture(event.pointerId);
-                            selectStructureObject(wall.id, `${wall.name} · 拖动整面弧墙`);
+                            selectStructureObject(wall.id, `${wall.name} · 拖动整段${getWallObjectLabel(wall)}`);
                           }}
                           onMouseEnter={() => hoverObject(wall.id)}
                           onMouseLeave={() => clearHoverObject(wall.id)}
@@ -4082,7 +4251,8 @@ export function PlanCanvas({
                           fill="none"
                           pointerEvents="none"
                           stroke={visibleStroke.color}
-                          strokeLinecap="round"
+                          strokeDasharray={visibleStroke.dasharray}
+                          strokeLinecap={isRailingWall(wall) ? visibleStroke.linecap : "round"}
                           strokeWidth={visibleStroke.width}
                           opacity={visibleStroke.opacity}
                         />
@@ -4104,7 +4274,7 @@ export function PlanCanvas({
                         onClick={(event) => {
                           event.stopPropagation();
                           if (shouldIgnoreStructureSelection("wall")) return;
-                          selectStructureObject(wall.id, `${wall.name} · ${wall.length} mm`);
+                          selectStructureObject(wall.id, `${wall.name} · ${getWallObjectLabel(wall)} · ${wall.length} mm`);
                         }}
                         onPointerDown={(event) => {
                           if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
@@ -4114,7 +4284,7 @@ export function PlanCanvas({
                           event.stopPropagation();
                           structureMoveRef.current = { pointerId: event.pointerId, objectId: wall.id, lastPoint: point, moved: false };
                           event.currentTarget.setPointerCapture(event.pointerId);
-                          selectStructureObject(wall.id, `${wall.name} · 拖动整面墙`);
+                          selectStructureObject(wall.id, `${wall.name} · 拖动整段${getWallObjectLabel(wall)}`);
                         }}
                         onMouseEnter={() => hoverObject(wall.id)}
                         onMouseLeave={() => clearHoverObject(wall.id)}
@@ -4126,7 +4296,8 @@ export function PlanCanvas({
                         y2={wall.end.y}
                         pointerEvents="none"
                         stroke={visibleStroke.color}
-                        strokeLinecap="square"
+                        strokeDasharray={visibleStroke.dasharray}
+                        strokeLinecap={visibleStroke.linecap}
                         strokeWidth={visibleStroke.width}
                         opacity={visibleStroke.opacity}
                       />
@@ -4193,18 +4364,78 @@ export function PlanCanvas({
               </g>
 
               <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="StairLayer">
+                {getStairLandingConnections(houseStructure.stairs).map((connection) => {
+                  const isSelected = isObjectSelected(connection.fromId) || isObjectSelected(connection.toId);
+                  const isHovered = isObjectHovered(connection.fromId) || isObjectHovered(connection.toId);
+                  const locked = objectIsLocked(connection.fromId) || objectIsLocked(connection.toId);
+                  const center = {
+                    x: connection.bounds.x + connection.bounds.width / 2,
+                    y: connection.bounds.y + connection.bounds.height / 2
+                  };
+                  return (
+                    <g key={connection.id} pointerEvents="none">
+                      <rect
+                        x={connection.bounds.x}
+                        y={connection.bounds.y}
+                        width={connection.bounds.width}
+                        height={connection.bounds.height}
+                        rx={Math.min(260, connection.width * 0.32)}
+                        fill={locked ? "#9ca3af" : "#8b5cf6"}
+                        fillOpacity={locked ? 0.12 : isSelected || isHovered ? 0.22 : 0.16}
+                        stroke={locked ? "#9ca3af" : isSelected || isHovered ? "#5b21b6" : "#6d28d9"}
+                        strokeDasharray="140 110"
+                        strokeOpacity={locked ? 0.34 : 0.5}
+                        strokeWidth={26}
+                      />
+                      <line
+                        x1={connection.start.x}
+                        y1={connection.start.y}
+                        x2={connection.end.x}
+                        y2={connection.end.y}
+                        stroke={locked ? "#9ca3af" : "#4c1d95"}
+                        strokeLinecap="round"
+                        strokeOpacity={locked ? 0.38 : 0.58}
+                        strokeWidth={28}
+                        strokeDasharray="120 120"
+                      />
+                      <text
+                        x={center.x}
+                        y={center.y}
+                        fill={locked ? "#6b7280" : "#4c1d95"}
+                        fontSize={130}
+                        fontWeight={900}
+                        paintOrder="stroke"
+                        pointerEvents="none"
+                        stroke="#ffffff"
+                        strokeWidth={70}
+                        textAnchor="middle"
+                      >
+                        平台
+                      </text>
+                    </g>
+                  );
+                })}
                 {houseStructure.stairs.map((stair) => {
                   const isSelected = isObjectSelected(stair.id);
                   const isHovered = isObjectHovered(stair.id);
                   const locked = objectIsLocked(stair.id);
                   const stairGeometry = getStairGeometry(stair);
+                  const isDownRun = stair.direction === "down";
+                  const isArrivalRun = isTwoFloorArrivalStair(stair);
+                  const arrivalVisualOffset = isArrivalRun ? stair.width * 0.42 : 0;
+                  const shiftArrivalPoint = (point: MmPoint) => ({
+                    x: point.x + stairGeometry.normal.x * arrivalVisualOffset,
+                    y: point.y + stairGeometry.normal.y * arrivalVisualOffset
+                  });
+                  const visualStart = shiftArrivalPoint(stair.start);
+                  const visualEnd = shiftArrivalPoint(stair.end);
                   const arrowStart = {
-                    x: stair.start.x + stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
-                    y: stair.start.y + stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
+                    x: visualStart.x + stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
+                    y: visualStart.y + stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
                   };
                   const arrowEnd = {
-                    x: stair.end.x - stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
-                    y: stair.end.y - stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
+                    x: visualEnd.x - stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
+                    y: visualEnd.y - stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
                   };
                   const headLeft = {
                     x: arrowEnd.x - stairGeometry.ux * 210 + stairGeometry.normal.x * 150,
@@ -4214,13 +4445,22 @@ export function PlanCanvas({
                     x: arrowEnd.x - stairGeometry.ux * 210 - stairGeometry.normal.x * 150,
                     y: arrowEnd.y - stairGeometry.uy * 210 - stairGeometry.normal.y * 150
                   };
+                  const labelPoint = {
+                    x: (arrowStart.x + arrowEnd.x) / 2 + stairGeometry.normal.x * Math.min(310, stair.width * 0.34),
+                    y: (arrowStart.y + arrowEnd.y) / 2 + stairGeometry.normal.y * Math.min(310, stair.width * 0.34)
+                  };
+                  const stairMovementLabel = getStairMovementLabel(stair);
+                  const arrivalLanding = {
+                    x: visualEnd.x,
+                    y: visualEnd.y
+                  };
                   return (
                     <g key={stair.id}>
                       <line
-                        x1={stair.start.x}
-                        y1={stair.start.y}
-                        x2={stair.end.x}
-                        y2={stair.end.y}
+                        x1={visualStart.x}
+                        y1={visualStart.y}
+                        x2={visualEnd.x}
+                        y2={visualEnd.y}
                         stroke="transparent"
                         pointerEvents="stroke"
                         strokeLinecap="round"
@@ -4249,22 +4489,36 @@ export function PlanCanvas({
                         x2={stair.end.x}
                         y2={stair.end.y}
                         pointerEvents="none"
-                        stroke={locked ? "#9ca3af" : isSelected ? "#7c3aed" : isHovered ? "#6d28d9" : "#8b5cf6"}
+                        stroke={locked ? "#9ca3af" : isSelected ? "#7c3aed" : isHovered ? "#6d28d9" : isArrivalRun ? "#f59e0b" : isDownRun ? "#312e81" : "#8b5cf6"}
                         strokeLinecap="round"
-                        strokeOpacity={locked ? 0.38 : 0.18}
+                        strokeOpacity={locked ? 0.38 : isArrivalRun ? 0.34 : isDownRun ? 0.25 : 0.18}
                         strokeWidth={stair.width}
                       />
+                      {(isDownRun || isArrivalRun) && [-1, 1].map((side) => (
+                        <line
+                          key={`${stair.id}-edge-${side}`}
+                          x1={visualStart.x + stairGeometry.normal.x * stair.width * 0.48 * side}
+                          y1={visualStart.y + stairGeometry.normal.y * stair.width * 0.48 * side}
+                          x2={visualEnd.x + stairGeometry.normal.x * stair.width * 0.48 * side}
+                          y2={visualEnd.y + stairGeometry.normal.y * stair.width * 0.48 * side}
+                          pointerEvents="none"
+                          stroke={locked ? "#9ca3af" : isArrivalRun ? "#b45309" : "#111827"}
+                          strokeLinecap="round"
+                          strokeOpacity={locked ? 0.38 : 0.62}
+                          strokeWidth={18}
+                        />
+                      ))}
                       {stairGeometry.steps.map((step, index) => (
                         <line
                           key={`${stair.id}-step-${index}`}
-                          x1={step.start.x}
-                          y1={step.start.y}
-                          x2={step.end.x}
-                          y2={step.end.y}
+                          x1={shiftArrivalPoint(step.start).x}
+                          y1={shiftArrivalPoint(step.start).y}
+                          x2={shiftArrivalPoint(step.end).x}
+                          y2={shiftArrivalPoint(step.end).y}
                           pointerEvents="none"
-                          stroke={locked ? "#9ca3af" : "#4c1d95"}
+                          stroke={locked ? "#9ca3af" : isArrivalRun ? "#92400e" : isDownRun ? "#111827" : "#4c1d95"}
                           strokeLinecap="round"
-                          strokeOpacity={locked ? 0.45 : 0.72}
+                          strokeOpacity={locked ? 0.45 : isArrivalRun ? 0.88 : isDownRun ? 0.84 : 0.72}
                           strokeWidth={isSelected || isHovered ? 34 : 24}
                         />
                       ))}
@@ -4274,17 +4528,132 @@ export function PlanCanvas({
                         x2={arrowEnd.x}
                         y2={arrowEnd.y}
                         pointerEvents="none"
-                        stroke={locked ? "#9ca3af" : isSelected ? "#4c1d95" : "#6d28d9"}
+                        stroke={locked ? "#9ca3af" : isSelected ? "#4c1d95" : isArrivalRun ? "#b45309" : isDownRun ? "#111827" : "#6d28d9"}
                         strokeLinecap="round"
                         strokeWidth={isSelected || isHovered ? 46 : 32}
                       />
                       <path
                         d={`M ${arrowEnd.x} ${arrowEnd.y} L ${headLeft.x} ${headLeft.y} L ${headRight.x} ${headRight.y} Z`}
-                        fill={locked ? "#9ca3af" : isSelected ? "#4c1d95" : "#6d28d9"}
+                        fill={locked ? "#9ca3af" : isSelected ? "#4c1d95" : isArrivalRun ? "#b45309" : isDownRun ? "#111827" : "#6d28d9"}
                         pointerEvents="none"
                       />
+                      {isArrivalRun && (
+                        <g pointerEvents="none">
+                          <circle
+                            cx={arrivalLanding.x}
+                            cy={arrivalLanding.y}
+                            fill={locked ? "#e5e7eb" : "#fffbeb"}
+                            r={Math.min(340, stair.width * 0.36)}
+                            stroke={locked ? "#9ca3af" : "#b45309"}
+                            strokeWidth={26}
+                          />
+                          <text
+                            x={arrivalLanding.x}
+                            y={arrivalLanding.y + 46}
+                            fill={locked ? "#6b7280" : "#92400e"}
+                            fontSize={126}
+                            fontWeight={900}
+                            paintOrder="stroke"
+                            stroke="#ffffff"
+                            strokeWidth={72}
+                            textAnchor="middle"
+                          >
+                            2F 到达
+                          </text>
+                        </g>
+                      )}
+                      {stairMovementLabel && (
+                        <text
+                          x={labelPoint.x}
+                          y={labelPoint.y}
+                          fill={locked ? "#6b7280" : isArrivalRun ? "#92400e" : "#111827"}
+                          fontSize={142}
+                          fontWeight={900}
+                          paintOrder="stroke"
+                          pointerEvents="none"
+                          stroke="#ffffff"
+                          strokeWidth={78}
+                          textAnchor="middle"
+                        >
+                          {stairMovementLabel}
+                        </text>
+                      )}
                       {renderDragHandle(stair.id, "start", stair.start)}
                       {renderDragHandle(stair.id, "end", stair.end)}
+                    </g>
+                  );
+                })}
+              </g>
+
+              <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="ColumnLayer">
+                {(houseStructure.columns ?? []).map((column) => {
+                  const isSelected = isObjectSelected(column.id);
+                  const isHovered = isObjectHovered(column.id);
+                  const locked = objectIsLocked(column.id);
+                  const stroke = locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#334155" : "#1f2937";
+                  const fill = locked ? "#9ca3af" : isSelected ? "#dbeafe" : isHovered ? "#e2e8f0" : "#3f3f46";
+                  const message = `${column.name} · Φ${column.radius * 2} mm${column.supportsFloorId ? ` · 支撑${column.supportsFloorId}` : ""}`;
+                  return (
+                    <g key={column.id}>
+                      <circle
+                        cx={column.center.x}
+                        cy={column.center.y}
+                        fill="transparent"
+                        r={Math.max(520, column.radius + 220)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (shouldIgnoreStructureSelection("column")) return;
+                          selectStructureObject(column.id, message);
+                        }}
+                        onMouseEnter={() => hoverObject(column.id)}
+                        onMouseLeave={() => clearHoverObject(column.id)}
+                        onPointerDown={(event) => {
+                          if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                          if (blockProtectedStructureEdit("column", "移动立柱")) return;
+                          const point = getMmPosition(event);
+                          if (!point) return;
+                          event.stopPropagation();
+                          structureMoveRef.current = { pointerId: event.pointerId, objectId: column.id, lastPoint: point, moved: false };
+                          event.currentTarget.setPointerCapture(event.pointerId);
+                          selectStructureObject(column.id, `${column.name} · 拖动立柱`);
+                        }}
+                      />
+                      <circle
+                        cx={column.center.x}
+                        cy={column.center.y}
+                        fill={fill}
+                        opacity={locked ? 0.55 : isSelected || isHovered ? 0.95 : 0.88}
+                        pointerEvents="none"
+                        r={column.radius}
+                        stroke={stroke}
+                        strokeWidth={isSelected || isHovered ? 42 : 28}
+                      />
+                      <circle
+                        cx={column.center.x}
+                        cy={column.center.y}
+                        fill={isSelected ? "#2563eb" : "#ffffff"}
+                        opacity={locked ? 0.68 : 0.94}
+                        pointerEvents="none"
+                        r={Math.max(58, column.radius * 0.2)}
+                      />
+                      <line
+                        pointerEvents="none"
+                        stroke={isSelected ? "#ffffff" : "#cbd5e1"}
+                        strokeWidth={24}
+                        x1={column.center.x - column.radius * 0.56}
+                        x2={column.center.x + column.radius * 0.56}
+                        y1={column.center.y}
+                        y2={column.center.y}
+                      />
+                      <line
+                        pointerEvents="none"
+                        stroke={isSelected ? "#ffffff" : "#cbd5e1"}
+                        strokeWidth={24}
+                        x1={column.center.x}
+                        x2={column.center.x}
+                        y1={column.center.y - column.radius * 0.56}
+                        y2={column.center.y + column.radius * 0.56}
+                      />
                     </g>
                   );
                 })}

@@ -1,10 +1,23 @@
-import { createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls } from "@/lib/house-geometry";
+import { createColumn, createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls, getPolygonArea } from "@/lib/house-geometry";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
 import defaultWorkspace from "@/data/default-workspace.json";
-import type { FloorId, HouseBayWindow, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
+import type { FloorId, HouseBayWindow, HouseColumn, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
 
 function wall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
   return createStraightWall(id, floorId, start, end);
+}
+
+function railingWall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
+  const baseWall = wall(id, floorId, start, end);
+  return {
+    ...baseWall,
+    name: `${baseWall.name} · 挑空镂空栏杆`,
+    barrierType: "railing",
+    material: "metal",
+    openness: 0.72,
+    thickness: 90,
+    height: 1100
+  };
 }
 
 type StructureAddons = {
@@ -16,6 +29,8 @@ type StructureAddons = {
   fences?: HouseFence[];
   outdoorSurfaces?: HouseOutdoorSurface[];
   stairs?: HouseStair[];
+  columns?: HouseColumn[];
+  rooms?: HouseRoom[];
 };
 
 function door(id: string, floorId: FloorId, hostId: string, positionOnWall: number, width = 900): HouseDoor {
@@ -96,14 +111,123 @@ function stair(id: string, floorId: FloorId, start: { x: number; y: number }, en
   };
 }
 
+function column(id: string, floorId: FloorId, center: { x: number; y: number }, radius = 360): HouseColumn {
+  return createColumn(id, floorId, center, radius);
+}
+
+function turningStairs(floorId: FloorId): HouseStair[] {
+  return [
+    {
+      ...stair(`ST-${floorId}-001`, floorId, { x: 3676, y: 3050 }, { x: 950, y: 3050 }),
+      name: "沿上侧墙上行梯段",
+      baseHeight: 0,
+      height: 1400,
+      stepCount: 10,
+      direction: "up"
+    },
+    {
+      ...stair(`ST-${floorId}-002`, floorId, { x: 3897, y: 5150 }, { x: 950, y: 5150 }),
+      name: "沿下侧墙下行梯段",
+      baseHeight: 0,
+      height: 1400,
+      stepCount: 10,
+      direction: "down"
+    }
+  ];
+}
+
+function topFloorArrivalStair(floorId: FloorId): HouseStair[] {
+  return [
+    {
+      ...stair(`ST-${floorId}-001`, floorId, { x: 3897, y: 5150 }, { x: 950, y: 5150 }),
+      name: "W-2F-012 1F→2F 到达梯段",
+      baseHeight: 0,
+      height: 2800,
+      stepCount: 14,
+      direction: "up"
+    }
+  ];
+}
+
+function room(id: string, floorId: FloorId, roomNumber: string, name: string, boundary: { x: number; y: number }[], sourceWallIds: string[]): HouseRoom {
+  return {
+    id,
+    floorId,
+    roomNumber,
+    name,
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary,
+    area: getPolygonArea(boundary),
+    sourceWallIds
+  };
+}
+
+const b2LivingRoomBoundary = [
+  { x: 3676, y: 350 },
+  { x: 7610, y: 350 },
+  { x: 7610, y: 4222 },
+  { x: 9495, y: 4222 },
+  { x: 9495, y: 5150 },
+  { x: 3897, y: 5150 },
+  { x: 3897, y: 3050 },
+  { x: 3676, y: 3050 }
+];
+
+const b2StairRoomBoundary = [
+  { x: 950, y: 3050 },
+  { x: 3897, y: 3050 },
+  { x: 3897, y: 5150 },
+  { x: 950, y: 5150 },
+  { x: 2050, y: 4300 },
+  { x: 950, y: 4300 }
+];
+
+const b2StorageRoomBoundary = [
+  { x: 950, y: 4300 },
+  { x: 2050, y: 4300 },
+  { x: 950, y: 5150 }
+];
+
+const b2StudyRoomBoundary = [
+  { x: 950, y: 5150 },
+  { x: 5750, y: 5150 },
+  { x: 5750, y: 7800 },
+  { x: 950, y: 7800 }
+];
+
+const b2ActivityRoomBoundary = [
+  { x: 5750, y: 5150 },
+  { x: 9495, y: 5150 },
+  { x: 9495, y: 7800 },
+  { x: 5750, y: 7800 }
+];
+
+const b2DefinedRooms: HouseRoom[] = [
+  room("ROOM-B2-001", "B2", "R-B2-001", "客厅", b2LivingRoomBoundary, ["W-B2-001", "W-B2-003", "W-B2-004", "W-B2-006", "W-B2-012"]),
+  room("ROOM-B2-002", "B2", "R-B2-002", "楼梯间", b2StairRoomBoundary, ["W-B2-007", "W-B2-008", "W-B2-009"]),
+  room("ROOM-B2-004", "B2", "R-B2-003", "储物间", b2StorageRoomBoundary, ["W-B2-008", "W-B2-009"]),
+  room("ROOM-B2-005", "B2", "R-B2-004", "书房", b2StudyRoomBoundary, ["W-B2-010", "W-B2-011"]),
+  room("ROOM-B2-003", "B2", "R-B2-005", "活动区", b2ActivityRoomBoundary, ["W-B2-011", "W-B2-012"])
+];
+
+const b2SupportColumns: HouseColumn[] = [
+  {
+    ...column("COL-B2-001", "B2", { x: 5750, y: 6200 }, 360),
+    name: "B2圆柱立柱 / 支撑B1",
+    supportsFloorId: "B1"
+  }
+];
+
 function structure(floorId: FloorId, walls: HouseWall[], partitions: HousePartition[] = [], addons: StructureAddons = {}): HouseStructure {
   return {
     floorId,
     coordinateSystem: createFloorCoordinateSystem(floorId),
     walls,
-    rooms: generateRoomsFromWalls(floorId, walls),
+    rooms: addons.rooms ?? generateRoomsFromWalls(floorId, walls),
     partitions,
     stairs: addons.stairs ?? [],
+    columns: addons.columns ?? [],
     fences: addons.fences ?? [],
     outdoorSurfaces: addons.outdoorSurfaces ?? [],
     doors: addons.doors ?? [],
@@ -148,15 +272,13 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
       fence("FN-1F-SOUTH-003", "1F", "南院东侧分户木篱笆", { x: 9495, y: 7800 }, { x: 9495, y: 11800 })
     ],
     outdoorSurfaces: [
-      { ...surface("OS-1F-NORTH-001", "1F", "北院石板入户平台", "hardscape", [{ x: 4050, y: -1500 }, { x: 6900, y: -1500 }, { x: 6900, y: -850 }, { x: 4050, y: -850 }]), material: "stone" },
-      { ...surface("OS-1F-NORTH-002", "1F", "北院鹅卵石踏步路", "path", [{ x: 5000, y: -850 }, { x: 5950, y: -850 }, { x: 5850, y: 250 }, { x: 4900, y: 250 }]), material: "pebble" },
-      { ...surface("OS-1F-NORTH-003", "1F", "北院边界花境", "planting", [{ x: 1100, y: -1500 }, { x: 3050, y: -1500 }, { x: 3050, y: 120 }, { x: 1100, y: 120 }]), material: "shrub" },
-      { ...surface("OS-1F-SOUTH-001", "1F", "南院石板会客平台", "hardscape", [{ x: 4200, y: 8350 }, { x: 7600, y: 8350 }, { x: 7600, y: 9650 }, { x: 4200, y: 9650 }]), material: "stone" },
-      { ...surface("OS-1F-SOUTH-002", "1F", "南院木平台", "hardscape", [{ x: 7650, y: 8350 }, { x: 9250, y: 8350 }, { x: 9250, y: 9400 }, { x: 7650, y: 9400 }]), material: "wood" },
-      { ...surface("OS-1F-SOUTH-003", "1F", "南院鹅卵石小路", "path", [{ x: 3300, y: 9300 }, { x: 4300, y: 9300 }, { x: 7650, y: 10400 }, { x: 7400, y: 11250 }, { x: 3900, y: 10150 }]), material: "pebble" },
-      { ...surface("OS-1F-SOUTH-004", "1F", "南院花境", "planting", [{ x: 1100, y: 8250 }, { x: 3200, y: 8250 }, { x: 3200, y: 11550 }, { x: 1100, y: 11550 }]), material: "shrub" }
+      { ...surface("OS-1F-NORTH-BBQ-HARD-PH", "1F", "占位｜北院烧烤硬化区", "hardscape", [{ x: 2600, y: -1550 }, { x: 7950, y: -1550 }, { x: 7950, y: 150 }, { x: 2600, y: 150 }]), material: "concrete" },
+      { ...surface("OS-1F-SOUTH-DRYING-PH", "1F", "占位｜南院晾晒硬化区", "hardscape", [{ x: 1200, y: 8200 }, { x: 3650, y: 8200 }, { x: 3650, y: 9650 }, { x: 1200, y: 9650 }]), material: "concrete" },
+      { ...surface("OS-1F-SOUTH-LOUNGE-PH", "1F", "占位｜南院休闲活动硬化区", "hardscape", [{ x: 5400, y: 8450 }, { x: 9100, y: 8450 }, { x: 9100, y: 10100 }, { x: 5400, y: 10100 }]), material: "stone" },
+      { ...surface("OS-1F-SOUTH-PATH-PH", "1F", "占位｜南院连接小路", "path", [{ x: 3450, y: 8950 }, { x: 4200, y: 8700 }, { x: 5850, y: 9400 }, { x: 5600, y: 10150 }, { x: 4050, y: 9550 }]), material: "pebble" },
+      { ...surface("OS-1F-SOUTH-PET-CORNER-PH", "1F", "占位｜南院宠物角排水铺装", "hardscape", [{ x: 7600, y: 10400 }, { x: 9250, y: 10400 }, { x: 9250, y: 11600 }, { x: 7600, y: 11600 }]), material: "pebble" }
     ],
-    stairs: [stair("ST-1F-001", "1F", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
+    stairs: turningStairs("1F")
   }),
   "2F": structure("2F", [
     wall("W-2F-001", "2F", { x: 3676, y: 350 }, { x: 5383, y: 350 }),
@@ -189,7 +311,7 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     ],
     windows: [windowObject("WIN-2F-001", "2F", "W-2F-001", 0.5, 1200), windowObject("WIN-2F-002", "2F", "W-2F-002", 0.7, 1200)],
     bayWindows: [bayWindow("BW-2F-001", "2F", "W-2F-011", 0.84, 1200)],
-    stairs: [stair("ST-2F-001", "2F", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
+    stairs: topFloorArrivalStair("2F")
   }),
   "B1": structure("B1", [
     wall("W-B1-001", "B1", { x: 3947, y: 350 }, { x: 5385, y: 350 }),
@@ -203,10 +325,10 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     wall("W-B1-009", "B1", { x: 950, y: 7800 }, { x: 3897, y: 7800 }),
     wall("W-B1-010", "B1", { x: 3897, y: 7800 }, { x: 6650, y: 7800 }),
     wall("W-B1-011", "B1", { x: 6650, y: 7800 }, { x: 9495, y: 7800 }),
-    wall("W-B1-012", "B1", { x: 5385, y: 5853 }, { x: 6650, y: 5853 }),
-    wall("W-B1-013", "B1", { x: 6650, y: 5853 }, { x: 6650, y: 7800 })
+    railingWall("W-B1-012", "B1", { x: 5385, y: 5853 }, { x: 6650, y: 5853 }),
+    railingWall("W-B1-013", "B1", { x: 6650, y: 5853 }, { x: 6650, y: 7800 })
   ], [], {
-    stairs: [stair("ST-B1-001", "B1", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
+    stairs: turningStairs("B1")
   }),
   "B2": structure("B2", [
     wall("W-B2-001", "B2", { x: 3676, y: 350 }, { x: 5383, y: 350 }),
@@ -222,7 +344,17 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     wall("W-B2-011", "B2", { x: 3897, y: 7800 }, { x: 9495, y: 7800 }),
     wall("W-B2-012", "B2", { x: 9495, y: 4222 }, { x: 9495, y: 7800 })
   ], [], {
-    stairs: [stair("ST-B2-001", "B2", { x: 4146, y: 4100 }, { x: 950, y: 4100 })]
+    stairs: [{
+      ...stair("ST-B2-001", "B2", { x: 3676, y: 3050 }, { x: 950, y: 3050 }),
+      name: "B2 上行至 B1 楼梯",
+      baseHeight: 0,
+      height: 2800,
+      stepCount: 14,
+      direction: "up"
+    }],
+    columns: b2SupportColumns,
+    rooms: b2DefinedRooms,
+    doors: [door("D-B2-001", "B2", "W-B2-003", 0.525, 900)]
   }),
   "YARD": structure("YARD", [], [], {
     outdoors: [createOutdoor("OD-YARD-001", "YARD", [{ x: 900, y: 850 }, { x: 10700, y: 850 }, { x: 10700, y: 7100 }, { x: 900, y: 7100 }])],
@@ -238,6 +370,18 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
   })
 };
 
-const savedDefaultWorkspace = defaultWorkspace as Partial<{ houseStructuresByFloor: Record<FloorId, HouseStructure> }>;
+const savedDefaultWorkspace = defaultWorkspace as unknown as Partial<{ houseStructuresByFloor: Record<FloorId, HouseStructure> }>;
 
-export const initialHouseStructures: Record<FloorId, HouseStructure> = savedDefaultWorkspace.houseStructuresByFloor ?? syncHouseStructuresToReference(rawInitialHouseStructures);
+function withStructureDefaults(structures: Record<FloorId, HouseStructure>): Record<FloorId, HouseStructure> {
+  return Object.fromEntries(
+    Object.entries(structures).map(([floorId, structure]) => [
+      floorId,
+      {
+        ...structure,
+        columns: structure.columns ?? []
+      }
+    ])
+  ) as Record<FloorId, HouseStructure>;
+}
+
+export const initialHouseStructures: Record<FloorId, HouseStructure> = withStructureDefaults(savedDefaultWorkspace.houseStructuresByFloor ?? syncHouseStructuresToReference(rawInitialHouseStructures));

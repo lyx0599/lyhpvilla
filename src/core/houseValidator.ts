@@ -1,7 +1,7 @@
 import { createFloorCoordinateSystem, generateRoomsFromWalls, getArcWallEndpoints, getDistance, getLineLength, getPolygonArea, projectPointToSegment, SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
 import type { FloorId, Furniture, HousePartition, HouseRoom, HouseStructure, HouseWall, MmPoint, StraightHouseWall } from "@/types/space";
 
-export type HouseValidationIssueType = "wall" | "door" | "window" | "room" | "stair" | "outdoor" | "furniture" | "coordinate";
+export type HouseValidationIssueType = "wall" | "door" | "window" | "room" | "stair" | "column" | "outdoor" | "furniture" | "coordinate";
 
 export type HouseValidationIssue = {
   type: HouseValidationIssueType;
@@ -340,8 +340,16 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
     start: sanitizePoint(stair.start),
     end: sanitizePoint(stair.end),
     width: Math.max(1, isFiniteNumber(stair.width) ? stair.width : 1100),
+    baseHeight: Math.max(0, isFiniteNumber(stair.baseHeight) ? stair.baseHeight : 0),
     height: Math.max(1, isFiniteNumber(stair.height) ? stair.height : 2800),
     stepCount: Math.max(1, Math.round(isFiniteNumber(stair.stepCount) ? stair.stepCount : 14))
+  }));
+  const nextColumns = (structure.columns ?? []).map((column) => ({
+    ...column,
+    floorId,
+    center: sanitizePoint(column.center),
+    radius: Math.max(50, isFiniteNumber(column.radius) ? column.radius : 360),
+    height: Math.max(1, isFiniteNumber(column.height) ? column.height : 2800)
   }));
   const nextFences = structure.fences.map((fence) => ({
     ...fence,
@@ -368,6 +376,7 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
     walls: snappedAgain.walls,
     partitions: nextPartitions,
     stairs: nextStairs,
+    columns: nextColumns,
     fences: nextFences,
     outdoorSurfaces: nextOutdoorSurfaces,
     doors: structure.doors
@@ -558,6 +567,28 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     }
     if (!isFiniteNumber(stair.stepCount) || stair.stepCount < 1) {
       errors.push({ type: "stair", id: stair.id, message: "楼梯踏步数必须大于 0。" });
+    }
+  });
+
+  (structure.columns ?? []).forEach((column) => {
+    if (column.floorId !== floorId) {
+      errors.push({ type: "column", id: column.id, message: "立柱 floorId 与当前楼层不一致。" });
+    }
+    if (column.columnType !== "cylindrical") {
+      errors.push({ type: "column", id: column.id, message: "当前立柱功能只支持圆柱形立柱。" });
+    }
+    if (!isValidMmPoint(column.center)) {
+      pushCoordinateError(errors, column.id, "立柱中心点坐标存在非法值。");
+      return;
+    }
+    if (!isPointInsideFloor(column.center)) {
+      pushCoordinateError(errors, column.id, "立柱中心点超出统一楼层坐标范围。");
+    }
+    if (!isFiniteNumber(column.radius) || column.radius <= 0) {
+      errors.push({ type: "column", id: column.id, message: "圆柱立柱半径必须大于 0，单位为 mm。" });
+    }
+    if (!isFiniteNumber(column.height) || column.height <= 0) {
+      errors.push({ type: "column", id: column.id, message: "圆柱立柱高度必须大于 0，单位为 mm。" });
     }
   });
 

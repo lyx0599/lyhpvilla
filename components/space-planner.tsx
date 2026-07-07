@@ -12,7 +12,7 @@ import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { initialHouseStructures } from "@/data/mock-house-structure";
 import { initialSemanticObjects } from "@/data/mock-semantic-map";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
-import { createEmptyStructure, createOutdoor, getLineLength } from "@/lib/house-geometry";
+import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmptyStructure, createOutdoor, getLineLength, getPolygonArea } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 import type { CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
@@ -67,7 +67,7 @@ type LocalFilePickerWindow = Window & {
 };
 
 const WEB_WORKSPACE_SCHEMA_VERSION = 4;
-const DEFAULT_WORKSPACE_REVISION = "2026-07-05-1f-snack-horizontal-v1";
+const DEFAULT_WORKSPACE_REVISION = "2026-07-07-courtyard-placeholders-v1";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -97,8 +97,26 @@ const retiredDefaultFurnitureIds = new Set([
   "furn-living-sofa-natural-001",
   "furn-living-plant-001"
 ]);
-const retiredSemanticObjectIds = new Set(["F-1F-001"]);
+const persistentDefaultFurnitureIds = new Set([
+  "module-2f-cloak-left",
+  "module-2f-cloak-right",
+  "module-2f-window-desk",
+  "ph-1f-north-bbq-island",
+  "ph-1f-south-drying-rack",
+  "ph-1f-south-lounge-set",
+  "ph-1f-south-dog-house",
+  "ph-1f-south-pet-water"
+]);
+const retiredSemanticObjectIds = new Set(["F-1F-001", "R-B1-001"]);
 const retiredDefaultBayWindowIds = new Set(["BW-1F-001", "BW-1F-002"]);
+const b1VoidRailingWallIds = new Set(["W-B1-014", "AW-B1-014", "W-B1-012", "W-B1-013"]);
+const b1VoidRailingWallOverrides: Pick<HouseWall, "barrierType" | "material" | "openness" | "thickness" | "height"> = {
+  barrierType: "railing",
+  material: "metal",
+  openness: 0.72,
+  thickness: 90,
+  height: 1100
+};
 const oneFloorKitchenSlidingDoorOverride: Partial<HouseDoor> = {
   name: "厨房半透明玻璃推拉门",
   width: 900,
@@ -417,18 +435,21 @@ function getStairDesignPageData(stair: HouseStair): DesignPageData {
   const stairLength = getLineLength(stair.start, stair.end);
   const treadDepth = Math.max(180, Math.round(stairLength / Math.max(1, stair.stepCount)));
   const riserHeight = Math.max(120, Math.round(stair.height / Math.max(1, stair.stepCount)));
+  const isTwoFloorArrivalStair = stair.floorId === "2F" && stair.id === "ST-2F-001";
+  const movementLabel = isTwoFloorArrivalStair ? "1F→2F 到达" : stair.direction === "up" ? "上行" : "下行";
   const riserNote = riserHeight > 180 ? "目前踢面偏高，后续拿到真实层高和洞口后优先复核能否增加踏步数。" : "当前踢面节奏接近常规舒适区，仍需按真实层高复核。";
+  const baseHeightNote = isTwoFloorArrivalStair ? "本段从 1F 上来，并在 2F 形成到达平台。" : stair.baseHeight ? `本段起始标高约 ${stair.baseHeight} mm。` : "本段从下口起步。";
   return {
     id: stair.id,
     eyebrow: "Stair Design",
     title: "楼梯间设计",
-    subject: `${stair.name} · ${stair.direction === "up" ? "上行" : "下行"}`,
-    designThinking: "这一版先把楼梯间当成安全、收纳和光线的组合来设计：楼梯保持现有一字型位置，墙面做轻量扶手和踏步灯，楼梯下方利用为清洁工具、囤货或换季物品收纳。",
-    recommendedPlacement: "保持 ST-1F-001 的结构位置不变，先按 900mm 净宽和一字型踏步做楼梯间方案；后续 3D 白模重点检查上下口压迫感、扶手高度和楼梯下方可用空间。",
+    subject: `${stair.name} · ${movementLabel}`,
+    designThinking: "这一版先把楼梯间当成安全、收纳和光线的组合来设计：楼梯按转角梯段表达，墙面做轻量扶手和踏步灯，楼梯下方利用为清洁工具、囤货或换季物品收纳。",
+    recommendedPlacement: "保持楼梯间结构位置不变，先按 900mm 净宽和分段踏步做楼梯间方案；后续 3D 白模重点检查转角平台、上下口压迫感、扶手高度和楼梯下方可用空间。",
     layoutNotes: ["楼梯下口留出转身缓冲，不让玄关、厨房和客厅动线互相顶住", "楼梯下方优先做封闭收纳，放清洁工具、行李箱和低频囤货", "墙面用浅色耐擦材质，搭配连续扶手、踏步灯和双控开关"],
     zones: [
       { id: "lower-buffer", label: "下口缓冲", role: "转身 / 入梯", widthPercent: 22, heightPercent: 58, detail: "楼梯起步处保持空出来，作为进入楼梯间的缓冲，避免柜体或餐椅贴到第一步。", serviceNote: "下口预留双控开关和感应夜灯。" },
-      { id: "linear-treads", label: "一字踏步", role: `${stair.stepCount} 级上行`, widthPercent: 46, heightPercent: 76, detail: `当前估算踏面约 ${treadDepth} mm，踢面约 ${riserHeight} mm。${riserNote}` },
+      { id: "stair-run", label: "本段踏步", role: `${stair.stepCount} 级${movementLabel}`, widthPercent: 46, heightPercent: 76, detail: `当前估算踏面约 ${treadDepth} mm，踢面约 ${riserHeight} mm。${baseHeightNote}${riserNote}` },
       { id: "under-stair-storage", label: "楼梯下收纳", role: "清洁 / 囤货", widthPercent: 20, heightPercent: 64, detail: "利用斜向高度变化做分段柜：高处放吸尘器和行李箱，低处放工具箱、囤货和换季物品。" },
       { id: "handrail-light", label: "扶手灯带", role: "安全 / 引导", widthPercent: 12, heightPercent: 70, detail: "靠墙做连续扶手，踏步侧补低位灯带，让夜间上楼不刺眼。", serviceNote: "灯带、感应器和检修口一起预留。" }
     ],
@@ -449,9 +470,13 @@ function getFurnitureDesignButtonLabel(furniture: Furniture) {
   return "进入模块设计";
 }
 
-function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
+function normalizeFurnitureDefaults(furnitureItems: Furniture[], defaultFurniture: Furniture[] = []) {
+  const defaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
+    ...oneFloorDefaultFurnitureOverrides,
+    ...twoFloorDefaultFurnitureOverrides
+  };
   const normalizedFurniture = furnitureItems.filter((item) => !retiredDefaultFurnitureIds.has(item.id)).map((item) => {
-    const defaultOverride = oneFloorDefaultFurnitureOverrides[item.id];
+    const defaultOverride = defaultFurnitureOverrides[item.id];
     if (defaultOverride) {
       return {
         ...item,
@@ -492,7 +517,19 @@ function normalizeFurnitureDefaults(furnitureItems: Furniture[]) {
       note: item.note.includes("通道") || item.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : item.note
     };
   });
-  return appendMissingById(normalizedFurniture, oneFloorDefaultFurniture);
+  const persistentDefaultFurniture = defaultFurniture.filter((item) => persistentDefaultFurnitureIds.has(item.id));
+  const requiredDefaultFurniture = appendMissingById(persistentDefaultFurniture, twoFloorDefaultFurniture);
+  return appendMissingById(normalizedFurniture, requiredDefaultFurniture).map((item) => {
+    const defaultOverride = defaultFurnitureOverrides[item.id];
+    const nextItem = defaultOverride ? { ...item, ...defaultOverride } : item;
+    if ((nextItem.type === "wardrobe" || nextItem.moduleType === "wardrobe") && !nextItem.wardrobeDesign?.modules?.length) {
+      return {
+        ...nextItem,
+        wardrobeDesign: createRecommendedWardrobeDesign(nextItem.dimensions)
+      };
+    }
+    return nextItem;
+  });
 }
 
 function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, HouseStructure>, options: { resetOneFloorYardSurfaces?: boolean } = {}) {
@@ -537,6 +574,10 @@ function normalizeSemanticDefaults(objects: SemanticObject[]) {
   const hasEntryZone = activeObjects.some((object) => object.id === "Z-1F-ENTRY");
   const hasStairZone = activeObjects.some((object) => object.id === "Z-1F-STAIR");
   const hasCloakroomZone = activeObjects.some((object) => object.id === "Z-2F-CLOAKROOM");
+  const hasB1LaundryRoom = activeObjects.some((object) => object.id === "R-B1-LAUNDRY");
+  const hasB1Room = activeObjects.some((object) => object.id === "R-B1-ROOM");
+  const hasB1Corridor = activeObjects.some((object) => object.id === "R-B1-CORRIDOR");
+  const hasB1Activity = activeObjects.some((object) => object.id === "R-B1-ACTIVITY");
   const nextObjects = activeObjects.map((object) => {
     if (object.id === "R-1F-001" && (object.name === "1F 客餐厅" || object.name === "1F 客厅")) {
       return {
@@ -606,6 +647,66 @@ function normalizeSemanticDefaults(objects: SemanticObject[]) {
       }
     } satisfies SemanticObject
     ] : []),
+    ...(!hasB1LaundryRoom ? [
+    {
+      id: "R-B1-LAUNDRY",
+      name: "洗衣房",
+      floorId: "B1",
+      category: "Room",
+      type: "laundry",
+      notes: "楼梯上来左上的小房间。",
+      position: { x: 39, y: 14 },
+      details: {
+        area: 2.51,
+        boundary: [{ x: 32.9, y: 3.9 }, { x: 44.9, y: 3.9 }, { x: 44.9, y: 23.3 }, { x: 32.9, y: 23.2 }]
+      }
+    } satisfies SemanticObject
+    ] : []),
+    ...(!hasB1Room ? [
+    {
+      id: "R-B1-ROOM",
+      name: "房间",
+      floorId: "B1",
+      category: "Room",
+      type: "room",
+      notes: "洗衣房外围的大房间。",
+      position: { x: 57, y: 21 },
+      details: {
+        area: 12.84,
+        boundary: [{ x: 44.9, y: 3.9 }, { x: 79.1, y: 3.9 }, { x: 79.1, y: 34.6 }, { x: 44, y: 34.6 }, { x: 32.9, y: 34.6 }, { x: 32.9, y: 23.2 }, { x: 44.9, y: 23.3 }]
+      }
+    } satisfies SemanticObject
+    ] : []),
+    ...(!hasB1Corridor ? [
+    {
+      id: "R-B1-CORRIDOR",
+      name: "走廊",
+      floorId: "B1",
+      category: "Room",
+      type: "corridor",
+      notes: "弧形空间对应的走廊。",
+      position: { x: 42, y: 49 },
+      details: {
+        area: 4.63,
+        boundary: [{ x: 32.9, y: 34.6 }, { x: 44, y: 34.6 }, { x: 47.3, y: 40 }, { x: 49.2, y: 50.4 }, { x: 47.3, y: 60.6 }, { x: 44.9, y: 65 }, { x: 35.8, y: 65 }, { x: 32.9, y: 55.6 }]
+      }
+    } satisfies SemanticObject
+    ] : []),
+    ...(!hasB1Activity ? [
+    {
+      id: "R-B1-ACTIVITY",
+      name: "活动区",
+      floorId: "B1",
+      category: "Room",
+      type: "activity",
+      notes: "最下方稍微延伸出去的活动区域。",
+      position: { x: 34, y: 72 },
+      details: {
+        area: 19.45,
+        boundary: [{ x: 7.9, y: 34.6 }, { x: 32.9, y: 34.6 }, { x: 32.9, y: 55.6 }, { x: 35.8, y: 65 }, { x: 44.9, y: 65 }, { x: 55.4, y: 65 }, { x: 55.4, y: 86.7 }, { x: 7.9, y: 86.7 }]
+      }
+    } satisfies SemanticObject
+    ] : []),
     ...(!hasCloakroomZone ? [
     {
       id: "Z-2F-CLOAKROOM",
@@ -650,6 +751,28 @@ const defaultRoomNameOverrides: Partial<Record<FloorId, Record<string, string>>>
     "ROOM-1F-004": "卧室",
     "ROOM-1F-005": "客厅",
     "ROOM-1F-006": "楼梯间"
+  },
+  "B1": {
+    "ROOM-B1-001": "洗衣房",
+    "ROOM-B1-002": "房间",
+    "ROOM-B1-003": "走廊",
+    "ROOM-B1-004": "活动区"
+  },
+  "2F": {
+    "ROOM-2F-001": "客卫",
+    "ROOM-2F-002": "衣帽间",
+    "ROOM-2F-003": "主卫",
+    "ROOM-2F-004": "卧室1",
+    "ROOM-2F-005": "卧室2",
+    "ROOM-2F-006": "主卧",
+    "ROOM-2F-007": "走廊"
+  },
+  "B2": {
+    "ROOM-B2-001": "客厅",
+    "ROOM-B2-002": "楼梯间",
+    "ROOM-B2-003": "活动区",
+    "ROOM-B2-004": "储物间",
+    "ROOM-B2-005": "书房"
   }
 };
 
@@ -709,6 +832,249 @@ const oneFloorDefinedRooms: HouseRoom[] = [
     boundary: oneFloorStairRoomBoundary,
     area: 6711600,
     sourceWallIds: ["W-1F-010", "W-1F-012", "W-1F-016"]
+  }
+];
+
+const b1LaundryRoomBoundary = [
+  { x: 3947, y: 350 },
+  { x: 5385, y: 350 },
+  { x: 5385, y: 2099 },
+  { x: 3947, y: 2091 }
+];
+
+const b1RoomBoundary = [
+  { x: 5385, y: 350 },
+  { x: 9495, y: 350 },
+  { x: 9495, y: 3117 },
+  { x: 5281, y: 3117 },
+  { x: 3947, y: 3117 },
+  { x: 3947, y: 2091 },
+  { x: 5385, y: 2099 }
+];
+
+const b1CorridorBoundary = [
+  { x: 3947, y: 3117 },
+  { x: 5281, y: 3117 },
+  { x: 5670, y: 3600 },
+  { x: 5901, y: 4537 },
+  { x: 5680, y: 5450 },
+  { x: 5385, y: 5853 },
+  { x: 4300, y: 5853 },
+  { x: 3947, y: 5000 }
+];
+
+const b1ActivityBoundary = [
+  { x: 950, y: 3117 },
+  { x: 3947, y: 3117 },
+  { x: 3947, y: 5000 },
+  { x: 4300, y: 5853 },
+  { x: 5385, y: 5853 },
+  { x: 6650, y: 5853 },
+  { x: 6650, y: 7800 },
+  { x: 950, y: 7800 }
+];
+
+const b1DefinedRooms: HouseRoom[] = [
+  {
+    id: "ROOM-B1-001",
+    floorId: "B1",
+    roomNumber: "R-B1-001",
+    name: "洗衣房",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b1LaundryRoomBoundary,
+    area: 2509310,
+    sourceWallIds: ["W-B1-001", "W-B1-015", "W-B1-016", "W-B1-003"]
+  },
+  {
+    id: "ROOM-B1-002",
+    floorId: "B1",
+    roomNumber: "R-B1-002",
+    name: "房间",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b1RoomBoundary,
+    area: 12842006,
+    sourceWallIds: ["W-B1-002", "W-B1-004", "W-B1-014", "W-B1-003", "W-B1-016", "W-B1-015"]
+  },
+  {
+    id: "ROOM-B1-003",
+    floorId: "B1",
+    roomNumber: "R-B1-003",
+    name: "走廊",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b1CorridorBoundary,
+    area: 4632458,
+    sourceWallIds: ["W-B1-014", "AW-B1-014", "W-B1-012"]
+  },
+  {
+    id: "ROOM-B1-004",
+    floorId: "B1",
+    roomNumber: "R-B1-004",
+    name: "活动区",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b1ActivityBoundary,
+    area: 19448246,
+    sourceWallIds: ["W-B1-005", "W-B1-007", "W-B1-009", "W-B1-010", "W-B1-012", "W-B1-013"]
+  }
+];
+
+const twoFloorMasterRoomBoundary = [
+  { x: 7681, y: 3050 },
+  { x: 9495, y: 3050 },
+  { x: 9495, y: 7800 },
+  { x: 6542, y: 7800 },
+  { x: 6542, y: 5150 },
+  { x: 7681, y: 5150 }
+];
+
+const twoFloorCorridorBoundary = [
+  { x: 950, y: 3050 },
+  { x: 7681, y: 3050 },
+  { x: 7681, y: 5150 },
+  { x: 950, y: 5150 }
+];
+
+const twoFloorDefinedRooms: HouseRoom[] = [
+  {
+    id: "ROOM-2F-006",
+    floorId: "2F",
+    roomNumber: "R-2F-006",
+    name: "主卧",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: twoFloorMasterRoomBoundary,
+    area: 11634850,
+    sourceWallIds: ["W-2F-009", "W-2F-011", "W-2F-020", "W-2F-016", "W-2F-014", "W-2F-017"]
+  },
+  {
+    id: "ROOM-2F-007",
+    floorId: "2F",
+    roomNumber: "R-2F-007",
+    name: "走廊",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: twoFloorCorridorBoundary,
+    area: 14135100,
+    sourceWallIds: ["W-2F-007", "W-2F-008", "W-2F-009", "W-2F-017", "W-2F-014", "W-2F-013", "W-2F-012", "W-2F-010"]
+  }
+];
+
+const b2LivingRoomBoundary = [
+  { x: 3676, y: 350 },
+  { x: 7610, y: 350 },
+  { x: 7610, y: 4222 },
+  { x: 9495, y: 4222 },
+  { x: 9495, y: 5150 },
+  { x: 3897, y: 5150 },
+  { x: 3897, y: 3050 },
+  { x: 3676, y: 3050 }
+];
+
+const b2StairRoomBoundary = [
+  { x: 950, y: 3050 },
+  { x: 3897, y: 3050 },
+  { x: 3897, y: 5150 },
+  { x: 950, y: 5150 },
+  { x: 2050, y: 4300 },
+  { x: 950, y: 4300 }
+];
+
+const b2StorageRoomBoundary = [
+  { x: 950, y: 4300 },
+  { x: 2050, y: 4300 },
+  { x: 950, y: 5150 }
+];
+
+const b2StudyRoomBoundary = [
+  { x: 950, y: 5150 },
+  { x: 5750, y: 5150 },
+  { x: 5750, y: 7800 },
+  { x: 950, y: 7800 }
+];
+
+const b2ActivityRoomBoundary = [
+  { x: 5750, y: 5150 },
+  { x: 9495, y: 5150 },
+  { x: 9495, y: 7800 },
+  { x: 5750, y: 7800 }
+];
+
+const b2DefinedRooms: HouseRoom[] = [
+  {
+    id: "ROOM-B2-001",
+    floorId: "B2",
+    roomNumber: "R-B2-001",
+    name: "客厅",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b2LivingRoomBoundary,
+    area: getPolygonArea(b2LivingRoomBoundary),
+    sourceWallIds: ["W-B2-001", "W-B2-003", "W-B2-004", "W-B2-006", "W-B2-012"]
+  },
+  {
+    id: "ROOM-B2-002",
+    floorId: "B2",
+    roomNumber: "R-B2-002",
+    name: "楼梯间",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b2StairRoomBoundary,
+    area: getPolygonArea(b2StairRoomBoundary),
+    sourceWallIds: ["W-B2-007", "W-B2-008", "W-B2-009"]
+  },
+  {
+    id: "ROOM-B2-004",
+    floorId: "B2",
+    roomNumber: "R-B2-003",
+    name: "储物间",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b2StorageRoomBoundary,
+    area: getPolygonArea(b2StorageRoomBoundary),
+    sourceWallIds: ["W-B2-008", "W-B2-009"]
+  },
+  {
+    id: "ROOM-B2-005",
+    floorId: "B2",
+    roomNumber: "R-B2-004",
+    name: "书房",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b2StudyRoomBoundary,
+    area: getPolygonArea(b2StudyRoomBoundary),
+    sourceWallIds: ["W-B2-010", "W-B2-011"]
+  },
+  {
+    id: "ROOM-B2-003",
+    floorId: "B2",
+    roomNumber: "R-B2-005",
+    name: "活动区",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: b2ActivityRoomBoundary,
+    area: getPolygonArea(b2ActivityRoomBoundary),
+    sourceWallIds: ["W-B2-011", "W-B2-012"]
+  }
+];
+
+const twoFloorTopStairs: HouseStair[] = [
+  {
+    id: "ST-2F-001",
+    floorId: "2F",
+    name: "W-2F-012 1F→2F 到达梯段",
+    geometryType: "line",
+    start: { x: 3897, y: 5150 },
+    end: { x: 950, y: 5150 },
+    width: 900,
+    baseHeight: 0,
+    height: 2800,
+    stepCount: 14,
+    direction: "up",
+    editable: true,
+    removable: true
   }
 ];
 
@@ -1043,31 +1409,31 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
   },
   "furn-living-snack-pullout-001": {
     code: "SC-1F-01",
-    name: "卫客墙面横向拉篮零食柜",
+    name: "卫生间门左侧贴墙零食柜",
     type: "snackCabinet",
     catalogId: "storage-snack-cabinet",
     moduleCategory: "storage",
     moduleType: "snackCabinet",
     roomId: "ROOM-1F-005",
-    dimensions: { width: 150, depth: 32, height: 120, unit: "cm" },
+    dimensions: { width: 120, depth: 32, height: 120, unit: "cm" },
     material: "横向浅柜 + 分段拉篮 + 封闭门板",
-    note: "横向贴在卫生间和客厅之间的 W-1F-009 下方墙面，整体往客厅内侧收，避免顶出房屋边界。",
-    constructionNote: "柜体贴 W-1F-009 客厅侧固定，右端避开外墙边界和卫生间门套；拉篮向客厅方向抽出，前方保留抽拉空间。",
+    note: "移到卫生间门洞左侧的 W-1F-009 客厅侧墙面，贴墙浅柜布置；右端避开卫生间门洞，不再挡在厕所门口。",
+    constructionNote: "柜体沿 W-1F-009 客厅侧固定，中心约在 x=7515mm、y=3210mm；先按 120cm 控制，确保避开厨房推拉门和卫生间门套，复尺后再判断能否加宽。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
-    position: { x: 71.5, y: 36.2, rotation: 0 },
+    position: { x: 62.6, y: 35.7, rotation: 0 },
     color: "#f3d9b1",
     cabinetDesign: {
       template: "snackCabinet",
-      title: "横向拉篮零食柜设计",
-      designThinking: "零食柜改成横向浅柜后，体量从右侧外墙边界往房屋内侧收回来。它不再像一根窄高柜顶在角落，而是沿 W-1F-009 做一段浅收纳，拉篮横向分区，拿零食、蔬果和茶点更顺手。",
-      recommendedPlacement: "卫生间和客厅之间的 W-1F-009 客厅侧墙面，靠近餐桌和水吧台，但不贴到右侧外墙。",
-      layoutNotes: ["1500mm 横向展开，深度控制在 320mm 左右", "左段放零食和茶包，中段做蔬果拉篮，右段放饮料和纸巾", "柜门和拉篮向客厅侧打开，不影响卫生间门"],
+      title: "卫生间门左侧贴墙零食柜设计",
+      designThinking: "零食柜从卫生间门口移到门洞左侧可用墙面，保持贴墙浅柜，不侵占门口回转。它仍服务餐桌、水吧台和客厅，但优先让卫生间出入动线干净。",
+      recommendedPlacement: "1F 客厅侧，贴 W-1F-009 墙面，位于卫生间门洞左侧的可用墙段，靠近餐桌但避开门洞。",
+      layoutNotes: ["柜体贴墙横向布置，宽度先按 1200mm 控制", "深度控制在 320mm 左右，右端和卫生间门套之间留出缓冲", "左端和厨房推拉门套保持避让，复尺后再判断能否加宽", "拉篮向客厅方向抽出，前方保持完整抽拉空间"],
       zones: [
-        { id: "snack-drawer", label: "零食抽屉", role: "零食 / 茶包", widthPercent: 34, heightPercent: 100, detail: "小包装按口味横向分格，和水吧台形成补给区。" },
-        { id: "veg-basket", label: "蔬果拉篮", role: "蔬果 / 常用菜", widthPercent: 33, heightPercent: 100, detail: "中段做可抽拉透气篮，放土豆、洋葱、水果等需要顺手拿的食材。" },
-        { id: "stock-cabinet", label: "囤货柜", role: "饮料 / 纸巾", widthPercent: 33, heightPercent: 100, detail: "重物和整箱物品靠下放，门板封闭，客厅看起来更干净。" }
+        { id: "snack-drawer", label: "零食抽屉", role: "零食 / 茶包", widthPercent: 40, heightPercent: 100, detail: "小包装按口味横向分格，和水吧台形成补给区。" },
+        { id: "veg-basket", label: "蔬果拉篮", role: "蔬果 / 常用菜", widthPercent: 30, heightPercent: 100, detail: "中段做可抽拉透气篮，放土豆、洋葱、水果等需要顺手拿的食材。" },
+        { id: "stock-cabinet", label: "囤货柜", role: "饮料 / 纸巾", widthPercent: 30, heightPercent: 100, detail: "重物和整箱物品靠下放，门板封闭，客厅看起来更干净。" }
       ],
-      cautionNotes: ["拉篮柜前方需要留出完整抽拉距离。", "现场要复核 W-1F-009 下方墙体、卫生间门套和踢脚线收口。"]
+      cautionNotes: ["门洞左侧墙段略短于 150cm，复尺后优先确认门套、踢脚线和开门净距。", "如果现场门套占位更大，柜体宽度宁可缩短，也不要压到卫生间门口。"]
     }
   },
   "furn-entry-slim-hanging-001": {
@@ -1148,13 +1514,260 @@ const oneFloorDefaultFurniture = [
   ...oneFloorLivingDefaultFurniture
 ];
 
-const revisionControlledFurnitureIds = new Set(oneFloorDefaultFurniture.map((item) => item.id));
+const twoFloorBathService = { water: true, drainage: true, power: true, exhaust: false };
+const twoFloorWetNoPower = { water: true, drainage: true, power: false, exhaust: false };
+const twoFloorNoService = { water: false, drainage: false, power: false, exhaust: false };
+
+const twoFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
+  "module-2f-cloak-left": {
+    name: "2F 衣帽间西墙挂衣柜",
+    roomId: "ROOM-2F-002",
+    note: "已挪入衣帽间西墙：长衣、短衣双层挂、顶部被子和包包开放格，叠放区极少。",
+    constructionNote: "沿衣帽间西侧墙布置，按 600mm 深度复核中间通道；顶部预留换季被子和行李。",
+    position: { x: 47.36, y: 18.89, rotation: 90 }
+  },
+  "module-2f-cloak-right": {
+    name: "2F 衣帽间东墙包被收纳柜",
+    roomId: "ROOM-2F-002",
+    note: "已挪入衣帽间东墙：以挂衣、包包展示和被褥收纳为主，不单独设置大面积叠放区。",
+    constructionNote: "沿衣帽间东侧墙布置，局部玻璃门展示包包，顶柜和窄高柜收被子、行李箱、换季物。",
+    position: { x: 61.51, y: 18.89, rotation: 90 }
+  },
+  "module-2f-window-desk": {
+    roomId: "ROOM-2F-002",
+    dimensions: { width: 100, depth: 45, height: 76, unit: "cm" },
+    note: "保留在衣帽间靠窗位置，作为窄整理台 / 梳妆台，避开两侧衣柜通道。",
+    constructionNote: "靠窗预留双插、网络/充电位和化妆镜灯电源，桌下留腿部空间。",
+    position: { x: 54.95, y: 7.15, rotation: 0 }
+  }
+};
+
+const twoFloorDefaultFurniture: Furniture[] = [
+  {
+    id: "furn-2f-guest-shower-001",
+    code: "SH-2F-G01",
+    name: "2F 客卫上方玻璃淋浴间",
+    type: "shower",
+    catalogId: "bath-shower",
+    moduleCategory: "bath",
+    moduleType: "shower",
+    floorId: "2F",
+    roomId: "ROOM-2F-001",
+    dimensions: { width: 168, depth: 90, height: 210, unit: "cm" },
+    material: "透明玻璃隔断 + 防滑地面 + 挡水条",
+    note: "参考 1F 卫生间，上方做玻璃淋浴区，下方留给马桶、台盆和进门转身。",
+    constructionNote: "复核花洒冷热水、地漏坡度、挡水条和玻璃门开启方向。",
+    serviceRequirements: twoFloorWetNoPower,
+    position: { x: 37.75, y: 9, rotation: 0 },
+    color: "#c7d2fe"
+  },
+  {
+    id: "furn-2f-guest-toilet-001",
+    code: "WC-2F-G01",
+    name: "2F 客卫右侧马桶",
+    type: "toilet",
+    catalogId: "bath-toilet",
+    moduleCategory: "bath",
+    moduleType: "toilet",
+    floorId: "2F",
+    roomId: "ROOM-2F-001",
+    dimensions: { width: 70, depth: 75, height: 78, unit: "cm" },
+    material: "智能马桶预留",
+    note: "参考 1F 卫生间，马桶放在右侧中下部，和台盆同侧排列。",
+    constructionNote: "复核坑距、给水角阀、智能马桶电源和门扇开启范围。",
+    serviceRequirements: twoFloorBathService,
+    position: { x: 42.05, y: 18.5, rotation: 90 },
+    color: "#f4f0ea"
+  },
+  {
+    id: "furn-2f-guest-vanity-001",
+    code: "VA-2F-G01",
+    name: "2F 客卫右下台盆柜",
+    type: "vanity",
+    catalogId: "bath-vanity",
+    moduleCategory: "bath",
+    moduleType: "vanity",
+    floorId: "2F",
+    roomId: "ROOM-2F-001",
+    dimensions: { width: 90, depth: 50, height: 85, unit: "cm" },
+    material: "台盆柜 + 镜柜 + 镜前灯预留",
+    note: "参考 1F 卫生间，台盆靠近进门但不挡门，和马桶、淋浴形成三件套。",
+    constructionNote: "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。",
+    serviceRequirements: twoFloorBathService,
+    position: { x: 42.45, y: 27.5, rotation: 270 },
+    color: "#d6d9d7"
+  },
+  {
+    id: "furn-2f-master-shower-001",
+    code: "SH-2F-M01",
+    name: "主卫左上玻璃淋浴间",
+    type: "shower",
+    catalogId: "bath-shower",
+    moduleCategory: "bath",
+    moduleType: "shower",
+    floorId: "2F",
+    roomId: "ROOM-2F-003",
+    dimensions: { width: 90, depth: 90, height: 210, unit: "cm" },
+    material: "透明玻璃隔断 + 防滑地面 + 挡水条",
+    note: "主卫左上角做独立玻璃淋浴间，和浴缸、双人台盆、马桶分区。",
+    constructionNote: "复核淋浴冷热水、地漏坡度、挡水条和玻璃隔断开启方向。",
+    serviceRequirements: twoFloorWetNoPower,
+    position: { x: 68.2, y: 9, rotation: 0 },
+    color: "#c7d2fe"
+  },
+  {
+    id: "furn-2f-master-bathtub-001",
+    code: "BT-2F-M01",
+    name: "主卫左侧浴缸",
+    type: "bathtub",
+    catalogId: "bath-bathtub",
+    moduleCategory: "bath",
+    moduleType: "bathtub",
+    floorId: "2F",
+    roomId: "ROOM-2F-003",
+    dimensions: { width: 170, depth: 75, height: 58, unit: "cm" },
+    material: "亚克力独立/嵌入浴缸",
+    note: "浴缸沿主卫左侧竖向布置，给右侧 W-2F-006 的双人台盆留出操作面。",
+    constructionNote: "校核上下水、检修口、防水翻边和浴缸侧边通道。",
+    serviceRequirements: twoFloorWetNoPower,
+    position: { x: 67.15, y: 24.2, rotation: 90 },
+    color: "#d7ecf3"
+  },
+  {
+    id: "furn-2f-master-vanity-001",
+    code: "VA-2F-M01",
+    name: "主卫 W-2F-006 双人台盆",
+    type: "vanity",
+    catalogId: "bath-vanity",
+    moduleCategory: "bath",
+    moduleType: "vanity",
+    floorId: "2F",
+    roomId: "ROOM-2F-003",
+    dimensions: { width: 160, depth: 55, height: 85, unit: "cm" },
+    material: "双人台盆柜 + 双镜柜 + 镜前灯预留",
+    note: "按要求沿 W-2F-006 东侧墙布置双人台盆，集中给排水和镜前电源。",
+    constructionNote: "沿 W-2F-006 复核双盆冷热水、双下水、镜柜灯和插座防溅距离。",
+    serviceRequirements: twoFloorBathService,
+    position: { x: 76.83, y: 14.8, rotation: 90 },
+    color: "#d6d9d7"
+  },
+  {
+    id: "furn-2f-master-toilet-001",
+    code: "WC-2F-M01",
+    name: "主卫右下马桶",
+    type: "toilet",
+    catalogId: "bath-toilet",
+    moduleCategory: "bath",
+    moduleType: "toilet",
+    floorId: "2F",
+    roomId: "ROOM-2F-003",
+    dimensions: { width: 70, depth: 75, height: 78, unit: "cm" },
+    material: "智能马桶预留",
+    note: "马桶放在主卫右下侧，避开沿 W-2F-006 布置的双人台盆主操作区。",
+    constructionNote: "复核坑距、给水角阀、智能马桶电源和门扇开启范围。",
+    serviceRequirements: twoFloorBathService,
+    position: { x: 76.55, y: 28.3, rotation: 90 },
+    color: "#f4f0ea"
+  },
+  {
+    id: "furn-2f-bedroom1-bed-001",
+    code: "BD-2F-01",
+    name: "卧室1 靠墙双人床",
+    type: "bed",
+    catalogId: "bedroom-bed",
+    moduleCategory: "bedroom",
+    moduleType: "bed",
+    floorId: "2F",
+    roomId: "ROOM-2F-004",
+    dimensions: { width: 150, depth: 200, height: 95, unit: "cm" },
+    material: "木质床架 + 软包床头",
+    note: "床头贴墙布置，后续复核床侧通道、床头插座和衣柜开门空间。",
+    constructionNote: "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 18.1, y: 70.4, rotation: 270 },
+    color: "#c8a887"
+  },
+  {
+    id: "furn-2f-bedroom1-wardrobe-001",
+    code: "WD-2F-01",
+    name: "卧室1 衣柜",
+    type: "wardrobe",
+    catalogId: "storage-wardrobe",
+    moduleCategory: "storage",
+    moduleType: "wardrobe",
+    floorId: "2F",
+    roomId: "ROOM-2F-004",
+    dimensions: { width: 240, depth: 60, height: 240, unit: "cm" },
+    material: "定制柜体 + 平开/移门",
+    note: "衣柜贴墙布置，避开床侧通道和门洞开启范围。",
+    constructionNote: "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 30, y: 72, rotation: 90 },
+    color: "#c8a887"
+  },
+  {
+    id: "furn-2f-bedroom2-bed-001",
+    code: "BD-2F-02",
+    name: "卧室2 靠墙双人床",
+    type: "bed",
+    catalogId: "bedroom-bed",
+    moduleCategory: "bedroom",
+    moduleType: "bed",
+    floorId: "2F",
+    roomId: "ROOM-2F-005",
+    dimensions: { width: 150, depth: 200, height: 95, unit: "cm" },
+    material: "木质床架 + 软包床头",
+    note: "床头贴墙布置，后续复核床侧通道、床头插座和衣柜开门空间。",
+    constructionNote: "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 45.6, y: 70.4, rotation: 270 },
+    color: "#c8a887"
+  },
+  {
+    id: "furn-2f-bedroom2-wardrobe-001",
+    code: "WD-2F-02",
+    name: "卧室2 衣柜",
+    type: "wardrobe",
+    catalogId: "storage-wardrobe",
+    moduleCategory: "storage",
+    moduleType: "wardrobe",
+    floorId: "2F",
+    roomId: "ROOM-2F-005",
+    dimensions: { width: 240, depth: 60, height: 240, unit: "cm" },
+    material: "定制柜体 + 平开/移门",
+    note: "衣柜贴墙布置，避开床侧通道和门洞开启范围。",
+    constructionNote: "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 54, y: 72, rotation: 90 },
+    color: "#c8a887"
+  }
+];
+
+const revisionControlledFurnitureIds = new Set([
+  ...oneFloorDefaultFurniture.map((item) => item.id),
+  ...twoFloorDefaultFurniture.map((item) => item.id),
+  ...Array.from(persistentDefaultFurnitureIds)
+]);
 
 function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseRoom {
   const overrideName = defaultRoomNameOverrides[floorId]?.[room.id];
   const defaultName = `${floorId} 房间 ${index + 1}`;
   const isOneFloorDefinedRoom = floorId === "1F" && ["ROOM-1F-001", "ROOM-1F-005", "ROOM-1F-006"].includes(room.id);
-  const canApplyOverride = Boolean(overrideName) && (!room.name || room.name === defaultName || /^1F 房间 [1-6]$/.test(room.name) || isOneFloorDefinedRoom);
+  const b1DefinedRoom = floorId === "B1" ? b1DefinedRooms.find((defaultRoom) => defaultRoom.id === room.id) : undefined;
+  const b2DefinedRoom = floorId === "B2" ? b2DefinedRooms.find((defaultRoom) => defaultRoom.id === room.id) : undefined;
+  const twoFloorDefinedRoom = floorId === "2F" ? twoFloorDefinedRooms.find((defaultRoom) => defaultRoom.id === room.id) : undefined;
+  const canApplyOverride = Boolean(overrideName) && (
+    !room.name ||
+    room.name === defaultName ||
+    /^B1 房间 [1-4]$/.test(room.name) ||
+    /^B2 房间 [1-5]$/.test(room.name) ||
+    /^1F 房间 [1-6]$/.test(room.name) ||
+    /^2F 房间 [1-7]$/.test(room.name) ||
+    isOneFloorDefinedRoom ||
+    Boolean(b1DefinedRoom) ||
+    Boolean(b2DefinedRoom) ||
+    Boolean(twoFloorDefinedRoom)
+  );
   const nextName = canApplyOverride && overrideName ? overrideName : room.name || defaultName;
   if (floorId === "1F" && room.id === "ROOM-1F-001") {
     return {
@@ -1189,6 +1802,27 @@ function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseR
       sourceWallIds: ["W-1F-010", "W-1F-012", "W-1F-016"]
     };
   }
+  if (b1DefinedRoom) {
+    return {
+      ...room,
+      ...b1DefinedRoom,
+      name: nextName
+    };
+  }
+  if (b2DefinedRoom) {
+    return {
+      ...room,
+      ...b2DefinedRoom,
+      name: nextName
+    };
+  }
+  if (twoFloorDefinedRoom) {
+    return {
+      ...room,
+      ...twoFloorDefinedRoom,
+      name: nextName
+    };
+  }
   return {
     ...room,
     floorId,
@@ -1199,9 +1833,23 @@ function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseR
   };
 }
 
+function normalizeWall(floorId: FloorId, wall: HouseWall): HouseWall {
+  if (floorId !== "B1" || !b1VoidRailingWallIds.has(wall.id)) return wall;
+  return {
+    ...wall,
+    barrierType: b1VoidRailingWallOverrides.barrierType,
+    material: b1VoidRailingWallOverrides.material,
+    openness: b1VoidRailingWallOverrides.openness,
+    thickness: b1VoidRailingWallOverrides.thickness,
+    height: b1VoidRailingWallOverrides.height,
+    name: wall.name.includes("栏杆") ? wall.name : `${wall.name} · 挑空镂空栏杆`
+  } as HouseWall;
+}
+
 function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | undefined, fallback?: HouseStructure): HouseStructure {
   const emptyStructure = fallback ?? createEmptyStructure(floorId);
   if (!structure) return emptyStructure;
+  const normalizedWalls = (structure.walls ?? []).map((wall) => normalizeWall(floorId, wall));
   const normalizedRooms = (structure.rooms ?? []).map((room, index) => normalizeRoom(floorId, room, index));
   const normalizedBayWindows = (structure.bayWindows ?? []).filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id));
   const normalizedWindows = (structure.windows ?? []).map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id]
@@ -1215,12 +1863,19 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
     ...structure,
     floorId,
     coordinateSystem: structure.coordinateSystem ?? emptyStructure.coordinateSystem,
-    walls: structure.walls ?? [],
+    walls: normalizedWalls,
     rooms: floorId === "1F"
       ? appendMissingById(normalizedRooms, oneFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-      : normalizedRooms,
+      : floorId === "B1"
+        ? appendMissingById(normalizedRooms, b1DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+        : floorId === "B2"
+          ? appendMissingById(normalizedRooms, b2DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+          : floorId === "2F"
+            ? appendMissingById(normalizedRooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+            : normalizedRooms,
     partitions: structure.partitions ?? [],
-    stairs: structure.stairs ?? [],
+    stairs: floorId === "2F" ? twoFloorTopStairs : structure.stairs ?? [],
+    columns: structure.columns ?? [],
     fences: structure.fences ?? [],
     outdoorSurfaces: structure.outdoorSurfaces ?? [],
     doors: normalizedDoors,
@@ -1240,11 +1895,15 @@ function appendMissingById<T extends { id: string }>(items: T[], defaultItems: T
 }
 
 function applyDefaultFurnitureRevision(furnitureItems: Furniture[], defaultFurniture: Furniture[]) {
-  const defaultFurnitureById = new Map(defaultFurniture.map((item) => [item.id, item]));
+  const defaultFurnitureById = new Map([
+    ...defaultFurniture,
+    ...twoFloorDefaultFurniture
+  ].map((item) => [item.id, item]));
   const nextFurniture = furnitureItems
     .filter((item) => !retiredDefaultFurnitureIds.has(item.id))
+    .filter((item) => !revisionControlledFurnitureIds.has(item.id) || defaultFurnitureById.has(item.id))
     .map((item) => revisionControlledFurnitureIds.has(item.id) ? defaultFurnitureById.get(item.id) ?? item : item);
-  return appendMissingById(nextFurniture, defaultFurniture.filter((item) => !retiredDefaultFurnitureIds.has(item.id)));
+  return appendMissingById(nextFurniture, twoFloorDefaultFurniture);
 }
 
 function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseStructure>) {
@@ -1255,7 +1914,14 @@ function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseS
       floorId,
       {
         ...structure,
-        rooms: appendMissingById(structure.rooms, defaultStructure.rooms),
+        walls: (structure.walls ?? []).map((wall) => normalizeWall(floorId as FloorId, wall)),
+        rooms: floorId === "B1"
+          ? appendMissingById(structure.rooms, b1DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+          : floorId === "B2"
+            ? appendMissingById(structure.rooms, b2DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+            : floorId === "2F"
+              ? appendMissingById(structure.rooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+              : appendMissingById(structure.rooms, defaultStructure.rooms),
         doors: appendMissingById(
           structure.doors.map((door) => floorId === "1F" && door.id === "D-1F-004" ? { ...door, ...oneFloorKitchenSlidingDoorOverride } : door),
           defaultStructure.doors
@@ -1268,6 +1934,8 @@ function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseS
           structure.bayWindows.filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id)),
           defaultStructure.bayWindows.filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id))
         ),
+        stairs: floorId === "2F" ? twoFloorTopStairs : defaultStructure.stairs.length ? defaultStructure.stairs : structure.stairs,
+        columns: appendMissingById(structure.columns ?? [], defaultStructure.columns ?? []),
         skylights: appendMissingById(structure.skylights, defaultStructure.skylights),
         outdoors: appendMissingById(structure.outdoors, defaultStructure.outdoors),
         outdoorSurfaces: appendMissingById(structure.outdoorSurfaces, defaultStructure.outdoorSurfaces)
@@ -1286,6 +1954,7 @@ function getWorkspaceStructureScore(workspace: Partial<PersistedWebWorkspace>) {
       (structure.windows?.length ?? 0) * 2 +
       (structure.partitions?.length ?? 0) * 2 +
       (structure.stairs?.length ?? 0) * 2 +
+      (structure.columns?.length ?? 0) * 2 +
       (structure.fences?.length ?? 0) +
       (structure.outdoorSurfaces?.length ?? 0) +
       (structure.outdoors?.length ?? 0);
@@ -1443,7 +2112,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }, {} as Record<FloorId, CleanPatch[]>);
 
   const [selectedFloorId, setSelectedFloorId] = useState<FloorId>(initialSelectedFloorId);
-  const [furniture, setFurniture] = useState<Furniture[]>(() => normalizeFurnitureDefaults(data.furniture));
+  const [furniture, setFurniture] = useState<Furniture[]>(() => normalizeFurnitureDefaults(data.furniture, data.furniture));
   const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture.find((item) => item.floorId === initialSelectedFloorId)?.id ?? data.furniture[0]?.id ?? "");
   const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => normalizeSemanticDefaults(initialSemanticObjects));
   const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(normalizeSemanticDefaults(initialSemanticObjects).find((object) => object.floorId === initialSelectedFloorId)?.id ?? "");
@@ -1453,7 +2122,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [floorPlanScale, setFloorPlanScale] = useState(1);
   const [visualSettingsByFloor, setVisualSettingsByFloor] = useState<Record<FloorId, FloorPlanVisualSettings>>(initialVisualSettings);
   const [cleanPatchesByFloor, setCleanPatchesByFloor] = useState<Record<FloorId, CleanPatch[]>>(initialCleanPatches);
-  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(() => normalizeOutdoorSurfaceDefaults(initialHouseStructures, { resetOneFloorYardSurfaces: true }));
+  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(() => normalizeOutdoorSurfaceDefaults(initialHouseStructures));
   const [wallSyncOverrides, setWallSyncOverrides] = useState<WallSyncOverrides>({});
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
@@ -1500,7 +2169,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     Object.fromEntries(data.floors.map((floor) => [
       floor.id,
       {
-        structure: normalizeOutdoorSurfaceDefaults(initialHouseStructures, { resetOneFloorYardSurfaces: true })[floor.id] ?? createEmptyStructure(floor.id),
+        structure: normalizeOutdoorSurfaceDefaults(initialHouseStructures)[floor.id] ?? createEmptyStructure(floor.id),
         furniture: data.furniture.filter((item) => item.floorId === floor.id)
       }
     ])) as Partial<Record<FloorId, ModelSnapshot>>
@@ -1531,6 +2200,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     floorHouseStructure.walls.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.partitions.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.stairs.find((item) => item.id === activeObjectId) ??
+    (floorHouseStructure.columns ?? []).find((item) => item.id === activeObjectId) ??
     floorHouseStructure.fences.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.outdoorSurfaces.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.rooms.find((item) => item.id === activeObjectId) ??
@@ -1660,7 +2330,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       setSelectedFloorId(nextSelectedFloorId);
       const nextFurniture = normalizeFurnitureDefaults(shouldApplyDefaultRevision
         ? applyDefaultFurnitureRevision(parsed.furniture ?? data.furniture, data.furniture)
-        : parsed.furniture ?? data.furniture);
+        : parsed.furniture ?? data.furniture,
+        data.furniture);
       setFurniture(nextFurniture);
       const nextSemanticObjects = normalizeSemanticDefaults(parsed.semanticObjects ?? initialSemanticObjects);
       setSemanticObjects(nextSemanticObjects);
@@ -1708,6 +2379,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   useEffect(() => {
     if (!hasLoadedWebWorkspace || !localCodeAutoSync || (!localCodeFileHandle && !localCodeServerOnline)) return;
+    if (focusMode || furnitureImmersiveMode || yardImmersiveMode) return;
     const codeSyncTimer = window.setTimeout(() => {
       const payload = getDefaultWorkspacePayload("manual");
       setDefaultWorkspacePayload(payload);
@@ -1719,6 +2391,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     localCodeAutoSync,
     localCodeFileHandle,
     localCodeServerOnline,
+    focusMode,
+    furnitureImmersiveMode,
+    yardImmersiveMode,
     selectedFloorId,
     furniture,
     semanticObjects,
@@ -2443,6 +3118,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       walls: update(floorHouseStructure.walls),
       partitions: update(floorHouseStructure.partitions),
       stairs: update(floorHouseStructure.stairs),
+      columns: update(floorHouseStructure.columns ?? []),
       fences: update(floorHouseStructure.fences),
       outdoorSurfaces: update(floorHouseStructure.outdoorSurfaces),
       rooms: update(floorHouseStructure.rooms),
@@ -2467,7 +3143,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       position: {
         ...item.position,
         x: Math.min(100, Math.max(0, item.position.x + delta.x)),
-        y: Math.min(100, Math.max(0, item.position.y + delta.y))
+        y: Math.min(
+          item.floorId === "1F" ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100,
+          Math.max(item.floorId === "1F" ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0, item.position.y + delta.y)
+        )
       }
     }));
   }
@@ -3548,7 +4227,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   )}
                   {activeStructureObject && "radius" in activeStructureObject && (
                     <label className="mt-3 block text-xs text-stone-500">
-                      弧墙半径 mm
+                      {"columnType" in activeStructureObject ? "圆柱半径 mm" : "弧墙半径 mm"}
                       <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" min="100" type="number" value={activeStructureObject.radius} onChange={(event) => updateActiveObject({ radius: Number(event.target.value) })} />
                     </label>
                   )}

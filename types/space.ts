@@ -8,6 +8,7 @@ export type DrawTool =
   | "wall-arc"
   | "partition"
   | "stair"
+  | "column"
   | "fence"
   | "hardscape"
   | "hardscape-rect"
@@ -207,6 +208,8 @@ export type FloorCoordinateSystem = {
 };
 
 export type WallKind = "straight" | "arc";
+export type HouseWallBarrierType = "wall" | "railing";
+export type HouseWallMaterial = "masonry" | "metal" | "glass" | "wood";
 
 export type StraightHouseWall = {
   id: string;
@@ -219,6 +222,9 @@ export type StraightHouseWall = {
   thickness: number;
   height: number;
   length: number;
+  barrierType?: HouseWallBarrierType;
+  material?: HouseWallMaterial;
+  openness?: number;
 };
 
 export type ArcHouseWall = {
@@ -235,6 +241,9 @@ export type ArcHouseWall = {
   height: number;
   direction: "clockwise" | "counterclockwise";
   length: number;
+  barrierType?: HouseWallBarrierType;
+  material?: HouseWallMaterial;
+  openness?: number;
 };
 
 export type HouseWall = StraightHouseWall | ArcHouseWall;
@@ -369,9 +378,25 @@ export type HouseStair = {
   start: MmPoint;
   end: MmPoint;
   width: number;
+  baseHeight?: number;
   height: number;
   stepCount: number;
   direction: "up" | "down";
+  editable: true;
+  removable: true;
+};
+
+export type HouseColumn = {
+  id: string;
+  floorId: FloorId;
+  name: string;
+  geometryType: "point";
+  columnType: "cylindrical";
+  center: MmPoint;
+  radius: number;
+  height: number;
+  material: "reinforcedConcrete" | "steel" | "masonry";
+  supportsFloorId?: FloorId;
   editable: true;
   removable: true;
 };
@@ -380,6 +405,7 @@ export type HouseStructureObject =
   | HouseWall
   | HousePartition
   | HouseStair
+  | HouseColumn
   | HouseFence
   | HouseOutdoorSurface
   | HouseRoom
@@ -396,6 +422,7 @@ export type HouseStructure = {
   rooms: HouseRoom[];
   partitions: HousePartition[];
   stairs: HouseStair[];
+  columns: HouseColumn[];
   fences: HouseFence[];
   outdoorSurfaces: HouseOutdoorSurface[];
   doors: HouseDoor[];

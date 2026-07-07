@@ -8,6 +8,7 @@ import type {
   Floor,
   Furniture,
   HouseBayWindow,
+  HouseColumn,
   HouseDoor,
   HousePartition,
   HouseStair,
@@ -43,7 +44,7 @@ type HostSegment = {
   height: number;
 };
 
-type CameraPreset = "overview" | "front" | "right" | "back" | "left" | "living" | "kitchen";
+type CameraPreset = "overview" | "front" | "right" | "back" | "left" | "living" | "kitchen" | "stair";
 type CameraMode = "orbit" | "walkthrough";
 type DesignStylePreset = "naturalWood" | "softCream" | "modernStone" | "warmJapandi";
 
@@ -84,6 +85,8 @@ const WALL_PREVIEW_HEIGHT_MM = 1480;
 const WALL_SELECTED_HEIGHT_MM = 2250;
 const WALL_PREVIEW_OPACITY = 0.36;
 const WALL_SELECTED_OPACITY = 0.78;
+const RAILING_COLOR = "#0891b2";
+const RAILING_SELECTED_COLOR = "#2563eb";
 const CAMERA_TARGET = new THREE.Vector3(0, 0.42, 0);
 const cameraPositions: Record<CameraPreset, [number, number, number]> = {
   overview: [7.4, 8.2, 8.6],
@@ -92,7 +95,18 @@ const cameraPositions: Record<CameraPreset, [number, number, number]> = {
   back: [0, 5.9, -10.4],
   left: [-10.4, 5.9, 0],
   living: [5.8, 3.9, 7.2],
-  kitchen: [1.6, 4.8, -7.8]
+  kitchen: [1.6, 4.8, -7.8],
+  stair: [-1.0, 5.15, 2.35]
+};
+const cameraTargets: Record<CameraPreset, THREE.Vector3> = {
+  overview: CAMERA_TARGET,
+  front: CAMERA_TARGET,
+  right: CAMERA_TARGET,
+  back: CAMERA_TARGET,
+  left: CAMERA_TARGET,
+  living: CAMERA_TARGET,
+  kitchen: CAMERA_TARGET,
+  stair: new THREE.Vector3(-3.85, 0.42, -0.36)
 };
 const cameraRotationOrder: CameraPreset[] = ["front", "right", "back", "left"];
 const cameraViewOptions: Array<[CameraPreset, string]> = [
@@ -102,7 +116,8 @@ const cameraViewOptions: Array<[CameraPreset, string]> = [
   ["back", "后"],
   ["left", "左"],
   ["living", "客厅"],
-  ["kitchen", "厨房"]
+  ["kitchen", "厨房"],
+  ["stair", "楼梯"]
 ];
 const designStyleOptions: Array<[DesignStylePreset, string]> = [
   ["naturalWood", "浅木自然"],
@@ -245,6 +260,42 @@ function lineMetrics(start: MmPoint, end: MmPoint, structure: HouseStructure) {
       z: dx / length
     }
   };
+}
+
+function isRailingWall(wall: HouseWall) {
+  return wall.barrierType === "railing";
+}
+
+type StairLandingConnection = {
+  id: string;
+  fromId: string;
+  toId: string;
+  start: MmPoint;
+  end: MmPoint;
+  width: number;
+  bounds: { x: number; y: number; width: number; height: number };
+};
+
+function getStairLandingConnections(stairs: HouseStair[]): StairLandingConnection[] {
+  const firstRun = stairs.find((stair) => stair.id.endsWith("-001"));
+  const secondRun = stairs.find((stair) => stair.id.endsWith("-002") && stair.direction === "down");
+  if (!firstRun || !secondRun) return [];
+  const length = Math.hypot(firstRun.start.x - secondRun.start.x, firstRun.start.y - secondRun.start.y);
+  if (length <= 0 || length > 3400) return [];
+  const width = Math.min(firstRun.width, secondRun.width);
+  const minX = Math.min(firstRun.start.x, secondRun.start.x) - width / 2;
+  const maxX = Math.max(firstRun.start.x, secondRun.start.x) + width / 2;
+  const minY = Math.min(firstRun.start.y, secondRun.start.y) - width / 2;
+  const maxY = Math.max(firstRun.start.y, secondRun.start.y) + width / 2;
+  return [{
+    id: `${firstRun.id}-${secondRun.id}-landing`,
+    fromId: firstRun.id,
+    toId: secondRun.id,
+    start: firstRun.start,
+    end: secondRun.start,
+    width,
+    bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+  }];
 }
 
 function getArcWallPoints(wall: Extract<HouseWall, { kind: "arc" }>, steps = 20) {
@@ -609,6 +660,90 @@ function LineBox({
   );
 }
 
+function RailingSegment({
+  id,
+  start,
+  end,
+  structure,
+  widthMm,
+  heightMm,
+  selected,
+  onSelect,
+  onHover,
+  onClearHover
+}: {
+  id: string;
+  start: MmPoint;
+  end: MmPoint;
+  structure: HouseStructure;
+  widthMm: number;
+  heightMm: number;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+}) {
+  const metrics = useMemo(() => lineMetrics(start, end, structure), [start, end, structure]);
+  const lengthMm = Math.max(1, Math.hypot(end.x - start.x, end.y - start.y));
+  const postCount = Math.max(2, Math.floor(lengthMm / 620) + 1);
+  const railingHeight = Math.max(0.72, heightMm * MM_TO_M);
+  const postWidth = Math.max(0.045, widthMm * MM_TO_M * 0.72);
+  const railHeightMm = 58;
+  const color = selected ? RAILING_SELECTED_COLOR : RAILING_COLOR;
+  const railOffsets = [
+    0.18,
+    Math.max(0.38, railingHeight * 0.54),
+    Math.max(0.52, railingHeight - railHeightMm * MM_TO_M)
+  ];
+
+  return (
+    <group
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(id);
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        onHover(id);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        onClearHover(id);
+      }}
+    >
+      {railOffsets.map((offset, index) => (
+        <LineBox
+          key={`${id}-rail-${index}`}
+          id={id}
+          start={start}
+          end={end}
+          widthMm={widthMm}
+          heightMm={railHeightMm}
+          structure={structure}
+          color={color}
+          opacity={selected ? 0.9 : 0.76}
+          yOffset={offset}
+          selected={selected}
+          onSelect={onSelect}
+          onHover={onHover}
+          onClearHover={onClearHover}
+        />
+      ))}
+      {Array.from({ length: postCount }, (_, index) => {
+        const t = postCount === 1 ? 0 : index / (postCount - 1);
+        const x = metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t;
+        const z = metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t;
+        return (
+          <mesh key={`${id}-post-${index}`} castShadow position={[x, railingHeight / 2, z]} rotation={[0, metrics.rotationY, 0]}>
+            <boxGeometry args={[postWidth, railingHeight, postWidth]} />
+            <meshStandardMaterial color={color} roughness={0.48} metalness={0.36} transparent opacity={selected ? 0.95 : 0.82} />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 function WallMesh({
   wall,
   structure,
@@ -626,6 +761,47 @@ function WallMesh({
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
+  if (isRailingWall(wall)) {
+    const railingHeightMm = wall.height || 1100;
+    if (wall.kind === "arc") {
+      const points = getArcWallPoints(wall);
+      return (
+        <group>
+          {points.slice(0, -1).map((point, index) => (
+            <RailingSegment
+              key={`${wall.id}-railing-${index}`}
+              id={wall.id}
+              start={point}
+              end={points[index + 1]}
+              widthMm={wall.thickness}
+              heightMm={railingHeightMm}
+              structure={structure}
+              selected={selected}
+              onSelect={onSelect}
+              onHover={onHover}
+              onClearHover={onClearHover}
+            />
+          ))}
+        </group>
+      );
+    }
+
+    return (
+      <RailingSegment
+        id={wall.id}
+        start={wall.start}
+        end={wall.end}
+        widthMm={wall.thickness}
+        heightMm={railingHeightMm}
+        structure={structure}
+        selected={selected}
+        onSelect={onSelect}
+        onHover={onHover}
+        onClearHover={onClearHover}
+      />
+    );
+  }
+
   if (wall.kind === "arc") {
     const points = getArcWallPoints(wall);
     const heightMm = Math.min(wall.height, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM);
@@ -700,6 +876,52 @@ function PartitionMesh({
       onHover={onHover}
       onClearHover={onClearHover}
     />
+  );
+}
+
+function ColumnMesh({
+  column,
+  structure,
+  selected,
+  onSelect,
+  onHover,
+  onClearHover
+}: {
+  column: HouseColumn;
+  structure: HouseStructure;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+}) {
+  const center = toScenePoint(column.center, structure);
+  const radius = Math.max(0.05, column.radius * MM_TO_M);
+  const height = Math.max(0.2, column.height * MM_TO_M);
+
+  return (
+    <group
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(column.id);
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        onHover(column.id);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        onClearHover(column.id);
+      }}
+    >
+      <mesh castShadow receiveShadow position={[center.x, height / 2, center.z]}>
+        <cylinderGeometry args={[radius, radius, height, 40]} />
+        <meshStandardMaterial color={selected ? "#2563eb" : "#74777d"} roughness={0.66} metalness={0.04} />
+      </mesh>
+      <mesh receiveShadow position={[center.x, 0.032, center.z]}>
+        <cylinderGeometry args={[radius * 1.18, radius * 1.18, 0.064, 40]} />
+        <meshStandardMaterial color={selected ? "#bfdbfe" : "#d1d5db"} roughness={0.78} />
+      </mesh>
+    </group>
   );
 }
 
@@ -806,6 +1028,83 @@ function BayWindowMesh({
   );
 }
 
+function StairLandingMesh({
+  connection,
+  structure,
+  selected,
+  onSelect,
+  onHover,
+  onClearHover
+}: {
+  connection: StairLandingConnection;
+  structure: HouseStructure;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+}) {
+  const platform = useMemo(() => {
+    const min = toScenePoint({ x: connection.bounds.x, y: connection.bounds.y }, structure);
+    const max = toScenePoint({ x: connection.bounds.x + connection.bounds.width, y: connection.bounds.y + connection.bounds.height }, structure);
+    return {
+      center: { x: (min.x + max.x) / 2, z: (min.z + max.z) / 2 },
+      width: Math.max(0.5, connection.bounds.width * MM_TO_M),
+      depth: Math.max(0.5, connection.bounds.height * MM_TO_M)
+    };
+  }, [connection, structure]);
+  return (
+    <group
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(connection.toId);
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        onHover(connection.toId);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        onClearHover(connection.toId);
+      }}
+    >
+      <mesh castShadow receiveShadow position={[platform.center.x, 0.105, platform.center.z]}>
+        <boxGeometry args={[platform.width, 0.13, platform.depth]} />
+        <meshStandardMaterial color={selected ? "#2563eb" : "#0f766e"} roughness={0.62} transparent opacity={selected ? 0.92 : 0.88} />
+      </mesh>
+    </group>
+  );
+}
+
+function StairDirectionCue({
+  metrics,
+  stairWidth,
+  isDownRun,
+  selected
+}: {
+  metrics: ReturnType<typeof lineMetrics>;
+  stairWidth: number;
+  isDownRun: boolean;
+  selected: boolean;
+}) {
+  const cueStart = Math.min(0.46, metrics.length * 0.18);
+  const cueLength = Math.max(0.62, metrics.length - cueStart - 0.56);
+  const cueWidth = Math.min(0.18, Math.max(0.1, stairWidth * 0.18));
+  const color = selected ? "#2563eb" : isDownRun ? "#dc2626" : "#0284c7";
+  const cueY = isDownRun ? 0.34 : 0.76;
+  return (
+    <group position={[metrics.startPoint.x, cueY, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+      <mesh position={[cueStart + cueLength / 2, 0, 0]} renderOrder={22}>
+        <boxGeometry args={[cueLength, 0.045, cueWidth]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.1} roughness={0.42} transparent opacity={0.86} depthTest={false} />
+      </mesh>
+      <mesh position={[cueStart + cueLength + 0.16, 0, 0]} rotation={[0, 0, -Math.PI / 2]} renderOrder={23}>
+        <coneGeometry args={[cueWidth * 1.2, 0.36, 3]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.12} roughness={0.38} transparent opacity={0.92} depthTest={false} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
 function StairMesh({
   stair,
   structure,
@@ -825,7 +1124,13 @@ function StairMesh({
   const count = Math.max(1, stair.stepCount);
   const stepLength = metrics.length / count;
   const totalHeight = Math.max(0.4, stair.height * MM_TO_M);
+  const isTopFloorArrivalRun = structure.floorId === "2F" && stair.id === "ST-2F-001" && stair.direction === "up";
+  const baseHeight = isTopFloorArrivalRun ? -totalHeight : (stair.baseHeight ?? 0) * MM_TO_M;
   const stairWidth = Math.max(0.5, stair.width * MM_TO_M);
+  const isDownRun = stair.direction === "down";
+  const landingY = baseHeight + (isDownRun ? -totalHeight : totalHeight);
+  const landingDepth = Math.min(1.1, Math.max(0.72, stepLength * 1.55));
+  const stepMaterialColor = selected ? "#2563eb" : isTopFloorArrivalRun ? "#d99b45" : isDownRun ? "#9b846b" : "#d6c6ae";
   return (
     <group
       onClick={(event) => {
@@ -841,20 +1146,40 @@ function StairMesh({
         onClearHover(stair.id);
       }}
     >
+      <mesh receiveShadow position={[metrics.midpoint.x, 0.052, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
+        <boxGeometry args={[metrics.length + 0.32, 0.032, stairWidth + 0.32]} />
+        <meshStandardMaterial color={isTopFloorArrivalRun ? "#92400e" : isDownRun ? "#1f2937" : "#6f5a41"} transparent opacity={isTopFloorArrivalRun ? 0.38 : isDownRun ? 0.76 : 0.28} roughness={0.88} />
+      </mesh>
       {Array.from({ length: count }, (_, index) => {
         const t = (index + 0.5) / count;
-        const height = totalHeight * ((index + 1) / count);
+        const height = isDownRun
+          ? totalHeight * ((count - index) / count)
+          : totalHeight * ((index + 1) / count);
+        const centerY = isDownRun
+          ? baseHeight - totalHeight + height / 2
+          : baseHeight + height / 2;
         const center = {
           x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t,
           z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t
         };
         return (
-          <mesh key={`${stair.id}-step-${index}`} castShadow receiveShadow position={[center.x, height / 2, center.z]} rotation={[0, metrics.rotationY, 0]}>
+          <mesh key={`${stair.id}-step-${index}`} castShadow receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]}>
             <boxGeometry args={[stepLength * 0.92, height, stairWidth]} />
-            <meshStandardMaterial color={selected ? "#2563eb" : "#d6c6ae"} roughness={0.72} />
+            <meshStandardMaterial color={stepMaterialColor} roughness={0.72} depthTest={!isDownRun} />
           </mesh>
         );
       })}
+      {isDownRun && (
+        <mesh castShadow receiveShadow position={[metrics.startPoint.x, baseHeight + 0.045, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+          <boxGeometry args={[landingDepth, 0.09, stairWidth]} />
+          <meshStandardMaterial color={selected ? "#2563eb" : "#7b6652"} roughness={0.72} />
+        </mesh>
+      )}
+      <mesh castShadow receiveShadow position={[metrics.endPoint.x, landingY + (isDownRun ? -0.035 : 0.035), metrics.endPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+        <boxGeometry args={[landingDepth, 0.07, stairWidth]} />
+        <meshStandardMaterial color={selected ? "#2563eb" : isTopFloorArrivalRun ? "#fbbf24" : isDownRun ? "#4b5563" : "#c8b89f"} transparent opacity={isDownRun ? 0.92 : 1} roughness={0.76} depthTest={!isDownRun} />
+      </mesh>
+      <StairDirectionCue metrics={metrics} stairWidth={stairWidth} isDownRun={isDownRun} selected={selected} />
     </group>
   );
 }
@@ -1305,7 +1630,7 @@ function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; req
     controls.panSpeed = 0.55;
     controls.rotateSpeed = 0.56;
     controls.zoomSpeed = 0.8;
-    controls.minDistance = 3.8;
+    controls.minDistance = 1.8;
     controls.maxDistance = 18;
     controls.minPolarAngle = Math.PI / 8;
     controls.maxPolarAngle = Math.PI / 2.08;
@@ -1319,9 +1644,10 @@ function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; req
   }, [camera, gl.domElement]);
 
   useEffect(() => {
+    const target = cameraTargets[preset];
     camera.position.set(...cameraPositions[preset]);
-    camera.lookAt(CAMERA_TARGET);
-    controlsRef.current?.target.copy(CAMERA_TARGET);
+    camera.lookAt(target);
+    controlsRef.current?.target.copy(target);
     controlsRef.current?.update();
     camera.updateProjectionMatrix();
     walkStartRef.current = null;
@@ -1428,6 +1754,18 @@ function Floor3DScene({
         />
       ))}
 
+      {(houseStructure.columns ?? []).map((column) => (
+        <ColumnMesh
+          key={column.id}
+          column={column}
+          structure={houseStructure}
+          selected={selectedObjectId === column.id}
+          onSelect={onSelectStructure}
+          onHover={onHoverObject}
+          onClearHover={onClearHoverObject}
+        />
+      ))}
+
       {houseStructure.doors.map((door) => (
         <OpeningMesh
           key={door.id}
@@ -1458,6 +1796,18 @@ function Floor3DScene({
           bayWindow={bayWindow}
           structure={houseStructure}
           selected={selectedObjectId === bayWindow.id}
+          onSelect={onSelectStructure}
+          onHover={onHoverObject}
+          onClearHover={onClearHoverObject}
+        />
+      ))}
+
+      {houseStructure.floorId !== "B2" && getStairLandingConnections(houseStructure.stairs).map((connection) => (
+        <StairLandingMesh
+          key={connection.id}
+          connection={connection}
+          structure={houseStructure}
+          selected={selectedObjectId === connection.fromId || selectedObjectId === connection.toId}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
           onClearHover={onClearHoverObject}
@@ -1517,6 +1867,7 @@ export function Floor3DView({
     houseStructure.walls.find((item) => item.id === selectedObjectId) ??
     houseStructure.partitions.find((item) => item.id === selectedObjectId) ??
     houseStructure.stairs.find((item) => item.id === selectedObjectId) ??
+    (houseStructure.columns ?? []).find((item) => item.id === selectedObjectId) ??
     houseStructure.doors.find((item) => item.id === selectedObjectId) ??
     houseStructure.windows.find((item) => item.id === selectedObjectId) ??
     houseStructure.bayWindows.find((item) => item.id === selectedObjectId) ??
@@ -1558,9 +1909,9 @@ export function Floor3DView({
 
       <div className="pointer-events-none absolute left-4 top-4 z-[80]">
         <div className="pointer-events-auto rounded-lg border border-white/80 bg-white/88 px-4 py-3 shadow-sm backdrop-blur">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-400">1F 3D White Model</div>
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-400">{floor.id} 3D White Model</div>
           <div className="mt-1 text-lg font-black text-stone-900">{floor.label} · {floor.subtitle}</div>
-          <div className="mt-1 text-xs font-semibold text-stone-500">墙体 / 门窗 / 楼梯 / 家具都来自当前 1F 模型</div>
+          <div className="mt-1 text-xs font-semibold text-stone-500">墙体 / 立柱 / 门窗 / 楼梯 / 家具都来自当前楼层模型</div>
         </div>
       </div>
       <div className="pointer-events-none absolute right-4 top-4 z-[90] flex max-w-[calc(100%-2rem)] justify-end">
@@ -1628,21 +1979,23 @@ export function Floor3DView({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-4 z-[70] max-w-sm rounded-lg border border-white/80 bg-white/88 p-4 text-sm leading-6 text-stone-600 shadow-sm backdrop-blur">
-        <div className="font-black text-stone-900">{materialPreview ? "1F 材质预览" : "1F 立体白模"}</div>
-        <div className="mt-1">
-          {cameraMode === "walkthrough"
-            ? "正在按客餐厨动线自动漫游；退出后可继续拖拽旋转和切换视角。"
-            : materialPreview
-              ? `${designStylePalettes[designStyle].label}方案：浅灰岩板岛台、白色系橱柜、大理石地砖和灯光点位均为可替换占位。`
-              : "先用白模确认空间比例、通道和家具体量；材质、灯光和漫游可随时切回。"}
-        </div>
-        {showObjectIds && (
-          <div className="mt-3 rounded-md bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600">
-            {selectedObjectId ? `当前选中：${selectedObjectId}${selectedName ? ` · ${selectedName}` : ""}` : "点选墙体、楼梯、门窗或家具后，这里显示对象信息。"}
+      {cameraRequest.preset !== "stair" && (
+        <div className="pointer-events-none absolute bottom-4 left-4 z-[70] max-w-sm rounded-lg border border-white/80 bg-white/88 p-4 text-sm leading-6 text-stone-600 shadow-sm backdrop-blur">
+          <div className="font-black text-stone-900">{materialPreview ? `${floor.label} 材质预览` : `${floor.label} 立体白模`}</div>
+          <div className="mt-1">
+            {cameraMode === "walkthrough"
+              ? "正在按客餐厨动线自动漫游；退出后可继续拖拽旋转和切换视角。"
+              : materialPreview
+                ? `${designStylePalettes[designStyle].label}方案：浅灰岩板岛台、白色系橱柜、大理石地砖和灯光点位均为可替换占位。`
+                : "先用白模确认空间比例、通道和家具体量；材质、灯光和漫游可随时切回。"}
           </div>
-        )}
-      </div>
+          {showObjectIds && (
+            <div className="mt-3 rounded-md bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600">
+              {selectedObjectId ? `当前选中：${selectedObjectId}${selectedName ? ` · ${selectedName}` : ""}` : "点选墙体、楼梯、门窗或家具后，这里显示对象信息。"}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

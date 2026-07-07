@@ -133,6 +133,7 @@ function copyReferenceStairsToFloor(referenceStairs: HouseStair[], floorId: Floo
       start: { ...stair.start },
       end: { ...stair.end },
       width: stair.width,
+      baseHeight: stair.baseHeight,
       height: stair.height,
       stepCount: stair.stepCount,
       direction: stair.direction

@@ -52,24 +52,94 @@ export const initialSemanticObjects: SemanticObject[] = [
     details: { roomId: "ROOM-1F-006", stairId: "ST-1F-001", boundary: [{ x: 10, y: 36 }, { x: 38, y: 36 }, { x: 38, y: 58 }, { x: 10, y: 58 }] }
   },
   {
-    id: "R-B1-001",
-    name: "B1 多功能厅",
+    id: "R-B1-LAUNDRY",
+    name: "洗衣房",
     floorId: "B1",
     category: "Room",
-    type: "multi_function",
-    notes: "地下室一层主要活动空间。",
-    position: { x: 44, y: 60 },
-    details: { area: 53.16, boundary: [] }
+    type: "laundry",
+    notes: "楼梯上来左上的小房间。",
+    position: { x: 39, y: 14 },
+    details: { area: 2.51, boundary: [{ x: 32.9, y: 3.9 }, { x: 44.9, y: 3.9 }, { x: 44.9, y: 23.3 }, { x: 32.9, y: 23.2 }] }
   },
   {
-    id: "R-B2-001",
-    name: "B2 会客影音区",
+    id: "R-B1-ROOM",
+    name: "房间",
+    floorId: "B1",
+    category: "Room",
+    type: "room",
+    notes: "洗衣房外围的大房间。",
+    position: { x: 57, y: 21 },
+    details: { area: 12.84, boundary: [{ x: 44.9, y: 3.9 }, { x: 79.1, y: 3.9 }, { x: 79.1, y: 34.6 }, { x: 44, y: 34.6 }, { x: 32.9, y: 34.6 }, { x: 32.9, y: 23.2 }, { x: 44.9, y: 23.3 }] }
+  },
+  {
+    id: "R-B1-CORRIDOR",
+    name: "走廊",
+    floorId: "B1",
+    category: "Room",
+    type: "corridor",
+    notes: "弧形空间对应的走廊。",
+    position: { x: 42, y: 49 },
+    details: { area: 4.63, boundary: [{ x: 32.9, y: 34.6 }, { x: 44, y: 34.6 }, { x: 47.3, y: 40 }, { x: 49.2, y: 50.4 }, { x: 47.3, y: 60.6 }, { x: 44.9, y: 65 }, { x: 35.8, y: 65 }, { x: 32.9, y: 55.6 }] }
+  },
+  {
+    id: "R-B1-ACTIVITY",
+    name: "活动区",
+    floorId: "B1",
+    category: "Room",
+    type: "activity",
+    notes: "最下方稍微延伸出去的活动区域。",
+    position: { x: 34, y: 72 },
+    details: { area: 19.45, boundary: [{ x: 7.9, y: 34.6 }, { x: 32.9, y: 34.6 }, { x: 32.9, y: 55.6 }, { x: 35.8, y: 65 }, { x: 44.9, y: 65 }, { x: 55.4, y: 65 }, { x: 55.4, y: 86.7 }, { x: 7.9, y: 86.7 }] }
+  },
+  {
+    id: "R-B2-LIVING",
+    name: "B2 客厅",
     floorId: "B2",
     category: "Room",
-    type: "media_lounge",
-    notes: "地下室二层大空间，后续标注影音和会客设备。",
-    position: { x: 52, y: 58 },
-    details: { area: 90.74, boundary: [] }
+    type: "living",
+    notes: "B2 入户门所在区域，作为地下二层客厅。",
+    position: { x: 59, y: 38 },
+    details: { area: 20.17, boundary: [{ x: 30.6, y: 3.9 }, { x: 63.4, y: 3.9 }, { x: 63.4, y: 46.9 }, { x: 79.1, y: 46.9 }, { x: 79.1, y: 57.2 }, { x: 32.5, y: 57.2 }, { x: 32.5, y: 33.9 }, { x: 30.6, y: 33.9 }] }
+  },
+  {
+    id: "R-B2-STAIR",
+    name: "B2 楼梯间",
+    floorId: "B2",
+    category: "Room",
+    type: "stair",
+    notes: "B2 作为底层，只保留上行楼梯，楼梯下方切出三角形储物间。",
+    position: { x: 24, y: 44 },
+    details: { area: 5.72, boundary: [{ x: 7.9, y: 33.9 }, { x: 32.5, y: 33.9 }, { x: 32.5, y: 57.2 }, { x: 7.9, y: 57.2 }, { x: 17.1, y: 47.8 }, { x: 7.9, y: 47.8 }] }
+  },
+  {
+    id: "R-B2-STORAGE",
+    name: "B2 储物间",
+    floorId: "B2",
+    category: "Room",
+    type: "storage",
+    notes: "楼梯下方的三角形储物，可放清洁工具、换季物品和杂物架。",
+    position: { x: 13, y: 52 },
+    details: { area: 0.47, boundary: [{ x: 7.9, y: 47.8 }, { x: 17.1, y: 47.8 }, { x: 7.9, y: 57.2 }] }
+  },
+  {
+    id: "R-B2-STUDY",
+    name: "B2 书房",
+    floorId: "B2",
+    category: "Room",
+    type: "study",
+    notes: "活动区圆柱左侧改为书房。",
+    position: { x: 28, y: 72 },
+    details: { area: 12.72, boundary: [{ x: 7.9, y: 57.2 }, { x: 47.9, y: 57.2 }, { x: 47.9, y: 86.7 }, { x: 7.9, y: 86.7 }] }
+  },
+  {
+    id: "R-B2-ACTIVITY",
+    name: "B2 活动区",
+    floorId: "B2",
+    category: "Room",
+    type: "activity",
+    notes: "活动区圆柱右侧保持为活动区。",
+    position: { x: 64, y: 72 },
+    details: { area: 9.92, boundary: [{ x: 47.9, y: 57.2 }, { x: 79.1, y: 57.2 }, { x: 79.1, y: 86.7 }, { x: 47.9, y: 86.7 }] }
   },
   {
     id: "R-2F-001",

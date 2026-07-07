@@ -1,4 +1,12 @@
-import { generateRoomsFromWalls, getLineLength, getPolygonArea, projectPointToSegment } from "@/lib/house-geometry";
+import {
+  SITE_PLAN_MAX_Y_MM,
+  SITE_PLAN_MIN_Y_MM,
+  STRUCTURE_HEIGHT_MM,
+  generateRoomsFromWalls,
+  getLineLength,
+  getPolygonArea,
+  projectPointToSegment
+} from "@/lib/house-geometry";
 import type {
   Furniture,
   HouseStructure,
@@ -92,8 +100,16 @@ function moveWall(wall: HouseWall, delta: DragDelta): HouseWall {
   };
 }
 
-function clampPercent(value: number) {
-  return Math.min(100, Math.max(0, value));
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getFurnitureYBounds(item: Furniture) {
+  if (item.floorId !== "1F") return { min: 0, max: 100 };
+  return {
+    min: (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100,
+    max: (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100
+  };
 }
 
 export function handleDrag(model: InteractionModel, state: ObjectInteractionState, objectId: string, delta: DragDelta): InteractionModel {
@@ -141,6 +157,21 @@ export function handleDrag(model: InteractionModel, state: ObjectInteractionStat
     };
   }
 
+  if ((model.houseStructure.columns ?? []).some((column) => column.id === objectId)) {
+    return {
+      ...model,
+      houseStructure: {
+        ...model.houseStructure,
+        columns: (model.houseStructure.columns ?? []).map((column) => column.id === objectId
+          ? {
+              ...column,
+              center: { x: column.center.x + delta.x, y: column.center.y + delta.y }
+            }
+          : column)
+      }
+    };
+  }
+
   if (model.houseStructure.fences.some((fence) => fence.id === objectId)) {
     return {
       ...model,
@@ -157,17 +188,50 @@ export function handleDrag(model: InteractionModel, state: ObjectInteractionStat
     };
   }
 
+  if (model.houseStructure.outdoorSurfaces.some((surface) => surface.id === objectId)) {
+    return {
+      ...model,
+      houseStructure: {
+        ...model.houseStructure,
+        outdoorSurfaces: model.houseStructure.outdoorSurfaces.map((surface) => surface.id === objectId
+          ? {
+              ...surface,
+              polygon: surface.polygon.map((point) => ({ x: point.x + delta.x, y: point.y + delta.y }))
+            }
+          : surface)
+      }
+    };
+  }
+
+  if (model.houseStructure.outdoors.some((outdoor) => outdoor.id === objectId)) {
+    return {
+      ...model,
+      houseStructure: {
+        ...model.houseStructure,
+        outdoors: model.houseStructure.outdoors.map((outdoor) => outdoor.id === objectId
+          ? {
+              ...outdoor,
+              polygon: outdoor.polygon.map((point) => ({ x: point.x + delta.x, y: point.y + delta.y }))
+            }
+          : outdoor)
+      }
+    };
+  }
+
   return {
     ...model,
     furniture: model.furniture.map((item) => item.id === objectId
-      ? {
-          ...item,
-          position: {
-            ...item.position,
-            x: clampPercent(item.position.x + delta.x),
-            y: clampPercent(item.position.y + delta.y)
-          }
-        }
+      ? (() => {
+          const yBounds = getFurnitureYBounds(item);
+          return {
+            ...item,
+            position: {
+              ...item.position,
+              x: clamp(item.position.x + delta.x, 0, 100),
+              y: clamp(item.position.y + delta.y, yBounds.min, yBounds.max)
+            }
+          };
+        })()
       : item)
   };
 }
