@@ -15,7 +15,7 @@ export function ViewToggle({ viewMode, onChange }: Props) {
           onClick={() => onChange(mode)}
           type="button"
         >
-          {mode.toUpperCase()}
+          {mode === "2d" ? "2D" : "效果3D"}
         </button>
       ))}
     </div>

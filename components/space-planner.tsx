@@ -7,6 +7,7 @@ import { MobileDetailsDrawer } from "@/components/mobile-details-drawer";
 import { PlanCanvas } from "@/components/plan-canvas";
 import { SemanticMapPanel } from "@/components/semantic-map-panel";
 import { ViewToggle } from "@/components/view-toggle";
+import { Yard3DPreview } from "@/components/yard-3d-preview";
 import { interiorModuleCatalog, interiorModuleCategoryLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { initialHouseStructures } from "@/data/mock-house-structure";
@@ -15,7 +16,7 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmptyStructure, createOutdoor, getLineLength, getPolygonArea } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import type { CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 
 type ModelSnapshot = {
@@ -67,7 +68,7 @@ type LocalFilePickerWindow = Window & {
 };
 
 const WEB_WORKSPACE_SCHEMA_VERSION = 4;
-const DEFAULT_WORKSPACE_REVISION = "2026-07-07-courtyard-placeholders-v1";
+const DEFAULT_WORKSPACE_REVISION = "2026-07-08-master-bedroom-right-room-v1";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -476,49 +477,57 @@ function normalizeFurnitureDefaults(furnitureItems: Furniture[], defaultFurnitur
     ...twoFloorDefaultFurnitureOverrides
   };
   const normalizedFurniture = furnitureItems.filter((item) => !retiredDefaultFurnitureIds.has(item.id)).map((item) => {
+    const visibilityRepairPosition = getTwoFloorMasterBedroomVisibilityRepair(item);
+    const repairedItem = visibilityRepairPosition ? { ...item, position: visibilityRepairPosition } : item;
     const defaultOverride = defaultFurnitureOverrides[item.id];
     if (defaultOverride) {
       return {
-        ...item,
+        ...repairedItem,
         ...defaultOverride
       };
     }
-    if (item.id === "furn-table-001") {
+    if (repairedItem.id === "furn-table-001") {
       return {
-        ...item,
+        ...repairedItem,
         roomId: "ROOM-1F-005",
         note: "餐桌所在位置定义为客厅活动区，按整套餐桌椅占地估算并预留椅后通道。"
       };
     }
-    if (item.id === "module-1f-bed-002" || item.id === "module-1f-wardrobe-001") {
+    if (repairedItem.id === "module-1f-bed-002" || repairedItem.id === "module-1f-wardrobe-001") {
       return {
-        ...item,
+        ...repairedItem,
         roomId: "ROOM-1F-004"
       };
     }
-    if ((item.type === "wardrobe" || item.moduleType === "wardrobe") && !item.wardrobeDesign?.modules?.length) {
+    if ((repairedItem.type === "wardrobe" || repairedItem.moduleType === "wardrobe") && !repairedItem.wardrobeDesign?.modules?.length) {
       return {
-        ...item,
-        wardrobeDesign: createRecommendedWardrobeDesign(item.dimensions)
+        ...repairedItem,
+        wardrobeDesign: createRecommendedWardrobeDesign(repairedItem.dimensions)
       };
     }
-    const looksLikeOldRoundTable = item.type === "table" && item.dimensions.width <= 160 && item.dimensions.depth <= 160;
-    if (!looksLikeOldRoundTable) return item;
+    const looksLikeOldRoundTable = repairedItem.type === "table" && repairedItem.dimensions.width <= 160 && repairedItem.dimensions.depth <= 160;
+    if (!looksLikeOldRoundTable) return repairedItem;
     return {
-      ...item,
-      name: item.name.includes("圆餐桌") ? "六人圆餐桌套组" : item.name,
+      ...repairedItem,
+      name: repairedItem.name.includes("圆餐桌") ? "六人圆餐桌套组" : repairedItem.name,
       dimensions: {
-        ...item.dimensions,
+        ...repairedItem.dimensions,
         width: 240,
         depth: 240,
-        height: item.dimensions.height || 75
+        height: repairedItem.dimensions.height || 75
       },
-      material: item.material.includes("餐桌") || item.material.includes("岩板") ? "圆餐桌 + 6 把餐椅" : item.material,
-      note: item.note.includes("通道") || item.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : item.note
+      material: repairedItem.material.includes("餐桌") || repairedItem.material.includes("岩板") ? "圆餐桌 + 6 把餐椅" : repairedItem.material,
+      note: repairedItem.note.includes("通道") || repairedItem.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : repairedItem.note
     };
   });
   const persistentDefaultFurniture = defaultFurniture.filter((item) => persistentDefaultFurnitureIds.has(item.id));
-  const requiredDefaultFurniture = appendMissingById(persistentDefaultFurniture, twoFloorDefaultFurniture);
+  const requiredDefaultFurniture = appendMissingById(
+    appendMissingById(
+      appendMissingById(persistentDefaultFurniture, b1DefaultFurniture),
+      twoFloorDefaultFurniture
+    ),
+    b2DefaultFurniture
+  );
   return appendMissingById(normalizedFurniture, requiredDefaultFurniture).map((item) => {
     const defaultOverride = defaultFurnitureOverrides[item.id];
     const nextItem = defaultOverride ? { ...item, ...defaultOverride } : item;
@@ -921,13 +930,175 @@ const b1DefinedRooms: HouseRoom[] = [
   }
 ];
 
+const b1SkylightNote = "电动可活动天窗，预留防水收边、排水坡度、电源和控制线路。";
+const b1OperableSkylights: HouseSkylight[] = [
+  {
+    id: "SKY-B1-W002-001",
+    floorId: "B1",
+    name: "W-B1-002 电动可活动天窗 1",
+    geometryType: "polygon",
+    center: { x: 6100, y: 760 },
+    width: 800,
+    depth: 560,
+    height: 120,
+    rotation: 0,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b1SkylightNote,
+    editable: true,
+    removable: true
+  },
+  {
+    id: "SKY-B1-W002-002",
+    floorId: "B1",
+    name: "W-B1-002 电动可活动天窗 2",
+    geometryType: "polygon",
+    center: { x: 7350, y: 760 },
+    width: 800,
+    depth: 560,
+    height: 120,
+    rotation: 0,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b1SkylightNote,
+    editable: true,
+    removable: true
+  },
+  {
+    id: "SKY-B1-W002-003",
+    floorId: "B1",
+    name: "W-B1-002 电动可活动天窗 3",
+    geometryType: "polygon",
+    center: { x: 8600, y: 760 },
+    width: 800,
+    depth: 560,
+    height: 120,
+    rotation: 0,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b1SkylightNote,
+    editable: true,
+    removable: true
+  },
+  {
+    id: "SKY-B1-W009-001",
+    floorId: "B1",
+    name: "W-B1-009 电动可活动天窗 1",
+    geometryType: "polygon",
+    center: { x: 1850, y: 7350 },
+    width: 800,
+    depth: 560,
+    height: 120,
+    rotation: 0,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b1SkylightNote,
+    editable: true,
+    removable: true
+  },
+  {
+    id: "SKY-B1-W009-002",
+    floorId: "B1",
+    name: "W-B1-009 电动可活动天窗 2",
+    geometryType: "polygon",
+    center: { x: 3000, y: 7350 },
+    width: 800,
+    depth: 560,
+    height: 120,
+    rotation: 0,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b1SkylightNote,
+    editable: true,
+    removable: true
+  }
+];
+
+const b2SkylightNote = "沿 W-B2-012 设置地下室采光井天窗，预留防水收边、排水坡度、电源、检修和防坠落措施。";
+const b2W012Skylights: HouseSkylight[] = [
+  {
+    id: "SKY-B2-W012-001",
+    floorId: "B2",
+    name: "W-B2-012 电动采光天窗 1",
+    geometryType: "polygon",
+    center: { x: 9140, y: 5200 },
+    width: 620,
+    depth: 950,
+    height: 120,
+    rotation: 90,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b2SkylightNote,
+    editable: true,
+    removable: true
+  },
+  {
+    id: "SKY-B2-W012-002",
+    floorId: "B2",
+    name: "W-B2-012 电动采光天窗 2",
+    geometryType: "polygon",
+    center: { x: 9140, y: 6820 },
+    width: 620,
+    depth: 950,
+    height: 120,
+    rotation: 90,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: b2SkylightNote,
+    editable: true,
+    removable: true
+  }
+];
+
+const b1PowerOnly = { water: false, drainage: false, power: true, exhaust: false };
+const b1SeasonalWardrobeDesign: WardrobeDesign = {
+  columns: 3,
+  rows: 4,
+  cells: createWardrobeCells(3, 4),
+  modules: [
+    { id: "b1-top-seasonal", kind: "open", label: "顶部换季被褥区", column: 0, columnSpan: 3, x: 0, y: 0, width: 100, height: 22 },
+    { id: "b1-quilt-stack", kind: "folded", label: "被子叠放高格", column: 0, columnSpan: 1, shelfCount: 3, shelfLayerHeights: [28, 24, 24, 24], x: 0, y: 22, width: 34, height: 78 },
+    { id: "b1-seasonal-hanging", kind: "hanging-short", label: "换季衣物挂区", column: 1, columnSpan: 1, x: 34, y: 22, width: 33, height: 54 },
+    { id: "b1-storage-drawers", kind: "drawer", label: "压缩袋和小件抽屉", column: 1, columnSpan: 1, drawerRows: 3, drawerColumns: 1, drawerRowHeights: [34, 33, 33], x: 34, y: 76, width: 33, height: 24 },
+    { id: "b1-box-shelves", kind: "folded", label: "收纳箱层板区", column: 2, columnSpan: 1, shelfCount: 4, shelfLayerHeights: [20, 20, 20, 20, 20], x: 67, y: 22, width: 33, height: 78 }
+  ],
+  columnWidths: [34, 33, 33],
+  notes: "沿 W-B1-004 做整墙收纳：顶部放换季被褥，中部挂换季衣物，右侧用可调层板放收纳箱和压缩袋；柜体需做防潮封边并预留除湿/通风。"
+};
+const b1DefaultFurniture: Furniture[] = [
+  {
+    id: "furn-b1-room-seasonal-wardrobe-001",
+    code: "WD-B1-01",
+    name: "B1 房间 W-B1-004 整墙换季衣柜",
+    type: "wardrobe",
+    catalogId: "storage-wardrobe",
+    moduleCategory: "storage",
+    moduleType: "wardrobe",
+    floorId: "B1",
+    roomId: "ROOM-B1-002",
+    dimensions: { width: 270, depth: 60, height: 240, unit: "cm" },
+    material: "暖白防潮柜体 + 顶柜 + 可调层板",
+    note: "沿 W-B1-004 做一面墙衣柜，用于收纳换季衣物、被子、收纳箱和压缩袋。",
+    constructionNote: "贴 W-B1-004 布置，复核柜体深度、挑空栏杆边界和房间通道；地下室需做防潮封边，柜内预留除湿机或通风电源。",
+    serviceRequirements: b1PowerOnly,
+    position: { x: 76.625, y: 19.261111111111113, rotation: 90 },
+    color: "#d8c2a4",
+    wardrobeDesign: b1SeasonalWardrobeDesign
+  }
+];
+
 const twoFloorMasterRoomBoundary = [
   { x: 7681, y: 3050 },
   { x: 9495, y: 3050 },
   { x: 9495, y: 7800 },
-  { x: 6542, y: 7800 },
-  { x: 6542, y: 5150 },
-  { x: 7681, y: 5150 }
+  { x: 7681, y: 7800 }
 ];
 
 const twoFloorCorridorBoundary = [
@@ -946,7 +1117,7 @@ const twoFloorDefinedRooms: HouseRoom[] = [
     spaceType: "Room",
     geometryType: "polygon",
     boundary: twoFloorMasterRoomBoundary,
-    area: 11634850,
+    area: 8616500,
     sourceWallIds: ["W-2F-009", "W-2F-011", "W-2F-020", "W-2F-016", "W-2F-014", "W-2F-017"]
   },
   {
@@ -975,11 +1146,9 @@ const b2LivingRoomBoundary = [
 
 const b2StairRoomBoundary = [
   { x: 950, y: 3050 },
-  { x: 3897, y: 3050 },
-  { x: 3897, y: 5150 },
-  { x: 950, y: 5150 },
-  { x: 2050, y: 4300 },
-  { x: 950, y: 4300 }
+  { x: 4146, y: 3050 },
+  { x: 4146, y: 5150 },
+  { x: 950, y: 5150 }
 ];
 
 const b2StorageRoomBoundary = [
@@ -1066,9 +1235,9 @@ const twoFloorTopStairs: HouseStair[] = [
     floorId: "2F",
     name: "W-2F-012 1F→2F 到达梯段",
     geometryType: "line",
-    start: { x: 3897, y: 5150 },
-    end: { x: 950, y: 5150 },
-    width: 900,
+    start: { x: 4146, y: 3575 },
+    end: { x: 950, y: 3575 },
+    width: 1050,
     baseHeight: 0,
     height: 2800,
     stepCount: 14,
@@ -1522,6 +1691,7 @@ const twoFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
   "module-2f-cloak-left": {
     name: "2F 衣帽间西墙挂衣柜",
     roomId: "ROOM-2F-002",
+    dimensions: { width: 258, depth: 60, height: 240, unit: "cm" },
     note: "已挪入衣帽间西墙：长衣、短衣双层挂、顶部被子和包包开放格，叠放区极少。",
     constructionNote: "沿衣帽间西侧墙布置，按 600mm 深度复核中间通道；顶部预留换季被子和行李。",
     position: { x: 47.36, y: 18.89, rotation: 90 }
@@ -1529,6 +1699,7 @@ const twoFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
   "module-2f-cloak-right": {
     name: "2F 衣帽间东墙包被收纳柜",
     roomId: "ROOM-2F-002",
+    dimensions: { width: 258, depth: 60, height: 240, unit: "cm" },
     note: "已挪入衣帽间东墙：以挂衣、包包展示和被褥收纳为主，不单独设置大面积叠放区。",
     constructionNote: "沿衣帽间东侧墙布置，局部玻璃门展示包包，顶柜和窄高柜收被子、行李箱、换季物。",
     position: { x: 61.51, y: 18.89, rotation: 90 }
@@ -1541,6 +1712,45 @@ const twoFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
     position: { x: 54.95, y: 7.15, rotation: 0 }
   }
 };
+
+const twoFloorMasterBedroomLegacyFurniturePositions: Record<string, Furniture["position"][]> = {
+  "furn-2f-master-bedroom-bed-001": [
+    { x: 67.6, y: 75.4, rotation: 0 },
+    { x: 67, y: 72.4, rotation: 0 }
+  ],
+  "furn-2f-master-bedroom-large-wardrobe-001": [
+    { x: 76.2, y: 49.5, rotation: 90 },
+    { x: 76.6, y: 49.2, rotation: 90 }
+  ],
+  "furn-2f-master-bedroom-bedside-wardrobe-001": [
+    { x: 57.2, y: 74, rotation: 90 },
+    { x: 57.4, y: 68.6, rotation: 90 }
+  ],
+  "furn-2f-master-bedroom-chest-001": [
+    { x: 68.9, y: 36.4, rotation: 0 },
+    { x: 71.2, y: 36.8, rotation: 0 }
+  ]
+};
+
+const twoFloorMasterBedroomVisibleFurniturePositions: Record<string, Furniture["position"]> = {
+  "furn-2f-master-bedroom-bed-001": { x: 71.55, y: 75.2, rotation: 0 },
+  "furn-2f-master-bedroom-large-wardrobe-001": { x: 76.55, y: 48.8, rotation: 90 },
+  "furn-2f-master-bedroom-bedside-wardrobe-001": { x: 66.55, y: 55, rotation: 90 },
+  "furn-2f-master-bedroom-chest-001": { x: 71.25, y: 36.8, rotation: 0 }
+};
+
+function furniturePositionAlmostEquals(position: Furniture["position"], target: Furniture["position"]) {
+  return Math.abs(position.x - target.x) < 0.2
+    && Math.abs(position.y - target.y) < 0.2
+    && Math.abs((position.rotation ?? 0) - (target.rotation ?? 0)) < 0.2;
+}
+
+function getTwoFloorMasterBedroomVisibilityRepair(item: Furniture) {
+  const legacyPositions = twoFloorMasterBedroomLegacyFurniturePositions[item.id];
+  const visiblePosition = twoFloorMasterBedroomVisibleFurniturePositions[item.id];
+  if (!legacyPositions || !visiblePosition || item.floorId !== "2F" || item.roomId !== "ROOM-2F-006") return null;
+  return legacyPositions.some((position) => furniturePositionAlmostEquals(item.position, position)) ? visiblePosition : null;
+}
 
 const twoFloorDefaultFurniture: Furniture[] = [
   {
@@ -1608,12 +1818,12 @@ const twoFloorDefaultFurniture: Furniture[] = [
     floorId: "2F",
     roomId: "ROOM-2F-003",
     dimensions: { width: 90, depth: 90, height: 210, unit: "cm" },
-    material: "透明玻璃隔断 + 防滑地面 + 挡水条",
-    note: "主卫左上角做独立玻璃淋浴间，和浴缸、双人台盆、马桶分区。",
-    constructionNote: "复核淋浴冷热水、地漏坡度、挡水条和玻璃隔断开启方向。",
+    material: "无框超白玻璃 + 暖灰防滑砖 + 壁龛灯",
+    note: "主卫左上角做无框玻璃淋浴间，墙地面延续暖灰石材感，壁龛用暖光提氛围。",
+    constructionNote: "复核淋浴冷热水、地漏坡度、挡水条、玻璃隔断开启方向和壁龛灯低压电源。",
     serviceRequirements: twoFloorWetNoPower,
     position: { x: 68.2, y: 9, rotation: 0 },
-    color: "#c7d2fe"
+    color: "#9fcdda"
   },
   {
     id: "furn-2f-master-bathtub-001",
@@ -1626,12 +1836,12 @@ const twoFloorDefaultFurniture: Furniture[] = [
     floorId: "2F",
     roomId: "ROOM-2F-003",
     dimensions: { width: 170, depth: 75, height: 58, unit: "cm" },
-    material: "亚克力独立/嵌入浴缸",
-    note: "浴缸沿主卫左侧竖向布置，给右侧 W-2F-006 的双人台盆留出操作面。",
-    constructionNote: "校核上下水、检修口、防水翻边和浴缸侧边通道。",
+    material: "暖白亚克力浴缸 + 暖灰石材背景",
+    note: "浴缸沿主卫左侧竖向布置，用暖灰墙面和低位线性光弱化体量。",
+    constructionNote: "校核上下水、检修口、防水翻边、浴缸侧边通道和低位灯带检修。",
     serviceRequirements: twoFloorWetNoPower,
     position: { x: 67.15, y: 24.2, rotation: 90 },
-    color: "#d7ecf3"
+    color: "#f7f4ee"
   },
   {
     id: "furn-2f-master-vanity-001",
@@ -1644,12 +1854,12 @@ const twoFloorDefaultFurniture: Furniture[] = [
     floorId: "2F",
     roomId: "ROOM-2F-003",
     dimensions: { width: 160, depth: 55, height: 85, unit: "cm" },
-    material: "双人台盆柜 + 双镜柜 + 镜前灯预留",
-    note: "按要求沿 W-2F-006 东侧墙布置双人台盆，集中给排水和镜前电源。",
-    constructionNote: "沿 W-2F-006 复核双盆冷热水、双下水、镜柜灯和插座防溅距离。",
+    material: "浅木悬浮双盆柜 + 白色岩板台面 + 大面镜柜 + 上下线性灯",
+    note: "按要求沿 W-2F-006 东侧墙布置双人台盆，视觉重点放在浅木柜体、长镜柜和暖光灯带。",
+    constructionNote: "沿 W-2F-006 复核双盆冷热水、双下水、镜柜灯、吹风插座、防溅距离和悬浮柜承重。",
     serviceRequirements: twoFloorBathService,
     position: { x: 76.83, y: 14.8, rotation: 90 },
-    color: "#d6d9d7"
+    color: "#a9764c"
   },
   {
     id: "furn-2f-master-toilet-001",
@@ -1662,9 +1872,9 @@ const twoFloorDefaultFurniture: Furniture[] = [
     floorId: "2F",
     roomId: "ROOM-2F-003",
     dimensions: { width: 70, depth: 75, height: 78, unit: "cm" },
-    material: "智能马桶预留",
-    note: "马桶放在主卫右下侧，避开沿 W-2F-006 布置的双人台盆主操作区。",
-    constructionNote: "复核坑距、给水角阀、智能马桶电源和门扇开启范围。",
+    material: "暖白智能马桶 + 暖灰石材背景墙",
+    note: "马桶放在主卫右下侧，尽量收进较安静的位置，避开双盆主操作区。",
+    constructionNote: "复核坑距、给水角阀、智能马桶电源、门扇开启范围和墙面检修口。",
     serviceRequirements: twoFloorBathService,
     position: { x: 76.55, y: 28.3, rotation: 90 },
     color: "#f4f0ea"
@@ -1684,7 +1894,7 @@ const twoFloorDefaultFurniture: Furniture[] = [
     note: "床头贴墙布置，后续复核床侧通道、床头插座和衣柜开门空间。",
     constructionNote: "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 18.1, y: 70.4, rotation: 270 },
+    position: { x: 16.25, y: 70.4, rotation: 270 },
     color: "#c8a887"
   },
   {
@@ -1738,15 +1948,265 @@ const twoFloorDefaultFurniture: Furniture[] = [
     note: "衣柜贴墙布置，避开床侧通道和门洞开启范围。",
     constructionNote: "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 54, y: 72, rotation: 90 },
+    position: { x: 52.016666666666666, y: 72, rotation: 90 },
     color: "#c8a887"
+  },
+  {
+    id: "furn-2f-master-bedroom-bed-001",
+    code: "BD-2F-MB01",
+    name: "主卧 最里面双人床",
+    type: "bed",
+    catalogId: "bedroom-bed",
+    moduleCategory: "bedroom",
+    moduleType: "bed",
+    floorId: "2F",
+    roomId: "ROOM-2F-006",
+    dimensions: { width: 180, depth: 200, height: 95, unit: "cm" },
+    material: "木质床架 + 软包床头",
+    note: "床放在主卧最里面的南侧深处，床尾朝向主卧入口动线，避开主卫门口。",
+    constructionNote: "床头两侧预留插座、双控和夜灯；复核床边衣柜与床侧通道的净宽。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 71.55, y: 75.2, rotation: 0 },
+    color: "#c8a887"
+  },
+  {
+    id: "furn-2f-master-bedroom-large-wardrobe-001",
+    code: "WD-2F-MB01",
+    name: "主卧 东侧整墙大衣柜",
+    type: "wardrobe",
+    catalogId: "storage-wardrobe",
+    moduleCategory: "storage",
+    moduleType: "wardrobe",
+    floorId: "2F",
+    roomId: "ROOM-2F-006",
+    dimensions: { width: 260, depth: 60, height: 240, unit: "cm" },
+    material: "定制大衣柜 + 顶柜 + 感应灯带",
+    note: "大衣柜沿主卧东侧长墙布置，靠近主卫但不压主卫门洞，承担主要挂衣和换季收纳。",
+    constructionNote: "复核东墙柜体深度、开门/移门方式、主卫门套收口和床侧通道。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 76.55, y: 48.8, rotation: 90 },
+    color: "#d8c2a4"
+  },
+  {
+    id: "furn-2f-master-bedroom-bedside-wardrobe-001",
+    code: "WD-2F-MB02",
+    name: "主卧 床边衣柜",
+    type: "wardrobe",
+    catalogId: "storage-wardrobe",
+    moduleCategory: "storage",
+    moduleType: "wardrobe",
+    floorId: "2F",
+    roomId: "ROOM-2F-006",
+    dimensions: { width: 180, depth: 60, height: 240, unit: "cm" },
+    material: "定制衣柜 + 开放挂衣格",
+    note: "床边设置一组衣柜，放在床侧靠墙处，作为日常衣物和睡前随手挂放区。",
+    constructionNote: "复核床边通道、柜门开启范围和床头开关插座位置。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 66.55, y: 55, rotation: 90 },
+    color: "#d6b892"
+  },
+  {
+    id: "furn-2f-master-bedroom-chest-001",
+    code: "DR-2F-MB01",
+    name: "主卧 主卫门旁五斗橱",
+    type: "sideboard",
+    catalogId: "storage-sideboard",
+    moduleCategory: "storage",
+    moduleType: "sideboard",
+    floorId: "2F",
+    roomId: "ROOM-2F-006",
+    dimensions: { width: 100, depth: 45, height: 90, unit: "cm" },
+    material: "木色五斗橱 + 金属拉手",
+    note: "五斗橱位于接近主卫的北侧靠墙处，用来收小件衣物、睡衣和护理用品。",
+    constructionNote: "靠主卫墙边但避开门洞开启，顶部可预留镜子或小夜灯电源。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 71.25, y: 36.8, rotation: 0 },
+    color: "#d7c6a8"
+  }
+];
+
+const b2NoService = { water: false, drainage: false, power: false, exhaust: false };
+const b2PowerOnly = { water: false, drainage: false, power: true, exhaust: false };
+
+const b2DefaultFurniture: Furniture[] = [
+  {
+    id: "furn-b2-living-tv-console-001",
+    code: "TV-B2-01",
+    name: "B2 客厅 W-B2-001 电视柜",
+    type: "cabinet",
+    catalogId: "living-tv-console",
+    moduleCategory: "living",
+    moduleType: "cabinet",
+    floorId: "B2",
+    roomId: "ROOM-B2-001",
+    dimensions: { width: 360, depth: 42, height: 45, unit: "cm" },
+    material: "悬浮木色电视柜 + 游戏主机抽屉 + 隐藏弱电",
+    note: "沿 B2 客厅上方 W-B2-001 做一整条低电视柜，电视、游戏主机、音响和手柄收纳都集中在这面墙。",
+    constructionNote: "贴 W-B2-001 预留电视电源、网络、影音线管、主机散热和音响线；柜体下方可悬空便于清洁。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 47, y: 7.4, rotation: 0 },
+    color: "#d8c2a4"
+  },
+  {
+    id: "furn-b2-living-large-tv-001",
+    code: "TV-B2-02",
+    name: "B2 客厅 W-B2-001 大电视",
+    type: "custom",
+    moduleCategory: "living",
+    floorId: "B2",
+    roomId: "ROOM-B2-001",
+    dimensions: { width: 320, depth: 8, height: 185, unit: "cm" },
+    material: "超大屏电视 / 激光电视预留",
+    note: "放在电视柜上方，面向长沙发和可移动游戏区，作为 B2 看电视、游戏和观赛的核心屏幕。",
+    constructionNote: "电视中心线、插座、网口和音响线预埋需与 W-B2-001 立面一起定位。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 47, y: 5.6, rotation: 0 },
+    color: "#111827"
+  },
+  {
+    id: "furn-b2-living-long-sofa-001",
+    code: "SF-B2-01",
+    name: "B2 客厅长沙发",
+    type: "sofa",
+    catalogId: "living-sofa",
+    moduleCategory: "living",
+    moduleType: "sofa",
+    floorId: "B2",
+    roomId: "ROOM-B2-001",
+    dimensions: { width: 360, depth: 105, height: 78, unit: "cm" },
+    material: "深灰/米灰布艺长沙发",
+    note: "沙发对齐 W-B2-001 电视墙中心线，后方仍保留去书房、楼梯间和活动区的通行。",
+    constructionNote: "沙发侧边预留五孔插座和落地灯电源；正前方保留体感游戏和多人观影的净距。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 48.5, y: 39.5, rotation: 0 },
+    color: "#b8b2aa"
+  },
+  {
+    id: "furn-b2-living-coffee-table-001",
+    code: "CT-B2-01",
+    name: "B2 客厅可移动茶几",
+    type: "table",
+    moduleCategory: "living",
+    moduleType: "table",
+    floorId: "B2",
+    roomId: "ROOM-B2-001",
+    dimensions: { width: 120, depth: 70, height: 38, unit: "cm" },
+    material: "深木色轻量茶几 + 可移动托盘",
+    note: "茶几缩小为可移动款，平时放饮品和遥控器，玩体感游戏时可以推到侧边。",
+    constructionNote: "茶几到沙发前沿预留约 400mm，避免挡住客厅去楼梯间和活动区的动线。",
+    serviceRequirements: b2NoService,
+    position: { x: 48.5, y: 31.5, rotation: 0 },
+    color: "#9b7653"
+  },
+  {
+    id: "furn-b2-activity-outdoor-pegboard-001",
+    code: "PG-B2-01",
+    name: "B2 W-B2-011 户外用品洞洞板",
+    type: "pegboard",
+    catalogId: "storage-pegboard",
+    moduleCategory: "storage",
+    moduleType: "pegboard",
+    floorId: "B2",
+    roomId: "ROOM-B2-003",
+    dimensions: { width: 360, depth: 12, height: 220, unit: "cm" },
+    material: "黑色金属洞洞板 + 可调挂钩 + 自行车挂架",
+    note: "沿 W-B2-011 做一整面户外用品挂墙，未来收纳自行车、头盔、球拍和运动小件。",
+    constructionNote: "固定在 W-B2-011 实墙基层；自行车挂架位置必须加固，地面预留防污垫，旁边可预留充电插座。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 63.6, y: 85.8, rotation: 0 },
+    color: "#334155",
+    cabinetDesign: {
+      template: "pegboard",
+      title: "B2 户外用品洞洞板设计",
+      designThinking: "把容易散落的户外物品全部上墙：大件自行车有独立承重点，小件头盔、球拍和护具用可移动挂件，后续运动品类变化也能重排。",
+      recommendedPlacement: "贴 B2 底部 W-B2-011 墙面右半段，靠活动区一侧，从柱子右边开始布置，避开书房主桌椅动线。",
+      layoutNotes: ["自行车挂位需要实墙加固", "头盔和护具放在拿取高度", "球拍、球袋和小工具用可移动挂钩分区", "底部留防污垫和鞋/打气筒位置"],
+      zones: [
+        { id: "bike-zone", label: "自行车挂位", role: "自行车 / 轮胎", widthPercent: 42, heightPercent: 100, detail: "用承重挂架固定自行车，轮胎下方留防污区域。", serviceNote: "固定点打到实墙或加固基层。" },
+        { id: "helmet-zone", label: "头盔护具", role: "头盔 / 护膝", widthPercent: 24, heightPercent: 72, detail: "头盔和护具放在腰胸高度，回家顺手挂上。" },
+        { id: "racket-zone", label: "球拍小件", role: "球拍 / 打气筒 / 工具", widthPercent: 34, heightPercent: 78, detail: "竖向挂球拍、球袋和维修工具，小件用盒篮集中。", serviceNote: "可在侧边预留充电插座。" }
+      ],
+      cautionNotes: ["自行车挂架不能只固定在薄板上，必须确认墙体基层。", "洞洞板下方要留清洁和防泥水空间。"]
+    }
+  },
+  {
+    id: "furn-b2-activity-flex-mat-001",
+    code: "AM-B2-01",
+    name: "B2 活动区可移动游戏软垫",
+    type: "custom",
+    moduleCategory: "decor",
+    floorId: "B2",
+    roomId: "ROOM-B2-003",
+    dimensions: { width: 260, depth: 170, height: 4, unit: "cm" },
+    material: "低矮可卷收软垫 / 体感游戏区",
+    note: "柱子右侧保留为主要活动净空，只用可移动软垫定义游戏、拉伸、儿童活动和临时运动区域。",
+    constructionNote: "软垫不做固定家具；地面建议耐磨防滑，靠 W-B2-012 天窗区域避免布置高柜。",
+    serviceRequirements: b2NoService,
+    position: { x: 67.5, y: 68.5, rotation: 0 },
+    color: "#a7d8de"
+  },
+  {
+    id: "furn-b2-study-souvenir-cabinet-001",
+    code: "SC-B2-01",
+    name: "B2 书房透明纪念品收纳柜",
+    type: "cabinet",
+    catalogId: "storage-bookshelf",
+    moduleCategory: "storage",
+    moduleType: "bookshelf",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 260, depth: 38, height: 220, unit: "cm" },
+    material: "透明玻璃门 + 浅木层板 + 可调灯带",
+    note: "靠书房左侧墙布置，用来展示从全世界买回来的纪念品。",
+    constructionNote: "玻璃柜靠墙固定防倾倒，层板做可调孔位；柜内预留低压灯带和检修电源。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 10.6, y: 72.2, rotation: 90 },
+    color: "#dbeafe",
+    cabinetDesign: {
+      template: "bookshelf",
+      title: "透明纪念品收纳柜设计",
+      designThinking: "纪念品不是杂物，应该被看见。透明门防尘，层板可调适配不同尺寸，灯带让小物件有展示感。",
+      recommendedPlacement: "B2 书房靠左侧墙面，避开大板桌椅后退区，柜门朝向书房中心打开。",
+      layoutNotes: ["上层展示轻小纪念品", "中层留高格放雕塑、模型和旅行器物", "下层半透明抽屉收票根、明信片和包装盒", "柜内加低压灯带"],
+      zones: [
+        { id: "display-small", label: "小件展示", role: "冰箱贴 / 小摆件", widthPercent: 38, heightPercent: 42, detail: "密集小件用浅层层板和亚克力台阶展示。" },
+        { id: "display-tall", label: "高件展示", role: "雕塑 / 模型", widthPercent: 34, heightPercent: 58, detail: "留几格高层板，避免所有纪念品都被压扁。" },
+        { id: "memory-drawers", label: "记忆抽屉", role: "票根 / 明信片", widthPercent: 28, heightPercent: 36, detail: "纸质纪念品进浅抽屉，按国家或年份分隔。", serviceNote: "灯带电源走柜后隐藏。" }
+      ],
+      cautionNotes: ["玻璃柜必须防倾倒固定。", "纪念品多且重时，层板要控制跨度并选用更厚玻璃或木层板。"]
+    }
+  },
+  {
+    id: "furn-b2-study-slab-table-001",
+    code: "DT-B2-01",
+    name: "B2 书房大板桌",
+    type: "table",
+    moduleCategory: "decor",
+    moduleType: "table",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 300, depth: 95, height: 75, unit: "cm" },
+    material: "长方形原木大板桌 + 黑色金属桌脚",
+    note: "这是一张横向长方形的大木桌，不是方桌；放在书房中央偏右，用于阅读、整理旅行纪念品和多人讨论。",
+    constructionNote: "桌边预留地插或墙插，椅后保持通行；桌面按整块木板 3000mm 左右控制，右侧避开圆柱。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 31, y: 71.7, rotation: 0 },
+    color: "#b9824d"
   }
 ];
 
 const revisionControlledFurnitureIds = new Set([
   ...oneFloorDefaultFurniture.map((item) => item.id),
+  ...b1DefaultFurniture.map((item) => item.id),
   ...twoFloorDefaultFurniture.map((item) => item.id),
+  ...b2DefaultFurniture.map((item) => item.id),
   ...Array.from(persistentDefaultFurnitureIds)
+]);
+const twoFloorMasterBedroomFurnitureIds = new Set([
+  "furn-2f-master-bedroom-bed-001",
+  "furn-2f-master-bedroom-large-wardrobe-001",
+  "furn-2f-master-bedroom-bedside-wardrobe-001",
+  "furn-2f-master-bedroom-chest-001"
 ]);
 
 function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseRoom {
@@ -1858,6 +2318,11 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
   const normalizedDoors = (structure.doors ?? []).map((door) => floorId === "1F" && door.id === "D-1F-004"
     ? { ...door, ...oneFloorKitchenSlidingDoorOverride }
     : door);
+  const normalizedSkylights = floorId === "B1"
+    ? appendMissingById(structure.skylights ?? [], b1OperableSkylights)
+    : floorId === "B2"
+      ? appendMissingById(structure.skylights ?? [], b2W012Skylights)
+      : structure.skylights ?? [];
   return {
     ...emptyStructure,
     ...structure,
@@ -1871,7 +2336,7 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
         : floorId === "B2"
           ? appendMissingById(normalizedRooms, b2DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
           : floorId === "2F"
-            ? appendMissingById(normalizedRooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+            ? mergeDefinedRoomsById(normalizedRooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
             : normalizedRooms,
     partitions: structure.partitions ?? [],
     stairs: floorId === "2F" ? twoFloorTopStairs : structure.stairs ?? [],
@@ -1881,7 +2346,7 @@ function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | u
     doors: normalizedDoors,
     windows: normalizedWindows,
     bayWindows: normalizedBayWindows,
-    skylights: structure.skylights ?? [],
+    skylights: normalizedSkylights,
     outdoors: structure.outdoors ?? []
   };
 }
@@ -1894,22 +2359,60 @@ function appendMissingById<T extends { id: string }>(items: T[], defaultItems: T
   ];
 }
 
+function mergeDefinedRoomsById(rooms: HouseRoom[], definedRooms: HouseRoom[]) {
+  const definedRoomById = new Map(definedRooms.map((room) => [room.id, room]));
+  const mergedRooms = rooms.map((room) => {
+    const definedRoom = definedRoomById.get(room.id);
+    return definedRoom ? { ...room, ...definedRoom } : room;
+  });
+  return appendMissingById(mergedRooms, definedRooms);
+}
+
 function applyDefaultFurnitureRevision(furnitureItems: Furniture[], defaultFurniture: Furniture[]) {
+  const requiredRevisionFurniture = [
+    ...b1DefaultFurniture,
+    ...twoFloorDefaultFurniture,
+    ...b2DefaultFurniture
+  ];
   const defaultFurnitureById = new Map([
     ...defaultFurniture,
-    ...twoFloorDefaultFurniture
+    ...requiredRevisionFurniture
   ].map((item) => [item.id, item]));
   const nextFurniture = furnitureItems
     .filter((item) => !retiredDefaultFurnitureIds.has(item.id))
     .filter((item) => !revisionControlledFurnitureIds.has(item.id) || defaultFurnitureById.has(item.id))
-    .map((item) => revisionControlledFurnitureIds.has(item.id) ? defaultFurnitureById.get(item.id) ?? item : item);
-  return appendMissingById(nextFurniture, twoFloorDefaultFurniture);
+    .map((item) => {
+      const defaultItem = revisionControlledFurnitureIds.has(item.id) ? defaultFurnitureById.get(item.id) : null;
+      if (!defaultItem) return item;
+      const forceDefaultPlacement = twoFloorMasterBedroomFurnitureIds.has(item.id);
+      return {
+        ...defaultItem,
+        ...item,
+        catalogId: defaultItem.catalogId ?? item.catalogId,
+        moduleCategory: defaultItem.moduleCategory ?? item.moduleCategory,
+        moduleType: defaultItem.moduleType ?? item.moduleType,
+        serviceRequirements: defaultItem.serviceRequirements ?? item.serviceRequirements,
+        material: defaultItem.material,
+        note: defaultItem.note,
+        constructionNote: defaultItem.constructionNote,
+        color: defaultItem.color,
+        roomId: forceDefaultPlacement ? defaultItem.roomId : item.roomId || defaultItem.roomId,
+        dimensions: item.dimensions ?? defaultItem.dimensions,
+        position: forceDefaultPlacement ? defaultItem.position : item.position ?? defaultItem.position
+      };
+    });
+  return appendMissingById(nextFurniture, requiredRevisionFurniture);
 }
 
 function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseStructure>) {
   return Object.fromEntries(Object.entries(structuresByFloor).map(([floorId, structure]) => {
     const defaultStructure = initialHouseStructures[floorId as FloorId];
     if (!defaultStructure) return [floorId, structure];
+    const defaultSkylights = floorId === "B1"
+      ? appendMissingById(defaultStructure.skylights, b1OperableSkylights)
+      : floorId === "B2"
+        ? appendMissingById(defaultStructure.skylights, b2W012Skylights)
+        : defaultStructure.skylights;
     return [
       floorId,
       {
@@ -1920,7 +2423,7 @@ function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseS
           : floorId === "B2"
             ? appendMissingById(structure.rooms, b2DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
             : floorId === "2F"
-              ? appendMissingById(structure.rooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
+              ? mergeDefinedRoomsById(structure.rooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
               : appendMissingById(structure.rooms, defaultStructure.rooms),
         doors: appendMissingById(
           structure.doors.map((door) => floorId === "1F" && door.id === "D-1F-004" ? { ...door, ...oneFloorKitchenSlidingDoorOverride } : door),
@@ -1936,7 +2439,7 @@ function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseS
         ),
         stairs: floorId === "2F" ? twoFloorTopStairs : defaultStructure.stairs.length ? defaultStructure.stairs : structure.stairs,
         columns: appendMissingById(structure.columns ?? [], defaultStructure.columns ?? []),
-        skylights: appendMissingById(structure.skylights, defaultStructure.skylights),
+        skylights: appendMissingById(structure.skylights, defaultSkylights),
         outdoors: appendMissingById(structure.outdoors, defaultStructure.outdoors),
         outdoorSurfaces: appendMissingById(structure.outdoorSurfaces, defaultStructure.outdoorSurfaces)
       }
@@ -2127,8 +2630,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
   const [furnitureImmersiveMode, setFurnitureImmersiveMode] = useState(false);
-  const [yardImmersiveMode, setYardImmersiveMode] = useState(false);
-  const [yardFocus, setYardFocus] = useState<"north" | "south">("south");
+  const [yardPreview3DMode, setYardPreview3DMode] = useState(false);
   const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
   const [command, setCommand] = useState("");
   const [activeObjectId, setActiveObjectId] = useState("");
@@ -2183,6 +2685,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     () => furniture.filter((item) => item.floorId === selectedFloorId),
     [furniture, selectedFloorId]
   );
+  const oneFloorHouseStructure = houseStructuresByFloor["1F"] ?? createEmptyStructure("1F");
+  const oneFloorFurniture = useMemo(
+    () => furniture.filter((item) => item.floorId === "1F"),
+    [furniture]
+  );
   const floorRooms = useMemo(() => data.rooms.filter((room) => room.floorId === selectedFloorId), [data.rooms, selectedFloorId]);
   const floorWalls = useMemo(() => data.walls.filter((wall) => wall.floorId === selectedFloorId), [data.walls, selectedFloorId]);
   const floorSemanticObjects = useMemo(
@@ -2228,15 +2735,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     category,
     items: interiorModuleCatalog.filter((item) => item.category === category)
   })), []);
-  const visibleModuleCatalogGroups = useMemo(() => {
-    if (!yardImmersiveMode) return moduleCatalogGroups;
-    return moduleCatalogGroups
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) => item.category === "decor" || item.moduleType === "plant")
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [moduleCatalogGroups, yardImmersiveMode]);
+  const visibleModuleCatalogGroups = moduleCatalogGroups;
   const floorFurnitureByCategory = useMemo(() => (
     moduleCategoryOrder.reduce((countsByCategory, category) => {
       countsByCategory[category] = floorFurniture.filter((item) => item.moduleCategory === category).length;
@@ -2295,6 +2794,22 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (localCodeFileHandle || localCodeServerOnline) return;
+    let cancelled = false;
+    let retryTimer: number | undefined;
+    async function reconnectLocalCodeSyncServer() {
+      const serverReady = await checkLocalCodeSyncServer(true);
+      if (cancelled || serverReady) return;
+      retryTimer = window.setTimeout(reconnectLocalCodeSyncServer, 2500);
+    }
+    retryTimer = window.setTimeout(reconnectLocalCodeSyncServer, 1200);
+    return () => {
+      cancelled = true;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [localCodeFileHandle, localCodeServerOnline]);
 
   useEffect(() => {
     try {
@@ -2379,7 +2894,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   useEffect(() => {
     if (!hasLoadedWebWorkspace || !localCodeAutoSync || (!localCodeFileHandle && !localCodeServerOnline)) return;
-    if (focusMode || furnitureImmersiveMode || yardImmersiveMode) return;
+    if (focusMode || furnitureImmersiveMode || yardPreview3DMode) return;
     const codeSyncTimer = window.setTimeout(() => {
       const payload = getDefaultWorkspacePayload("manual");
       setDefaultWorkspacePayload(payload);
@@ -2393,7 +2908,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     localCodeServerOnline,
     focusMode,
     furnitureImmersiveMode,
-    yardImmersiveMode,
+    yardPreview3DMode,
     selectedFloorId,
     furniture,
     semanticObjects,
@@ -2476,35 +2991,26 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setLocateObjectRequest(null);
   }
 
-  function enterYardImmersive(yard?: "north" | "south") {
-    const nextYard = yard ?? "south";
+  function enterYard3DPreview() {
     setFocusMode(false);
     setFurnitureImmersiveMode(false);
-    setYardImmersiveMode(true);
-    setYardFocus(nextYard);
+    setYardPreview3DMode(true);
     setSelectedFloorId("1F");
     setSelectedFurnitureId("");
     setSelectedSemanticObjectId("");
-    setPlannerMode("edit");
+    setPlannerMode("view");
     setDrawTool("select");
-    setOpenModuleCategories((current) => ({ ...current, decor: true }));
-    if (nextYard) {
-      const objectId = nextYard === "north" ? "OD-1F-NORTH-001" : "OD-1F-SOUTH-001";
-      setActiveObjectId(objectId);
-      setLocateObjectRequest({ id: objectId, nonce: Date.now() });
-      return;
-    }
     setActiveObjectId("");
+    setLocateObjectRequest(null);
   }
 
   function handleFocusYard(yard: "north" | "south") {
-    setYardFocus(yard);
     setSelectedFloorId("1F");
     setSelectedFurnitureId("");
     setSelectedSemanticObjectId("");
     setFocusMode(false);
     setFurnitureImmersiveMode(false);
-    setYardImmersiveMode(true);
+    setYardPreview3DMode(false);
     setDrawTool("select");
     setPlannerMode("edit");
     const objectId = yard === "north" ? "OD-1F-NORTH-001" : "OD-1F-SOUTH-001";
@@ -2651,7 +3157,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         setLocalCodeFileName("本地写入服务");
         setLocalCodeFileStatus("bound");
       }
-      if (enableAutoSync) setLocalCodeAutoSync(true);
+      if (enableAutoSync) {
+        window.localStorage.setItem(LOCAL_CODE_AUTO_SYNC_KEY, "true");
+        setLocalCodeAutoSync(true);
+      }
       return true;
     } catch {
       setLocalCodeServerOnline(false);
@@ -3460,14 +3969,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     leadingRepairLog: string[] = []
   ) {
     let nextFurniture = sourceFurniture;
+    const sourceFurnitureById = new Map(sourceFurniture.map((item) => [item.id, item]));
     const repairLog: string[] = [];
     const repairedStructures = data.floors.reduce((structures, floor) => {
       const structure = structures[floor.id] ?? createEmptyStructure(floor.id);
       const result = autoRepairHouse(floor.id, structure, nextFurniture.filter((item) => item.floorId === floor.id));
-      structures[floor.id] = result.structure;
+      structures[floor.id] = normalizeHouseStructure(floor.id, result.structure, initialHouseStructures[floor.id]);
+      const nextFloorFurniture = result.furniture.map((item) => {
+        const sourceItem = sourceFurnitureById.get(item.id);
+        return sourceItem && revisionControlledFurnitureIds.has(item.id) ? sourceItem : item;
+      });
       nextFurniture = [
         ...nextFurniture.filter((item) => item.floorId !== floor.id),
-        ...result.furniture
+        ...nextFloorFurniture
       ];
       repairLog.push(...result.repairs.map((item) => `${floor.label}: ${item}`));
       return structures;
@@ -3476,7 +3990,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setHouseStructuresByFloor(repairedStructures);
     setFurniture(nextFurniture);
     const logs = [...leadingRepairLog, ...repairLog];
-    setValidatorRepairLog(logs.length > 0 ? logs : ["全屋未发现可自动修复的表达问题。"]);
+    const visibleLogs = logs.length > 120 ? [...logs.slice(0, 120), `还有 ${logs.length - 120} 条自动修复记录已折叠。`] : logs;
+    setValidatorRepairLog(visibleLogs.length > 0 ? visibleLogs : ["全屋未发现可自动修复的表达问题。"]);
   }
 
   function handleAutoRepairHouse() {
@@ -3537,9 +4052,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setActiveObjectId(furnitureId);
   }
 
-  const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode && !yardImmersiveMode;
-  const isYardWorkspace = yardImmersiveMode && !focusMode && !furnitureImmersiveMode;
-  const isImmersiveWorkspace = focusMode || isFurnitureWorkspace || isYardWorkspace;
+  const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode && !yardPreview3DMode;
+  const isYard3DWorkspace = yardPreview3DMode && !focusMode && !furnitureImmersiveMode;
+  const isImmersiveWorkspace = focusMode || isFurnitureWorkspace || isYard3DWorkspace;
   const localCodeFileReady = Boolean(localCodeFileHandle) || localCodeServerOnline;
   const localCodeFileLabel = localCodeServerOnline && !localCodeFileHandle
     ? "写入服务已连"
@@ -3572,7 +4087,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">林屿湖畔</h1>
               <p className="mt-1 text-sm text-stone-500">{currentFloor.label} · {currentFloor.subtitle} · 一套模型，多种表达</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm">
                 <span className={`size-2 rounded-full ${webSaveStatus === "error" ? "bg-red-500" : webSaveStatus === "saving" || webSaveStatus === "loading" || webSaveStatus === "dirty" ? "bg-amber-500" : "bg-emerald-500"}`} />
                 <span>{webSaveStatus === "error" ? "固化失败" : webSaveStatus === "saving" ? "固化中" : webSaveStatus === "loading" ? "加载中" : webSaveStatus === "dirty" ? "有本机草稿" : "本机已保存"}</span>
@@ -3584,11 +4099,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   自动写代码
                 </label>
               </div>
-              <div className="flex rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500">
+              <div className="grid grid-cols-2 rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500 sm:flex">
                 <button
                   className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
                   onClick={() => {
-                    setYardImmersiveMode(false);
+                    setYardPreview3DMode(false);
                     setFurnitureImmersiveMode(false);
                     setFocusMode(true);
                   }}
@@ -3599,7 +4114,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <button
                   className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
                   onClick={() => {
-                    setYardImmersiveMode(false);
+                    setYardPreview3DMode(false);
                     setFocusMode(false);
                     setFurnitureImmersiveMode(true);
                   }}
@@ -3609,10 +4124,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 </button>
                 <button
                   className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
-                  onClick={() => enterYardImmersive()}
+                  onClick={() => enterYard3DPreview()}
                   type="button"
                 >
-                  庭院沉浸
+                  院子3D
                 </button>
               </div>
               <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
@@ -3646,58 +4161,65 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </div>
           </header>}
 
-          <PlanCanvas
-            floor={currentFloor}
-            floors={data.floors}
-            rooms={floorRooms}
-            walls={floorWalls}
-            furniture={floorFurniture}
-            semanticObjects={floorSemanticObjects}
-            selectedFurnitureId={selectedFurniture?.id ?? ""}
-            selectedSemanticObjectId={selectedSemanticObjectId}
-            viewMode={viewMode}
-            plannerMode={plannerMode}
-            drawTool={drawTool}
-            houseStructure={floorHouseStructure}
-            wallSyncOverrides={wallSyncOverrides}
-            floorPlanVisualSettings={floorPlanVisualSettings}
-            cleanPatches={floorCleanPatches}
-            focusMode={focusMode}
-            furnitureImmersiveMode={isFurnitureWorkspace}
-            yardImmersiveMode={isYardWorkspace}
-            yardFocus={yardFocus}
-            showFurnitureLabels={showFurnitureLabels}
-            activeFurnitureId={activeFurniture?.id ?? ""}
-            locateObjectRequest={locateObjectRequest}
-            canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
-            canRedo={floorHistory.future.length > 0}
-            onScaleChange={handleScaleChange}
-            onSelectFloor={handleFloorChange}
-            onActiveObjectChange={setActiveObjectId}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onPlannerModeChange={setPlannerMode}
-            onDrawToolChange={setDrawTool}
-            onHouseStructureChange={handleHouseStructureChange}
-            onWallLengthChange={handleWallLengthChange}
-            onWallSyncOverridesChange={handleWallSyncOverridesChange}
-            onFloorPlanVisualSettingsChange={handleFloorPlanVisualSettingsChange}
-            onCleanPatchesChange={handleCleanPatchesChange}
-            onSelectFurniture={handleFurnitureSelect}
-            onFurnitureChange={handleFloorFurnitureChange}
-            onShowFurnitureLabelsChange={setShowFurnitureLabels}
-            onOpenWardrobeDesigner={openWardrobeDesigner}
-            onOpenStairDesigner={openStairDesignPage}
-            onSelectSemanticObject={handleSemanticObjectSelect}
-            onMoveSemanticObject={handleMoveSemanticObject}
-          />
+          {isYard3DWorkspace ? (
+            <Yard3DPreview
+              houseStructure={oneFloorHouseStructure}
+              furniture={oneFloorFurniture}
+              onEditYard={handleFocusYard}
+              onExit={() => setYardPreview3DMode(false)}
+            />
+          ) : (
+            <PlanCanvas
+              floor={currentFloor}
+              floors={data.floors}
+              rooms={floorRooms}
+              walls={floorWalls}
+              furniture={floorFurniture}
+              semanticObjects={floorSemanticObjects}
+              selectedFurnitureId={selectedFurniture?.id ?? ""}
+              selectedSemanticObjectId={selectedSemanticObjectId}
+              viewMode={viewMode}
+              plannerMode={plannerMode}
+              drawTool={drawTool}
+              houseStructure={floorHouseStructure}
+              wallSyncOverrides={wallSyncOverrides}
+              floorPlanVisualSettings={floorPlanVisualSettings}
+              cleanPatches={floorCleanPatches}
+              focusMode={focusMode}
+              furnitureImmersiveMode={isFurnitureWorkspace}
+              showFurnitureLabels={showFurnitureLabels}
+              activeFurnitureId={activeFurniture?.id ?? ""}
+              locateObjectRequest={locateObjectRequest}
+              canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
+              canRedo={floorHistory.future.length > 0}
+              onScaleChange={handleScaleChange}
+              onSelectFloor={handleFloorChange}
+              onActiveObjectChange={setActiveObjectId}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onPlannerModeChange={setPlannerMode}
+              onDrawToolChange={setDrawTool}
+              onHouseStructureChange={handleHouseStructureChange}
+              onWallLengthChange={handleWallLengthChange}
+              onWallSyncOverridesChange={handleWallSyncOverridesChange}
+              onFloorPlanVisualSettingsChange={handleFloorPlanVisualSettingsChange}
+              onCleanPatchesChange={handleCleanPatchesChange}
+              onSelectFurniture={handleFurnitureSelect}
+              onFurnitureChange={handleFloorFurnitureChange}
+              onShowFurnitureLabelsChange={setShowFurnitureLabels}
+              onOpenWardrobeDesigner={openWardrobeDesigner}
+              onOpenStairDesigner={openStairDesignPage}
+              onSelectSemanticObject={handleSemanticObjectSelect}
+              onMoveSemanticObject={handleMoveSemanticObject}
+            />
+          )}
         </section>
 
         <aside className="hidden h-full min-h-0 overflow-y-auto overscroll-contain border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
           <div className="space-y-3">
             <div className="px-1 pb-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isYardWorkspace ? "Yard" : isFurnitureWorkspace ? "Furniture" : focusMode ? "Focus" : "Inspector"}</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">{isYardWorkspace ? "庭院绘制台" : isFurnitureWorkspace ? "家具布置台" : focusMode ? "户型绘制台" : "结构检查器"}</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isYard3DWorkspace ? "Yard 3D" : isFurnitureWorkspace ? "Furniture" : focusMode ? "Focus" : "Inspector"}</p>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{isYard3DWorkspace ? "院子 3D 预览" : isFurnitureWorkspace ? "家具布置台" : focusMode ? "户型绘制台" : "结构检查器"}</h2>
             </div>
             {focusMode && (
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3 text-xs leading-5 text-blue-900">
@@ -3709,31 +4231,30 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <button className="mt-3 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800" onClick={() => setFocusMode(false)} type="button">退出户型沉浸</button>
               </div>
             )}
-            {isYardWorkspace && (
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3 text-xs leading-5 text-emerald-950">
+            {isYard3DWorkspace && (
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-3 text-xs leading-5 text-blue-950">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold">庭院沉浸</span>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700">1F 南北院</span>
+                  <span className="font-semibold">专门的院子 3D</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-700">1F 南北院</span>
                 </div>
-                <p className="mt-2">默认底色就是绿地；先定位南院/北院，再用画布右侧“庭院绘制”选择小路、硬地、绿化和篱笆。</p>
+                <p className="mt-2">3D 场景读取当前一层庭院数据，硬化区、小路和占位模块会跟着默认方案更新。</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button className={`rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${yardFocus === "north" ? "bg-emerald-700 text-white" : "bg-white text-emerald-800 hover:bg-emerald-100"}`} onClick={() => enterYardImmersive("north")} type="button">北院</button>
-                  <button className={`rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${yardFocus === "south" ? "bg-emerald-700 text-white" : "bg-white text-emerald-800 hover:bg-emerald-100"}`} onClick={() => enterYardImmersive("south")} type="button">南院</button>
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-blue-800 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => handleFocusYard("south")} type="button">定位南院</button>
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-blue-800 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => handleFocusYard("north")} type="button">定位北院</button>
                 </div>
-                <button className="mt-2 w-full rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800" onClick={() => setYardImmersiveMode(false)} type="button">退出庭院沉浸</button>
+                <button className="mt-2 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800" onClick={() => setYardPreview3DMode(false)} type="button">退出 3D 预览</button>
               </div>
             )}
-
             <RightPanelCard
               id="floors"
-              eyebrow={isYardWorkspace ? "Courtyard" : "Floors"}
-              title={isYardWorkspace ? "南院 / 北院" : "楼层 / 庭院"}
-              summary={isYardWorkspace ? "默认绿地 · 叠加铺装" : `${currentFloor.label} · ${currentFloor.subtitle}`}
+              eyebrow={isYard3DWorkspace ? "Courtyard" : "Floors"}
+              title={isYard3DWorkspace ? "南院 / 北院" : "楼层 / 庭院"}
+              summary={isYard3DWorkspace ? "默认绿地 · 叠加铺装" : `${currentFloor.label} · ${currentFloor.subtitle}`}
               open={openRightPanels.floors}
               onToggle={toggleRightPanel}
             >
               <div className="space-y-3">
-                {!isYardWorkspace && <div className="grid grid-cols-2 gap-2">
+                {!isYard3DWorkspace && <div className="grid grid-cols-2 gap-2">
                   {data.floors.filter((floor) => floor.id !== "YARD").map((floor) => {
                     const isActive = floor.id === selectedFloorId;
                     return (
@@ -3756,16 +4277,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 {!isFurnitureWorkspace && (
                   <>
                     <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
-                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${isYardWorkspace && yardFocus === "north" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("north")} type="button">
+                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${activeObjectId === "OD-1F-NORTH-001" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("north")} type="button">
                         北院
                         <span className="mt-0.5 block text-[11px] font-normal text-stone-400">入户庭院 · 2m</span>
                       </button>
-                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${isYardWorkspace && yardFocus === "south" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("south")} type="button">
+                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${activeObjectId === "OD-1F-SOUTH-001" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("south")} type="button">
                         南院
                         <span className="mt-0.5 block text-[11px] font-normal text-stone-400">生活庭院 · 4m</span>
                       </button>
                     </div>
-                    {!isYardWorkspace && <div className="border-t border-stone-100 pt-3">
+                    {!isYard3DWorkspace && <div className="border-t border-stone-100 pt-3">
                       <p className="text-xs font-semibold text-ink">自然语言操作</p>
                       <textarea
                         className="mt-2 min-h-20 w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-ink outline-none focus:border-clay"
@@ -3883,8 +4404,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             <RightPanelCard
               id="modules"
               eyebrow="Library"
-              title={isYardWorkspace ? "景观模块库" : "物品模块库"}
-              summary={isYardWorkspace ? "植物 / 户外物件" : `${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}`}
+              title="物品模块库"
+              summary={`${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}`}
               open={openRightPanels.modules}
               onToggle={toggleRightPanel}
             >
@@ -4792,19 +5313,21 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         </section>
       )}
 
-      <MobileDetailsDrawer
-        floor={currentFloor}
-        floorPlanScale={floorPlanScale}
-        furniture={selectedFurniture}
-        semanticObject={activeFurniture ? null : selectedSemanticObject}
-        semanticObjects={floorSemanticObjects}
-        moduleCatalogGroups={moduleCatalogGroups}
-        moduleTargetLabel={moduleTargetLabel}
-        onAddModule={addModuleFromCatalog}
-        onFurnitureChange={handleFurnitureUpdate}
-        onDeleteFurniture={handleDeleteFurniture}
-        onRotateFurniture={handleRotateFurniture}
-      />
+      {!isYard3DWorkspace && viewMode !== "3d" && (
+        <MobileDetailsDrawer
+          floor={currentFloor}
+          floorPlanScale={floorPlanScale}
+          furniture={selectedFurniture}
+          semanticObject={activeFurniture ? null : selectedSemanticObject}
+          semanticObjects={floorSemanticObjects}
+          moduleCatalogGroups={moduleCatalogGroups}
+          moduleTargetLabel={moduleTargetLabel}
+          onAddModule={addModuleFromCatalog}
+          onFurnitureChange={handleFurnitureUpdate}
+          onDeleteFurniture={handleDeleteFurniture}
+          onRotateFurniture={handleRotateFurniture}
+        />
+      )}
     </main>
   );
 }

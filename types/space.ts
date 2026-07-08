@@ -328,6 +328,10 @@ export type HouseSkylight = {
   depth: number;
   height: number;
   rotation: number;
+  operation?: "fixed" | "manualOperable" | "electricOperable";
+  openable?: boolean;
+  motorized?: boolean;
+  note?: string;
   editable: true;
   removable: true;
 };

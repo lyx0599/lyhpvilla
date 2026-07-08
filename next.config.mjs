@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig = {
-  output: "export",
+  output: isDev ? undefined : "export",
   basePath,
   images: {
     unoptimized: true

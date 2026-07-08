@@ -62,7 +62,12 @@ export function MobileDetailsDrawer({
   }
 
   return (
-    <section className="fixed inset-x-3 bottom-3 z-20 max-h-[78vh] overflow-y-auto rounded-[1.5rem] border border-white/80 bg-white/94 p-4 shadow-soft backdrop-blur lg:hidden">
+    <details className="fixed inset-x-3 bottom-3 z-20 max-h-[68vh] overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/94 shadow-soft backdrop-blur open:overflow-y-auto lg:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 truncate">{furniture ? furniture.name : "物品模块库 / 当前对象"}</span>
+        <span className="shrink-0 rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-500">展开</span>
+      </summary>
+      <div className="px-4 pb-4">
       <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-stone-300" />
       <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl bg-stone-50 p-2 text-xs text-stone-500">
         <div>
@@ -207,6 +212,7 @@ export function MobileDetailsDrawer({
       ) : (
         <p className="text-center text-sm text-stone-500">当前楼层 {semanticObjects.length} 个语义对象。点击标记后显示详情。</p>
       )}
-    </section>
+      </div>
+    </details>
   );
 }

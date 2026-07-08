@@ -1,5 +1,5 @@
 import { createFloorCoordinateSystem, generateRoomsFromWalls, getArcWallEndpoints, getDistance, getLineLength, getPolygonArea, projectPointToSegment, SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
-import type { FloorId, Furniture, HousePartition, HouseRoom, HouseStructure, HouseWall, MmPoint, StraightHouseWall } from "@/types/space";
+import type { FloorId, Furniture, HousePartition, HouseRoom, HouseStair, HouseStructure, HouseWall, MmPoint, StraightHouseWall } from "@/types/space";
 
 export type HouseValidationIssueType = "wall" | "door" | "window" | "room" | "stair" | "column" | "outdoor" | "furniture" | "coordinate";
 
@@ -25,9 +25,59 @@ const POINT_EPSILON_MM = 180;
 const REPAIR_SNAP_MM = 420;
 const ORTHOGONAL_SNAP_MM = 260;
 const ORTHOGONAL_RATIO = 0.16;
+const FOOTPRINT_BOUNDARY_TOLERANCE_MM = 35;
+const FOOTPRINT_EDGE_SAMPLE_MM = 180;
+const PLACEMENT_REPAIR_STEP_MM = 180;
+const PLACEMENT_REPAIR_MAX_RADIUS_MM = 1440;
 const PROJECTED_CONNECTION_WALL_SUFFIXES = new Set(["016", "007", "006", "009", "004", "014", "015", "008", "001", "005", "010", "012", "022"]);
 const FORCED_HORIZONTAL_WALL_SUFFIXES = new Set(["012", "022"]);
 const MODULE_SERVICE_KEYS = ["water", "drainage", "power", "exhaust"] as const;
+const STAIR_STACK_ROOM_BOUNDARY: MmPoint[] = [
+  { x: 950, y: 3050 },
+  { x: 4146, y: 3050 },
+  { x: 4146, y: 5150 },
+  { x: 950, y: 5150 }
+];
+const STAIR_STACK_SOURCE_WALL_IDS = {
+  B2: ["W-B2-007", "W-B2-008", "W-B2-009"],
+  B1: ["W-B1-005", "W-B1-007", "W-B1-012"],
+  "1F": ["W-1F-010", "W-1F-012", "W-1F-016"],
+  "2F": ["W-2F-010", "W-2F-012", "W-2F-007"]
+} as const satisfies Partial<Record<FloorId, readonly string[]>>;
+const STAIR_STACK_ROOM_IDS = {
+  B2: "ROOM-B2-002",
+  B1: "ROOM-B1-005",
+  "1F": "ROOM-1F-006",
+  "2F": "ROOM-2F-008"
+} as const satisfies Partial<Record<FloorId, string>>;
+const STAIR_STACK_ROOM_NUMBERS = {
+  B2: "R-B2-002",
+  B1: "R-B1-005",
+  "1F": "R-1F-006",
+  "2F": "R-2F-008"
+} as const satisfies Partial<Record<FloorId, string>>;
+
+type GroundPolygon = {
+  id: string;
+  polygon: MmPoint[];
+  type: "room" | "outdoor";
+};
+
+type Footprint = {
+  center: MmPoint;
+  corners: MmPoint[];
+};
+
+type StairStackLane = "upper" | "lower";
+
+type StairStackConfig = {
+  id: string;
+  name: string;
+  lane: StairStackLane;
+  direction: HouseStair["direction"];
+  height: number;
+  stepCount: number;
+};
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -50,6 +100,13 @@ function isPointInsideOutdoorBounds(floorId: FloorId, point: MmPoint) {
 function isValidPercentPoint(point: { x?: number; y?: number } | undefined) {
   if (!point || !isFiniteNumber(point.x) || !isFiniteNumber(point.y)) return false;
   return point.x >= 0 && point.x <= 100 && point.y >= 0 && point.y <= 100;
+}
+
+function isValidFurniturePercentPoint(floorId: FloorId, point: { x?: number; y?: number } | undefined) {
+  if (!point || !isFiniteNumber(point.x) || !isFiniteNumber(point.y)) return false;
+  const minY = floorId === "1F" ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
+  const maxY = floorId === "1F" ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
+  return point.x >= 0 && point.x <= 100 && point.y >= minY && point.y <= maxY;
 }
 
 function samePoint(a: MmPoint, b: MmPoint, tolerance = POINT_EPSILON_MM) {
@@ -104,6 +161,176 @@ function segmentsIntersect(a1: MmPoint, a2: MmPoint, b1: MmPoint, b2: MmPoint) {
   return (o1 > 0) !== (o2 > 0) && (o3 > 0) !== (o4 > 0);
 }
 
+function pointOnPolygonBoundary(point: MmPoint, polygon: MmPoint[], tolerance = FOOTPRINT_BOUNDARY_TOLERANCE_MM) {
+  return polygon.some((current, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    return projectPointToSegment(point, current, next).distance <= tolerance;
+  });
+}
+
+function pointInPolygon(point: MmPoint, polygon: MmPoint[]) {
+  if (polygon.length < 3) return false;
+  if (pointOnPolygonBoundary(point, polygon)) return true;
+  let inside = false;
+  for (let currentIndex = 0, previousIndex = polygon.length - 1; currentIndex < polygon.length; previousIndex = currentIndex, currentIndex += 1) {
+    const current = polygon[currentIndex];
+    const previous = polygon[previousIndex];
+    const intersects = ((current.y > point.y) !== (previous.y > point.y)) &&
+      point.x < ((previous.x - current.x) * (point.y - current.y)) / (previous.y - current.y) + current.x;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function polygonSegmentIntersects(segmentStart: MmPoint, segmentEnd: MmPoint, polygon: MmPoint[]) {
+  return polygon.some((current, index) => {
+    const next = polygon[(index + 1) % polygon.length];
+    return segmentsIntersect(segmentStart, segmentEnd, current, next);
+  });
+}
+
+function footprintEdges(footprint: Footprint) {
+  return footprint.corners.map((corner, index) => ({
+    start: corner,
+    end: footprint.corners[(index + 1) % footprint.corners.length]
+  }));
+}
+
+function segmentFitsWithinPolygon(segmentStart: MmPoint, segmentEnd: MmPoint, polygon: MmPoint[]) {
+  const sampleCount = Math.max(2, Math.ceil(getLineLength(segmentStart, segmentEnd) / FOOTPRINT_EDGE_SAMPLE_MM));
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const ratio = index / sampleCount;
+    const point = {
+      x: segmentStart.x + (segmentEnd.x - segmentStart.x) * ratio,
+      y: segmentStart.y + (segmentEnd.y - segmentStart.y) * ratio
+    };
+    if (!pointInPolygon(point, polygon)) return false;
+  }
+  return true;
+}
+
+function polygonFitsWithinGround(footprint: Footprint, ground: GroundPolygon) {
+  return pointInPolygon(footprint.center, ground.polygon) &&
+    footprint.corners.every((corner) => pointInPolygon(corner, ground.polygon)) &&
+    footprintEdges(footprint).every((edge) => segmentFitsWithinPolygon(edge.start, edge.end, ground.polygon));
+}
+
+function getGroundPolygons(floorId: FloorId, structure: HouseStructure): GroundPolygon[] {
+  const roomPolygons = structure.rooms.map((room) => ({
+    id: room.id,
+    polygon: room.boundary,
+    type: "room" as const
+  }));
+  const outdoorPolygons = floorId === "1F"
+    ? structure.outdoors.map((outdoor) => ({
+      id: outdoor.id,
+      polygon: outdoor.polygon,
+      type: "outdoor" as const
+    }))
+    : [];
+  return [...roomPolygons, ...outdoorPolygons].filter((ground) => ground.polygon.length >= 3);
+}
+
+function getStairStackRoom(floorId: FloorId, previousRooms: HouseRoom[]): HouseRoom | null {
+  if (floorId === "YARD") return null;
+  const roomId = STAIR_STACK_ROOM_IDS[floorId];
+  const roomNumber = STAIR_STACK_ROOM_NUMBERS[floorId];
+  const sourceWallIds = STAIR_STACK_SOURCE_WALL_IDS[floorId];
+  if (!roomId || !roomNumber || !sourceWallIds) return null;
+  const previousRoom = previousRooms.find((room) => room.id === roomId);
+  return {
+    ...previousRoom,
+    id: roomId,
+    floorId,
+    roomNumber: previousRoom?.roomNumber ?? roomNumber,
+    name: previousRoom?.name ?? "楼梯间",
+    spaceType: "Room",
+    geometryType: "polygon",
+    boundary: STAIR_STACK_ROOM_BOUNDARY.map((point) => ({ ...point })),
+    area: getPolygonArea(STAIR_STACK_ROOM_BOUNDARY),
+    sourceWallIds: [...sourceWallIds]
+  };
+}
+
+function normalizeRepairRooms(floorId: FloorId, rooms: HouseRoom[], previousRooms: HouseRoom[]) {
+  const stairRoom = getStairStackRoom(floorId, previousRooms);
+  if (!stairRoom) return rooms;
+  const hasStairRoom = rooms.some((room) => room.id === stairRoom.id);
+  if (!hasStairRoom) return [...rooms, stairRoom];
+  return rooms.map((room) => room.id === stairRoom.id ? stairRoom : room);
+}
+
+function mmPointFromFurniturePosition(position: Furniture["position"]): MmPoint {
+  return {
+    x: (position.x / 100) * STRUCTURE_WIDTH_MM,
+    y: (position.y / 100) * STRUCTURE_HEIGHT_MM
+  };
+}
+
+function getRotatedRectangleFootprint(center: MmPoint, widthMm: number, depthMm: number, rotationDegrees: number): Footprint {
+  const radians = (rotationDegrees * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const halfWidth = widthMm / 2;
+  const halfDepth = depthMm / 2;
+  const corners = [
+    { x: -halfWidth, y: -halfDepth },
+    { x: halfWidth, y: -halfDepth },
+    { x: halfWidth, y: halfDepth },
+    { x: -halfWidth, y: halfDepth }
+  ].map((corner) => ({
+    x: center.x + corner.x * cos - corner.y * sin,
+    y: center.y + corner.x * sin + corner.y * cos
+  }));
+  return { center, corners };
+}
+
+function getStairFootprint(stair: { start: MmPoint; end: MmPoint; width: number }): Footprint {
+  const length = Math.max(1, getLineLength(stair.start, stair.end));
+  const normal = {
+    x: -(stair.end.y - stair.start.y) / length,
+    y: (stair.end.x - stair.start.x) / length
+  };
+  const halfWidth = stair.width / 2;
+  return {
+    center: {
+      x: (stair.start.x + stair.end.x) / 2,
+      y: (stair.start.y + stair.end.y) / 2
+    },
+    corners: [
+      { x: stair.start.x + normal.x * halfWidth, y: stair.start.y + normal.y * halfWidth },
+      { x: stair.end.x + normal.x * halfWidth, y: stair.end.y + normal.y * halfWidth },
+      { x: stair.end.x - normal.x * halfWidth, y: stair.end.y - normal.y * halfWidth },
+      { x: stair.start.x - normal.x * halfWidth, y: stair.start.y - normal.y * halfWidth }
+    ]
+  };
+}
+
+function findGroundContainingFootprint(footprint: Footprint, groundPolygons: GroundPolygon[]) {
+  return groundPolygons.find((ground) => polygonFitsWithinGround(footprint, ground)) ?? null;
+}
+
+function findGroundContainingPoint(point: MmPoint, groundPolygons: GroundPolygon[]) {
+  return groundPolygons.find((ground) => pointInPolygon(point, ground.polygon)) ?? null;
+}
+
+function footprintIntersectsSolidWall(footprint: Footprint, walls: HouseWall[]) {
+  return getStraightWalls(walls).find((wall) => {
+    if (wall.barrierType === "railing") return false;
+    if (!polygonSegmentIntersects(wall.start, wall.end, footprint.corners)) return false;
+    const sampleCount = Math.max(8, Math.ceil(getLineLength(wall.start, wall.end) / 250));
+    for (let index = 1; index < sampleCount; index += 1) {
+      const ratio = index / sampleCount;
+      const point = {
+        x: wall.start.x + (wall.end.x - wall.start.x) * ratio,
+        y: wall.start.y + (wall.end.y - wall.start.y) * ratio
+      };
+      if (pointInPolygon(point, footprint.corners) && !pointOnPolygonBoundary(point, footprint.corners)) return true;
+    }
+    return false;
+  }) ?? null;
+}
+
 function polygonSelfIntersects(points: MmPoint[]) {
   for (let i = 0; i < points.length; i += 1) {
     const a1 = points[i];
@@ -153,6 +380,201 @@ function sanitizeOutdoorPoint(floorId: FloorId, point: MmPoint): MmPoint {
     x: clamp(isFiniteNumber(point.x) ? point.x : 0, 0, STRUCTURE_WIDTH_MM),
     y: clamp(isFiniteNumber(point.y) ? point.y : 0, floorId === "1F" ? SITE_PLAN_MIN_Y_MM : 0, floorId === "1F" ? SITE_PLAN_MAX_Y_MM : STRUCTURE_HEIGHT_MM)
   };
+}
+
+function getFurniturePercentYBounds(floorId: FloorId) {
+  return {
+    min: floorId === "1F" ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0,
+    max: floorId === "1F" ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100
+  };
+}
+
+function sanitizeFurniturePosition(floorId: FloorId, position: Furniture["position"]) {
+  const yBounds = getFurniturePercentYBounds(floorId);
+  return {
+    ...position,
+    x: clamp(isFiniteNumber(position.x) ? position.x : 0, 0, 100),
+    y: clamp(isFiniteNumber(position.y) ? position.y : 0, yBounds.min, yBounds.max),
+    rotation: isFiniteNumber(position.rotation) ? position.rotation : 0
+  };
+}
+
+function mmPointToFurniturePosition(floorId: FloorId, center: MmPoint, rotation: number): Furniture["position"] {
+  const yBounds = getFurniturePercentYBounds(floorId);
+  return {
+    x: Math.round(clamp((center.x / STRUCTURE_WIDTH_MM) * 100, 0, 100) * 100) / 100,
+    y: Math.round(clamp((center.y / STRUCTURE_HEIGHT_MM) * 100, yBounds.min, yBounds.max) * 100) / 100,
+    rotation
+  };
+}
+
+function translatePoint(point: MmPoint, dx: number, dy: number): MmPoint {
+  return {
+    x: Math.round(point.x + dx),
+    y: Math.round(point.y + dy)
+  };
+}
+
+function translateFootprint(footprint: Footprint, dx: number, dy: number): Footprint {
+  return {
+    center: translatePoint(footprint.center, dx, dy),
+    corners: footprint.corners.map((corner) => translatePoint(corner, dx, dy))
+  };
+}
+
+function getPolygonBounds(points: MmPoint[]) {
+  return points.reduce((bounds, point) => ({
+    minX: Math.min(bounds.minX, point.x),
+    maxX: Math.max(bounds.maxX, point.x),
+    minY: Math.min(bounds.minY, point.y),
+    maxY: Math.max(bounds.maxY, point.y)
+  }), {
+    minX: Number.POSITIVE_INFINITY,
+    maxX: Number.NEGATIVE_INFINITY,
+    minY: Number.POSITIVE_INFINITY,
+    maxY: Number.NEGATIVE_INFINITY
+  });
+}
+
+function getPolygonCentroid(points: MmPoint[]): MmPoint {
+  if (points.length === 0) return { x: 0, y: 0 };
+  let twiceArea = 0;
+  let weightedX = 0;
+  let weightedY = 0;
+  points.forEach((point, index) => {
+    const next = points[(index + 1) % points.length];
+    const cross = point.x * next.y - next.x * point.y;
+    twiceArea += cross;
+    weightedX += (point.x + next.x) * cross;
+    weightedY += (point.y + next.y) * cross;
+  });
+  if (Math.abs(twiceArea) < 1) {
+    return {
+      x: Math.round(points.reduce((sum, point) => sum + point.x, 0) / points.length),
+      y: Math.round(points.reduce((sum, point) => sum + point.y, 0) / points.length)
+    };
+  }
+  return {
+    x: Math.round(weightedX / (3 * twiceArea)),
+    y: Math.round(weightedY / (3 * twiceArea))
+  };
+}
+
+function getGroundCenterCandidates(ground: GroundPolygon) {
+  const bounds = getPolygonBounds(ground.polygon);
+  return [
+    getPolygonCentroid(ground.polygon),
+    {
+      x: Math.round((bounds.minX + bounds.maxX) / 2),
+      y: Math.round((bounds.minY + bounds.maxY) / 2)
+    }
+  ];
+}
+
+function getPlacementCandidateCenters(originalCenter: MmPoint, grounds: GroundPolygon[], blockingWall: StraightHouseWall | null) {
+  const candidates: MmPoint[] = [originalCenter];
+
+  if (blockingWall) {
+    const wallLength = Math.max(1, getLineLength(blockingWall.start, blockingWall.end));
+    const normal = {
+      x: -(blockingWall.end.y - blockingWall.start.y) / wallLength,
+      y: (blockingWall.end.x - blockingWall.start.x) / wallLength
+    };
+    for (let distance = PLACEMENT_REPAIR_STEP_MM; distance <= PLACEMENT_REPAIR_MAX_RADIUS_MM; distance += PLACEMENT_REPAIR_STEP_MM) {
+      candidates.push(translatePoint(originalCenter, normal.x * distance, normal.y * distance));
+      candidates.push(translatePoint(originalCenter, -normal.x * distance, -normal.y * distance));
+    }
+  }
+
+  const directions = [
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 }
+  ];
+  for (let distance = PLACEMENT_REPAIR_STEP_MM; distance <= PLACEMENT_REPAIR_MAX_RADIUS_MM; distance += PLACEMENT_REPAIR_STEP_MM) {
+    directions.forEach((direction) => {
+      const length = Math.hypot(direction.x, direction.y);
+      candidates.push(translatePoint(originalCenter, (direction.x / length) * distance, (direction.y / length) * distance));
+    });
+  }
+
+  grounds.forEach((ground) => {
+    const bounds = getPolygonBounds(ground.polygon);
+    candidates.push(...getGroundCenterCandidates(ground));
+    candidates.push({
+      x: Math.round(clamp(originalCenter.x, bounds.minX, bounds.maxX)),
+      y: Math.round(clamp(originalCenter.y, bounds.minY, bounds.maxY))
+    });
+  });
+
+  const seen = new Set<string>();
+  return candidates
+    .filter((candidate) => Number.isFinite(candidate.x) && Number.isFinite(candidate.y))
+    .sort((left, right) => getDistance(left, originalCenter) - getDistance(right, originalCenter))
+    .filter((candidate) => {
+      const key = `${Math.round(candidate.x)}:${Math.round(candidate.y)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getFootprintLegalGround(footprint: Footprint, walls: HouseWall[], grounds: GroundPolygon[]) {
+  const ground = findGroundContainingFootprint(footprint, grounds);
+  if (!ground) return null;
+  if (footprintIntersectsSolidWall(footprint, walls)) return null;
+  return ground;
+}
+
+function findNearestLegalTranslatedFootprint(footprint: Footprint, walls: HouseWall[], grounds: GroundPolygon[]) {
+  if (grounds.length === 0) return null;
+  const blockingWall = footprintIntersectsSolidWall(footprint, walls);
+  const candidates = getPlacementCandidateCenters(footprint.center, grounds, blockingWall);
+  for (const candidateCenter of candidates) {
+    const translated = translateFootprint(footprint, candidateCenter.x - footprint.center.x, candidateCenter.y - footprint.center.y);
+    const ground = getFootprintLegalGround(translated, walls, grounds);
+    if (ground) {
+      return {
+        center: translated.center,
+        ground
+      };
+    }
+  }
+  return null;
+}
+
+function getFittableFurnitureWidthCm(item: Furniture, ground: GroundPolygon) {
+  if (!item.dimensions || !isFiniteNumber(item.dimensions.width) || !isFiniteNumber(item.dimensions.depth)) return null;
+  const bounds = getPolygonBounds(ground.polygon);
+  const availableX = Math.max(1, bounds.maxX - bounds.minX - FOOTPRINT_BOUNDARY_TOLERANCE_MM * 2);
+  const availableY = Math.max(1, bounds.maxY - bounds.minY - FOOTPRINT_BOUNDARY_TOLERANCE_MM * 2);
+  const depthMm = Math.max(1, item.dimensions.depth * 10);
+  const rotation = isFiniteNumber(item.position.rotation) ? item.position.rotation : 0;
+  const radians = (rotation * Math.PI) / 180;
+  const absCos = Math.abs(Math.cos(radians));
+  const absSin = Math.abs(Math.sin(radians));
+  let maxWidthMm = Number.POSITIVE_INFINITY;
+
+  if (absCos > 0.01) {
+    maxWidthMm = Math.min(maxWidthMm, (availableX - depthMm * absSin) / absCos);
+  } else if (depthMm * absSin > availableX) {
+    return null;
+  }
+
+  if (absSin > 0.01) {
+    maxWidthMm = Math.min(maxWidthMm, (availableY - depthMm * absCos) / absSin);
+  } else if (depthMm * absCos > availableY) {
+    return null;
+  }
+
+  const widthCm = Math.floor(maxWidthMm / 10);
+  if (!Number.isFinite(widthCm) || widthCm < 30 || widthCm >= item.dimensions.width) return null;
+  return widthCm;
+}
+
+function canAutoResizeFurniture(item: Furniture) {
+  return item.type === "wardrobe" || item.moduleType === "wardrobe" || item.catalogId === "storage-wardrobe";
 }
 
 function getOrthogonalStatus(start: MmPoint, end: MmPoint) {
@@ -294,6 +716,234 @@ function snapEndpointsToNearbySegments(walls: HouseWall[]) {
   return { walls: nextWalls, repairs };
 }
 
+function getStairStackConfigs(floorId: FloorId): StairStackConfig[] {
+  if (floorId === "B2") {
+    return [{
+      id: "ST-B2-001",
+      name: "B2 上行至 B1 楼梯",
+      lane: "upper",
+      direction: "up",
+      height: 2800,
+      stepCount: 14
+    }];
+  }
+  if (floorId === "B1") {
+    return [
+      {
+        id: "ST-B1-001",
+        name: "B1 上行至 1F 梯段",
+        lane: "lower",
+        direction: "up",
+        height: 1400,
+        stepCount: 10
+      },
+      {
+        id: "ST-B1-002",
+        name: "B1 下行至 B2 梯段",
+        lane: "upper",
+        direction: "down",
+        height: 1400,
+        stepCount: 10
+      }
+    ];
+  }
+  if (floorId === "1F") {
+    return [
+      {
+        id: "ST-1F-001",
+        name: "右侧平台上行梯段",
+        lane: "upper",
+        direction: "up",
+        height: 1400,
+        stepCount: 10
+      },
+      {
+        id: "ST-1F-002",
+        name: "右侧平台下行梯段",
+        lane: "lower",
+        direction: "down",
+        height: 1400,
+        stepCount: 10
+      }
+    ];
+  }
+  if (floorId === "2F") {
+    return [{
+      id: "ST-2F-001",
+      name: "W-2F-012 1F→2F 到达梯段",
+      lane: "upper",
+      direction: "up",
+      height: 2800,
+      stepCount: 14
+    }];
+  }
+  return [];
+}
+
+function getStairStackLaneGeometry(lane: StairStackLane) {
+  const bounds = getPolygonBounds(STAIR_STACK_ROOM_BOUNDARY);
+  const stairwellDepth = bounds.maxY - bounds.minY;
+  const centerY = lane === "upper"
+    ? Math.round(bounds.minY + stairwellDepth / 4)
+    : Math.round(bounds.minY + (stairwellDepth * 3) / 4);
+  return {
+    start: sanitizePoint({ x: Math.round(bounds.maxX), y: centerY }),
+    end: sanitizePoint({ x: Math.round(bounds.minX), y: centerY }),
+    width: Math.round(stairwellDepth / 2)
+  };
+}
+
+function isManagedStairStackId(floorId: FloorId, stairId: string) {
+  return stairId.startsWith(`ST-${floorId}-00`) && (floorId === "B2" || floorId === "B1" || floorId === "1F" || floorId === "2F");
+}
+
+function getAlignedStair(floorId: FloorId, config: StairStackConfig, existing: HouseStair | undefined): HouseStair {
+  const geometry = getStairStackLaneGeometry(config.lane);
+  return {
+    ...(existing ?? {}),
+    id: config.id,
+    floorId,
+    name: config.name,
+    geometryType: "line",
+    start: geometry.start,
+    end: geometry.end,
+    width: geometry.width,
+    baseHeight: Math.max(0, isFiniteNumber(existing?.baseHeight) ? existing.baseHeight : 0),
+    height: config.height,
+    stepCount: config.stepCount,
+    direction: config.direction,
+    editable: true,
+    removable: true
+  };
+}
+
+function stairNeedsAlignment(current: HouseStair | undefined, next: HouseStair) {
+  return !current ||
+    current.floorId !== next.floorId ||
+    current.name !== next.name ||
+    current.start.x !== next.start.x ||
+    current.start.y !== next.start.y ||
+    current.end.x !== next.end.x ||
+    current.end.y !== next.end.y ||
+    current.width !== next.width ||
+    current.height !== next.height ||
+    current.stepCount !== next.stepCount ||
+    current.direction !== next.direction;
+}
+
+function alignStairStack(floorId: FloorId, stairs: HouseStair[]) {
+  const repairs: string[] = [];
+  const configs = getStairStackConfigs(floorId);
+  if (configs.length === 0) return { stairs, repairs };
+  const expectedIds = new Set(configs.map((config) => config.id));
+  const expectedStairs = configs.map((config) => {
+    const current = stairs.find((stair) => stair.id === config.id);
+    const next = getAlignedStair(floorId, config, current);
+    if (stairNeedsAlignment(current, next)) {
+      repairs.push(`已按跨楼层动线校准楼梯 ${next.id}。`);
+    }
+    return next;
+  });
+  const extraManagedStairs = stairs.filter((stair) => isManagedStairStackId(floorId, stair.id) && !expectedIds.has(stair.id));
+  extraManagedStairs.forEach((stair) => {
+    repairs.push(`已移除 ${floorId} 多余楼梯 ${stair.id}，保持楼梯栈数量正确。`);
+  });
+  const otherStairs = stairs.filter((stair) => !isManagedStairStackId(floorId, stair.id));
+
+  return { stairs: [...expectedStairs, ...otherStairs], repairs };
+}
+
+function repairStairPlacements(floorId: FloorId, stairs: HouseStair[], walls: HouseWall[], groundPolygons: GroundPolygon[]) {
+  const repairs: string[] = [];
+  const alignedStairStack = alignStairStack(floorId, stairs);
+  repairs.push(...alignedStairStack.repairs);
+  const nextStairs = alignedStairStack.stairs.map((stair) => {
+    if (getStairStackConfigs(floorId).some((config) => config.id === stair.id)) return stair;
+    if (!isFiniteNumber(stair.width) || stair.width <= 0 || getLineLength(stair.start, stair.end) <= 0) return stair;
+    const footprint = getStairFootprint(stair);
+    if (getFootprintLegalGround(footprint, walls, groundPolygons)) return stair;
+    const currentGround = findGroundContainingPoint(footprint.center, groundPolygons);
+    const targetGrounds = currentGround ? [currentGround] : groundPolygons;
+    const repaired = findNearestLegalTranslatedFootprint(footprint, walls, targetGrounds);
+    if (!repaired) return stair;
+
+    const dx = repaired.center.x - footprint.center.x;
+    const dy = repaired.center.y - footprint.center.y;
+    repairs.push(`已将楼梯 ${stair.id} 挪回 ${repaired.ground.id} 内，避开实体墙/房间边界。`);
+    return {
+      ...stair,
+      start: sanitizePoint(translatePoint(stair.start, dx, dy)),
+      end: sanitizePoint(translatePoint(stair.end, dx, dy))
+    };
+  });
+  return { stairs: nextStairs, repairs };
+}
+
+function repairFurniturePlacements(floorId: FloorId, furniture: Furniture[], walls: HouseWall[], groundPolygons: GroundPolygon[]) {
+  const repairs: string[] = [];
+  const nextFurniture = furniture.map((item) => {
+    if (
+      !item.dimensions ||
+      !isFiniteNumber(item.dimensions.width) ||
+      !isFiniteNumber(item.dimensions.depth) ||
+      item.dimensions.width <= 0 ||
+      item.dimensions.depth <= 0 ||
+      !isValidFurniturePercentPoint(floorId, item.position)
+    ) {
+      return item;
+    }
+
+    const footprint = getRotatedRectangleFootprint(
+      mmPointFromFurniturePosition(item.position),
+      item.dimensions.width * 10,
+      item.dimensions.depth * 10,
+      isFiniteNumber(item.position.rotation) ? item.position.rotation : 0
+    );
+    const linkedGround = groundPolygons.find((ground) => ground.id === item.roomId) ?? null;
+    const currentGround = findGroundContainingPoint(footprint.center, groundPolygons);
+    const targetGrounds = linkedGround ? [linkedGround] : currentGround ? [currentGround] : groundPolygons;
+    if (getFootprintLegalGround(footprint, walls, targetGrounds)) return item;
+
+    let repaired = findNearestLegalTranslatedFootprint(footprint, walls, targetGrounds);
+    let nextDimensions = item.dimensions;
+    for (let groundIndex = 0; !repaired && canAutoResizeFurniture(item) && groundIndex < targetGrounds.length; groundIndex += 1) {
+      const targetGround = targetGrounds[groundIndex];
+      const fittableWidth = getFittableFurnitureWidthCm(item, targetGround);
+      if (!fittableWidth) continue;
+      const adjustedFootprint = getRotatedRectangleFootprint(
+        footprint.center,
+        fittableWidth * 10,
+        item.dimensions.depth * 10,
+        isFiniteNumber(item.position.rotation) ? item.position.rotation : 0
+      );
+      const adjustedRepair = findNearestLegalTranslatedFootprint(adjustedFootprint, walls, [targetGround]);
+      if (adjustedRepair) {
+        repaired = adjustedRepair;
+        nextDimensions = {
+          ...item.dimensions,
+          width: fittableWidth
+        };
+      }
+    }
+    if (!repaired) return item;
+
+    const nextPosition = mmPointToFurniturePosition(floorId, repaired.center, isFiniteNumber(item.position.rotation) ? item.position.rotation : 0);
+    repairs.push(nextDimensions.width !== item.dimensions.width
+      ? `已将家具 ${item.id} 缩短到 ${nextDimensions.width}cm 并挪回 ${repaired.ground.id} 内，避开实体墙/房间边界。`
+      : `已将家具 ${item.id} 挪回 ${repaired.ground.id} 内，避开实体墙/房间边界。`);
+    return {
+      ...item,
+      dimensions: nextDimensions,
+      roomId: linkedGround || item.roomId.startsWith("room-") ? item.roomId : repaired.ground.id,
+      position: {
+        ...item.position,
+        ...nextPosition
+      }
+    };
+  });
+  return { furniture: nextFurniture, repairs };
+}
+
 export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, furniture: Furniture[]): HouseAutoRepairResult {
   const repairs: string[] = [];
   const sanitizedWalls = structure.walls
@@ -428,33 +1078,37 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
     }))
   };
 
-  const nextStructure = {
+  const generatedRooms = generateRoomsFromWalls(floorId, nextStructureBase.walls, structure.rooms);
+  const generatedStructure = {
     ...nextStructureBase,
-    rooms: generateRoomsFromWalls(floorId, nextStructureBase.walls, structure.rooms)
+    rooms: normalizeRepairRooms(floorId, generatedRooms, structure.rooms)
   };
 
-  const nextFurniture = furniture.map((item) => {
-    const x = clamp(isFiniteNumber(item.position.x) ? item.position.x : 0, 0, 100);
-    const y = clamp(isFiniteNumber(item.position.y) ? item.position.y : 0, 0, 100);
-    const rotation = isFiniteNumber(item.position.rotation) ? item.position.rotation : 0;
-    if (item.floorId !== floorId || x !== item.position.x || y !== item.position.y || rotation !== item.position.rotation) {
+  const groundPolygons = getGroundPolygons(floorId, generatedStructure);
+  const repairedStairPlacements = repairStairPlacements(floorId, generatedStructure.stairs, generatedStructure.walls, groundPolygons);
+  repairs.push(...repairedStairPlacements.repairs);
+  const nextStructure = {
+    ...generatedStructure,
+    stairs: repairedStairPlacements.stairs
+  };
+
+  const sanitizedFurniture = furniture.map((item) => {
+    const position = sanitizeFurniturePosition(floorId, item.position);
+    if (item.floorId !== floorId || position.x !== item.position.x || position.y !== item.position.y || position.rotation !== item.position.rotation) {
       repairs.push(`已修正家具楼层/坐标：${item.id}`);
     }
     return {
       ...item,
       floorId,
-      position: {
-        ...item.position,
-        x,
-        y,
-        rotation
-      }
+      position
     };
   });
+  const repairedFurniturePlacements = repairFurniturePlacements(floorId, sanitizedFurniture, nextStructure.walls, groundPolygons);
+  repairs.push(...repairedFurniturePlacements.repairs);
 
   return {
     structure: nextStructure,
-    furniture: nextFurniture,
+    furniture: repairedFurniturePlacements.furniture,
     repairs: Array.from(new Set(repairs))
   };
 }
@@ -524,6 +1178,8 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     errors.push({ type: "wall", id: floorId, message: "当前楼层墙体未形成可生成房间的闭合结构。" });
   }
 
+  const groundPolygons = getGroundPolygons(floorId, structure);
+
   structure.rooms.forEach((room) => {
     if (room.floorId !== floorId) {
       errors.push({ type: "room", id: room.id, message: "房间必须属于当前 floorId。" });
@@ -567,6 +1223,20 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     }
     if (!isFiniteNumber(stair.stepCount) || stair.stepCount < 1) {
       errors.push({ type: "stair", id: stair.id, message: "楼梯踏步数必须大于 0。" });
+    }
+    if (isFiniteNumber(stair.width) && stair.width > 0 && getLineLength(stair.start, stair.end) > 0) {
+      const footprint = getStairFootprint(stair);
+      const centerGround = findGroundContainingPoint(footprint.center, groundPolygons);
+      const containingGround = findGroundContainingFootprint(footprint, groundPolygons);
+      const blockingWall = footprintIntersectsSolidWall(footprint, structure.walls);
+      if (!centerGround) {
+        errors.push({ type: "stair", id: stair.id, message: "楼梯中心没有落在任何房间地面内，可能漂浮在结构外。" });
+      } else if (!containingGround) {
+        errors.push({ type: "stair", id: stair.id, message: "楼梯轮廓跨出房间边界，可能穿墙或压到非楼梯间区域。" });
+      }
+      if (blockingWall) {
+        errors.push({ type: "stair", id: stair.id, message: `楼梯轮廓穿过实体墙 ${blockingWall.id}，请调整楼梯或墙体边界。` });
+      }
     }
   });
 
@@ -721,8 +1391,10 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
     ) {
       errors.push({ type: "furniture", id: item.id, message: "家具/硬装模块必须有合法宽度、进深、高度，单位为 cm。" });
     }
-    if (!isValidPercentPoint(item.position)) {
-      pushCoordinateError(errors, item.id, "家具 overlay 坐标必须使用 0~100 的楼层百分比坐标。" );
+    if (!isValidFurniturePercentPoint(floorId, item.position)) {
+      pushCoordinateError(errors, item.id, floorId === "1F"
+        ? "家具 overlay 坐标必须落在 1F 室内或南北院图纸范围内。"
+        : "家具 overlay 坐标必须使用 0~100 的楼层百分比坐标。");
     }
     if (item.moduleCategory && !item.moduleType) {
       warnings.push({ type: "furniture", id: item.id, message: "硬装模块缺少 moduleType，后续清单统计可能不完整。" });
@@ -734,9 +1406,39 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
         warnings.push({ type: "furniture", id: item.id, message: "硬装模块缺少完整的给水、排水、电源、排烟需求标记。" });
       }
     }
-    const roomExists = structure.rooms.some((room) => room.id === item.roomId) || item.roomId.startsWith("room-");
+    const linkedGround = groundPolygons.find((ground) => ground.id === item.roomId) ?? null;
+    const roomExists = Boolean(linkedGround) || item.roomId.startsWith("room-");
     if (!roomExists) {
-      warnings.push({ type: "furniture", id: item.id, message: "家具引用的 Room/Zone 不在当前结构房间中，可能漂浮在未定义空间。" });
+      warnings.push({ type: "furniture", id: item.id, message: "家具引用的 Room/Zone 不在当前结构房间或院子中，可能漂浮在未定义空间。" });
+    }
+    if (
+      item.dimensions &&
+      isFiniteNumber(item.dimensions.width) &&
+      isFiniteNumber(item.dimensions.depth) &&
+      item.dimensions.width > 0 &&
+      item.dimensions.depth > 0 &&
+      isValidFurniturePercentPoint(floorId, item.position)
+    ) {
+      const footprint = getRotatedRectangleFootprint(
+        mmPointFromFurniturePosition(item.position),
+        item.dimensions.width * 10,
+        item.dimensions.depth * 10,
+        isFiniteNumber(item.position.rotation) ? item.position.rotation : 0
+      );
+      const centerGround = findGroundContainingPoint(footprint.center, groundPolygons);
+      const containingGround = findGroundContainingFootprint(footprint, groundPolygons);
+      const blockingWall = footprintIntersectsSolidWall(footprint, structure.walls);
+      if (!centerGround) {
+        errors.push({ type: "furniture", id: item.id, message: "家具中心点没有落在任何房间或院子的地面上，属于漂浮摆放。" });
+      } else if (!containingGround) {
+        errors.push({ type: "furniture", id: item.id, message: "家具占位轮廓跨出房间/院子边界，可能穿墙或悬空。" });
+      }
+      if (linkedGround && !polygonFitsWithinGround(footprint, linkedGround)) {
+        errors.push({ type: "furniture", id: item.id, message: `家具标注属于 ${linkedGround.id}，但实际占位没有完整落在该地面区域内。` });
+      }
+      if (blockingWall) {
+        errors.push({ type: "furniture", id: item.id, message: `家具占位穿过实体墙 ${blockingWall.id}，请移动或旋转。` });
+      }
     }
   });
 

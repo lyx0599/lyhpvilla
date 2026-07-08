@@ -52,6 +52,7 @@ import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/vill
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
 import { Floor3DView } from "@/components/floor-3d-view";
+import { ThreeDCover } from "@/components/three-d-cover";
 import type {
   CleanPatch,
   DrawTool,
@@ -175,6 +176,13 @@ const outdoorSurfaceMaterialOptions: Array<{ material: OutdoorSurfaceMaterial; l
   { material: "shrub", label: "花境", tool: "planting", swatch: "#5fb069" }
 ];
 const protectedBaseYardOutdoorIds = new Set(["OD-1F-NORTH-001", "OD-1F-SOUTH-001"]);
+const MASTER_BATH_ROOM_ID = "ROOM-2F-003";
+const masterBathFurnitureIds = new Set([
+  "furn-2f-master-shower-001",
+  "furn-2f-master-bathtub-001",
+  "furn-2f-master-vanity-001",
+  "furn-2f-master-toilet-001"
+]);
 
 const outdoorSurfaceMaterialLabels = outdoorSurfaceMaterialOptions.reduce((labels, option) => {
   labels[option.material] = option.label;
@@ -344,6 +352,71 @@ function toPlanPercent(point: MmPoint, bounds: PlanBounds) {
   };
 }
 
+function isMasterBathFurniture(item: Furniture) {
+  return item.floorId === "2F" && item.roomId === MASTER_BATH_ROOM_ID && masterBathFurnitureIds.has(item.id);
+}
+
+function getFurnitureMmCenter(item: Furniture, structure: HouseStructure): MmPoint {
+  const size = structure.coordinateSystem ?? { width: STRUCTURE_WIDTH_MM, height: STRUCTURE_HEIGHT_MM };
+  return {
+    x: (item.position.x / 100) * size.width,
+    y: (item.position.y / 100) * size.height
+  };
+}
+
+function getFurnitureAxis(item: Furniture, structure: HouseStructure) {
+  const center = getFurnitureMmCenter(item, structure);
+  const rotation = (item.position.rotation || 0) * Math.PI / 180;
+  const ux = { x: Math.cos(rotation), y: Math.sin(rotation) };
+  const uy = { x: -Math.sin(rotation), y: Math.cos(rotation) };
+  return {
+    center,
+    ux,
+    uy,
+    widthMm: item.dimensions.width * 10,
+    depthMm: item.dimensions.depth * 10
+  };
+}
+
+function getFurnitureAxisLine(item: Furniture, structure: HouseStructure, sideOffset = 0, lengthScale = 1) {
+  const axis = getFurnitureAxis(item, structure);
+  const halfLength = (axis.widthMm * lengthScale) / 2;
+  return [
+    {
+      x: axis.center.x - axis.ux.x * halfLength + axis.uy.x * sideOffset,
+      y: axis.center.y - axis.ux.y * halfLength + axis.uy.y * sideOffset
+    },
+    {
+      x: axis.center.x + axis.ux.x * halfLength + axis.uy.x * sideOffset,
+      y: axis.center.y + axis.ux.y * halfLength + axis.uy.y * sideOffset
+    }
+  ];
+}
+
+function getFurnitureFootprintPolygon(item: Furniture, structure: HouseStructure, scale = 1) {
+  const axis = getFurnitureAxis(item, structure);
+  const halfWidth = (axis.widthMm * scale) / 2;
+  const halfDepth = (axis.depthMm * scale) / 2;
+  return [
+    {
+      x: axis.center.x - axis.ux.x * halfWidth - axis.uy.x * halfDepth,
+      y: axis.center.y - axis.ux.y * halfWidth - axis.uy.y * halfDepth
+    },
+    {
+      x: axis.center.x + axis.ux.x * halfWidth - axis.uy.x * halfDepth,
+      y: axis.center.y + axis.ux.y * halfWidth - axis.uy.y * halfDepth
+    },
+    {
+      x: axis.center.x + axis.ux.x * halfWidth + axis.uy.x * halfDepth,
+      y: axis.center.y + axis.ux.y * halfWidth + axis.uy.y * halfDepth
+    },
+    {
+      x: axis.center.x - axis.ux.x * halfWidth + axis.uy.x * halfDepth,
+      y: axis.center.y - axis.ux.y * halfWidth + axis.uy.y * halfDepth
+    }
+  ];
+}
+
 function avoidLabelOverlap(labels: ObjectLabel[], bounds = defaultPlanBounds) {
   const placed: ObjectLabel[] = [];
   return labels.map((label) => {
@@ -435,6 +508,7 @@ export function PlanCanvas({
   const [selectedStructureId, setSelectedStructureId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
+  const [show3DCover, setShow3DCover] = useState(true);
   const [internalShowFurnitureLabels, setInternalShowFurnitureLabels] = useState(true);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
   const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId | null>(null);
@@ -523,6 +597,12 @@ export function PlanCanvas({
     setPan({ x: 0, y: 0 });
     onScaleChange(1);
   }, [floor.id, onScaleChange]);
+
+  useEffect(() => {
+    if (viewMode === "3d") {
+      setShow3DCover(true);
+    }
+  }, [floor.id, viewMode]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -1975,12 +2055,13 @@ export function PlanCanvas({
       });
     });
     houseStructure.skylights.forEach((skylight) => {
+      const operationLabel = skylight.operation === "electricOperable" ? "电动可活动" : skylight.openable ? "可开启" : "固定";
       rows.push({
         id: skylight.id,
         kind: "skylight",
         label: "天窗",
         name: skylight.name,
-        detail: `${skylight.width} x ${skylight.depth} mm · 高 ${skylight.height} mm`
+        detail: `${operationLabel} · ${skylight.width} x ${skylight.depth} mm · 高 ${skylight.height} mm`
       });
     });
     houseStructure.rooms.forEach((room) => {
@@ -2605,6 +2686,8 @@ export function PlanCanvas({
   const visibleOutdoors = yardImmersiveMode ? houseStructure.outdoors.filter((outdoor) => yardObjectMatchesFocus(outdoor.id, outdoor.name)) : houseStructure.outdoors;
   const visibleOutdoorSurfaces = yardImmersiveMode ? houseStructure.outdoorSurfaces.filter((surface) => yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds)) : houseStructure.outdoorSurfaces;
   const visibleFences = yardImmersiveMode ? houseStructure.fences.filter((fence) => yardObjectMatchesFocus(fence.id, fence.name) || pointInBounds(fence.start, planBounds) || pointInBounds(fence.end, planBounds)) : houseStructure.fences;
+  const masterBathRoom = floor.id === "2F" ? houseStructure.rooms.find((room) => room.id === MASTER_BATH_ROOM_ID) ?? null : null;
+  const showMasterBathStyleLayer = Boolean(masterBathRoom && !yardImmersiveMode && ["furnishing", "preview", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode));
 
   function renderSheetPoint(id: string, x: number, y: number, label: string, color: string, shape: "circle" | "square" = "circle") {
     return (
@@ -2631,6 +2714,41 @@ export function PlanCanvas({
         strokeLinejoin="round"
         strokeWidth={58}
       />
+    );
+  }
+
+  function renderMasterBathStyleLayer() {
+    if (!showMasterBathStyleLayer || !masterBathRoom) return null;
+    const masterBathFurniture = furniture.filter(isMasterBathFurniture);
+    const vanity = masterBathFurniture.find((item) => item.moduleType === "vanity");
+    const vanityLight = vanity ? getFurnitureAxisLine(vanity, houseStructure, vanity.dimensions.depth * 10 * 0.45, 0.98) : null;
+
+    return (
+      <g data-layer="MasterBathStyleLayer" pointerEvents="none">
+        <polygon
+          points={masterBathRoom.boundary.map((point) => `${point.x},${point.y}`).join(" ")}
+          fill="url(#masterBathStonePattern)"
+          opacity={sheetMode === "flooring" ? 0.92 : 0.78}
+          stroke="#9b8f80"
+          strokeDasharray={sheetMode === "flooring" ? undefined : "120 90"}
+          strokeWidth={sheetMode === "flooring" ? 44 : 28}
+        />
+        {vanityLight && (
+          <line
+            x1={vanityLight[0].x}
+            y1={vanityLight[0].y}
+            x2={vanityLight[1].x}
+            y2={vanityLight[1].y}
+            stroke="#fbbf24"
+            strokeLinecap="round"
+            strokeOpacity={0.78}
+            strokeWidth={38}
+          />
+        )}
+        <text x={8040} y={720} fill="#7c5f42" fontSize={132} fontWeight={900} paintOrder="stroke" stroke="#fffaf2" strokeWidth={62}>
+          暖灰石材 / 浅木镜柜 / 无框玻璃
+        </text>
+      </g>
     );
   }
 
@@ -2875,8 +2993,11 @@ export function PlanCanvas({
             {renderSheetPoint("socket-2f-bed-left", 2350, 6200, "床头五孔", "#dc2626", "square")}
             {renderSheetPoint("socket-2f-bed-right", 3450, 6200, "床头五孔", "#dc2626", "square")}
             {renderSheetPoint("socket-2f-desk", 6100, 6500, "书桌/网络", "#dc2626", "square")}
-            {renderSheetPoint("socket-2f-vanity", 8050, 4400, "卫浴防水", "#dc2626", "square")}
-            {renderSheetPolyline("socket-2f-run", [{ x: 950, y: 7800 }, { x: 2800, y: 7800 }, { x: 2800, y: 6200 }, { x: 6100, y: 6500 }, { x: 8050, y: 4400 }], "#dc2626", true)}
+            {renderSheetPoint("socket-2f-guest-vanity", 8050, 4400, "客卫防水", "#dc2626", "square")}
+            {renderSheetPoint("socket-2f-master-mirror", 9280, 1160, "镜柜/吹风", "#dc2626", "square")}
+            {renderSheetPoint("socket-2f-master-toilet", 9100, 2550, "智能马桶", "#dc2626", "square")}
+            {renderSheetPoint("socket-2f-master-ceiling", 8280, 850, "风暖/排风", "#dc2626", "square")}
+            {renderSheetPolyline("socket-2f-run", [{ x: 950, y: 7800 }, { x: 2800, y: 7800 }, { x: 2800, y: 6200 }, { x: 6100, y: 6500 }, { x: 8050, y: 4400 }, { x: 9280, y: 1160 }, { x: 9100, y: 2550 }], "#dc2626", true)}
           </g>
         );
       }
@@ -2942,12 +3063,17 @@ export function PlanCanvas({
           { id: "lt-2f-master-1", x: 2400, y: 6100, label: "筒" },
           { id: "lt-2f-master-2", x: 3350, y: 6100, label: "筒" },
           { id: "lt-2f-hall", x: 5200, y: 4300, label: "廊" },
-          { id: "lt-2f-bath", x: 8150, y: 4300, label: "防" }
+          { id: "lt-2f-guest-bath", x: 8150, y: 4300, label: "防" },
+          { id: "lt-2f-master-vanity", x: 9220, y: 1450, label: "镜灯" },
+          { id: "lt-2f-master-shower", x: 8180, y: 850, label: "淋浴" },
+          { id: "lt-2f-master-tub", x: 8050, y: 2200, label: "浴缸" }
         ];
         return (
           <g data-layer="LightingPlanOverlay" pointerEvents="none">
             <rect x={1150} y={5320} width={2600} height={1700} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
             <rect x={7050} y={3500} width={2100} height={1500} rx={180} fill="none" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={46} />
+            <rect x={7681} y={350} width={1814} height={2700} rx={160} fill="rgba(251,191,36,0.07)" stroke="#f59e0b" strokeDasharray="120 90" strokeWidth={42} />
+            <line x1={9250} y1={720} x2={9250} y2={2280} stroke="#fbbf24" strokeLinecap="round" strokeOpacity={0.78} strokeWidth={44} />
             {bedroomLightPoints.map((point) => renderSheetPoint(point.id, point.x, point.y, point.label, "#f59e0b"))}
           </g>
         );
@@ -2989,8 +3115,14 @@ export function PlanCanvas({
           <g data-layer="WaterPlanOverlay" pointerEvents="none">
             {renderSheetPolyline("water-2f-cold", [{ x: 9100, y: 7800 }, { x: 9100, y: 4300 }, { x: 8150, y: 4300 }, { x: 7750, y: 4700 }], "#0284c7")}
             {renderSheetPolyline("water-2f-hot", [{ x: 8800, y: 7800 }, { x: 8800, y: 4450 }, { x: 8150, y: 4450 }, { x: 7750, y: 4850 }], "#ef4444", true)}
-            {renderSheetPoint("water-2f-vanity", 7750, 4700, "台盆水点", "#0284c7")}
-            {renderSheetPoint("water-2f-shower", 8350, 4200, "淋浴水点", "#0284c7")}
+            {renderSheetPolyline("water-2f-master-cold", [{ x: 9100, y: 3050 }, { x: 9100, y: 1450 }, { x: 8360, y: 850 }, { x: 8050, y: 2200 }], "#0284c7")}
+            {renderSheetPolyline("water-2f-master-hot", [{ x: 8820, y: 3050 }, { x: 8820, y: 1450 }, { x: 8240, y: 900 }, { x: 7950, y: 2200 }], "#ef4444", true)}
+            {renderSheetPoint("water-2f-guest-vanity", 7750, 4700, "客卫台盆", "#0284c7")}
+            {renderSheetPoint("water-2f-guest-shower", 8350, 4200, "客卫淋浴", "#0284c7")}
+            {renderSheetPoint("water-2f-master-vanity", 9220, 1450, "双盆冷热水", "#0284c7")}
+            {renderSheetPoint("water-2f-master-shower", 8360, 850, "淋浴冷热水", "#0284c7")}
+            {renderSheetPoint("water-2f-master-tub", 8050, 2200, "浴缸冷热水", "#0284c7")}
+            {renderSheetPoint("water-2f-master-toilet", 9100, 2550, "马桶给水", "#0284c7")}
           </g>
         );
       }
@@ -3018,8 +3150,14 @@ export function PlanCanvas({
         return (
           <g data-layer="DrainagePlanOverlay" pointerEvents="none">
             {renderSheetPolyline("drain-2f-main", [{ x: 9400, y: 7800 }, { x: 9400, y: 4550 }, { x: 8050, y: 4550 }], "#92400e")}
-            {renderSheetPoint("drain-2f-vanity", 8050, 4550, "台盆排水", "#92400e")}
-            {renderSheetPoint("drain-2f-floor", 8500, 5100, "地漏", "#92400e")}
+            {renderSheetPolyline("drain-2f-master-main", [{ x: 9400, y: 3050 }, { x: 9220, y: 1450 }, { x: 9100, y: 2550 }, { x: 8360, y: 980 }, { x: 8050, y: 2250 }], "#92400e")}
+            {renderSheetPoint("drain-2f-guest-vanity", 8050, 4550, "客卫台盆", "#92400e")}
+            {renderSheetPoint("drain-2f-guest-floor", 8500, 5100, "客卫地漏", "#92400e")}
+            {renderSheetPoint("drain-2f-master-vanity", 9220, 1450, "双盆排水", "#92400e")}
+            {renderSheetPoint("drain-2f-master-toilet", 9100, 2550, "马桶排污", "#92400e")}
+            {renderSheetPoint("drain-2f-master-shower", 8360, 980, "淋浴地漏", "#92400e")}
+            {renderSheetPoint("drain-2f-master-tub", 8050, 2250, "浴缸排水", "#92400e")}
+            {renderSheetPoint("drain-2f-master-dry", 8650, 2100, "干区地漏", "#92400e")}
           </g>
         );
       }
@@ -3047,8 +3185,13 @@ export function PlanCanvas({
           <g data-layer="CeilingPlanOverlay" pointerEvents="none">
             <rect x={1150} y={5320} width={2600} height={1700} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
             <rect x={7050} y={3500} width={2100} height={1500} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
+            <rect x={7681} y={350} width={1814} height={2700} rx={220} fill="rgba(14,165,233,0.08)" stroke="#0ea5e9" strokeDasharray="120 90" strokeWidth={46} />
             <rect x={7950} y={3720} width={680} height={260} rx={90} fill="#e0f2fe" stroke="#0284c7" strokeWidth={34} />
             <text x={7900} y={3600} fill="#0284c7" fontSize={150} fontWeight={800}>卫浴风口</text>
+            <rect x={8080} y={720} width={740} height={300} rx={90} fill="#e0f2fe" stroke="#0284c7" strokeWidth={34} />
+            <text x={7980} y={620} fill="#0284c7" fontSize={150} fontWeight={800}>主卫风暖</text>
+            <rect x={8840} y={1180} width={520} height={360} rx={80} fill="#fff" stroke="#0284c7" strokeWidth={32} />
+            <text x={8740} y={1080} fill="#0284c7" fontSize={150} fontWeight={800}>镜柜检修</text>
             <rect x={5020} y={3920} width={620} height={420} rx={80} fill="#fff" stroke="#0284c7" strokeWidth={32} />
             <text x={4960} y={3840} fill="#0284c7" fontSize={150} fontWeight={800}>检修</text>
           </g>
@@ -3082,8 +3225,10 @@ export function PlanCanvas({
         <g data-layer="FlooringPlanOverlay" pointerEvents="none">
           <rect x={950} y={5150} width={2947} height={2650} fill="rgba(202,138,4,0.08)" stroke="#ca8a04" strokeDasharray="110 90" strokeWidth={34} />
           <rect x={6542} y={3050} width={2953} height={4750} fill="rgba(148,163,184,0.10)" stroke="#64748b" strokeDasharray="110 90" strokeWidth={34} />
+          <rect x={7681} y={350} width={1814} height={2700} fill="url(#masterBathStonePattern)" opacity={0.86} stroke="#9b8f80" strokeDasharray="110 90" strokeWidth={34} />
           <text x={1280} y={5550} fill="#a16207" fontSize={170} fontWeight={900}>木地板/卧室</text>
           <text x={6800} y={3500} fill="#475569" fontSize={170} fontWeight={900}>防滑砖/卫浴</text>
+          <text x={7860} y={780} fill="#7c5f42" fontSize={158} fontWeight={900}>主卫暖灰大砖</text>
         </g>
       );
     }
@@ -3315,7 +3460,7 @@ export function PlanCanvas({
   return (
     <div className={`relative min-h-0 flex-1 overflow-auto overscroll-contain bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}>
       <div className={`${furnitureImmersiveMode || yardImmersiveMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
-        {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : "效果预览 · 3D 白模"}
+        {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : show3DCover ? "效果预览 · 3D 封面" : `${floor.label} · 楼层 3D`}
       </div>
 
       {viewMode === "2d" ? (
@@ -4015,6 +4160,11 @@ export function PlanCanvas({
                   <circle cx="58" cy="54" r="7" fill="#94a3b8" opacity="0.35" />
                   <circle cx="204" cy="158" r="9" fill="#94a3b8" opacity="0.3" />
                 </pattern>
+                <pattern id="masterBathStonePattern" width="900" height="900" patternUnits="userSpaceOnUse">
+                  <rect width="900" height="900" fill="#d6cec2" />
+                  <path d="M0 0 H900 V900 H0 Z M0 450 H900 M450 0 V900" fill="none" stroke="#b8aa9d" strokeWidth="15" opacity="0.58" />
+                  <path d="M88 168 C244 80 382 204 548 120 M210 704 C390 610 520 746 760 620 M622 320 C700 250 778 296 844 228" fill="none" stroke="#eee7dd" strokeWidth="16" strokeLinecap="round" opacity="0.42" />
+                </pattern>
                 <pattern id="plantingPattern" width="220" height="180" patternUnits="userSpaceOnUse">
                   <rect width="220" height="180" fill="#88c878" />
                   <circle cx="42" cy="44" r="28" fill="#4f9b46" opacity="0.55" />
@@ -4192,14 +4342,17 @@ export function PlanCanvas({
               </g>
 
               {!yardImmersiveMode && renderStructureProjectionLayer()}
+              {renderMasterBathStyleLayer()}
 
               <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="RoomLayer">
                 {houseStructure.rooms.map((room) => (
                   <polygon
                     key={room.id}
                     points={room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}
-                    fill={isObjectSelected(room.id) ? "rgba(59,130,246,0.13)" : isObjectHovered(room.id) ? "rgba(59,130,246,0.09)" : "rgba(59,130,246,0.055)"}
-                    stroke={isObjectSelected(room.id) ? "#2563eb" : "rgba(37,99,235,0.28)"}
+                    fill={room.id === MASTER_BATH_ROOM_ID && showMasterBathStyleLayer
+                      ? isObjectSelected(room.id) ? "rgba(59,130,246,0.08)" : isObjectHovered(room.id) ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.02)"
+                      : isObjectSelected(room.id) ? "rgba(59,130,246,0.13)" : isObjectHovered(room.id) ? "rgba(59,130,246,0.09)" : "rgba(59,130,246,0.055)"}
+                    stroke={room.id === MASTER_BATH_ROOM_ID && showMasterBathStyleLayer && !isObjectSelected(room.id) ? "#9b8f80" : isObjectSelected(room.id) ? "#2563eb" : "rgba(37,99,235,0.28)"}
                     strokeWidth={isObjectSelected(room.id) || isObjectHovered(room.id) ? 36 : 18}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -4790,6 +4943,7 @@ export function PlanCanvas({
                 {houseStructure.skylights.map((skylight) => {
                   const isSelected = isObjectSelected(skylight.id);
                   const isHovered = isObjectHovered(skylight.id);
+                  const operationLabel = skylight.operation === "electricOperable" ? "电动可活动" : skylight.openable ? "可开启" : "固定";
                   const halfWidth = skylight.width / 2;
                   const halfDepth = skylight.depth / 2;
                   const points = [
@@ -4805,12 +4959,12 @@ export function PlanCanvas({
                       onClick={(event) => {
                         event.stopPropagation();
                         if (shouldIgnoreStructureSelection("skylight")) return;
-                        selectStructureObject(skylight.id, `${skylight.name} · ${skylight.width} x ${skylight.depth} mm`);
+                        selectStructureObject(skylight.id, `${skylight.name} · ${operationLabel} · ${skylight.width} x ${skylight.depth} mm`);
                       }}
                       onPointerDown={(event) => {
                         if (plannerMode !== "edit" || drawTool !== "select") return;
                         event.stopPropagation();
-                        selectStructureObject(skylight.id, `${skylight.name} · ${skylight.width} x ${skylight.depth} mm`);
+                        selectStructureObject(skylight.id, `${skylight.name} · ${operationLabel} · ${skylight.width} x ${skylight.depth} mm`);
                       }}
                       onMouseEnter={() => hoverObject(skylight.id)}
                       onMouseLeave={() => clearHoverObject(skylight.id)}
@@ -5311,27 +5465,31 @@ export function PlanCanvas({
           </div>
         </div>
       ) : (
-        <Floor3DView
-          floor={floor}
-          houseStructure={houseStructure}
-          furniture={furniture}
-          selectedObjectId={selectedInteractionObjectId}
-          selectedFurnitureId={selectedFurnitureId}
-          showObjectIds={showObjectIds}
-          onShowObjectIdsChange={setShowObjectIds}
-          onSelectStructure={(objectId) => {
-            setSelectedStructureId(objectId);
-            selectObject(objectId);
-            onActiveObjectChange(objectId);
-            setStructureMessage(`已在 3D 白模中选择 ${objectId}。`);
-          }}
-          onSelectFurniture={(item) => {
-            selectObject(item.id);
-            onSelectFurniture(item);
-          }}
-          onHoverObject={hoverObject}
-          onClearHoverObject={clearHoverObject}
-        />
+        show3DCover ? (
+          <ThreeDCover floor={floor} onEnter={() => setShow3DCover(false)} />
+        ) : (
+          <Floor3DView
+            floor={floor}
+            houseStructure={houseStructure}
+            furniture={furniture}
+            selectedObjectId={selectedInteractionObjectId}
+            selectedFurnitureId={selectedFurnitureId}
+            showObjectIds={showObjectIds}
+            onShowObjectIdsChange={setShowObjectIds}
+            onSelectStructure={(objectId) => {
+              setSelectedStructureId(objectId);
+              selectObject(objectId);
+              onActiveObjectChange(objectId);
+              setStructureMessage(`已在 3D 效果中选择 ${objectId}。`);
+            }}
+            onSelectFurniture={(item) => {
+              selectObject(item.id);
+              onSelectFurniture(item);
+            }}
+            onHoverObject={hoverObject}
+            onClearHoverObject={clearHoverObject}
+          />
+        )
       )}
     </div>
   );

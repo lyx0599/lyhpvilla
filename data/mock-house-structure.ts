@@ -76,6 +76,28 @@ function bayWindow(id: string, floorId: FloorId, wallId: string, positionOnWall:
   };
 }
 
+function skylight(id: string, name: string, center: { x: number; y: number }, floorId: FloorId = "B1", width = 800, depth = 560, rotation = 0): HouseSkylight {
+  return {
+    id,
+    floorId,
+    name,
+    geometryType: "polygon",
+    center,
+    width,
+    depth,
+    height: 120,
+    rotation,
+    operation: "electricOperable",
+    openable: true,
+    motorized: true,
+    note: floorId === "B2"
+      ? "沿 W-B2-012 设置地下室采光井天窗，预留防水收边、排水坡度、电源、检修和防坠落措施。"
+      : "电动可活动天窗，预留防水收边、排水坡度、电源和控制线路。",
+    editable: true,
+    removable: true
+  };
+}
+
 function outdoor(id: string, floorId: FloorId, name: string, polygon: { x: number; y: number }[]): HouseOutdoor {
   return {
     ...createOutdoor(id, floorId, polygon),
@@ -111,23 +133,83 @@ function stair(id: string, floorId: FloorId, start: { x: number; y: number }, en
   };
 }
 
+const stairStackRuns = {
+  upper: {
+    start: { x: 4146, y: 3575 },
+    end: { x: 950, y: 3575 },
+    width: 1050
+  },
+  lower: {
+    start: { x: 4146, y: 4625 },
+    end: { x: 950, y: 4625 },
+    width: 1050
+  }
+} as const;
+
+function stairStackStair(id: string, floorId: FloorId, lane: keyof typeof stairStackRuns): HouseStair {
+  const run = stairStackRuns[lane];
+  return stair(id, floorId, run.start, run.end, run.width);
+}
+
 function column(id: string, floorId: FloorId, center: { x: number; y: number }, radius = 360): HouseColumn {
   return createColumn(id, floorId, center, radius);
 }
 
 function turningStairs(floorId: FloorId): HouseStair[] {
+  if (floorId === "1F") {
+    return [
+      {
+        ...stairStackStair("ST-1F-001", floorId, "upper"),
+        name: "右侧平台上行梯段",
+        baseHeight: 0,
+        height: 1400,
+        stepCount: 10,
+        direction: "up"
+      },
+      {
+        ...stairStackStair("ST-1F-002", floorId, "lower"),
+        name: "右侧平台下行梯段",
+        baseHeight: 0,
+        height: 1400,
+        stepCount: 10,
+        direction: "down"
+      }
+    ];
+  }
+
+  if (floorId === "B1") {
+    return [
+      {
+        ...stairStackStair("ST-B1-001", floorId, "lower"),
+        name: "B1 上行至 1F 梯段",
+        baseHeight: 0,
+        height: 1400,
+        stepCount: 10,
+        direction: "up"
+      },
+      {
+        ...stairStackStair("ST-B1-002", floorId, "upper"),
+        name: "B1 下行至 B2 梯段",
+        baseHeight: 0,
+        height: 1400,
+        stepCount: 10,
+        direction: "down"
+      }
+    ];
+  }
+
   return [
     {
       ...stair(`ST-${floorId}-001`, floorId, { x: 3676, y: 3050 }, { x: 950, y: 3050 }),
-      name: "沿上侧墙上行梯段",
+      name: "右侧平台上行梯段",
       baseHeight: 0,
       height: 1400,
       stepCount: 10,
       direction: "up"
     },
     {
-      ...stair(`ST-${floorId}-002`, floorId, { x: 3897, y: 5150 }, { x: 950, y: 5150 }),
-      name: "沿下侧墙下行梯段",
+      ...stair(`ST-${floorId}-002`, floorId, { x: 3676, y: 4000 }, { x: 950, y: 4000 }),
+      name: "右侧平台下行梯段",
       baseHeight: 0,
       height: 1400,
       stepCount: 10,
@@ -139,7 +221,7 @@ function turningStairs(floorId: FloorId): HouseStair[] {
 function topFloorArrivalStair(floorId: FloorId): HouseStair[] {
   return [
     {
-      ...stair(`ST-${floorId}-001`, floorId, { x: 3897, y: 5150 }, { x: 950, y: 5150 }),
+      ...stairStackStair(`ST-${floorId}-001`, floorId, "upper"),
       name: "W-2F-012 1F→2F 到达梯段",
       baseHeight: 0,
       height: 2800,
@@ -176,11 +258,9 @@ const b2LivingRoomBoundary = [
 
 const b2StairRoomBoundary = [
   { x: 950, y: 3050 },
-  { x: 3897, y: 3050 },
-  { x: 3897, y: 5150 },
-  { x: 950, y: 5150 },
-  { x: 2050, y: 4300 },
-  { x: 950, y: 4300 }
+  { x: 4146, y: 3050 },
+  { x: 4146, y: 5150 },
+  { x: 950, y: 5150 }
 ];
 
 const b2StorageRoomBoundary = [
@@ -328,7 +408,14 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     railingWall("W-B1-012", "B1", { x: 5385, y: 5853 }, { x: 6650, y: 5853 }),
     railingWall("W-B1-013", "B1", { x: 6650, y: 5853 }, { x: 6650, y: 7800 })
   ], [], {
-    stairs: turningStairs("B1")
+    stairs: turningStairs("B1"),
+    skylights: [
+      skylight("SKY-B1-W002-001", "W-B1-002 电动可活动天窗 1", { x: 6100, y: 760 }),
+      skylight("SKY-B1-W002-002", "W-B1-002 电动可活动天窗 2", { x: 7350, y: 760 }),
+      skylight("SKY-B1-W002-003", "W-B1-002 电动可活动天窗 3", { x: 8600, y: 760 }),
+      skylight("SKY-B1-W009-001", "W-B1-009 电动可活动天窗 1", { x: 1850, y: 7350 }),
+      skylight("SKY-B1-W009-002", "W-B1-009 电动可活动天窗 2", { x: 3000, y: 7350 })
+    ]
   }),
   "B2": structure("B2", [
     wall("W-B2-001", "B2", { x: 3676, y: 350 }, { x: 5383, y: 350 }),
@@ -345,7 +432,7 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     wall("W-B2-012", "B2", { x: 9495, y: 4222 }, { x: 9495, y: 7800 })
   ], [], {
     stairs: [{
-      ...stair("ST-B2-001", "B2", { x: 3676, y: 3050 }, { x: 950, y: 3050 }),
+      ...stairStackStair("ST-B2-001", "B2", "upper"),
       name: "B2 上行至 B1 楼梯",
       baseHeight: 0,
       height: 2800,
@@ -354,7 +441,11 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     }],
     columns: b2SupportColumns,
     rooms: b2DefinedRooms,
-    doors: [door("D-B2-001", "B2", "W-B2-003", 0.525, 900)]
+    doors: [door("D-B2-001", "B2", "W-B2-003", 0.525, 900)],
+    skylights: [
+      skylight("SKY-B2-W012-001", "W-B2-012 电动采光天窗 1", { x: 9140, y: 5200 }, "B2", 620, 950, 90),
+      skylight("SKY-B2-W012-002", "W-B2-012 电动采光天窗 2", { x: 9140, y: 6820 }, "B2", 620, 950, 90)
+    ]
   }),
   "YARD": structure("YARD", [], [], {
     outdoors: [createOutdoor("OD-YARD-001", "YARD", [{ x: 900, y: 850 }, { x: 10700, y: 850 }, { x: 10700, y: 7100 }, { x: 900, y: 7100 }])],
