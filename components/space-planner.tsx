@@ -33,6 +33,19 @@ type DesignPageRequest = {
   id: string;
 };
 
+function isPhonePresentationDevice() {
+  const narrowViewport = window.innerWidth < 768 || document.documentElement.clientWidth < 768;
+  if (!narrowViewport) return false;
+
+  const userAgent = navigator.userAgent;
+  const phoneUserAgent = /iPhone|iPod|Android.*Mobile|Windows Phone|BlackBerry|Opera Mini|IEMobile/i.test(userAgent);
+  const compactTouchDevice = navigator.maxTouchPoints > 1
+    && window.matchMedia("(pointer: coarse)").matches
+    && Math.min(window.screen.width, window.screen.height) <= 600;
+
+  return phoneUserAgent || compactTouchDevice;
+}
+
 type DesignPageData = {
   id: string;
   eyebrow: string;
@@ -2747,6 +2760,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(normalizeSemanticDefaults(initialSemanticObjects).find((object) => object.floorId === initialSelectedFloorId)?.id ?? "");
   const [viewMode, setViewMode] = useState<ViewMode>("2d");
   const [appViewMode, setAppViewMode] = useState<AppViewMode>(initialAppViewMode);
+  const [isPhoneDevice, setIsPhoneDevice] = useState(false);
   const [mobileDisplayLevel, setMobileDisplayLevel] = useState<MobileDisplayLevel>("simple");
   const [mobileQuality, setMobileQuality] = useState<MobileQuality>("balanced");
   const [mobileProfessionalSheetMode, setMobileProfessionalSheetMode] = useState<MobileProfessionalSheetMode>("socket");
@@ -2827,7 +2841,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   useEffect(() => {
     const query = window.matchMedia("(max-width: 767px)");
     const syncViewMode = () => {
-      const mobileWidth = query.matches || window.innerWidth < 768 || document.documentElement.clientWidth < 768;
+      const mobileWidth = query.matches && isPhonePresentationDevice();
+      setIsPhoneDevice(mobileWidth);
       setAppViewMode((currentMode) => {
         if (mobileWidth) return currentMode === "mobile-edit" ? "mobile-edit" : "mobile-presentation";
         return "desktop-edit";
@@ -4843,7 +4858,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         : localCodeFileReady
           ? "写入目标已绑定"
           : "绑定代码文件";
-  const mobileShellActive = appViewMode !== "desktop-edit";
+  const mobileShellActive = isPhoneDevice && appViewMode !== "desktop-edit";
   const mobilePresentationActive = appViewMode === "mobile-presentation";
   const mobilePlannerMode: PlannerMode = mobilePresentationActive ? "view" : plannerMode;
   const mobileFloorTabs = data.floors.filter((floor) => ["B2", "B1", "1F", "2F", "YARD"].includes(floor.id));
@@ -4870,7 +4885,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   if (mobileShellActive) {
     return (
-      <main className="box-border h-[100dvh] overflow-hidden bg-[#f7f3ed] text-ink md:hidden">
+      <main className="box-border h-[100dvh] overflow-hidden bg-[#f7f3ed] text-ink">
         {defaultWorkspacePayload ? (
           <pre className="hidden" data-testid="villa-default-workspace-payload">
             {defaultWorkspacePayload}
@@ -5071,7 +5086,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   return (
-    <main className={`box-border hidden h-screen overflow-hidden md:block ${isImmersiveWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
+    <main className={`box-border h-screen overflow-hidden ${isImmersiveWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
       {defaultWorkspacePayload ? (
         <pre className="hidden" data-testid="villa-default-workspace-payload">
           {defaultWorkspacePayload}
