@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { resolve3DAsset } from "@/lib/render3d-assets";
+import type { Resolved3DAsset } from "@/lib/render3d-assets";
 import type {
   Floor,
+  FixedCameraView,
   Furniture,
   HouseBayWindow,
   HouseColumn,
@@ -19,8 +23,10 @@ import type {
   HouseStructure,
   HouseWall,
   HouseWindow,
+  MobileQuality,
   ModuleServiceRequirements,
-  MmPoint
+  MmPoint,
+  Render3DAssetType
 } from "@/types/space";
 
 type Floor3DViewProps = {
@@ -35,6 +41,12 @@ type Floor3DViewProps = {
   onSelectFurniture: (furniture: Furniture) => void;
   onHoverObject: (objectId: string) => void;
   onClearHoverObject: (objectId: string) => void;
+  cameraViews?: FixedCameraView[];
+  cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
+  mobilePresentationMode?: boolean;
+  mobileQuality?: MobileQuality;
+  resetViewRequest?: number;
+  onSelectCameraView?: (view: FixedCameraView) => void;
 };
 
 type ScenePoint = {
@@ -177,14 +189,36 @@ const effectMaterialCatalog: Record<string, EffectMaterial> = {
   concrete: { label: "浅灰混凝土硬化地", color: "#bcb8ae", roughness: 0.88, metalness: 0.01 },
   warmLight: { label: "暖色氛围灯带", color: "#ffe8ae", roughness: 0.2, metalness: 0, emissive: "#ffe8ae", emissiveIntensity: 0.72 }
 };
+const interiorMaterialCatalog = {
+  warmOak: { label: "浅橡木", color: "#c8ad8b", roughness: 0.52, metalness: 0.02, envMapIntensity: 0.42 },
+  walnut: { label: "低饱和胡桃木", color: "#927965", roughness: 0.5, metalness: 0.02, envMapIntensity: 0.42 },
+  honeyWood: { label: "蜂蜜木", color: "#c5a47d", roughness: 0.54, metalness: 0.02, envMapIntensity: 0.4 },
+  creamFabric: { label: "奶油布艺", color: "#eee3d6", roughness: 0.92, metalness: 0, envMapIntensity: 0.24 },
+  beigeFabric: { label: "米灰布艺", color: "#d8cabc", roughness: 0.94, metalness: 0, envMapIntensity: 0.22 },
+  taupeFabric: { label: "灰褐布艺", color: "#aa9786", roughness: 0.93, metalness: 0, envMapIntensity: 0.22 },
+  camelFabric: { label: "浅驼软装", color: "#b99876", roughness: 0.9, metalness: 0, envMapIntensity: 0.22 },
+  warmGreyStone: { label: "暖灰石材", color: "#d8d1c6", roughness: 0.34, metalness: 0.04, envMapIntensity: 0.62 },
+  travertine: { label: "米色洞石", color: "#ded2bd", roughness: 0.38, metalness: 0.03, envMapIntensity: 0.58 },
+  microCement: { label: "暖灰微水泥", color: "#cbc3b8", roughness: 0.72, metalness: 0.02, envMapIntensity: 0.36 },
+  warmWhiteCeramic: { label: "暖白陶瓷", color: "#fbf8f1", roughness: 0.26, metalness: 0.01, envMapIntensity: 0.58 },
+  blackTitanium: { label: "黑钛金属", color: "#343331", roughness: 0.28, metalness: 0.68, envMapIntensity: 0.72 },
+  brushedBronze: { label: "拉丝古铜", color: "#a17f5b", roughness: 0.26, metalness: 0.72, envMapIntensity: 0.78 },
+  clearGlass: { label: "低铁玻璃", color: "#c9e7e8", roughness: 0.04, metalness: 0.02, opacity: 0.34, envMapIntensity: 0.92 },
+  smokedGlass: { label: "茶色玻璃", color: "#8f8379", roughness: 0.08, metalness: 0.04, opacity: 0.38, envMapIntensity: 0.78 },
+  mirror: { label: "镜面", color: "#b9c4c4", roughness: 0.06, metalness: 0.82, opacity: 0.68, envMapIntensity: 1.1 },
+  warmLightEmissive: { label: "2700K-3000K 暖光", color: "#ffe7b0", roughness: 0.18, metalness: 0, emissive: "#ffe7b0", emissiveIntensity: 0.74, envMapIntensity: 0.35 },
+  plantSoftGreen: { label: "低饱和绿植", color: "#7f936c", roughness: 0.72, metalness: 0, envMapIntensity: 0.26 },
+  shadowLine: { label: "柔和分缝", color: "#7d7166", roughness: 0.7, metalness: 0.03, opacity: 0.46, envMapIntensity: 0.2 }
+} satisfies Record<string, EffectMaterial>;
+type InteriorMaterialKey = keyof typeof interiorMaterialCatalog;
 const materialLegendText = [
   effectMaterialCatalog.wallPaint.label,
   effectMaterialCatalog.wallCap.label,
-  effectMaterialCatalog.warmStone.label,
-  effectMaterialCatalog.woodVeneer.label,
-  effectMaterialCatalog.wovenFabric.label,
-  effectMaterialCatalog.windowGlass.label,
-  effectMaterialCatalog.blackMetal.label
+  interiorMaterialCatalog.travertine.label,
+  interiorMaterialCatalog.warmOak.label,
+  interiorMaterialCatalog.creamFabric.label,
+  interiorMaterialCatalog.clearGlass.label,
+  interiorMaterialCatalog.brushedBronze.label
 ].join(" / ");
 function effectMaterialProps(key: EffectMaterialKey) {
   const material = effectMaterialCatalog[key];
@@ -198,6 +232,38 @@ function effectMaterialProps(key: EffectMaterialKey) {
     emissiveIntensity: material.emissiveIntensity ?? 0,
     envMapIntensity: material.envMapIntensity ?? 0.7
   };
+}
+function interiorMaterialProps(key: InteriorMaterialKey, overrides: Partial<EffectMaterial> = {}) {
+  const material = { ...interiorMaterialCatalog[key], ...overrides };
+  return {
+    color: material.color,
+    roughness: material.roughness,
+    metalness: material.metalness,
+    transparent: material.opacity !== undefined && material.opacity < 1,
+    opacity: material.opacity ?? 1,
+    emissive: material.emissive,
+    emissiveIntensity: material.emissiveIntensity ?? 0,
+    envMapIntensity: material.envMapIntensity ?? 0.65
+  };
+}
+function materialColor(key: InteriorMaterialKey) {
+  return interiorMaterialCatalog[key].color;
+}
+function CatalogMaterial({
+  materialKey,
+  map = null,
+  side,
+  depthWrite,
+  overrides = {}
+}: {
+  materialKey: InteriorMaterialKey;
+  map?: THREE.Texture | null;
+  side?: THREE.Side;
+  depthWrite?: boolean;
+  overrides?: Partial<EffectMaterial>;
+}) {
+  const props = interiorMaterialProps(materialKey, overrides);
+  return <meshStandardMaterial {...props} map={map ?? undefined} side={side} depthWrite={depthWrite} />;
 }
 const designStylePalettes: Record<DesignStylePreset, DesignStylePalette> = {
   naturalWood: {
@@ -265,24 +331,24 @@ const designStylePalettes: Record<DesignStylePreset, DesignStylePalette> = {
   },
   warmJapandi: {
     label: "托斯卡纳阳光",
-    background: "#f4f0e8",
-    floorBase: "#e9e0d1",
-    floorVein: "#c8b9a4",
-    floorJoint: "#d5c8b8",
-    wall: "#d4c8bc",
-    kitchenCabinet: "#ebe9e4",
-    islandBase: "#ddd7cd",
-    islandTop: "#d8d2c8",
-    countertop: "#e3ded5",
-    wood: "#c9aa82",
-    fabric: "#d8c7b8",
-    leather: "#a98b72",
-    metal: "#aaa49a",
-    glass: "#acd3dc",
+    background: "#f7f2ea",
+    floorBase: "#ebe4d8",
+    floorVein: "#c9bfb1",
+    floorJoint: "#d9cec0",
+    wall: "#eadfd2",
+    kitchenCabinet: "#f0ede7",
+    islandBase: "#e4ddd1",
+    islandTop: "#d9d2c8",
+    countertop: "#e6e0d6",
+    wood: "#c7ad8b",
+    fabric: "#ded0c1",
+    leather: "#9b806a",
+    metal: "#a29b91",
+    glass: "#b7d9dd",
     plant: "#819b67",
-    accent: "#bd7b4f",
-    light: "#fff0ba",
-    grid: "#d8cec0"
+    accent: "#a77f62",
+    light: "#ffe8b8",
+    grid: "#ded3c4"
   }
 };
 const MASTER_BATH_ROOM_ID = "ROOM-2F-003";
@@ -290,14 +356,14 @@ const masterBathPalette = {
   floor: "#d5ccc0",
   floorJoint: "#b9aea1",
   floorVein: "#eee7dc",
-  wall: "#9a9288",
-  wood: "#c5a783",
-  woodDark: "#a58c72",
+  wall: "#d8cec1",
+  wood: "#c7ad8d",
+  woodDark: "#a69078",
   stoneTop: "#eee9df",
   ceramic: "#f7f4ee",
-  glass: "#9fcdda",
-  metal: "#6f6b64",
-  light: "#ffe9b8"
+  glass: "#b7d9dd",
+  metal: "#706b63",
+  light: "#ffe8b8"
 };
 const bathroomModuleTypes = new Set(["shower", "vanity", "bathtub", "toilet", "sink"]);
 const walkthroughStops = [
@@ -381,6 +447,789 @@ function RoundedBoxMesh({
         envMapIntensity={envMapIntensity}
       />
     </mesh>
+  );
+}
+
+function shouldUseFineAsset({ materialPreview, resolvedAsset }: FurnitureAssetGroupProps) {
+  return materialPreview && resolvedAsset.detailLevel !== "draft";
+}
+
+function isClosetFurnitureModule(item: Furniture, structure: HouseStructure) {
+  const room = structure.rooms.find((candidate) => candidate.id === item.roomId);
+  return Boolean(room && isClosetRoom(room)) || item.name.includes("衣帽间");
+}
+
+function useFineAssetMetrics({ item, structure, designStyle }: FurnitureAssetGroupProps) {
+  const position = getFurnitureScenePosition(item, structure);
+  const width = Math.max(0.12, item.dimensions.width / 100);
+  const depth = Math.max(0.08, item.dimensions.depth / 100);
+  const height = getFurnitureHeight(item);
+  const rotation = -(item.position.rotation || 0) * Math.PI / 180;
+  const groupY = height / 2 + 0.035;
+  const palette = designStylePalettes[designStyle];
+  const renderVariant = getFurnitureRenderVariant(item, palette);
+  return {
+    position,
+    width,
+    depth,
+    height,
+    rotation,
+    groupY,
+    frontZ: depth / 2 + 0.01,
+    topLocalY: height / 2 + 0.025,
+    ceilingLocalY: 2.28 - groupY,
+    palette,
+    renderVariant
+  };
+}
+
+function SelectableFurnitureGroup({
+  props,
+  groupY,
+  position,
+  rotation,
+  children
+}: {
+  props: FurnitureAssetGroupProps;
+  groupY: number;
+  position: ScenePoint;
+  rotation: number;
+  children: ReactNode;
+}) {
+  const { item, resolvedAsset, onSelect, onHover, onClearHover } = props;
+  return (
+    <group
+      position={[position.x, groupY, position.z]}
+      rotation={[0, rotation, 0]}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (resolvedAsset.selectableIn3d) onSelect(item);
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        if (resolvedAsset.selectableIn3d) onHover(item.id);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        if (resolvedAsset.selectableIn3d) onClearHover(item.id);
+      }}
+    >
+      {children}
+    </group>
+  );
+}
+
+function Bed3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+  const isMaster = item.roomId === "ROOM-2F-006";
+  const woodTexture = useProceduralTexture("wood", materialColor(isMaster ? "walnut" : "warmOak"), "#ad9678", 2.4, 1.25);
+  const fabricTexture = useProceduralTexture("fabric", materialColor(isMaster ? "creamFabric" : "beigeFabric"), "#9b8674", 3.2, 3.2);
+  const accentTexture = useProceduralTexture("fabric", materialColor(isMaster ? "camelFabric" : "taupeFabric"), "#806b59", 2.4, 2.4);
+  const pillowCount = width >= 1.65 ? 4 : 2;
+  const pillowWidth = Math.min(0.5, width * (pillowCount > 2 ? 0.22 : 0.32));
+  const pillowRows = pillowCount > 2 ? [-0.34, -0.2] : [-0.3];
+  const pillowXs = pillowCount > 2 ? [-0.24, 0.24] : [-0.22, 0.22];
+  const headboardHeight = Math.min(height * (isMaster ? 0.92 : 0.78), isMaster ? 0.9 : 0.74);
+  const mattressY = -height * 0.12;
+  const duvetY = height * 0.035;
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width * 1.22, 0.026, depth * 1.04]}
+        position={[0, -height * 0.5, 0.06]}
+        radius={0.08}
+        smoothness={5}
+        color={materialColor("beigeFabric")}
+        map={fabricTexture}
+        transparent
+        opacity={0.78}
+        roughness={interiorMaterialCatalog.beigeFabric.roughness}
+        castShadow={false}
+      />
+      <RoundedBoxMesh
+        args={[width * 1.03, 0.24, depth * 0.88]}
+        position={[0, -height * 0.29, 0.04]}
+        radius={0.085}
+        smoothness={5}
+        color={isMaster ? materialColor("walnut") : materialColor("warmOak")}
+        map={woodTexture}
+        roughness={interiorMaterialCatalog.warmOak.roughness}
+        metalness={interiorMaterialCatalog.warmOak.metalness}
+      />
+      <RoundedBoxMesh
+        args={[width * 0.96, 0.18, depth * 0.76]}
+        position={[0, mattressY, depth * 0.045]}
+        radius={0.095}
+        smoothness={7}
+        color={materialColor("creamFabric")}
+        map={fabricTexture}
+        roughness={interiorMaterialCatalog.creamFabric.roughness}
+      />
+      <RoundedBoxMesh
+        args={[width * 0.9, 0.12, depth * 0.56]}
+        position={[0, duvetY, depth * 0.11]}
+        radius={0.11}
+        smoothness={8}
+        color={isMaster ? "#efe2d4" : "#f1e8dd"}
+        map={fabricTexture}
+        roughness={0.94}
+      />
+      {Array.from({ length: 5 }, (_, index) => (
+        <RoundedBoxMesh
+          key={`${item.id}-duvet-soft-fold-${index}`}
+          args={[width * (0.76 - index * 0.035), 0.017, 0.02]}
+          position={[0, duvetY + 0.064 + Math.sin(index) * 0.004, depth * (-0.08 + index * 0.088)]}
+          radius={0.013}
+          smoothness={3}
+          color="#fff7ee"
+          transparent
+          opacity={0.36}
+          roughness={0.98}
+          castShadow={false}
+        />
+      ))}
+      <RoundedBoxMesh
+        args={[width * 1.08, headboardHeight, 0.16]}
+        position={[0, height * 0.02, -depth / 2 - 0.06]}
+        radius={0.07}
+        smoothness={5}
+        color={isMaster ? materialColor("taupeFabric") : materialColor("beigeFabric")}
+        map={fabricTexture}
+        roughness={0.9}
+      />
+      {Array.from({ length: isMaster ? 5 : 4 }, (_, index) => {
+        const count = isMaster ? 5 : 4;
+        const x = -width * 0.45 + (index * width * 0.9) / Math.max(1, count - 1);
+        return (
+          <mesh key={`${item.id}-headboard-seam-${index}`} position={[x, height * 0.03, -depth / 2 + 0.028]}>
+            <boxGeometry args={[0.014, headboardHeight * 0.74, 0.018]} />
+            <CatalogMaterial materialKey="shadowLine" />
+          </mesh>
+        );
+      })}
+      {pillowRows.flatMap((rowZ, rowIndex) => pillowXs.map((xRatio, index) => (
+        <RoundedBoxMesh
+          key={`${item.id}-pillow-${rowIndex}-${index}`}
+          args={[pillowWidth, 0.1, Math.min(0.34, depth * 0.14)]}
+          position={[xRatio * width, height * (rowIndex ? 0.115 : 0.075), depth * rowZ]}
+          rotation={[0, 0, rowIndex ? (index ? -0.05 : 0.05) : 0]}
+          radius={0.065}
+          smoothness={7}
+          color={rowIndex ? "#e3d4c2" : "#fbf4ea"}
+          map={fabricTexture}
+          roughness={0.96}
+        />
+      )))}
+      {Array.from({ length: isMaster ? 2 : 1 }, (_, index) => (
+        <RoundedBoxMesh
+          key={`${item.id}-accent-cushion-${index}`}
+          args={[width * 0.17, 0.09, depth * 0.12]}
+          position={[(index ? 0.12 : -0.12) * width, height * 0.16, -depth * 0.13]}
+          rotation={[0, 0, index ? -0.1 : 0.1]}
+          radius={0.048}
+          smoothness={6}
+          color={index ? renderVariant.accent : materialColor("camelFabric")}
+          map={accentTexture}
+          roughness={0.93}
+        />
+      ))}
+      <RoundedBoxMesh
+        args={[width * 0.86, 0.052, depth * 0.18]}
+        position={[0, height * 0.07, depth * 0.22]}
+        radius={0.045}
+        smoothness={5}
+        color={isMaster ? "#9b806a" : "#a89480"}
+        map={accentTexture}
+        roughness={0.92}
+      />
+      <mesh castShadow receiveShadow position={[0, height * 0.105, depth * 0.33]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.052, 0.052, width * 0.72, 28]} />
+        <CatalogMaterial materialKey="beigeFabric" map={fabricTexture} />
+      </mesh>
+      {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+        <mesh key={`${item.id}-fine-bed-leg-${xSide}-${zSide}`} castShadow position={[xSide * width * 0.41, -height * 0.42, zSide * depth * 0.34]}>
+          <cylinderGeometry args={[0.025, 0.032, 0.16, 12]} />
+          <CatalogMaterial materialKey={isMaster ? "walnut" : "warmOak"} />
+        </mesh>
+      )))}
+      {isMaster && <pointLight color={materialColor("warmLightEmissive")} intensity={0.28} distance={1.8} position={[0, 0.52, -depth * 0.42]} />}
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Nightstand3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, topLocalY } = metrics;
+  const woodTexture = useProceduralTexture("wood", materialColor("warmOak"), "#a99174", 1.6, 1.1);
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width * 0.92, height * 0.74, depth * 0.88]}
+        position={[0, -height * 0.08, 0]}
+        radius={0.045}
+        smoothness={5}
+        color={materialColor("warmOak")}
+        map={woodTexture}
+        roughness={interiorMaterialCatalog.warmOak.roughness}
+        metalness={interiorMaterialCatalog.warmOak.metalness}
+      />
+      <RoundedBoxMesh
+        args={[width, 0.048, depth * 0.96]}
+        position={[0, topLocalY, 0]}
+        radius={0.03}
+        color={materialColor("travertine")}
+        roughness={interiorMaterialCatalog.travertine.roughness}
+        metalness={interiorMaterialCatalog.travertine.metalness}
+      />
+      {[-0.1, -0.28].map((yOffset, index) => (
+        <group key={`${item.id}-nightstand-drawer-${index}`} position={[0, yOffset * height, depth * 0.45 + 0.016]}>
+          <mesh>
+            <boxGeometry args={[width * 0.78, 0.014, 0.016]} />
+            <CatalogMaterial materialKey="shadowLine" />
+          </mesh>
+          <mesh position={[0, -height * 0.055, 0.012]}>
+            <boxGeometry args={[width * 0.32, 0.014, 0.018]} />
+            <CatalogMaterial materialKey="brushedBronze" />
+          </mesh>
+        </group>
+      ))}
+      <pointLight color={materialColor("warmLightEmissive")} intensity={0.22} distance={1.15} position={[0, height * 0.7, 0]} />
+      <mesh position={[0, height * 0.4, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, height * 0.38, 14]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[0, height * 0.68, 0]}>
+        <cylinderGeometry args={[Math.min(width, depth) * 0.18, Math.min(width, depth) * 0.25, height * 0.22, 32]} />
+        <CatalogMaterial materialKey="warmLightEmissive" overrides={{ emissiveIntensity: 0.42 }} />
+      </mesh>
+      <group position={[-width * 0.24, topLocalY + 0.04, depth * 0.12]}>
+        <RoundedBoxMesh args={[width * 0.26, 0.018, depth * 0.2]} radius={0.01} color={materialColor("taupeFabric")} roughness={0.86} />
+        <RoundedBoxMesh args={[width * 0.22, 0.02, depth * 0.16]} position={[0.012, 0.024, -0.008]} radius={0.01} color={materialColor("creamFabric")} roughness={0.9} />
+      </group>
+      <group position={[width * 0.24, topLocalY + 0.04, -depth * 0.08]}>
+        <mesh>
+          <cylinderGeometry args={[0.038, 0.046, 0.08, 18]} />
+          <CatalogMaterial materialKey="travertine" />
+        </mesh>
+        <mesh position={[0, 0.09, 0]} scale={[1, 0.62, 1]}>
+          <sphereGeometry args={[0.08, 16, 10]} />
+          <CatalogMaterial materialKey="plantSoftGreen" />
+        </mesh>
+      </group>
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean }) {
+  const { item, structure, forceOpen = false } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, frontZ, renderVariant } = metrics;
+  const closetMode = forceOpen || isClosetFurnitureModule(item, structure);
+  const woodKey: InteriorMaterialKey = item.roomId === "ROOM-2F-006" ? "walnut" : "warmOak";
+  const woodTexture = useProceduralTexture("wood", materialColor(woodKey), "#a99375", 2.6, 1.2);
+  const interiorTexture = useProceduralTexture("wood", materialColor("honeyWood"), "#b89d78", 2.2, 1.1);
+  const fabricTexture = useProceduralTexture("fabric", materialColor("beigeFabric"), "#968273", 2.4, 2.4);
+  const openRatio = closetMode ? 0.78 : item.roomId === "ROOM-2F-006" ? 0.58 : 0.44;
+  const openWidth = Math.max(width * openRatio, Math.min(width * 0.72, 0.72));
+  const closedPanelWidth = Math.max(0, (width - openWidth) / 2);
+  const doorCount = Math.max(2, Math.min(5, Math.round(width / 0.55)));
+  const drawerCount = Math.max(2, Math.min(4, Math.round(width / 0.7)));
+  const clothCount = Math.max(4, Math.min(8, Math.round(openWidth / 0.24)));
+  const hasGlass = closetMode || item.name.includes("玻璃") || item.name.includes("包");
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width, height * 0.96, depth * 0.88]}
+        position={[0, 0, -depth * 0.04]}
+        radius={0.034}
+        smoothness={4}
+        color={materialColor(woodKey)}
+        map={woodTexture}
+        roughness={interiorMaterialCatalog[woodKey].roughness}
+        metalness={interiorMaterialCatalog[woodKey].metalness}
+      />
+      <RoundedBoxMesh
+        args={[width * 1.02, 0.06, depth * 0.94]}
+        position={[0, height * 0.5 + 0.02, -depth * 0.04]}
+        radius={0.018}
+        color={materialColor("warmOak")}
+        map={woodTexture}
+        roughness={0.52}
+      />
+      <RoundedBoxMesh
+        args={[width * 1.01, 0.07, depth * 0.92]}
+        position={[0, -height * 0.48, -depth * 0.035]}
+        radius={0.018}
+        color={materialColor("blackTitanium")}
+        roughness={0.34}
+        metalness={0.36}
+      />
+      <RoundedBoxMesh
+        args={[openWidth, height * 0.72, depth * 0.72]}
+        position={[0, height * 0.03, frontZ - depth * 0.38]}
+        radius={0.026}
+        color={materialColor("honeyWood")}
+        map={interiorTexture}
+        roughness={0.56}
+        metalness={0.02}
+      />
+      {[-1, 1].map((xSide) => (
+        <mesh key={`${item.id}-closet-side-frame-${xSide}`} position={[xSide * openWidth * 0.5, height * 0.04, frontZ - depth * 0.04]}>
+          <boxGeometry args={[0.034, height * 0.76, 0.06]} />
+          <CatalogMaterial materialKey={woodKey} map={woodTexture} />
+        </mesh>
+      ))}
+      {[-0.23, 0.02, 0.27].map((yRatio) => (
+        <mesh key={`${item.id}-closet-open-shelf-${yRatio}`} position={[0, yRatio * height, frontZ - depth * 0.03]}>
+          <boxGeometry args={[openWidth * 0.94, 0.027, 0.07]} />
+          <CatalogMaterial materialKey="honeyWood" map={interiorTexture} />
+        </mesh>
+      ))}
+      <mesh position={[0, height * 0.41, frontZ - depth * 0.02]}>
+        <boxGeometry args={[openWidth * 0.94, 0.022, 0.034]} />
+        <CatalogMaterial materialKey="warmLightEmissive" overrides={{ emissiveIntensity: closetMode ? 0.82 : 0.58 }} />
+      </mesh>
+      <mesh position={[0, height * 0.19, frontZ - depth * 0.01]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.012, 0.012, openWidth * 0.82, 14]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      {Array.from({ length: clothCount }, (_, index) => {
+        const x = -openWidth * 0.39 + (index * openWidth * 0.78) / Math.max(1, clothCount - 1);
+        const clothColor = renderVariant.clothColors[index % renderVariant.clothColors.length];
+        return (
+          <group key={`${item.id}-fine-cloth-${index}`} position={[x, height * (0.03 - (index % 3) * 0.012), frontZ + 0.02]}>
+            <RoundedBoxMesh
+              args={[Math.max(0.08, openWidth * 0.07), height * (0.26 + (index % 3) * 0.035), 0.048]}
+              radius={0.018}
+              color={clothColor}
+              map={fabricTexture}
+              roughness={0.88}
+            />
+            <mesh position={[0, height * 0.16, 0.02]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.009, 0.009, Math.max(0.07, openWidth * 0.06), 10]} />
+              <CatalogMaterial materialKey="brushedBronze" />
+            </mesh>
+          </group>
+        );
+      })}
+      {Array.from({ length: drawerCount }, (_, index) => {
+        const drawerWidth = (openWidth * 0.92) / drawerCount;
+        const x = -openWidth * 0.46 + drawerWidth * (index + 0.5);
+        return (
+          <group key={`${item.id}-fine-wardrobe-drawer-${index}`} position={[x, -height * 0.3, frontZ + 0.026]}>
+            <RoundedBoxMesh
+              args={[drawerWidth - 0.025, height * 0.12, 0.052]}
+              radius={0.018}
+              color={materialColor(woodKey)}
+              map={woodTexture}
+              roughness={0.54}
+              metalness={0.02}
+            />
+            <mesh position={[0, 0, 0.036]}>
+              <boxGeometry args={[Math.min(0.16, drawerWidth * 0.42), 0.012, 0.016]} />
+              <CatalogMaterial materialKey="brushedBronze" />
+            </mesh>
+          </group>
+        );
+      })}
+      {closedPanelWidth > 0.08 && [-1, 1].map((xSide) => (
+        <group key={`${item.id}-closed-door-zone-${xSide}`} position={[xSide * (openWidth / 2 + closedPanelWidth / 2), height * 0.03, frontZ + 0.025]}>
+          <RoundedBoxMesh
+            args={[closedPanelWidth * 0.9, height * 0.74, 0.05]}
+            radius={0.024}
+            color={materialColor(woodKey)}
+            map={woodTexture}
+            roughness={0.52}
+            metalness={0.02}
+          />
+          {hasGlass && (
+            <mesh position={[0, height * 0.05, 0.035]}>
+              <boxGeometry args={[closedPanelWidth * 0.7, height * 0.5, 0.018]} />
+              <CatalogMaterial materialKey="smokedGlass" depthWrite={false} />
+            </mesh>
+          )}
+          <mesh position={[xSide * closedPanelWidth * 0.28, -height * 0.02, 0.05]}>
+            <boxGeometry args={[0.018, height * 0.44, 0.018]} />
+            <CatalogMaterial materialKey="brushedBronze" />
+          </mesh>
+        </group>
+      ))}
+      {Array.from({ length: doorCount - 1 }, (_, index) => {
+        const x = -width / 2 + ((index + 1) * width) / doorCount;
+        return (
+          <mesh key={`${item.id}-fine-door-gap-${index}`} position={[x, 0, frontZ + 0.058]}>
+            <boxGeometry args={[0.01, height * 0.76, 0.012]} />
+            <CatalogMaterial materialKey="shadowLine" />
+          </mesh>
+        );
+      })}
+      {Array.from({ length: Math.max(2, Math.min(4, Math.round(openWidth / 0.48))) }, (_, index) => {
+        const boxWidth = openWidth / Math.max(2, Math.min(4, Math.round(openWidth / 0.48))) - 0.05;
+        const x = -openWidth / 2 + boxWidth / 2 + 0.045 + index * (boxWidth + 0.045);
+        return (
+          <RoundedBoxMesh
+            key={`${item.id}-closet-storage-box-${index}`}
+            args={[boxWidth, height * 0.082, 0.14]}
+            position={[x, -height * 0.155, frontZ + 0.055]}
+            radius={0.018}
+            color={index % 2 ? materialColor("taupeFabric") : materialColor("creamFabric")}
+            map={fabricTexture}
+            roughness={0.86}
+          />
+        );
+      })}
+      {closetMode && <pointLight color={materialColor("warmLightEmissive")} intensity={0.34} distance={1.55} position={[0, height * 0.38, frontZ + 0.12]} />}
+    </SelectableFurnitureGroup>
+  );
+}
+
+function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, frontZ, topLocalY } = metrics;
+  const woodTexture = useProceduralTexture("wood", materialColor("warmOak"), "#a99072", 1.8, 1.1);
+  const stoneTexture = useProceduralTexture("stone", materialColor("travertine"), "#b8aa98", 1.6, 1.2);
+  const basinCount = width >= 1.25 ? 2 : 1;
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width * 0.96, height * 0.58, depth * 0.82]}
+        position={[0, -height * 0.15, 0]}
+        radius={0.045}
+        smoothness={5}
+        color={materialColor("warmOak")}
+        map={woodTexture}
+        roughness={interiorMaterialCatalog.warmOak.roughness}
+        metalness={interiorMaterialCatalog.warmOak.metalness}
+      />
+      <RoundedBoxMesh
+        args={[width * 1.04, 0.065, depth * 0.92]}
+        position={[0, topLocalY, 0]}
+        radius={0.03}
+        color={materialColor("travertine")}
+        map={stoneTexture}
+        roughness={interiorMaterialCatalog.travertine.roughness}
+        metalness={interiorMaterialCatalog.travertine.metalness}
+      />
+      {Array.from({ length: Math.max(2, Math.min(4, Math.round(width / 0.45))) }, (_, index) => {
+        const drawerWidth = (width * 0.88) / Math.max(2, Math.min(4, Math.round(width / 0.45)));
+        const x = -width * 0.44 + drawerWidth * (index + 0.5);
+        return (
+          <group key={`${item.id}-vanity-drawer-${index}`} position={[x, -height * 0.13, frontZ + 0.03]}>
+            <mesh>
+              <boxGeometry args={[drawerWidth * 0.88, 0.012, 0.014]} />
+              <CatalogMaterial materialKey="shadowLine" />
+            </mesh>
+            <mesh position={[0, -height * 0.08, 0.014]}>
+              <boxGeometry args={[Math.min(0.16, drawerWidth * 0.44), 0.012, 0.014]} />
+              <CatalogMaterial materialKey="brushedBronze" />
+            </mesh>
+          </group>
+        );
+      })}
+      {Array.from({ length: basinCount }, (_, index) => {
+        const x = basinCount === 1 ? 0 : (index ? 0.24 : -0.24) * width;
+        return (
+          <group key={`${item.id}-fine-basin-${index}`} position={[x, topLocalY + 0.045, -depth * 0.04]}>
+            <mesh receiveShadow scale={[1.2, 0.28, 0.8]}>
+              <sphereGeometry args={[Math.min(width / basinCount, depth) * 0.17, 36, 18]} />
+              <CatalogMaterial materialKey="warmWhiteCeramic" />
+            </mesh>
+            <mesh position={[0, 0.018, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[Math.min(width / basinCount, depth) * 0.145, 0.012, 12, 36]} />
+              <CatalogMaterial materialKey="warmWhiteCeramic" />
+            </mesh>
+            <mesh position={[Math.min(0.16, width * 0.09), 0.11, -depth * 0.12]}>
+              <cylinderGeometry args={[0.014, 0.014, 0.18, 14]} />
+              <CatalogMaterial materialKey="brushedBronze" />
+            </mesh>
+            <mesh position={[Math.min(0.09, width * 0.06), 0.19, -depth * 0.12]}>
+              <boxGeometry args={[0.16, 0.018, 0.022]} />
+              <CatalogMaterial materialKey="brushedBronze" />
+            </mesh>
+          </group>
+        );
+      })}
+      <RoundedBoxMesh
+        args={[width * 0.88, Math.min(0.42, height * 0.54), 0.035]}
+        position={[0, Math.min(height * 0.75, 0.62), frontZ + 0.046]}
+        radius={0.025}
+        smoothness={4}
+        color={materialColor("mirror")}
+        roughness={interiorMaterialCatalog.mirror.roughness}
+        metalness={interiorMaterialCatalog.mirror.metalness}
+        transparent
+        opacity={interiorMaterialCatalog.mirror.opacity}
+        depthWrite={false}
+      />
+      <mesh position={[0, Math.min(height * 1.02, 0.84), frontZ + 0.07]}>
+        <boxGeometry args={[width * 0.82, 0.026, 0.03]} />
+        <CatalogMaterial materialKey="warmLightEmissive" overrides={{ emissiveIntensity: 0.76 }} />
+      </mesh>
+      <group position={[width * 0.34, topLocalY + 0.08, depth * 0.12]}>
+        <mesh>
+          <cylinderGeometry args={[0.028, 0.036, 0.085, 18]} />
+          <CatalogMaterial materialKey="travertine" />
+        </mesh>
+        <mesh position={[0, 0.09, 0]} scale={[1, 0.62, 1]}>
+          <sphereGeometry args={[0.076, 16, 10]} />
+          <CatalogMaterial materialKey="plantSoftGreen" />
+        </mesh>
+      </group>
+      <pointLight color={materialColor("warmLightEmissive")} intensity={0.2} distance={1.4} position={[0, 0.72, frontZ + 0.16]} />
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Toilet3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY } = metrics;
+  const ceramicRadius = Math.min(width, depth) * 0.28;
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width * 0.58, height * 0.34, depth * 0.5]}
+        position={[0, -height * 0.28, depth * 0.08]}
+        radius={0.08}
+        smoothness={7}
+        color={materialColor("warmWhiteCeramic")}
+        roughness={interiorMaterialCatalog.warmWhiteCeramic.roughness}
+        metalness={interiorMaterialCatalog.warmWhiteCeramic.metalness}
+      />
+      <mesh castShadow receiveShadow position={[0, -height * 0.05, depth * 0.05]} scale={[1.12, 0.34, 1.28]}>
+        <sphereGeometry args={[ceramicRadius, 36, 18]} />
+        <CatalogMaterial materialKey="warmWhiteCeramic" />
+      </mesh>
+      <mesh position={[0, height * 0.055, depth * 0.03]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[ceramicRadius * 0.62, 0.024, 14, 42]} />
+        <CatalogMaterial materialKey="warmWhiteCeramic" />
+      </mesh>
+      <RoundedBoxMesh
+        args={[width * 0.62, 0.055, depth * 0.52]}
+        position={[0, height * 0.105, depth * 0.025]}
+        radius={0.052}
+        smoothness={5}
+        color="#f4eee6"
+        roughness={0.32}
+        metalness={0.01}
+      />
+      <RoundedBoxMesh
+        args={[width * 0.78, height * 0.42, depth * 0.16]}
+        position={[0, height * 0.24, -depth * 0.38]}
+        radius={0.04}
+        smoothness={5}
+        color={materialColor("warmWhiteCeramic")}
+        roughness={0.3}
+        metalness={0.01}
+      />
+      <mesh position={[width * 0.25, height * 0.42, -depth * 0.47]}>
+        <boxGeometry args={[0.11, 0.018, 0.012]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[-width * 0.38, -height * 0.05, -depth * 0.18]}>
+        <cylinderGeometry args={[0.014, 0.014, 0.16, 12]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Bathtub3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY } = metrics;
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width * 0.94, height * 0.72, depth * 0.88]}
+        position={[0, -height * 0.06, 0]}
+        radius={Math.min(width, depth) * 0.18}
+        smoothness={10}
+        color={materialColor("warmWhiteCeramic")}
+        roughness={0.22}
+        metalness={0.01}
+      />
+      <RoundedBoxMesh
+        args={[width * 0.7, height * 0.18, depth * 0.58]}
+        position={[0, height * 0.16, 0]}
+        radius={Math.min(width, depth) * 0.14}
+        smoothness={9}
+        color="#dceff1"
+        transparent
+        opacity={0.55}
+        roughness={0.12}
+        metalness={0.03}
+        depthWrite={false}
+      />
+      {[-1, 1].map((xSide) => (
+        <mesh key={`${item.id}-fine-bath-rim-${xSide}`} position={[xSide * width * 0.38, height * 0.24, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.018, 0.018, depth * 0.64, 18]} />
+          <CatalogMaterial materialKey="warmWhiteCeramic" />
+        </mesh>
+      ))}
+      <mesh position={[width * 0.32, height * 0.4, -depth * 0.22]}>
+        <cylinderGeometry args={[0.018, 0.018, 0.24, 16]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[width * 0.24, height * 0.5, -depth * 0.22]}>
+        <boxGeometry args={[0.18, 0.02, 0.024]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[width * 0.2, height * 0.28, depth * 0.28]}>
+        <cylinderGeometry args={[0.035, 0.035, 0.012, 20]} />
+        <CatalogMaterial materialKey="blackTitanium" />
+      </mesh>
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Shower3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, frontZ } = metrics;
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width * 0.96, 0.052, depth * 0.96]}
+        position={[0, -height * 0.48, 0]}
+        radius={0.028}
+        color={materialColor("microCement")}
+        roughness={interiorMaterialCatalog.microCement.roughness}
+        metalness={interiorMaterialCatalog.microCement.metalness}
+      />
+      {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+        <mesh key={`${item.id}-fine-shower-post-${xSide}-${zSide}`} position={[xSide * width * 0.47, 0.02, zSide * depth * 0.47]}>
+          <boxGeometry args={[0.024, height * 0.9, 0.024]} />
+          <CatalogMaterial materialKey="blackTitanium" />
+        </mesh>
+      )))}
+      <mesh position={[0, height * 0.1, frontZ + 0.01]}>
+        <boxGeometry args={[width * 0.78, height * 0.78, 0.02]} />
+        <CatalogMaterial materialKey="clearGlass" depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      {[-1, 1].map((xSide) => (
+        <mesh key={`${item.id}-fine-shower-side-${xSide}`} position={[xSide * width * 0.47, height * 0.1, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <boxGeometry args={[depth * 0.84, height * 0.76, 0.018]} />
+          <CatalogMaterial materialKey="clearGlass" depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+      <mesh position={[0, height * 0.5, frontZ + 0.025]}>
+        <boxGeometry args={[width * 0.86, 0.024, 0.026]} />
+        <CatalogMaterial materialKey="blackTitanium" />
+      </mesh>
+      <mesh position={[width * 0.24, height * 0.18, -depth * 0.36]}>
+        <cylinderGeometry args={[0.012, 0.012, height * 0.62, 12]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[width * 0.24, height * 0.43, -depth * 0.31]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.11, 0.11, 0.026, 32]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[-width * 0.26, height * 0.08, -depth * 0.38]}>
+        <boxGeometry args={[0.2, 0.15, 0.035]} />
+        <CatalogMaterial materialKey="warmLightEmissive" overrides={{ emissiveIntensity: 0.48 }} />
+      </mesh>
+      <mesh position={[width * 0.28, -height * 0.435, depth * 0.24]}>
+        <cylinderGeometry args={[0.055, 0.055, 0.012, 24]} />
+        <CatalogMaterial materialKey="blackTitanium" />
+      </mesh>
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Desk3DAsset(props: FurnitureAssetGroupProps) {
+  const { item } = props;
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, topLocalY, frontZ } = metrics;
+  const woodTexture = useProceduralTexture("wood", materialColor("warmOak"), "#ad9678", 1.8, 1.1);
+  const isDresser = item.name.includes("梳妆") || item.name.includes("化妆") || item.name.includes("整理");
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh
+        args={[width, 0.065, depth * 0.82]}
+        position={[0, topLocalY, 0]}
+        radius={0.028}
+        color={materialColor("warmOak")}
+        map={woodTexture}
+        roughness={0.52}
+        metalness={0.02}
+      />
+      <RoundedBoxMesh
+        args={[width * 0.42, height * 0.26, depth * 0.74]}
+        position={[width * 0.25, -height * 0.14, 0]}
+        radius={0.026}
+        color={materialColor("warmOak")}
+        map={woodTexture}
+        roughness={0.54}
+        metalness={0.02}
+      />
+      {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+        <mesh key={`${item.id}-desk-leg-${xSide}-${zSide}`} position={[xSide * width * 0.42, -height * 0.2, zSide * depth * 0.28]}>
+          <cylinderGeometry args={[0.018, 0.024, height * 0.54, 12]} />
+          <CatalogMaterial materialKey="blackTitanium" />
+        </mesh>
+      )))}
+      {[-0.04, -0.17].map((yOffset, index) => (
+        <group key={`${item.id}-desk-drawer-${index}`} position={[width * 0.25, yOffset * height, frontZ + 0.008]}>
+          <mesh>
+            <boxGeometry args={[width * 0.32, 0.012, 0.014]} />
+            <CatalogMaterial materialKey="shadowLine" />
+          </mesh>
+          <mesh position={[0, -height * 0.045, 0.014]}>
+            <boxGeometry args={[width * 0.16, 0.012, 0.016]} />
+            <CatalogMaterial materialKey="brushedBronze" />
+          </mesh>
+        </group>
+      ))}
+      <group position={[-width * 0.24, topLocalY + 0.045, -depth * 0.02]}>
+        <RoundedBoxMesh args={[width * 0.23, 0.018, depth * 0.2]} radius={0.01} color={materialColor("taupeFabric")} roughness={0.86} />
+        <RoundedBoxMesh args={[width * 0.19, 0.02, depth * 0.16]} position={[0.012, 0.024, -0.01]} radius={0.01} color={materialColor("creamFabric")} roughness={0.9} />
+      </group>
+      <pointLight color={materialColor("warmLightEmissive")} intensity={0.18} distance={1.1} position={[-width * 0.36, height * 0.58, 0]} />
+      <mesh position={[-width * 0.36, height * 0.34, 0]}>
+        <cylinderGeometry args={[0.016, 0.016, height * 0.36, 12]} />
+        <CatalogMaterial materialKey="brushedBronze" />
+      </mesh>
+      <mesh position={[-width * 0.32, height * 0.54, -depth * 0.02]} rotation={[0, 0, -0.34]}>
+        <cylinderGeometry args={[0.075, 0.11, 0.12, 24]} />
+        <CatalogMaterial materialKey="warmLightEmissive" overrides={{ emissiveIntensity: 0.42 }} />
+      </mesh>
+      <group position={[0, -height * 0.34, depth * 0.68]} rotation={[0, Math.PI, 0]}>
+        <RoundedBoxMesh args={[width * 0.36, 0.08, depth * 0.42]} radius={0.04} color={materialColor("beigeFabric")} roughness={0.9} />
+        <RoundedBoxMesh args={[width * 0.38, height * 0.38, 0.06]} position={[0, height * 0.2, -depth * 0.18]} radius={0.035} color={materialColor("beigeFabric")} roughness={0.9} />
+        {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+          <mesh key={`${item.id}-desk-chair-leg-${xSide}-${zSide}`} position={[xSide * width * 0.13, -height * 0.17, zSide * depth * 0.13]}>
+            <cylinderGeometry args={[0.012, 0.016, height * 0.32, 10]} />
+            <CatalogMaterial materialKey="blackTitanium" />
+          </mesh>
+        )))}
+      </group>
+      {isDresser && (
+        <RoundedBoxMesh
+          args={[width * 0.34, height * 0.42, 0.028]}
+          position={[-width * 0.02, height * 0.52, -depth * 0.38]}
+          radius={0.022}
+          color={materialColor("mirror")}
+          roughness={interiorMaterialCatalog.mirror.roughness}
+          metalness={interiorMaterialCatalog.mirror.metalness}
+          transparent
+          opacity={interiorMaterialCatalog.mirror.opacity}
+          depthWrite={false}
+        />
+      )}
+    </SelectableFurnitureGroup>
   );
 }
 
@@ -501,6 +1350,35 @@ function toScenePoint(point: MmPoint, structure: HouseStructure): ScenePoint {
   return {
     x: (point.x - size.width / 2) * MM_TO_M,
     z: (point.y - size.height / 2) * MM_TO_M
+  };
+}
+
+function getMobileDefaultCameraView(floor: Floor, structure: HouseStructure): FixedCameraView {
+  const size = getStructureSize(structure);
+  const sceneWidth = Math.max(size.width * MM_TO_M, 8.8);
+  const sceneDepth = Math.max(size.height * MM_TO_M, 7.2);
+  const distance = Math.max(sceneWidth, sceneDepth) * 0.94;
+  const targetByFloor: Record<Floor["id"], { x: number; y: number; z: number; zoom: number; description: string }> = {
+    B2: { x: -0.25, y: 0.38, z: 0.18, zoom: 31, description: "活动区、书房和休闲区总览" },
+    B1: { x: 0.18, y: 0.38, z: 0.1, zoom: 31, description: "客房、卫生间和休闲角总览" },
+    "1F": { x: 0.88, y: 0.38, z: -0.72, zoom: 24, description: "客餐厨、中岛和餐桌总览" },
+    "2F": { x: 0.05, y: 0.38, z: -0.18, zoom: 31, description: "卧室、衣帽间和卫生间总览" },
+    YARD: { x: 0, y: 0.34, z: 0, zoom: 22, description: "南北院、围栏、铺装和庭院柜总览" }
+  };
+  const target = targetByFloor[floor.id];
+  return {
+    id: `mobile-default-${floor.id}`,
+    name: `${floor.label} 手机默认轴测`,
+    floor: floor.id,
+    cameraPosition: {
+      x: target.x - distance * 0.64,
+      y: Math.max(6.2, distance * 0.78),
+      z: target.z + distance * 0.68
+    },
+    target: { x: target.x, y: target.y, z: target.z },
+    zoom: target.zoom,
+    mode: "orthographic",
+    description: target.description
   };
 }
 
@@ -912,6 +1790,14 @@ function getFurnitureMaterialStyle(item: Furniture, materialPreview: boolean, de
 }
 
 function getFurnitureServiceRequirements(item: Furniture): ModuleServiceRequirements {
+  if (item.mepMeta) {
+    return {
+      water: Boolean(item.mepMeta.needsWaterSupply ?? item.serviceRequirements?.water),
+      drainage: Boolean(item.mepMeta.needsDrainage ?? item.serviceRequirements?.drainage),
+      power: Boolean(item.mepMeta.needsSocket ?? item.serviceRequirements?.power),
+      exhaust: Boolean(item.mepMeta.needsVentilation ?? item.serviceRequirements?.exhaust)
+    };
+  }
   if (item.serviceRequirements) return item.serviceRequirements;
   const text = materialText(item);
   const moduleType = item.moduleType ?? item.type;
@@ -2266,50 +3152,68 @@ function StairMesh({
   );
 }
 
+type FurnitureAssetGroupProps = {
+  item: Furniture;
+  structure: HouseStructure;
+  materialPreview: boolean;
+  designStyle: DesignStylePreset;
+  selected: boolean;
+  resolvedAsset: Resolved3DAsset;
+  onSelect: (item: Furniture) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+};
+
 function FurnitureBlock({
   item,
   structure,
   materialPreview,
   designStyle,
   selected,
+  resolvedAsset,
   onSelect,
   onHover,
   onClearHover
-}: {
-  item: Furniture;
-  structure: HouseStructure;
-  materialPreview: boolean;
-  designStyle: DesignStylePreset;
-  selected: boolean;
-  onSelect: (item: Furniture) => void;
-  onHover: (id: string) => void;
-  onClearHover: (id: string) => void;
-}) {
+}: FurnitureAssetGroupProps) {
   const position = getFurnitureScenePosition(item, structure);
   const width = Math.max(0.12, item.dimensions.width / 100);
   const depth = Math.max(0.08, item.dimensions.depth / 100);
   const height = getFurnitureHeight(item);
   const rotation = -(item.position.rotation || 0) * Math.PI / 180;
   const palette = designStylePalettes[designStyle];
+  const assetType = resolvedAsset.assetType;
   const renderVariant = getFurnitureRenderVariant(item, palette);
   const materialStyle = getFurnitureMaterialStyle(item, materialPreview, designStyle);
   const useSelectionTint = selected && !materialPreview;
   const color = useSelectionTint ? "#2563eb" : materialStyle.color;
   const opacity = useSelectionTint ? Math.max(0.78, materialStyle.opacity) : materialStyle.opacity;
   const transparent = opacity < 1;
-  const cabinetLike = isCabinetLike(item);
-  const counterLike = item.moduleType === "island" || item.moduleType === "kitchenCabinet" || item.moduleType === "sideboard" || item.moduleType === "vanity";
-  const tableLike = isTableLike(item);
-  const sofaLike = isSofaLike(item);
-  const bedLike = isBedLike(item);
-  const chairLike = isChairLike(item);
-  const plantLike = isPlantLike(item);
+  const wardrobeLike = assetType === "wardrobe" || assetType === "walkInCloset" || item.moduleType === "wardrobe";
+  const cabinetLike = isCabinetLike(item) || [
+    "cabinet",
+    "wardrobe",
+    "walkInCloset",
+    "kitchenCabinet",
+    "snackCabinet",
+    "entryCabinet",
+    "sideboard",
+    "bathroomVanity",
+    "bookshelf",
+    "nightstand"
+  ].includes(assetType);
+  const counterLike = ["island", "kitchenCabinet", "sideboard", "bathroomVanity"].includes(assetType) ||
+    item.moduleType === "island" || item.moduleType === "kitchenCabinet" || item.moduleType === "sideboard" || item.moduleType === "vanity";
+  const tableLike = isTableLike(item) || assetType === "diningTable" || assetType === "coffeeTable" || assetType === "desk";
+  const sofaLike = isSofaLike(item) || assetType === "sofa";
+  const bedLike = isBedLike(item) || assetType === "bed";
+  const chairLike = isChairLike(item) || assetType === "diningChair";
+  const plantLike = isPlantLike(item) || assetType === "plant" || (assetType === "yardModule" && item.type === "plant");
   const rugLike = isRugLike(item);
-  const fireplaceLike = item.moduleType === "fireplace";
+  const fireplaceLike = item.moduleType === "fireplace" || assetType === "fireplace";
   const masterBathFixture = isMasterBathFurniture(item);
-  const bathFixture = masterBathFixture || isBathroomFurniture(item);
-  const diningTableLike = isDiningTableLike(item, width, depth);
-  const coffeeTableLike = isCoffeeTableLike(item, width, depth, height);
+  const bathFixture = masterBathFixture || isBathroomFurniture(item) || ["bathroomVanity", "toilet", "bathtub", "shower", "sink"].includes(assetType);
+  const diningTableLike = assetType === "diningTable" || (assetType !== "coffeeTable" && assetType !== "desk" && isDiningTableLike(item, width, depth));
+  const coffeeTableLike = assetType === "coffeeTable" || assetType === "desk" || isCoffeeTableLike(item, width, depth, height);
   const renderMainBody = !tableLike && !chairLike && !plantLike && !rugLike && !fireplaceLike;
   const bodyHeight = sofaLike ? height * 0.36 : bedLike ? height * 0.22 : height;
   const bodyY = sofaLike ? -height * 0.22 : bedLike ? -height * 0.3 : 0;
@@ -2356,15 +3260,15 @@ function FurnitureBlock({
       rotation={[0, rotation, 0]}
       onClick={(event) => {
         event.stopPropagation();
-        onSelect(item);
+        if (resolvedAsset.selectableIn3d) onSelect(item);
       }}
       onPointerOver={(event) => {
         event.stopPropagation();
-        onHover(item.id);
+        if (resolvedAsset.selectableIn3d) onHover(item.id);
       }}
       onPointerOut={(event) => {
         event.stopPropagation();
-        onClearHover(item.id);
+        if (resolvedAsset.selectableIn3d) onClearHover(item.id);
       }}
     >
       {renderMainBody && (
@@ -2575,7 +3479,7 @@ function FurnitureBlock({
                 args={[width + 0.08, 0.055, depth + 0.08]}
                 position={[0, height / 2 + 0.028, 0]}
                 radius={0.026}
-                color={item.moduleType === "island" ? palette.islandTop : palette.countertop}
+                color={assetType === "island" ? palette.islandTop : palette.countertop}
                 map={stoneTexture}
                 roughness={0.31}
                 metalness={0.04}
@@ -2628,8 +3532,8 @@ function FurnitureBlock({
                     <RoundedBoxMesh
                       args={[drawerWidth * 0.82, height * 0.18, 0.022]}
                       radius={0.018}
-                      color={item.moduleType === "kitchenCabinet" ? effectMaterialCatalog.cabinetPaint.color : renderVariant.wood}
-                      map={item.moduleType === "kitchenCabinet" ? null : woodTexture}
+                      color={assetType === "kitchenCabinet" || item.moduleType === "kitchenCabinet" ? effectMaterialCatalog.cabinetPaint.color : renderVariant.wood}
+                      map={assetType === "kitchenCabinet" || item.moduleType === "kitchenCabinet" ? null : woodTexture}
                       roughness={0.52}
                       metalness={0.02}
                     />
@@ -2640,13 +3544,13 @@ function FurnitureBlock({
                   </group>
                 );
               })}
-              {(item.moduleType === "kitchenCabinet" || item.moduleType === "sideboard" || item.moduleType === "vanity") && (
+              {(["kitchenCabinet", "sideboard", "bathroomVanity"].includes(assetType) || item.moduleType === "kitchenCabinet" || item.moduleType === "sideboard" || item.moduleType === "vanity") && (
                 <mesh position={[0, height * 0.24, frontZ + 0.012]}>
                   <boxGeometry args={[width * 0.88, 0.026, 0.018]} />
                   <meshStandardMaterial color={palette.light} emissive={palette.light} emissiveIntensity={0.75} roughness={0.18} />
                 </mesh>
               )}
-              {item.moduleType === "wardrobe" && (
+              {wardrobeLike && (
                 <group>
                   {wardrobeClosedPanelWidth > 0.08 && [-1, 1].map((xSide) => (
                     <RoundedBoxMesh
@@ -2738,7 +3642,7 @@ function FurnitureBlock({
                   })}
                 </group>
               )}
-              {item.moduleType === "sideboard" && (
+              {assetType === "sideboard" && (
                 <group>
                   <RoundedBoxMesh
                     args={[width * 0.9, 0.05, depth * 0.88]}
@@ -2802,7 +3706,7 @@ function FurnitureBlock({
               )}
             </group>
           )}
-          {item.moduleType === "island" && (
+          {assetType === "island" && (
             <group>
               <mesh position={[-width / 2 - 0.035, 0.04, 0]}>
                 <boxGeometry args={[0.055, height * 0.84, depth + 0.08]} />
@@ -3013,7 +3917,7 @@ function FurnitureBlock({
               ))}
             </group>
           )}
-          {item.moduleType === "sink" && (
+          {assetType === "sink" && (
             <group>
               <mesh position={[0, height / 2 + 0.018, 0]}>
                 <boxGeometry args={[width * 0.78, 0.035, depth * 0.68]} />
@@ -3033,7 +3937,7 @@ function FurnitureBlock({
               </mesh>
             </group>
           )}
-          {item.moduleType === "cooktop" && (
+          {assetType === "cooktop" && (
             <group>
               <mesh position={[0, height / 2 + 0.02, 0]}>
                 <boxGeometry args={[width * 0.84, 0.032, depth * 0.7]} />
@@ -3047,7 +3951,7 @@ function FurnitureBlock({
               )))}
             </group>
           )}
-          {item.moduleType === "fridge" && (
+          {assetType === "fridge" && (
             <group>
               <mesh position={[0, 0, frontZ]}>
                 <boxGeometry args={[0.014, height * 0.9, 0.016]} />
@@ -3063,7 +3967,7 @@ function FurnitureBlock({
               </mesh>
             </group>
           )}
-          {item.moduleType === "fireplace" && (
+          {fireplaceLike && (
             <group>
               <pointLight color="#ffb45f" intensity={2.1} distance={2.1} position={[0, -height * 0.02, frontZ + 0.22]} />
               {materialPreview && depth < 0.22 && (
@@ -3226,7 +4130,7 @@ function FurnitureBlock({
               </mesh>
             </group>
           )}
-          {item.moduleType === "pegboard" && (
+          {assetType === "pegboard" && (
             <group>
               <mesh position={[0, height * 0.24, frontZ]}>
                 <boxGeometry args={[width * 0.88, 0.035, 0.12]} />
@@ -3247,7 +4151,7 @@ function FurnitureBlock({
       )}
       {materialPreview && bathFixture && (
         <>
-          {item.moduleType === "vanity" && (
+          {assetType === "bathroomVanity" && (
             <group>
               <mesh castShadow receiveShadow position={[0, height / 2 + 0.062, 0]}>
                 <boxGeometry args={[width + 0.1, 0.052, depth + 0.08]} />
@@ -3283,7 +4187,7 @@ function FurnitureBlock({
               </mesh>
             </group>
           )}
-          {item.moduleType === "bathtub" && (
+          {assetType === "bathtub" && (
             <group>
               <RoundedBoxMesh
                 args={[width * 0.88, 0.1, depth * 0.82]}
@@ -3321,7 +4225,7 @@ function FurnitureBlock({
               </mesh>
             </group>
           )}
-          {item.moduleType === "shower" && (
+          {assetType === "shower" && (
             <group>
               <mesh receiveShadow position={[0, -height * 0.47, 0]}>
                 <boxGeometry args={[width * 0.92, 0.045, depth * 0.92]} />
@@ -3353,7 +4257,7 @@ function FurnitureBlock({
               </mesh>
             </group>
           )}
-          {item.moduleType === "toilet" && (
+          {assetType === "toilet" && (
             <group>
               <mesh castShadow receiveShadow position={[0, height * 0.12, -depth * 0.1]} scale={[1.12, 0.42, 0.88]}>
                 <sphereGeometry args={[Math.min(width, depth) * 0.29, 32, 16]} />
@@ -3370,6 +4274,177 @@ function FurnitureBlock({
       )}
     </group>
   );
+}
+
+type ResolvedFurnitureAssetProps = Omit<FurnitureAssetGroupProps, "resolvedAsset">;
+
+function Bed3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Bed3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Nightstand3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Nightstand3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Wardrobe3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Wardrobe3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function WalkInCloset3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Wardrobe3DAsset {...props} forceOpen />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Cabinet3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Desk3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Desk3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function BathroomVanity3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <BathroomVanity3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Toilet3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Toilet3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Bathtub3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Bathtub3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Shower3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <Shower3DAsset {...props} />;
+  return <FurnitureBlock {...props} />;
+}
+
+function Sofa3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function CoffeeTable3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function DiningTable3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function DiningChair3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function KitchenCabinet3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Island3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Sideboard3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function EntryCabinet3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Fireplace3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function StairAsset3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Paving3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function YardModule3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Sink3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Cooktop3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Fridge3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Pegboard3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function SnackCabinet3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Plant3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+function Generic3DGroup(props: FurnitureAssetGroupProps) {
+  return <FurnitureBlock {...props} />;
+}
+
+const furnitureAssetComponentMap = {
+  bed: Bed3DGroup,
+  nightstand: Nightstand3DGroup,
+  wardrobe: Wardrobe3DGroup,
+  walkInCloset: WalkInCloset3DGroup,
+  cabinet: Cabinet3DGroup,
+  desk: Desk3DGroup,
+  bathroomVanity: BathroomVanity3DGroup,
+  toilet: Toilet3DGroup,
+  bathtub: Bathtub3DGroup,
+  shower: Shower3DGroup,
+  sofa: Sofa3DGroup,
+  coffeeTable: CoffeeTable3DGroup,
+  diningTable: DiningTable3DGroup,
+  diningChair: DiningChair3DGroup,
+  kitchenCabinet: KitchenCabinet3DGroup,
+  island: Island3DGroup,
+  sideboard: Sideboard3DGroup,
+  entryCabinet: EntryCabinet3DGroup,
+  fireplace: Fireplace3DGroup,
+  stair: StairAsset3DGroup,
+  paving: Paving3DGroup,
+  yardModule: YardModule3DGroup,
+  sink: Sink3DGroup,
+  cooktop: Cooktop3DGroup,
+  fridge: Fridge3DGroup,
+  pegboard: Pegboard3DGroup,
+  bookshelf: Bookshelf3DGroup,
+  snackCabinet: SnackCabinet3DGroup,
+  plant: Plant3DGroup,
+  generic: Generic3DGroup
+} satisfies Record<Render3DAssetType, typeof Generic3DGroup>;
+
+function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
+  const resolvedAsset = resolve3DAsset(props.item);
+  if (!resolvedAsset.visibleIn3d) return null;
+  const Component = furnitureAssetComponentMap[resolvedAsset.componentKey] ?? Generic3DGroup;
+  return <Component {...props} resolvedAsset={resolvedAsset} />;
 }
 
 function FurnitureServiceMarkers({
@@ -3453,7 +4528,7 @@ function RenderToneMapping({ presentationMode }: { presentationMode: boolean }) 
   return null;
 }
 
-function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; requestVersion: number; mode: CameraMode }) {
+function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: CameraPreset; fixedView: FixedCameraView | null; requestVersion: number; mode: CameraMode }) {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
   const walkInitializedRef = useRef(false);
@@ -3461,6 +4536,16 @@ function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; req
   const moveVectorRef = useRef(new THREE.Vector3());
   const forwardVectorRef = useRef(new THREE.Vector3());
   const rightVectorRef = useRef(new THREE.Vector3());
+  const transitionRef = useRef<{
+    elapsed: number;
+    duration: number;
+    startPosition: THREE.Vector3;
+    endPosition: THREE.Vector3;
+    startTarget: THREE.Vector3;
+    endTarget: THREE.Vector3;
+    startZoom: number;
+    endZoom: number;
+  } | null>(null);
 
   useEffect(() => {
     const controls = new OrbitControls(camera, gl.domElement);
@@ -3484,14 +4569,25 @@ function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; req
   }, [camera, gl.domElement]);
 
   useEffect(() => {
-    const target = cameraTargets[preset];
-    camera.position.set(...cameraPositions[preset]);
-    camera.lookAt(target);
-    controlsRef.current?.target.copy(target);
-    controlsRef.current?.update();
-    camera.updateProjectionMatrix();
+    const controls = controlsRef.current;
+    const target = fixedView
+      ? new THREE.Vector3(fixedView.target.x, fixedView.target.y, fixedView.target.z)
+      : cameraTargets[preset].clone();
+    const position = fixedView
+      ? new THREE.Vector3(fixedView.cameraPosition.x, fixedView.cameraPosition.y, fixedView.cameraPosition.z)
+      : new THREE.Vector3(...cameraPositions[preset]);
+    transitionRef.current = {
+      elapsed: 0,
+      duration: 0.9,
+      startPosition: camera.position.clone(),
+      endPosition: position,
+      startTarget: controls?.target.clone() ?? CAMERA_TARGET.clone(),
+      endTarget: target,
+      startZoom: camera.zoom,
+      endZoom: fixedView?.zoom ?? 1
+    };
     walkInitializedRef.current = false;
-  }, [camera, preset, requestVersion]);
+  }, [camera, fixedView, preset, requestVersion]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -3542,6 +4638,21 @@ function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; req
   }, [mode]);
 
   useFrame((_, delta) => {
+    const transition = transitionRef.current;
+    if (transition && mode === "orbit") {
+      transition.elapsed = Math.min(transition.duration, transition.elapsed + delta);
+      const rawProgress = transition.elapsed / transition.duration;
+      const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
+      camera.position.lerpVectors(transition.startPosition, transition.endPosition, progress);
+      const currentTarget = transition.startTarget.clone().lerp(transition.endTarget, progress);
+      camera.zoom = THREE.MathUtils.lerp(transition.startZoom, transition.endZoom, progress);
+      controlsRef.current?.target.copy(currentTarget);
+      camera.lookAt(currentTarget);
+      camera.updateProjectionMatrix();
+      controlsRef.current?.update();
+      if (rawProgress >= 1) transitionRef.current = null;
+      return;
+    }
     if (mode === "walkthrough") {
       const controls = controlsRef.current;
       const keys = pressedKeysRef.current;
@@ -3574,11 +4685,13 @@ function CameraRig({ preset, requestVersion, mode }: { preset: CameraPreset; req
 
 function Floor3DScene({
   cameraPreset,
+  fixedCameraView,
   cameraRequestVersion,
   cameraMode,
   materialPreview,
   designStyle,
   presentationMode,
+  mobileQuality,
   showServicePoints,
   houseStructure,
   furniture,
@@ -3590,11 +4703,13 @@ function Floor3DScene({
   onClearHoverObject
 }: {
   cameraPreset: CameraPreset;
+  fixedCameraView: FixedCameraView | null;
   cameraRequestVersion: number;
   cameraMode: CameraMode;
   materialPreview: boolean;
   designStyle: DesignStylePreset;
   presentationMode: boolean;
+  mobileQuality: MobileQuality;
   showServicePoints: boolean;
   houseStructure: HouseStructure;
   furniture: Furniture[];
@@ -3611,10 +4726,12 @@ function Floor3DScene({
   const keyLightIntensity = presentationMode ? 1.92 : 1.68;
   const fillLightIntensity = presentationMode ? 0.72 : 0.54;
   const floorShadowOpacity = presentationMode ? 0.18 : 0.12;
+  const balancedQuality = mobileQuality === "balanced";
+  const shadowMapSize = balancedQuality ? 1024 : presentationMode ? 4096 : 2048;
   return (
     <>
       <RenderToneMapping presentationMode={presentationMode} />
-      <CameraRig preset={cameraPreset} requestVersion={cameraRequestVersion} mode={cameraMode} />
+      <CameraRig preset={cameraPreset} fixedView={fixedCameraView} requestVersion={cameraRequestVersion} mode={cameraMode} />
       <color attach="background" args={[palette.background]} />
       <fog attach="fog" args={[palette.background, 12, 28]} />
       <ambientLight intensity={ambientIntensity} />
@@ -3623,14 +4740,14 @@ function Floor3DScene({
         color="#fff1c7"
         position={[6.8, 9.2, 7.4]}
         intensity={keyLightIntensity}
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
+        shadow-mapSize-width={shadowMapSize}
+        shadow-mapSize-height={shadowMapSize}
         shadow-camera-left={-9}
         shadow-camera-right={9}
         shadow-camera-top={9}
         shadow-camera-bottom={-9}
       />
-      <spotLight color="#ffd99b" intensity={fillLightIntensity} position={[-5.8, 4.8, 5.6]} angle={0.62} penumbra={0.76} distance={14} castShadow />
+      <spotLight color="#ffd99b" intensity={fillLightIntensity} position={[-5.8, 4.8, 5.6]} angle={0.62} penumbra={0.76} distance={14} castShadow={!balancedQuality} />
       <hemisphereLight args={["#fff4d6", palette.background, presentationMode ? 0.56 : 0.48]} />
 
       <mesh receiveShadow position={[0, -0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -3785,12 +4902,12 @@ function Floor3DScene({
         />
       ))}
 
-      {furniture.map((item) => (
+      {furniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
         <FurnitureContactShadow key={`${item.id}-contact-shadow`} item={item} structure={houseStructure} />
       ))}
 
       {furniture.map((item) => (
-        <FurnitureBlock
+        <ResolvedFurnitureAsset
           key={item.id}
           item={item}
           structure={houseStructure}
@@ -3803,7 +4920,7 @@ function Floor3DScene({
         />
       ))}
 
-      {showServicePoints && furniture.map((item) => (
+      {showServicePoints && furniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
         <FurnitureServiceMarkers
           key={`${item.id}-service-markers`}
           item={item}
@@ -3824,6 +4941,11 @@ export function Floor3DView({
   floor,
   houseStructure,
   furniture,
+  cameraViews = [],
+  cameraViewRequest = null,
+  mobilePresentationMode = false,
+  mobileQuality = "balanced",
+  resetViewRequest = 0,
   selectedObjectId,
   selectedFurnitureId,
   showObjectIds,
@@ -3831,14 +4953,19 @@ export function Floor3DView({
   onSelectStructure,
   onSelectFurniture,
   onHoverObject,
-  onClearHoverObject
+  onClearHoverObject,
+  onSelectCameraView
 }: Floor3DViewProps) {
-  const [cameraRequest, setCameraRequest] = useState<{ preset: CameraPreset; version: number }>({ preset: "overview", version: 0 });
+  const [cameraRequest, setCameraRequest] = useState<{ preset: CameraPreset; fixedView: FixedCameraView | null; version: number }>(() => ({
+    preset: "overview",
+    fixedView: mobilePresentationMode ? getMobileDefaultCameraView(floor, houseStructure) : null,
+    version: 0
+  }));
   const [cameraMode, setCameraMode] = useState<CameraMode>("orbit");
   const [materialPreview, setMaterialPreview] = useState(true);
   const [showServicePoints, setShowServicePoints] = useState(false);
   const [designStyle, setDesignStyle] = useState<DesignStylePreset>("warmJapandi");
-  const [presentationMode, setPresentationMode] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(mobilePresentationMode);
   const selectedFurniture = furniture.find((item) => item.id === selectedFurnitureId || item.id === selectedObjectId);
   const selectedStructure =
     houseStructure.walls.find((item) => item.id === selectedObjectId) ??
@@ -3851,9 +4978,31 @@ export function Floor3DView({
     null;
   const selectedName = selectedFurniture?.name ?? selectedStructure?.name ?? selectedObjectId;
   const servicePointCount = useMemo(() => countServiceMarkers(furniture), [furniture]);
+  const currentFloorCameraViews = useMemo(() => cameraViews.filter((view) => view.floor === floor.id), [cameraViews, floor.id]);
+  const resetMobileCamera = () => {
+    setCameraMode("orbit");
+    setMaterialPreview(true);
+    setShowServicePoints(false);
+    setPresentationMode(true);
+    setCameraRequest((current) => ({
+      preset: "overview",
+      fixedView: getMobileDefaultCameraView(floor, houseStructure),
+      version: current.version + 1
+    }));
+  };
+  useEffect(() => {
+    if (!mobilePresentationMode) return;
+    resetMobileCamera();
+  }, [floor.id, mobilePresentationMode, resetViewRequest]);
+  useEffect(() => {
+    const requestedView = cameraViewRequest?.view;
+    if (!requestedView || requestedView.floor !== floor.id) return;
+    setCameraMode("orbit");
+    setCameraRequest((current) => ({ preset: current.preset, fixedView: requestedView, version: current.version + 1 }));
+  }, [cameraViewRequest?.nonce, cameraViewRequest?.view, floor.id]);
   const requestCameraPreset = (preset: CameraPreset) => {
     setCameraMode("orbit");
-    setCameraRequest((current) => ({ preset, version: current.version + 1 }));
+    setCameraRequest((current) => ({ preset, fixedView: null, version: current.version + 1 }));
   };
   const rotateCameraPreset = (direction: -1 | 1) => {
     setCameraMode("orbit");
@@ -3861,7 +5010,7 @@ export function Floor3DView({
       const currentIndex = cameraRotationOrder.indexOf(current.preset);
       const fallbackIndex = direction > 0 ? -1 : 0;
       const nextIndex = ((currentIndex >= 0 ? currentIndex : fallbackIndex) + direction + cameraRotationOrder.length) % cameraRotationOrder.length;
-      return { preset: cameraRotationOrder[nextIndex], version: current.version + 1 };
+      return { preset: cameraRotationOrder[nextIndex], fixedView: null, version: current.version + 1 };
     });
   };
   const togglePresentationMode = () => {
@@ -3871,22 +5020,35 @@ export function Floor3DView({
         setMaterialPreview(true);
         setShowServicePoints(false);
         setCameraMode("orbit");
-        setCameraRequest((current) => ({ preset: "overview", version: current.version + 1 }));
+        setCameraRequest((current) => ({ preset: "overview", fixedView: null, version: current.version + 1 }));
       }
       return nextEnabled;
     });
   };
 
   return (
-    <div className={`relative h-full min-h-[560px] overflow-hidden rounded-[1.75rem] border bg-[#ede7da] transition ${presentationMode ? "border-white/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.48),0_22px_90px_rgba(84,69,50,0.18)]" : "border-white/70 shadow-inner"}`}>
-      <Canvas shadows camera={{ fov: 42, near: 0.1, far: 80 }} gl={{ antialias: true, preserveDrawingBuffer: true }}>
+    <div
+      className={`relative h-full overflow-hidden bg-[#ede7da] transition ${mobilePresentationMode ? "min-h-0 rounded-none border-0 shadow-none" : `min-h-[560px] rounded-[1.75rem] border ${presentationMode ? "border-white/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.48),0_22px_90px_rgba(84,69,50,0.18)]" : "border-white/70 shadow-inner"}`}`}
+      onDoubleClick={() => {
+        if (mobilePresentationMode) resetMobileCamera();
+      }}
+    >
+      <Canvas
+        key={floor.id}
+        shadows
+        orthographic={mobilePresentationMode}
+        camera={mobilePresentationMode ? { near: 0.1, far: 80, zoom: getMobileDefaultCameraView(floor, houseStructure).zoom } : { fov: 42, near: 0.1, far: 80 }}
+        gl={{ antialias: mobileQuality === "high", preserveDrawingBuffer: true, powerPreference: mobileQuality === "balanced" ? "low-power" : "high-performance" }}
+      >
         <Floor3DScene
           cameraPreset={cameraRequest.preset}
+          fixedCameraView={cameraRequest.fixedView}
           cameraRequestVersion={cameraRequest.version}
           cameraMode={cameraMode}
           materialPreview={materialPreview}
           designStyle={designStyle}
           presentationMode={presentationMode}
+          mobileQuality={mobileQuality}
           showServicePoints={showServicePoints}
           houseStructure={houseStructure}
           furniture={furniture}
@@ -3899,18 +5061,18 @@ export function Floor3DView({
         />
       </Canvas>
 
-      {presentationMode && (
+      {presentationMode && !mobilePresentationMode && (
         <div className="pointer-events-none absolute inset-0 z-[50] bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0)_42%,rgba(132,102,64,0.12)_100%)]" />
       )}
 
-      {!presentationMode && <div className="pointer-events-none absolute left-4 top-4 z-[80]">
+      {!presentationMode && !mobilePresentationMode && <div className="pointer-events-none absolute left-4 top-4 z-[80]">
         <div className="pointer-events-auto rounded-lg border border-white/80 bg-white/88 px-4 py-3 shadow-sm backdrop-blur">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-400">{floor.id} Render Model</div>
           <div className="mt-1 text-lg font-black text-stone-900">{floor.label} · {floor.subtitle}</div>
           <div className="mt-1 text-xs font-semibold text-stone-500">效果轴测 / 家具材质 / 水电点位都基于当前楼层模型</div>
         </div>
       </div>}
-      <div className="pointer-events-none absolute right-4 top-4 z-[90] flex max-w-[calc(100%-2rem)] justify-end">
+      <div className={`${mobilePresentationMode ? "hidden" : "pointer-events-none"} absolute right-4 top-4 z-[90] flex max-w-[calc(100%-2rem)] justify-end`}>
         <div className={`pointer-events-auto flex flex-wrap items-center justify-end gap-2 rounded-lg border border-white/80 bg-white/88 p-2 shadow-sm backdrop-blur ${presentationMode ? "bg-white/68" : ""}`}>
           {presentationMode ? (
             <button
@@ -3932,6 +5094,34 @@ export function Floor3DView({
           >
             ↺
           </button>
+          {currentFloorCameraViews.length > 0 && (
+            <select
+              aria-label="当前楼层固定视角"
+              className="h-8 max-w-40 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
+              value={cameraRequest.fixedView?.floor === floor.id ? cameraRequest.fixedView.id : ""}
+              onChange={(event) => {
+                const view = currentFloorCameraViews.find((item) => item.id === event.target.value);
+                if (view) onSelectCameraView?.(view);
+              }}
+            >
+              <option value="">当前楼层视角</option>
+              {currentFloorCameraViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}
+            </select>
+          )}
+          {cameraViews.length > 0 && (
+            <select
+              aria-label="全部关键视角"
+              className="h-8 max-w-44 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
+              value={cameraRequest.fixedView?.id ?? ""}
+              onChange={(event) => {
+                const view = cameraViews.find((item) => item.id === event.target.value);
+                if (view) onSelectCameraView?.(view);
+              }}
+            >
+              <option value="">全部关键视角</option>
+              {cameraViews.map((view) => <option key={view.id} value={view.id}>{view.floor} · {view.name}</option>)}
+            </select>
+          )}
           <select
             aria-label="风格方案"
             className="h-8 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none transition hover:bg-stone-50"
@@ -3978,7 +5168,7 @@ export function Floor3DView({
             {cameraViewOptions.map(([preset, label]) => (
               <button
                 key={preset}
-                className={`rounded-md px-3 py-2 text-xs font-bold transition ${cameraRequest.preset === preset ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+                className={`rounded-md px-3 py-2 text-xs font-bold transition ${!cameraRequest.fixedView && cameraRequest.preset === preset ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}
                 onClick={() => requestCameraPreset(preset)}
                 type="button"
               >
@@ -4004,9 +5194,10 @@ export function Floor3DView({
         </div>
       </div>
 
-      {!presentationMode && cameraRequest.preset !== "stair" && (
+      {!presentationMode && (cameraRequest.fixedView || cameraRequest.preset !== "stair") && (
         <div className="pointer-events-none absolute bottom-4 right-4 z-[70] max-w-[18rem] rounded-lg border border-white/75 bg-white/78 p-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
           <div className="font-black text-stone-900">{materialPreview ? `${floor.label} 效果轴测` : `${floor.label} 白模检查`}</div>
+          {cameraRequest.fixedView?.description && <div className="mt-1 font-semibold text-stone-700">{cameraRequest.fixedView.name}：{cameraRequest.fixedView.description}</div>}
           <div className="mt-1">
             {cameraMode === "walkthrough"
               ? "自由漫游中：W/A/S/D 或方向键前后左右移动，Q/E 升降，鼠标拖拽调整视角；退出后回到鸟瞰旋转模式。"

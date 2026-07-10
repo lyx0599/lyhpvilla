@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent, PointerEvent, WheelEvent } from "react";
+import type { MouseEvent, PointerEvent, TouchEvent, WheelEvent } from "react";
 import {
   emptyInteractionState,
   handleDrag as runInteractionDrag,
@@ -52,10 +52,10 @@ import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/vill
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
 import { Floor3DView } from "@/components/floor-3d-view";
-import { ThreeDCover } from "@/components/three-d-cover";
 import type {
   CleanPatch,
   DrawTool,
+  FixedCameraView,
   Floor,
   FloorPlanPreset,
   FloorPlanVisualSettings,
@@ -63,6 +63,8 @@ import type {
   HouseStructure,
   HouseStructureObject,
   HouseWall,
+  MobileDisplayLevel,
+  MobileQuality,
   MmPoint,
   PlannerMode,
   Room,
@@ -92,8 +94,15 @@ type Props = {
   furnitureImmersiveMode?: boolean;
   yardImmersiveMode?: boolean;
   yardFocus?: YardFocus;
+  mobilePresentationMode?: boolean;
+  mobileDisplayLevel?: MobileDisplayLevel;
+  mobileProfessionalSheetMode?: PlanSheetMode;
+  mobileQuality?: MobileQuality;
+  resetViewRequest?: number;
   showFurnitureLabels?: boolean;
   activeFurnitureId?: string;
+  cameraViews?: FixedCameraView[];
+  cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   locateObjectRequest: { id: string; nonce: number } | null;
   canUndo: boolean;
   canRedo: boolean;
@@ -116,6 +125,7 @@ type Props = {
   onOpenStairDesigner?: (stairId: string) => void;
   onSelectSemanticObject: (object: SemanticObject) => void;
   onMoveSemanticObject: (objectId: string, position: { x: number; y: number }) => void;
+  onSelectCameraView?: (view: FixedCameraView) => void;
 };
 
 const MIN_SCALE = 0.6;
@@ -163,6 +173,13 @@ type ConstructionSpecRow = {
   item: string;
   value: string;
   note: string;
+};
+
+type FurnitureDemandHint = {
+  key: "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "construction";
+  label: string;
+  color: string;
+  background: string;
 };
 
 const defaultPlanBounds: PlanBounds = { x: 0, y: 0, width: STRUCTURE_WIDTH_MM, height: STRUCTURE_HEIGHT_MM };
@@ -239,6 +256,20 @@ const planSheetModeFootnotes: Record<PlanSheetMode, string> = {
 
 const wallEditableSheetModes = new Set<PlanSheetMode>(["structure", "construction"]);
 const wallEditableSheetModeLabel = "空白结构、施工标注";
+const furnitureDemandSheetModes = new Set<PlanSheetMode>(["socket", "switch", "lighting", "water", "drainage", "ceiling", "construction"]);
+
+function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): FurnitureDemandHint | null {
+  const mep = item.mepMeta ?? {};
+  const construction = item.constructionMeta ?? {};
+  if (mode === "socket" && mep.needsSocket) return { key: "socket", label: `插${mep.socketCount ? ` ${mep.socketCount}` : ""}`, color: "#2563eb", background: "#dbeafe" };
+  if (mode === "switch" && mep.needsSwitch) return { key: "switch", label: "控", color: "#7c3aed", background: "#ede9fe" };
+  if (mode === "lighting" && mep.needsLighting) return { key: "lighting", label: "灯", color: "#ca8a04", background: "#fef9c3" };
+  if (mode === "water" && mep.needsWaterSupply) return { key: "water", label: "水", color: "#0284c7", background: "#e0f2fe" };
+  if (mode === "drainage" && mep.needsDrainage) return { key: "drainage", label: "排", color: "#15803d", background: "#dcfce7" };
+  if (mode === "ceiling" && (construction.ceilingDependency || construction.inspectionAccessRequired)) return { key: "ceiling", label: "顶", color: "#0f766e", background: "#ccfbf1" };
+  if (mode === "construction" && construction.notes?.trim()) return { key: "construction", label: "施", color: "#c2410c", background: "#ffedd5" };
+  return null;
+}
 
 const defaultConstructionSheets: ConstructionSheet[] = [
   { id: "cover", mode: "site", sheetNo: "A-00", title: "图纸目录 / 总说明", audience: "施工队 / 家人确认", scale: "NTS", status: "概念版", note: "列明版本、楼层、图纸范围和现场复核要求。" },
@@ -460,8 +491,15 @@ export function PlanCanvas({
   furnitureImmersiveMode = false,
   yardImmersiveMode = false,
   yardFocus = "south",
+  mobilePresentationMode = false,
+  mobileDisplayLevel = "simple",
+  mobileProfessionalSheetMode = "socket",
+  mobileQuality = "balanced",
+  resetViewRequest = 0,
   showFurnitureLabels,
   activeFurnitureId = "",
+  cameraViews = [],
+  cameraViewRequest = null,
   locateObjectRequest,
   canUndo,
   canRedo,
@@ -483,7 +521,8 @@ export function PlanCanvas({
   onOpenWardrobeDesigner,
   onOpenStairDesigner,
   onSelectSemanticObject,
-  onMoveSemanticObject
+  onMoveSemanticObject,
+  onSelectCameraView
 }: Props) {
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -508,7 +547,6 @@ export function PlanCanvas({
   const [selectedStructureId, setSelectedStructureId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
-  const [show3DCover, setShow3DCover] = useState(true);
   const [internalShowFurnitureLabels, setInternalShowFurnitureLabels] = useState(true);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
   const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId | null>(null);
@@ -523,6 +561,15 @@ export function PlanCanvas({
   const cleanupDragRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
+  const touchGestureRef = useRef<{
+    mode: "pan" | "pinch";
+    startX: number;
+    startY: number;
+    startDistance: number;
+    panX: number;
+    panY: number;
+    scale: number;
+  } | null>(null);
   const yardToken = yardFocus === "north" ? "NORTH" : "SOUTH";
   const focusedYardOutdoor = useMemo(() => {
     if (!yardImmersiveMode) return null;
@@ -597,12 +644,6 @@ export function PlanCanvas({
     setPan({ x: 0, y: 0 });
     onScaleChange(1);
   }, [floor.id, onScaleChange]);
-
-  useEffect(() => {
-    if (viewMode === "3d") {
-      setShow3DCover(true);
-    }
-  }, [floor.id, viewMode]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -695,6 +736,84 @@ export function PlanCanvas({
     updateScale(1);
   }
 
+  function getTouchDistance(touches: TouchEvent<HTMLDivElement>["touches"]) {
+    if (touches.length < 2) return 0;
+    const first = touches[0];
+    const second = touches[1];
+    return Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY);
+  }
+
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    if (!mobilePresentationMode || viewMode !== "2d") return;
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      touchGestureRef.current = {
+        mode: "pan",
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startDistance: 0,
+        panX: pan.x,
+        panY: pan.y,
+        scale
+      };
+      return;
+    }
+    if (event.touches.length >= 2) {
+      event.preventDefault();
+      touchGestureRef.current = {
+        mode: "pinch",
+        startX: 0,
+        startY: 0,
+        startDistance: getTouchDistance(event.touches),
+        panX: pan.x,
+        panY: pan.y,
+        scale
+      };
+    }
+  }
+
+  function handleTouchMove(event: TouchEvent<HTMLDivElement>) {
+    if (!mobilePresentationMode || viewMode !== "2d") return;
+    const gesture = touchGestureRef.current;
+    if (!gesture) return;
+    event.preventDefault();
+    if (gesture.mode === "pan" && event.touches.length === 1) {
+      const touch = event.touches[0];
+      setPan({
+        x: gesture.panX + touch.clientX - gesture.startX,
+        y: gesture.panY + touch.clientY - gesture.startY
+      });
+      return;
+    }
+    if (event.touches.length >= 2 && gesture.startDistance > 0) {
+      const ratio = getTouchDistance(event.touches) / gesture.startDistance;
+      updateScale(gesture.scale * ratio);
+    }
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    if (!mobilePresentationMode) return;
+    if (event.touches.length === 0) {
+      touchGestureRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    if (!mobilePresentationMode) return;
+    const nextSheetMode = mobileDisplayLevel === "professional" ? mobileProfessionalSheetMode : "furnishing";
+    setSheetMode(nextSheetMode);
+    setShowObjectIds(false);
+    setLabelFilter("all");
+    setIsConstructionPackageOpen(false);
+    setIsCleanupPanelOpen(false);
+    setIsManualCleanupMode(false);
+  }, [mobilePresentationMode, mobileDisplayLevel, mobileProfessionalSheetMode]);
+
+  useEffect(() => {
+    if (!resetViewRequest) return;
+    resetViewport();
+  }, [resetViewRequest]);
+
   function handleWheel(event: WheelEvent<HTMLDivElement>) {
     if (viewMode !== "2d") return;
     if (!event.ctrlKey && !event.metaKey) return;
@@ -705,6 +824,7 @@ export function PlanCanvas({
   }
 
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (mobilePresentationMode && event.pointerType === "touch") return;
     const target = event.target as Node | null;
     if (target && planRef.current && !planRef.current.contains(target)) {
       setIsPlanZoomSelected(false);
@@ -721,6 +841,20 @@ export function PlanCanvas({
       panY: pan.y
     };
     event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handleMobileObjectCapture(event: MouseEvent<HTMLDivElement> | PointerEvent<HTMLDivElement>) {
+    if (!mobilePresentationMode || viewMode !== "2d") return;
+    const target = event.target as HTMLElement | null;
+    const furnitureNode = target?.closest("[data-furniture-id]") as HTMLElement | null;
+    const furnitureId = furnitureNode?.dataset.furnitureId;
+    if (!furnitureId) return;
+    const targetFurniture = furniture.find((item) => item.id === furnitureId);
+    if (!targetFurniture) return;
+    event.stopPropagation();
+    setSelectedStructureId("");
+    selectObject(targetFurniture.id);
+    onSelectFurniture(targetFurniture);
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
@@ -871,6 +1005,7 @@ export function PlanCanvas({
   function selectObject(objectId: string) {
     setIsPlanZoomSelected(false);
     setInteractionState((currentState) => handleSelect(currentState, objectId));
+    if (mobilePresentationMode) onActiveObjectChange(objectId);
   }
 
   function hoverObject(objectId: string) {
@@ -967,10 +1102,11 @@ export function PlanCanvas({
   }
 
   function canSelectFurnitureLayer() {
-    return sheetMode === "site" || sheetMode === "furnishing" || sheetMode === "preview" || ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
+    return sheetMode === "site" || sheetMode === "furnishing" || sheetMode === "preview" || sheetMode === "construction" || ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
   }
 
   function canSelectStructureLayer(kind: StructureInteractionKind) {
+    if (mobilePresentationMode) return true;
     if (sheetMode === "site") return true;
     if (sheetMode === "sync") return kind === "wall";
     if (sheetMode === "structure" || sheetMode === "construction") return true;
@@ -2669,19 +2805,20 @@ export function PlanCanvas({
   const isConstructionSheetMode = sheetMode === "construction";
   const isFurnitureSheetMode = sheetMode === "furnishing";
   const isSystemSheetMode = ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
+  const isMobileAnnotatedPlan = mobilePresentationMode && mobileDisplayLevel !== "simple";
   const visibleBaseFloorPlan = false;
   const visibleCleanupPatch = false;
   const visibleStructureProjection = isSystemSheetMode;
-  const visibleFurnitureOverlay = !yardImmersiveMode && (isSiteSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
-  const visibleSemanticOverlay = sheetMode === "preview" && layerVisibility.semanticOverlay;
-  const visibleDebugLayer = sheetMode === "preview" && layerVisibility.debug;
-  const visibleStructureLabels = !furnitureImmersiveMode;
-  const showDimensionLayer = !yardImmersiveMode && (isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode);
+  const visibleFurnitureOverlay = !yardImmersiveMode && (isSiteSheetMode || isConstructionSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
+  const visibleSemanticOverlay = (sheetMode === "preview" || isMobileAnnotatedPlan) && layerVisibility.semanticOverlay;
+  const visibleDebugLayer = !mobilePresentationMode && sheetMode === "preview" && layerVisibility.debug;
+  const visibleStructureLabels = !furnitureImmersiveMode && (!mobilePresentationMode || mobileDisplayLevel === "professional");
+  const showDimensionLayer = !yardImmersiveMode && (mobilePresentationMode ? mobileDisplayLevel !== "simple" : (isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode));
   const structurePointerEventsEnabled = isSiteSheetMode || isStructureSheetMode || isSyncSheetMode || isConstructionSheetMode || (plannerMode === "edit" && Boolean(getDrawToolStructureKind(drawTool)) && canDrawStructureTool(drawTool));
   const furniturePointerEventsEnabled = canSelectFurnitureLayer();
   const cleanFillColor = getCleanupFillColor(floorPlanVisualSettings);
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
-  const showStructureDrawingPanel = plannerMode === "edit" && !isFurnitureSheetMode;
+  const showStructureDrawingPanel = !mobilePresentationMode && plannerMode === "edit" && !isFurnitureSheetMode;
   const yardObjectMatchesFocus = (id: string, name = "") => !yardImmersiveMode || id.includes(`-${yardToken}-`) || name.includes(yardFocus === "north" ? "北院" : "南院");
   const visibleOutdoors = yardImmersiveMode ? houseStructure.outdoors.filter((outdoor) => yardObjectMatchesFocus(outdoor.id, outdoor.name)) : houseStructure.outdoors;
   const visibleOutdoorSurfaces = yardImmersiveMode ? houseStructure.outdoorSurfaces.filter((surface) => yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds)) : houseStructure.outdoorSurfaces;
@@ -3338,6 +3475,50 @@ export function PlanCanvas({
     );
   }
 
+  function getPolygonCenter(points: MmPoint[]) {
+    if (points.length === 0) return { x: planBounds.x + planBounds.width / 2, y: planBounds.y + planBounds.height / 2 };
+    return {
+      x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+      y: points.reduce((sum, point) => sum + point.y, 0) / points.length
+    };
+  }
+
+  function renderMobilePresentationLabelLayer() {
+    if (!mobilePresentationMode) return null;
+    const showDetails = mobileDisplayLevel !== "simple";
+    const importantFurniture = showDetails ? furniture.filter((item) => item.dimensions.width * item.dimensions.depth >= 4200 || item.moduleCategory).slice(0, 18) : [];
+    return (
+      <div className="pointer-events-none absolute inset-0 z-[48]" data-layer="MobilePresentationLabelLayer">
+        {houseStructure.rooms.map((room) => {
+          const center = toPlanPercent(getPolygonCenter(room.boundary), planBounds);
+          return (
+            <div
+              key={`mobile-room-${room.id}`}
+              className="absolute max-w-[9rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/82 px-2.5 py-1 text-center text-[11px] font-semibold leading-tight text-stone-800 shadow-sm ring-1 ring-white/80"
+              style={{ left: `${center.x}%`, top: `${center.y}%` }}
+            >
+              <span className="block truncate">{room.name}</span>
+              {showDetails && <span className="block text-[9px] text-stone-500">{(room.area / 1_000_000).toFixed(1)} m2</span>}
+            </div>
+          );
+        })}
+        {importantFurniture.map((item) => {
+          const position = getFurnitureDisplayPosition(item);
+          return (
+            <div
+              key={`mobile-furniture-${item.id}`}
+              className="absolute max-w-[8.5rem] -translate-x-1/2 translate-y-3 rounded-full bg-stone-950/78 px-2 py-0.5 text-center text-[10px] font-semibold leading-tight text-white shadow-sm"
+              style={{ left: `${position.x}%`, top: `${position.y}%` }}
+            >
+              <span className="block truncate">{item.name}</span>
+              {showDetails && <span className="block text-[8px] text-white/72">{item.dimensions.width} x {item.dimensions.depth} cm</span>}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   function renderDimensionLayer() {
     if (!showDimensionLayer) return null;
 
@@ -3458,23 +3639,36 @@ export function PlanCanvas({
   }
 
   return (
-    <div className={`relative min-h-0 flex-1 overflow-auto overscroll-contain bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}>
-      <div className={`${furnitureImmersiveMode || yardImmersiveMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
-        {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : show3DCover ? "效果预览 · 3D 封面" : `${floor.label} · 楼层 3D`}
+    <div
+      className={`relative min-h-0 flex-1 overscroll-contain ${mobilePresentationMode ? "h-full overflow-hidden bg-[#f7f3ec] p-0" : `overflow-auto bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}`}
+      data-mobile-presentation={mobilePresentationMode ? "true" : "false"}
+    >
+      <div className={`${furnitureImmersiveMode || yardImmersiveMode || mobilePresentationMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
+        {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : `${floor.label} · 楼层 3D`}
       </div>
 
       {viewMode === "2d" ? (
         <div
-          className={`relative grid h-full min-h-[calc(100vh-15rem)] items-start overflow-auto rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:min-h-[560px] sm:pt-16 ${
+          className={`relative grid h-full items-start ${
+            mobilePresentationMode
+              ? "min-h-0 touch-none overflow-hidden bg-[#f8f4ec] p-0"
+              : `min-h-[calc(100vh-15rem)] overflow-auto rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:min-h-[560px] sm:pt-16 ${
             showStructureDrawingPanel ? `gap-4 lg:justify-items-stretch ${focusMode ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "lg:grid-cols-[260px_minmax(0,1fr)]"}` : "justify-items-center"
+          }`
           }`}
+          onMouseDownCapture={handleMobileObjectCapture}
+          onPointerDownCapture={handleMobileObjectCapture}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
           onWheel={handleWheel}
         >
-          {!furnitureImmersiveMode && <div
+          {!furnitureImmersiveMode && !mobilePresentationMode && <div
             className="absolute right-5 top-5 z-[60] flex max-w-[calc(100%-2.5rem)] items-center gap-1 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-1 text-sm font-semibold text-stone-600 shadow-sm backdrop-blur"
             onPointerDown={(event) => event.stopPropagation()}
           >
@@ -3536,7 +3730,7 @@ export function PlanCanvas({
             </div>
           )}
 
-          <div
+          {!mobilePresentationMode && <div
             className={`absolute left-5 top-16 z-[70] max-h-[calc(100%-5.5rem)] w-[min(760px,calc(100%-2.5rem))] overflow-auto rounded-2xl border border-white/80 bg-white/96 p-4 text-xs text-stone-600 shadow-soft backdrop-blur transition ${
               isConstructionPackageOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
             }`}
@@ -3608,9 +3802,9 @@ export function PlanCanvas({
                 </div>
               </div>
             </div>
-          </div>
+          </div>}
 
-          <div
+          {!mobilePresentationMode && <div
             className={`absolute left-5 top-16 z-30 max-h-[calc(100%-5.5rem)] w-72 overflow-auto rounded-2xl border border-white/80 bg-white/95 p-3 text-xs text-stone-600 shadow-sm backdrop-blur transition ${
               isCleanupPanelOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0"
             }`}
@@ -3731,7 +3925,7 @@ export function PlanCanvas({
                 </div>
               )}
             </div>
-          </div>
+          </div>}
 
           {showStructureDrawingPanel && (
             <aside
@@ -4057,15 +4251,21 @@ export function PlanCanvas({
 
           <div
             ref={planRef}
-            className={`relative ${floor.id === "1F" ? "aspect-[12/13.8]" : "aspect-[4/3]"} w-full max-w-5xl shrink-0 justify-self-center overflow-hidden rounded-[1.5rem] border shadow-soft transition ${
-              isPlanZoomSelected ? "border-blue-500 ring-4 ring-blue-500/20" : "border-slate-200"
+            className={`relative ${floor.id === "1F" ? "aspect-[12/13.8]" : "aspect-[4/3]"} shrink-0 justify-self-center overflow-hidden transition ${
+              mobilePresentationMode
+                ? "w-full max-w-none border-0 shadow-none"
+                : `w-full max-w-5xl rounded-[1.5rem] border shadow-soft ${isPlanZoomSelected ? "border-blue-500 ring-4 ring-blue-500/20" : "border-slate-200"}`
             }`}
             style={{
               aspectRatio: `${planBounds.width} / ${planBounds.height}`,
               backgroundColor: floorPlanVisualSettings.cleanWhiteBackground ? cleanFillColor : "#f8f4ec",
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
               transformOrigin: "center center",
-              width: yardImmersiveMode ? "min(100%, 1180px)" : floor.id === "1F" ? "min(100%, 900px, calc((100vh - 12rem) * 0.87))" : "min(100%, 1024px, calc((100vh - 15rem) * 1.333))"
+              width: mobilePresentationMode
+                ? floor.id === "1F"
+                  ? "min(118vw, calc((100dvh - 7rem) * 0.87))"
+                  : "min(118vw, calc((100dvh - 7rem) * 1.333))"
+                : yardImmersiveMode ? "min(100%, 1180px)" : floor.id === "1F" ? "min(100%, 900px, calc((100vh - 12rem) * 0.87))" : "min(100%, 1024px, calc((100vh - 15rem) * 1.333))"
             }}
           >
             {visibleBaseFloorPlan && (
@@ -5033,12 +5233,12 @@ export function PlanCanvas({
               )}
             </svg>
 
-            <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
+            {!mobilePresentationMode && <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
               {planSheetModeLabels[sheetMode]}：{planSheetModeDescriptions[sheetMode]}
-            </div>
-            <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+            </div>}
+            {!mobilePresentationMode && <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
               {planSheetModeFootnotes[sheetMode]}
-            </div>
+            </div>}
             {isFurnitureSheetMode && plannerMode === "edit" && (
               <div className="pointer-events-none absolute left-5 bottom-5 z-40 max-w-sm rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
                 <p className="font-semibold text-ink">沉浸家具布置</p>
@@ -5168,11 +5368,14 @@ export function PlanCanvas({
                 data-coordinate-system="percent-of-floor-plan"
                 style={{ pointerEvents: furniturePointerEventsEnabled ? "auto" : "none" }}
               >
-              {furniture.map((item) => {
-                const isSelected = isObjectSelected(item.id);
-                const isHovered = isObjectHovered(item.id);
-                const locked = objectIsLocked(item.id) || item.locked;
-                const displayPosition = getFurnitureDisplayPosition(item);
+	              {furniture.map((item) => {
+	                const isSelected = isObjectSelected(item.id);
+	                const isHovered = isObjectHovered(item.id);
+	                const locked = objectIsLocked(item.id) || item.locked;
+	                const demandModeActive = furnitureDemandSheetModes.has(sheetMode);
+	                const demandHint = demandModeActive ? getFurnitureDemandHint(item, sheetMode) : null;
+	                const demandMuted = demandModeActive && !demandHint;
+	                const displayPosition = getFurnitureDisplayPosition(item);
                 const displaySize = getFurnitureDisplaySize(item);
                 return (
                   <button
@@ -5185,24 +5388,48 @@ export function PlanCanvas({
                       top: `${displayPosition.y}%`,
                       width: `${displaySize.width}%`,
                       height: `${displaySize.height}%`,
-                      minWidth: isFurnitureSheetMode ? "0" : "48px",
-                      minHeight: isFurnitureSheetMode ? "0" : "40px",
-                      opacity: locked ? 0.6 : 1,
-                      transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
-                    }}
+	                      minWidth: isFurnitureSheetMode ? "0" : "48px",
+	                      minHeight: isFurnitureSheetMode ? "0" : "40px",
+	                      opacity: demandMuted ? 0.18 : locked ? 0.6 : 1,
+	                      boxShadow: demandHint ? `0 0 0 4px ${demandHint.background}, 0 0 0 7px ${demandHint.color}` : undefined,
+	                      transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
+	                    }}
+                    data-demand-highlight={demandHint?.key ?? (demandModeActive ? "none" : undefined)}
+                    data-furniture-id={item.id}
                     onClick={(event) => {
                       event.stopPropagation();
                       if (furnitureDragRef.current?.moved) return;
                       setSelectedStructureId("");
                       onSelectFurniture(item);
                     }}
+                    onMouseDown={(event) => {
+                      if (!mobilePresentationMode) return;
+                      event.stopPropagation();
+                      setSelectedStructureId("");
+                      selectObject(item.id);
+                      onSelectFurniture(item);
+                    }}
                     onMouseEnter={() => hoverObject(item.id)}
                     onMouseLeave={() => clearHoverObject(item.id)}
+                    onTouchStart={(event) => {
+                      if (!mobilePresentationMode) return;
+                      event.stopPropagation();
+                      setSelectedStructureId("");
+                      selectObject(item.id);
+                      onSelectFurniture(item);
+                    }}
                     onPointerDown={(event) => {
                       event.stopPropagation();
                       setSelectedStructureId("");
                       selectObject(item.id);
-                      if (plannerMode !== "edit" || drawTool !== "select" || locked) return;
+                      if (mobilePresentationMode) {
+                        onSelectFurniture(item);
+                        return;
+                      }
+                      if (plannerMode !== "edit" || drawTool !== "select" || locked) {
+                        onSelectFurniture(item);
+                        return;
+                      }
                       const position = getFurniturePosition(event);
                       if (!position) return;
                       furnitureDragRef.current = { pointerId: event.pointerId, objectId: item.id, lastPosition: position, moved: false };
@@ -5233,9 +5460,17 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
-                    </div>
-                    {isFurnitureSheetMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && (
+	                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
+	                    </div>
+	                    {demandHint && (
+	                      <span
+	                        className="pointer-events-none absolute -right-3 -top-3 grid min-h-7 min-w-7 place-items-center rounded-full border-2 border-white px-1.5 text-[10px] font-black leading-none shadow-md"
+	                        style={{ background: demandHint.background, color: demandHint.color }}
+	                      >
+	                        {demandHint.label}
+	                      </span>
+	                    )}
+                    {isFurnitureSheetMode && !mobilePresentationMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && (
                       <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
                         {item.dimensions.width} x {item.dimensions.depth} cm · {getFurnitureFootprintArea(item)} 平米
                       </span>
@@ -5366,6 +5601,7 @@ export function PlanCanvas({
                       }}
                       onPointerDown={(event) => {
                         event.stopPropagation();
+                        if (mobilePresentationMode) return;
                         objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, moved: false };
                         event.currentTarget.setPointerCapture(event.pointerId);
                         onSelectSemanticObject(object);
@@ -5407,6 +5643,7 @@ export function PlanCanvas({
                     }}
                     onPointerDown={(event) => {
                       event.stopPropagation();
+                      if (mobilePresentationMode) return;
                       if (!isDraggableFurniture) return;
                       objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, moved: false };
                       event.currentTarget.setPointerCapture(event.pointerId);
@@ -5438,6 +5675,7 @@ export function PlanCanvas({
             )}
 
             {visibleStructureLabels && renderStructureHtmlLabelLayer()}
+            {renderMobilePresentationLabelLayer()}
 
             {isManualCleanupMode && (
               <div
@@ -5465,31 +5703,33 @@ export function PlanCanvas({
           </div>
         </div>
       ) : (
-        show3DCover ? (
-          <ThreeDCover floor={floor} onEnter={() => setShow3DCover(false)} />
-        ) : (
-          <Floor3DView
-            floor={floor}
-            houseStructure={houseStructure}
-            furniture={furniture}
-            selectedObjectId={selectedInteractionObjectId}
-            selectedFurnitureId={selectedFurnitureId}
-            showObjectIds={showObjectIds}
-            onShowObjectIdsChange={setShowObjectIds}
-            onSelectStructure={(objectId) => {
-              setSelectedStructureId(objectId);
-              selectObject(objectId);
-              onActiveObjectChange(objectId);
-              setStructureMessage(`已在 3D 效果中选择 ${objectId}。`);
-            }}
-            onSelectFurniture={(item) => {
-              selectObject(item.id);
-              onSelectFurniture(item);
-            }}
-            onHoverObject={hoverObject}
-            onClearHoverObject={clearHoverObject}
-          />
-        )
+        <Floor3DView
+          floor={floor}
+          houseStructure={houseStructure}
+          furniture={furniture}
+          mobilePresentationMode={mobilePresentationMode}
+          mobileQuality={mobileQuality}
+          resetViewRequest={resetViewRequest}
+          cameraViews={cameraViews}
+          cameraViewRequest={cameraViewRequest}
+          selectedObjectId={selectedInteractionObjectId}
+          selectedFurnitureId={selectedFurnitureId}
+          showObjectIds={showObjectIds}
+          onShowObjectIdsChange={setShowObjectIds}
+          onSelectStructure={(objectId) => {
+            setSelectedStructureId(objectId);
+            selectObject(objectId);
+            onActiveObjectChange(objectId);
+            setStructureMessage(`已在 3D 效果中选择 ${objectId}。`);
+          }}
+          onSelectFurniture={(item) => {
+            selectObject(item.id);
+            onSelectFurniture(item);
+          }}
+          onHoverObject={hoverObject}
+          onClearHoverObject={clearHoverObject}
+          onSelectCameraView={onSelectCameraView}
+        />
       )}
     </div>
   );

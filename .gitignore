@@ -1,11 +1,23 @@
 node_modules
 .next
+.next-corrupt-*/
 .DS_Store
+.codex-current-browser-workspace.json
 .env*.local
 npm-debug.log*
 tsconfig.tsbuildinfo
 
 .pnpm-store
+.workspace-backups/
+data/backups/
 *.zip
 __pycache__/
 *.pyc
+
+# Local visual QA and standalone render experiments
+/*-preview.png
+/*-preview.html
+/local-preview-before.png
+/model-local-preview.png
+/yard-3d-in-app-*.png
+/renders/

@@ -1,6 +1,9 @@
 export type FloorId = "B2" | "B1" | "1F" | "2F" | "YARD";
 
 export type ViewMode = "2d" | "3d";
+export type AppViewMode = "desktop-edit" | "mobile-presentation" | "mobile-edit";
+export type MobileDisplayLevel = "simple" | "annotated" | "professional";
+export type MobileQuality = "balanced" | "high";
 export type PlannerMode = "view" | "edit";
 export type DrawTool =
   | "select"
@@ -117,6 +120,84 @@ export type FurnitureType =
   | "custom"
   | InteriorModuleType;
 
+export type Render3DAssetType =
+  | "bed"
+  | "nightstand"
+  | "wardrobe"
+  | "walkInCloset"
+  | "cabinet"
+  | "desk"
+  | "bathroomVanity"
+  | "toilet"
+  | "bathtub"
+  | "shower"
+  | "sofa"
+  | "coffeeTable"
+  | "diningTable"
+  | "diningChair"
+  | "kitchenCabinet"
+  | "island"
+  | "sideboard"
+  | "entryCabinet"
+  | "fireplace"
+  | "stair"
+  | "paving"
+  | "yardModule"
+  | "sink"
+  | "cooktop"
+  | "fridge"
+  | "pegboard"
+  | "bookshelf"
+  | "snackCabinet"
+  | "plant"
+  | "generic";
+
+export type Render3DMeta = {
+  assetType: string;
+  detailLevel?: "draft" | "standard" | "presentation";
+  stylePreset?: string;
+  primaryMaterial?: string;
+  secondaryMaterial?: string;
+  accentMaterial?: string;
+  visibleIn3d?: boolean;
+  selectableIn3d?: boolean;
+  childrenMode?: "merged" | "grouped";
+};
+
+export type MepMeta = {
+  needsSocket?: boolean;
+  socketCount?: number;
+  socketHeight?: number;
+  needsSwitch?: boolean;
+  switchControl?: string[];
+  needsLighting?: boolean;
+  lightingType?: "ambient" | "task" | "cabinetStrip" | "mirrorLight" | "decorative" | "none";
+  lightColorTemperature?: "2700K" | "3000K" | "3500K" | "4000K";
+  needsWaterSupply?: boolean;
+  waterSupplyType?: "cold" | "hotCold" | "filtered" | "none";
+  needsDrainage?: boolean;
+  drainageType?: "floorDrain" | "wallDrain" | "cabinetDrain" | "none";
+  needsNetwork?: boolean;
+  needsVentilation?: boolean;
+  needsSmartControl?: boolean;
+  relatedCircuit?: string;
+  notes?: string;
+};
+
+export type ConstructionMeta = {
+  customMade?: boolean;
+  installType?: "finishedFurniture" | "customCabinet" | "builtIn" | "wallMounted" | "floorStanding" | "embedded" | "other";
+  reserveSize?: string;
+  wallDependency?: string;
+  floorDependency?: string;
+  ceilingDependency?: string;
+  waterproofRequired?: boolean;
+  inspectionAccessRequired?: boolean;
+  purchaseCategory?: string;
+  supplierType?: string;
+  notes?: string;
+};
+
 export type Dimension = {
   width: number;
   depth: number;
@@ -130,6 +211,17 @@ export type Position2D = {
   rotation: number;
   flipX?: boolean;
   flipY?: boolean;
+};
+
+export type FixedCameraView = {
+  id: string;
+  name: string;
+  floor: FloorId;
+  cameraPosition: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+  zoom?: number;
+  mode?: "orthographic" | "perspective";
+  description?: string;
 };
 
 export type WardrobeCellKind = "hanging-long" | "hanging-short" | "folded" | "drawer" | "open" | "shoe" | "blank";
@@ -481,6 +573,9 @@ export type Furniture = {
   recognitionNote?: string;
   wardrobeDesign?: WardrobeDesign;
   cabinetDesign?: CabinetDesign;
+  render3d?: Render3DMeta;
+  mepMeta?: MepMeta;
+  constructionMeta?: ConstructionMeta;
   locked?: boolean;
   interaction?: ObjectInteractionFlags;
 };
@@ -500,4 +595,5 @@ export type SpaceData = {
   rooms: Room[];
   walls: Wall[];
   furniture: Furniture[];
+  cameraViews?: FixedCameraView[];
 };

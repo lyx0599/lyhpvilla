@@ -1,7 +1,7 @@
 {
   "schemaVersion": 4,
-  "defaultWorkspaceRevision": "2026-07-08-master-bedroom-right-room-v1",
-  "savedAt": "2026-07-08T17:09:26.416Z",
+  "defaultWorkspaceRevision": "2026-07-10-five-level-presentation-v1",
+  "savedAt": "2026-07-10T01:26:53.839Z",
   "saveMode": "manual",
   "selectedFloorId": "2F",
   "furniture": [
@@ -35,7 +35,49 @@
         "y": 7.4,
         "rotation": 0
       },
-      "color": "#d8c2a4"
+      "color": "#d8c2a4",
+      "render3d": {
+        "assetType": "cabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": true,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "客厅影音回路",
+        "notes": "贴 W-B2-001 预留电视电源、网络、影音线管、主机散热和音响线；柜体下方可悬空便于清洁。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "360x42x45cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "贴 W-B2-001 预留电视电源、网络、影音线管、主机散热和音响线；柜体下方可悬空便于清洁。"
+      }
     },
     {
       "id": "furn-b2-living-large-tv-001",
@@ -65,7 +107,49 @@
         "y": 5.6,
         "rotation": 0
       },
-      "color": "#111827"
+      "color": "#111827",
+      "render3d": {
+        "assetType": "cabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": true,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "客厅影音回路",
+        "notes": "电视中心线、插座、网口和音响线预埋需与 W-B2-001 立面一起定位。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "320x8x185cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "电视中心线、插座、网口和音响线预埋需与 W-B2-001 立面一起定位。"
+      }
     },
     {
       "id": "furn-b2-living-long-sofa-001",
@@ -97,7 +181,49 @@
         "y": 39.5,
         "rotation": 0
       },
-      "color": "#b8b2aa"
+      "color": "#b8b2aa",
+      "render3d": {
+        "assetType": "sofa",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "taupeFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": true,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "沙发侧边预留五孔插座和落地灯电源；正前方保留体感游戏和多人观影的净距。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "360x105x78cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "沙发侧边预留五孔插座和落地灯电源；正前方保留体感游戏和多人观影的净距。"
+      }
     },
     {
       "id": "furn-b2-activity-outdoor-pegboard-001",
@@ -173,6 +299,48 @@
           "自行车挂架不能只固定在薄板上，必须确认墙体基层。",
           "洞洞板下方要留清洁和防泥水空间。"
         ]
+      },
+      "render3d": {
+        "assetType": "pegboard",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "固定在 W-B2-011 实墙基层；自行车挂架位置必须加固，地面预留防污垫，旁边可预留充电插座。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "360x12x220cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "固定在 W-B2-011 实墙基层；自行车挂架位置必须加固，地面预留防污垫，旁边可预留充电插座。"
       }
     },
     {
@@ -248,6 +416,51 @@
           "玻璃柜必须防倾倒固定。",
           "纪念品多且重时，层板要控制跨度并选用更厚玻璃或木层板。"
         ]
+      },
+      "render3d": {
+        "assetType": "bookshelf",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "warmLightEmissive",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "玻璃柜靠墙固定防倾倒，层板做可调孔位；柜内预留低压灯带和检修电源。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "260x38x220cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "玻璃柜靠墙固定防倾倒，层板做可调孔位；柜内预留低压灯带和检修电源。"
       }
     },
     {
@@ -279,7 +492,48 @@
         "y": 31.5,
         "rotation": 0
       },
-      "color": "#9b7653"
+      "color": "#9b7653",
+      "render3d": {
+        "assetType": "coffeeTable",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "茶几到沙发前沿预留约 400mm，避免挡住客厅去楼梯间和活动区的动线。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "240x240x38cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "茶几到沙发前沿预留约 400mm，避免挡住客厅去楼梯间和活动区的动线。"
+      }
     },
     {
       "id": "furn-b2-study-slab-table-001",
@@ -310,7 +564,49 @@
         "y": 71.7,
         "rotation": 0
       },
-      "color": "#b9824d"
+      "color": "#b9824d",
+      "render3d": {
+        "assetType": "diningTable",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "桌边预留地插或墙插，椅后保持通行；桌面按整块木板 3000mm 左右控制，右侧避开圆柱。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "300x95x75cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "桌边预留地插或墙插，椅后保持通行；桌面按整块木板 3000mm 左右控制，右侧避开圆柱。"
+      }
     },
     {
       "id": "furn-b2-activity-flex-mat-001",
@@ -340,7 +636,48 @@
         "y": 68.5,
         "rotation": 0
       },
-      "color": "#a7d8de"
+      "color": "#a7d8de",
+      "render3d": {
+        "assetType": "paving",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "microCement",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "软垫不做固定家具；地面建议耐磨防滑，靠 W-B2-012 天窗区域避免布置高柜。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "260x170x4cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "软垫不做固定家具；地面建议耐磨防滑，靠 W-B2-012 天窗区域避免布置高柜。"
+      }
     },
     {
       "id": "furn-b1-room-seasonal-wardrobe-001",
@@ -353,7 +690,7 @@
       "floorId": "B1",
       "roomId": "ROOM-B1-001",
       "dimensions": {
-        "width": 167,
+        "width": 270,
         "depth": 60,
         "height": 240,
         "unit": "cm"
@@ -368,8 +705,8 @@
         "exhaust": false
       },
       "position": {
-        "x": 38.88,
-        "y": 13.59,
+        "x": 76.6,
+        "y": 19.3,
         "rotation": 90
       },
       "color": "#d8c2a4",
@@ -535,6 +872,51 @@
           33
         ],
         "notes": "沿 W-B1-004 做整墙收纳：顶部放换季被褥，中部挂换季衣物，右侧用可调层板放收纳箱和压缩袋；柜体需做防潮封边并预留除湿/通风。"
+      },
+      "render3d": {
+        "assetType": "wardrobe",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "honeyWood",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": true,
+        "relatedCircuit": "常规插座回路",
+        "notes": "贴 W-B1-004 布置，复核柜体深度、挑空栏杆边界和房间通道；地下室需做防潮封边，柜内预留除湿机或通风电源。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "270x60x240cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "贴 W-B1-004 布置，复核柜体深度、挑空栏杆边界和房间通道；地下室需做防潮封边，柜内预留除湿机或通风电源。"
       }
     },
     {
@@ -550,14 +932,55 @@
         "height": 75,
         "unit": "cm"
       },
-      "material": "圆餐桌 + 6 把餐椅",
+      "material": "浅橡木圆桌 + 洞石转盘 + 6 把米灰餐椅",
       "note": "餐桌所在位置定义为客厅活动区，按整套餐桌椅占地估算并预留椅后通道。",
       "position": {
-        "x": 43.53,
-        "y": 108.89,
+        "x": 65,
+        "y": 56,
         "rotation": 0
       },
-      "color": "#d6d9d7"
+      "color": "#d6d9d7",
+      "render3d": {
+        "assetType": "diningTable",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "餐桌所在位置定义为客厅活动区，按整套餐桌椅占地估算并预留椅后通道。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "240x240x75cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "餐桌所在位置定义为客厅活动区，按整套餐桌椅占地估算并预留椅后通道。"
+      }
     },
     {
       "id": "module-1f-bed-002",
@@ -589,7 +1012,53 @@
         "y": 76.18888888888888,
         "rotation": 270
       },
-      "color": "#c8a887"
+      "color": "#c8a887",
+      "render3d": {
+        "assetType": "bed",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "camelFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "床头阅读灯",
+          "卧室主灯双控"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "放置后校核床侧通道、床头插座和衣柜开门空间。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "150x200x95cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "放置后校核床侧通道、床头插座和衣柜开门空间。"
+      }
     },
     {
       "id": "module-1f-wardrobe-001",
@@ -788,6 +1257,50 @@
           32
         ],
         "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
+      },
+      "render3d": {
+        "assetType": "wardrobe",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "honeyWood",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "notes": "确认开门方向、床侧通道和内部功能分区。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "250x50x240cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "确认开门方向、床侧通道和内部功能分区。"
       }
     },
     {
@@ -864,6 +1377,48 @@
           "U 型内部通道后续要用精确户型尺寸复核，尽量保证 900 mm 以上。",
           "双水槽必须结合现场上下水位置确认，排水坡度不够时要调整水槽或洗碗机位置。"
         ]
+      },
+      "render3d": {
+        "assetType": "kitchenCabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "厨房台面回路",
+        "notes": "靠窗顶端布置双水槽，集中复核冷热水、净水、排水和窗台高度。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "210x65x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "靠窗顶端布置双水槽，集中复核冷热水、净水、排水和窗台高度。"
       }
     },
     {
@@ -940,6 +1495,48 @@
           "U 型内部通道后续要用精确户型尺寸复核，尽量保证 900 mm 以上。",
           "双水槽必须结合现场上下水位置确认，排水坡度不够时要调整水槽或洗碗机位置。"
         ]
+      },
+      "render3d": {
+        "assetType": "kitchenCabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "relatedCircuit": "厨房台面回路",
+        "notes": "左侧灶台段优先校核烟道、燃气/电源和锅具抽屉高度。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "200x65x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "左侧灶台段优先校核烟道、燃气/电源和锅具抽屉高度。"
       }
     },
     {
@@ -1016,6 +1613,48 @@
           "U 型内部通道后续要用精确户型尺寸复核，尽量保证 900 mm 以上。",
           "双水槽必须结合现场上下水位置确认，排水坡度不够时要调整水槽或洗碗机位置。"
         ]
+      },
+      "render3d": {
+        "assetType": "kitchenCabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "厨房台面回路",
+        "notes": "右侧预留台面插座，避免冰箱开门和 U 型内部通道冲突。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "130x65x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "右侧预留台面插座，避免冰箱开门和 U 型内部通道冲突。"
       }
     },
     {
@@ -1048,7 +1687,49 @@
         "y": 24,
         "rotation": 90
       },
-      "color": "#1f2937"
+      "color": "#1f2937",
+      "render3d": {
+        "assetType": "cooktop",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "blackTitanium",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "左侧灶台需和烟道、燃气阀、电源及排烟路径一起复核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "embedded",
+        "reserveSize": "90x52x12cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "左侧灶台需和烟道、燃气阀、电源及排烟路径一起复核。"
+      }
     },
     {
       "id": "furn-sink-001",
@@ -1080,7 +1761,48 @@
         "y": 7.5,
         "rotation": 0
       },
-      "color": "#9cc7d9"
+      "color": "#9cc7d9",
+      "render3d": {
+        "assetType": "sink",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "clearGlass",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "与右水槽共用给排水集中校核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "72x48x20cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "与右水槽共用给排水集中校核。"
+      }
     },
     {
       "id": "furn-sink-002",
@@ -1112,7 +1834,48 @@
         "y": 7.5,
         "rotation": 0
       },
-      "color": "#8fbdd0"
+      "color": "#8fbdd0",
+      "render3d": {
+        "assetType": "sink",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "clearGlass",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "filtered",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "双水槽下方预留排水汇合、净水和检修空间。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "72x48x20cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "双水槽下方预留排水汇合、净水和检修空间。"
+      }
     },
     {
       "id": "furn-fridge-001",
@@ -1144,7 +1907,49 @@
         "y": 29.8,
         "rotation": 0
       },
-      "color": "#d9dee4"
+      "color": "#d9dee4",
+      "render3d": {
+        "assetType": "fridge",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "warmOak",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "冰箱建议独立回路，按设备样本预留散热和开门空间。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "92x70x190cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "冰箱建议独立回路，按设备样本预留散热和开门空间。"
+      }
     },
     {
       "id": "furn-bath-shower-001",
@@ -1176,7 +1981,48 @@
         "y": 9,
         "rotation": 0
       },
-      "color": "#c7d2fe"
+      "color": "#c7d2fe",
+      "render3d": {
+        "assetType": "shower",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "clearGlass",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "floorDrain",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "notes": "优先复核花洒冷热水、地漏坡度、挡水条和玻璃门开启方向。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "178x90x210cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "与排风、暖风和吊顶检修口协同",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "优先复核花洒冷热水、地漏坡度、挡水条和玻璃门开启方向。"
+      }
     },
     {
       "id": "furn-bath-toilet-001",
@@ -1208,7 +2054,49 @@
         "y": 18.5,
         "rotation": 90
       },
-      "color": "#f4f0ea"
+      "color": "#f4f0ea",
+      "render3d": {
+        "assetType": "toilet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmWhiteCeramic",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "warmGreyStone",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "cold",
+        "needsDrainage": true,
+        "drainageType": "wallDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "复核坑距、给水角阀、智能马桶电源和门扇开启范围。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "70x75x78cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核坑距、给水角阀、智能马桶电源和门扇开启范围。"
+      }
     },
     {
       "id": "furn-bath-vanity-001",
@@ -1240,7 +2128,52 @@
         "y": 27.5,
         "rotation": 270
       },
-      "color": "#d6d9d7"
+      "color": "#d6d9d7",
+      "render3d": {
+        "assetType": "bathroomVanity",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 1100,
+        "needsSwitch": true,
+        "switchControl": [
+          "镜前灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "mirrorLight",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "90x50x85cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。"
+      }
     },
     {
       "id": "furn-living-waterbar-001",
@@ -1314,6 +2247,48 @@
           "水吧台排水需要结合现场管位复核，距离过远时可改为无水净饮方案。",
           "台面电器和吊柜下沿要预留足够操作高度。"
         ]
+      },
+      "render3d": {
+        "assetType": "sideboard",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "walnut",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "warmLightEmissive",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "wallDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "预留净水/给水、排水、咖啡机和烧水设备插座；台面前方避开餐椅后退区。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "160x55x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "预留净水/给水、排水、咖啡机和烧水设备插座；台面前方避开餐椅后退区。"
       }
     },
     {
@@ -1346,7 +2321,52 @@
         "y": 71.3,
         "rotation": 90
       },
-      "color": "#f0e7d8"
+      "color": "#f0e7d8",
+      "render3d": {
+        "assetType": "cabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "确认墙体基层承重、吊柜下沿高度、灯带和插座避让。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "160x32x80cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "确认墙体基层承重、吊柜下沿高度、灯带和插座避让。"
+      }
     },
     {
       "id": "furn-kitchen-entry-island-001",
@@ -1428,6 +2448,51 @@
           "加长后需要复核厨房门外侧通道和餐桌椅后退空间。",
           "如果后续做固定岛台，再决定是否预留地插或侧插。"
         ]
+      },
+      "render3d": {
+        "assetType": "island",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "microCement",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "厨房台面回路",
+        "notes": "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "210x90x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。"
       }
     },
     {
@@ -1502,6 +2567,47 @@
           "门洞左侧墙段略短于 150cm，复尺后优先确认门套、踢脚线和开门净距。",
           "如果现场门套占位更大，柜体宽度宁可缩短，也不要压到卫生间门口。"
         ]
+      },
+      "render3d": {
+        "assetType": "snackCabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "柜体沿 W-1F-009 客厅侧固定，中心约在 x=7515mm、y=3210mm；先按 120cm 控制，确保避开厨房推拉门和卫生间门套，复尺后再判断能否加宽。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "120x32x120cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "柜体沿 W-1F-009 客厅侧固定，中心约在 x=7515mm、y=3210mm；先按 120cm 控制，确保避开厨房推拉门和卫生间门套，复尺后再判断能否加宽。"
       }
     },
     {
@@ -1576,6 +2682,48 @@
           "挂区深度控制在 100-120mm 内，超过就容易挡路。",
           "如果外衣很多，建议只做临时挂放，长期收纳放到衣帽间或卧室。"
         ]
+      },
+      "render3d": {
+        "assetType": "pegboard",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "贴 W-1F-004 墙固定到基层，挂钩避开入户门扇、厨房推拉门和转身动线；下方悬空，方便清洁。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "120x10x180cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "贴 W-1F-004 墙固定到基层，挂钩避开入户门扇、厨房推拉门和转身动线；下方悬空，方便清洁。"
       }
     },
     {
@@ -1651,6 +2799,51 @@
           "真实燃烧方案必须另做排烟和防火评估。",
           "嵌入式做法要确认 W-1F-013 墙体厚度、基层和检修方式。"
         ]
+      },
+      "render3d": {
+        "assetType": "fireplace",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "microCement",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "贴 W-1F-013 做浅嵌入，预留电源、检修口和防火收边；真实燃烧壁炉需另行复核排烟和物业要求。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "builtIn",
+        "reserveSize": "120x12x70cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "贴 W-1F-013 做浅嵌入，预留电源、检修口和防火收边；真实燃烧壁炉需另行复核排烟和物业要求。"
       }
     },
     {
@@ -1726,6 +2919,51 @@
           "这是占位符，最终尺寸需按北院净宽和通行复核。",
           "户外电源和燃气做法需要单独确认安全规范。"
         ]
+      },
+      "render3d": {
+        "assetType": "island",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "microCement",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "relatedCircuit": "厨房台面回路",
+        "notes": "占位符：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "260x75x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "占位符：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。"
       }
     },
     {
@@ -1755,7 +2993,48 @@
         "y": 98.89,
         "rotation": 0
       },
-      "color": "#cbd5e1"
+      "color": "#cbd5e1",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "占位符：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "210x80x160cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "占位符：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。"
+      }
     },
     {
       "id": "ph-1f-south-lounge-set",
@@ -1784,7 +3063,49 @@
         "y": 102.78,
         "rotation": 0
       },
-      "color": "#b8a58a"
+      "color": "#b8a58a",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "占位符：后续按遮阳、灯光、插座和家具真实尺寸细化。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "260x180x75cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "占位符：后续按遮阳、灯光、插座和家具真实尺寸细化。"
+      }
     },
     {
       "id": "ph-1f-south-dog-house",
@@ -1813,7 +3134,48 @@
         "y": 123.33,
         "rotation": 0
       },
-      "color": "#a9794b"
+      "color": "#a9794b",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "占位符：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "110x85x95cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "占位符：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。"
+      }
     },
     {
       "id": "ph-1f-south-pet-water",
@@ -1844,7 +3206,48 @@
         "y": 120.22,
         "rotation": 0
       },
-      "color": "#8ecae6"
+      "color": "#8ecae6",
+      "render3d": {
+        "assetType": "sink",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "clearGlass",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "filtered",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "占位符：需确认给水、排水或渗水区，避免长期积水。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "45x45x90cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "占位符：需确认给水、排水或渗水区，避免长期积水。"
+      }
     },
     {
       "id": "furn-plant-001",
@@ -1862,11 +3265,52 @@
       "material": "植物",
       "note": "作为入户视线焦点。",
       "position": {
-        "x": 72,
-        "y": 34,
+        "x": 78,
+        "y": -7,
         "rotation": 0
       },
-      "color": "#7c9468"
+      "color": "#7c9468",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "作为入户视线焦点。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "120x120x260cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "作为入户视线焦点。"
+      }
     },
     {
       "id": "module-2f-cloak-left",
@@ -2090,6 +3534,51 @@
           }
         ],
         "notes": "衣帽间初版：以挂衣为主，顶部和侧边承担包包、被子、换季件；叠放区尽量少，仅保留必要开放格和少量抽屉，后续可进入衣柜设计器继续拖动微调。"
+      },
+      "render3d": {
+        "assetType": "walkInCloset",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "warmLightEmissive",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "常规插座回路",
+        "notes": "沿衣帽间西侧墙布置，按 600mm 深度复核中间通道；顶部预留换季被子和行李。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "258x60x240cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "沿衣帽间西侧墙布置，按 600mm 深度复核中间通道；顶部预留换季被子和行李。"
       }
     },
     {
@@ -2302,6 +3791,51 @@
           }
         ],
         "notes": "衣帽间初版：以挂衣为主，顶部和侧边承担包包、被子、换季件；叠放区尽量少，仅保留必要开放格和少量抽屉，后续可进入衣柜设计器继续拖动微调。"
+      },
+      "render3d": {
+        "assetType": "walkInCloset",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "warmLightEmissive",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "常规插座回路",
+        "notes": "沿衣帽间东侧墙布置，局部玻璃门展示包包，顶柜和窄高柜收被子、行李箱、换季物。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "258x60x240cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "沿衣帽间东侧墙布置，局部玻璃门展示包包，顶柜和窄高柜收被子、行李箱、换季物。"
       }
     },
     {
@@ -2331,7 +3865,52 @@
         "y": 7.15,
         "rotation": 0
       },
-      "color": "#c8a887"
+      "color": "#c8a887",
+      "render3d": {
+        "assetType": "desk",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "creamFabric",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "台灯/任务灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": true,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "靠窗预留双插、网络/充电位和化妆镜灯电源，桌下留腿部空间。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "100x45x76cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "靠窗预留双插、网络/充电位和化妆镜灯电源，桌下留腿部空间。"
+      }
     },
     {
       "id": "furn-2f-guest-shower-001",
@@ -2363,7 +3942,48 @@
         "y": 9,
         "rotation": 0
       },
-      "color": "#c7d2fe"
+      "color": "#c7d2fe",
+      "render3d": {
+        "assetType": "shower",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "clearGlass",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "floorDrain",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "notes": "复核花洒冷热水、地漏坡度、挡水条和玻璃门开启方向。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "168x90x210cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "与排风、暖风和吊顶检修口协同",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核花洒冷热水、地漏坡度、挡水条和玻璃门开启方向。"
+      }
     },
     {
       "id": "furn-2f-guest-toilet-001",
@@ -2395,7 +4015,49 @@
         "y": 18.5,
         "rotation": 90
       },
-      "color": "#f4f0ea"
+      "color": "#f4f0ea",
+      "render3d": {
+        "assetType": "toilet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmWhiteCeramic",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "warmGreyStone",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "cold",
+        "needsDrainage": true,
+        "drainageType": "wallDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "复核坑距、给水角阀、智能马桶电源和门扇开启范围。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "70x75x78cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核坑距、给水角阀、智能马桶电源和门扇开启范围。"
+      }
     },
     {
       "id": "furn-2f-guest-vanity-001",
@@ -2427,7 +4089,52 @@
         "y": 27.5,
         "rotation": 270
       },
-      "color": "#d6d9d7"
+      "color": "#d6d9d7",
+      "render3d": {
+        "assetType": "bathroomVanity",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 1100,
+        "needsSwitch": true,
+        "switchControl": [
+          "镜前灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "mirrorLight",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "90x50x85cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。"
+      }
     },
     {
       "id": "furn-2f-master-shower-001",
@@ -2459,7 +4166,49 @@
         "y": 9,
         "rotation": 0
       },
-      "color": "#9fcdda"
+      "color": "#9fcdda",
+      "render3d": {
+        "assetType": "shower",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "clearGlass",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "floorDrain",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "复核淋浴冷热水、地漏坡度、挡水条、玻璃隔断开启方向和壁龛灯低压电源。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "90x90x210cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "与排风、暖风和吊顶检修口协同",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核淋浴冷热水、地漏坡度、挡水条、玻璃隔断开启方向和壁龛灯低压电源。"
+      }
     },
     {
       "id": "furn-2f-master-bathtub-001",
@@ -2491,7 +4240,52 @@
         "y": 24.2,
         "rotation": 90
       },
-      "color": "#f7f4ee"
+      "color": "#f7f4ee",
+      "render3d": {
+        "assetType": "bathtub",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmWhiteCeramic",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "warmGreyStone",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "wallDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "校核上下水、检修口、防水翻边、浴缸侧边通道和低位灯带检修。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "170x75x58cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "校核上下水、检修口、防水翻边、浴缸侧边通道和低位灯带检修。"
+      }
     },
     {
       "id": "furn-2f-master-vanity-001",
@@ -2523,7 +4317,52 @@
         "y": 14.8,
         "rotation": 90
       },
-      "color": "#a9764c"
+      "color": "#a9764c",
+      "render3d": {
+        "assetType": "bathroomVanity",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 1100,
+        "needsSwitch": true,
+        "switchControl": [
+          "镜前灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "mirrorLight",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "沿 W-2F-006 复核双盆冷热水、双下水、镜柜灯、吹风插座、防溅距离和悬浮柜承重。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "160x55x85cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "沿 W-2F-006 复核双盆冷热水、双下水、镜柜灯、吹风插座、防溅距离和悬浮柜承重。"
+      }
     },
     {
       "id": "furn-2f-master-toilet-001",
@@ -2555,7 +4394,49 @@
         "y": 28.3,
         "rotation": 90
       },
-      "color": "#f4f0ea"
+      "color": "#f4f0ea",
+      "render3d": {
+        "assetType": "toilet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmWhiteCeramic",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "warmGreyStone",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "cold",
+        "needsDrainage": true,
+        "drainageType": "wallDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "复核坑距、给水角阀、智能马桶电源、门扇开启范围和墙面检修口。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "70x75x78cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核坑距、给水角阀、智能马桶电源、门扇开启范围和墙面检修口。"
+      }
     },
     {
       "id": "furn-2f-bedroom1-bed-001",
@@ -2587,7 +4468,53 @@
         "y": 70.34444444444445,
         "rotation": 0
       },
-      "color": "#c8a887"
+      "color": "#c8a887",
+      "render3d": {
+        "assetType": "bed",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "camelFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "床头阅读灯",
+          "卧室主灯双控"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "120x200x95cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。"
+      }
     },
     {
       "id": "furn-2f-bedroom1-wardrobe-001",
@@ -2786,6 +4713,50 @@
           30
         ],
         "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
+      },
+      "render3d": {
+        "assetType": "wardrobe",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "honeyWood",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "240x60x240cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
       }
     },
     {
@@ -2818,7 +4789,53 @@
         "y": 75.55555555555559,
         "rotation": 90
       },
-      "color": "#c8a887"
+      "color": "#c8a887",
+      "render3d": {
+        "assetType": "bed",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "camelFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "床头阅读灯",
+          "卧室主灯双控"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "150x200x95cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。"
+      }
     },
     {
       "id": "furn-2f-master-bedroom-bed-001",
@@ -2846,11 +4863,57 @@
         "exhaust": false
       },
       "position": {
-        "x": 63.1,
-        "y": 75.87777777777778,
-        "rotation": 270
+        "x": 71.55,
+        "y": 75.2,
+        "rotation": 0
       },
-      "color": "#c8a887"
+      "color": "#c8a887",
+      "render3d": {
+        "assetType": "bed",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "camelFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "床头阅读灯",
+          "卧室主灯双控"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "床头两侧预留插座、双控和夜灯；复核床边衣柜与床侧通道的净宽。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "180x200x95cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "床头两侧预留插座、双控和夜灯；复核床边衣柜与床侧通道的净宽。"
+      }
     },
     {
       "id": "furn-2f-master-bedroom-large-wardrobe-001",
@@ -2879,7 +4942,7 @@
       },
       "position": {
         "x": 76.55,
-        "y": 70.22222222222223,
+        "y": 48.8,
         "rotation": 90
       },
       "color": "#d8c2a4",
@@ -3049,6 +5112,51 @@
           32
         ],
         "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
+      },
+      "render3d": {
+        "assetType": "wardrobe",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "honeyWood",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "常规插座回路",
+        "notes": "复核东墙柜体深度、开门/移门方式、主卫门套收口和床侧通道。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "260x60x240cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "复核东墙柜体深度、开门/移门方式、主卫门套收口和床侧通道。"
       }
     },
     {
@@ -3077,11 +5185,53 @@
         "exhaust": false
       },
       "position": {
-        "x": 76.15833333333333,
-        "y": 43.2111111111111,
-        "rotation": 270
+        "x": 71.25,
+        "y": 36.8,
+        "rotation": 0
       },
-      "color": "#d7c6a8"
+      "color": "#d7c6a8",
+      "render3d": {
+        "assetType": "sideboard",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "walnut",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "warmLightEmissive",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 3,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "靠主卫墙边但避开门洞开启，顶部可预留镜子或小夜灯电源。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "100x45x90cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "靠主卫墙边但避开门洞开启，顶部可预留镜子或小夜灯电源。"
+      }
     },
     {
       "id": "module-2f-wardrobe-002",
@@ -3280,6 +5430,1366 @@
           32
         ],
         "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
+      },
+      "render3d": {
+        "assetType": "wardrobe",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "honeyWood",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "notes": "确认开门方向、床侧通道和内部功能分区。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "140x60x240cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "确认开门方向、床侧通道和内部功能分区。"
+      }
+    },
+    {
+      "id": "furn-2f-bedroom2-wardrobe-001",
+      "code": "WD-2F-02",
+      "name": "卧室2 衣柜",
+      "type": "wardrobe",
+      "catalogId": "storage-wardrobe",
+      "moduleCategory": "storage",
+      "moduleType": "wardrobe",
+      "floorId": "2F",
+      "roomId": "ROOM-2F-005",
+      "dimensions": {
+        "width": 240,
+        "depth": 60,
+        "height": 240,
+        "unit": "cm"
+      },
+      "material": "定制柜体 + 平开/移门",
+      "note": "衣柜贴墙布置，避开床侧通道和门洞开启范围。",
+      "constructionNote": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 52.016666666666666,
+        "y": 72,
+        "rotation": 90
+      },
+      "color": "#c8a887",
+      "wardrobeDesign": {
+        "columns": 3,
+        "rows": 4,
+        "cells": [
+          {
+            "id": "cell-0-0",
+            "column": 0,
+            "row": 0,
+            "kind": "hanging-long"
+          },
+          {
+            "id": "cell-1-0",
+            "column": 1,
+            "row": 0,
+            "kind": "open"
+          },
+          {
+            "id": "cell-2-0",
+            "column": 2,
+            "row": 0,
+            "kind": "folded"
+          },
+          {
+            "id": "cell-0-1",
+            "column": 0,
+            "row": 1,
+            "kind": "hanging-long"
+          },
+          {
+            "id": "cell-1-1",
+            "column": 1,
+            "row": 1,
+            "kind": "open"
+          },
+          {
+            "id": "cell-2-1",
+            "column": 2,
+            "row": 1,
+            "kind": "folded"
+          },
+          {
+            "id": "cell-0-2",
+            "column": 0,
+            "row": 2,
+            "kind": "hanging-short"
+          },
+          {
+            "id": "cell-1-2",
+            "column": 1,
+            "row": 2,
+            "kind": "open"
+          },
+          {
+            "id": "cell-2-2",
+            "column": 2,
+            "row": 2,
+            "kind": "folded"
+          },
+          {
+            "id": "cell-0-3",
+            "column": 0,
+            "row": 3,
+            "kind": "hanging-short"
+          },
+          {
+            "id": "cell-1-3",
+            "column": 1,
+            "row": 3,
+            "kind": "drawer"
+          },
+          {
+            "id": "cell-2-3",
+            "column": 2,
+            "row": 3,
+            "kind": "folded"
+          }
+        ],
+        "modules": [
+          {
+            "id": "recommended-seasonal",
+            "kind": "open",
+            "label": "顶部换季区",
+            "column": 0,
+            "columnSpan": 3,
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 18
+          },
+          {
+            "id": "recommended-long",
+            "kind": "hanging-long",
+            "label": "长衣区",
+            "column": 0,
+            "columnSpan": 1,
+            "x": 0,
+            "y": 18,
+            "width": 38,
+            "height": 82
+          },
+          {
+            "id": "recommended-short",
+            "kind": "hanging-short",
+            "label": "短衣区",
+            "column": 1,
+            "columnSpan": 1,
+            "x": 38,
+            "y": 18,
+            "width": 32,
+            "height": 59
+          },
+          {
+            "id": "recommended-drawer",
+            "kind": "drawer",
+            "label": "抽屉区",
+            "column": 1,
+            "columnSpan": 1,
+            "drawerRows": 3,
+            "drawerColumns": 1,
+            "drawerRowHeights": [
+              33.33,
+              33.33,
+              33.33
+            ],
+            "x": 38,
+            "y": 77,
+            "width": 32,
+            "height": 23
+          },
+          {
+            "id": "recommended-folded",
+            "kind": "folded",
+            "label": "叠放区",
+            "column": 2,
+            "columnSpan": 1,
+            "shelfCount": 4,
+            "shelfLayerHeights": [
+              20,
+              20,
+              20,
+              20,
+              20
+            ],
+            "x": 70,
+            "y": 18,
+            "width": 30,
+            "height": 68
+          },
+          {
+            "id": "recommended-shoe",
+            "kind": "shoe",
+            "label": "鞋包区",
+            "column": 2,
+            "columnSpan": 1,
+            "x": 70,
+            "y": 86,
+            "width": 30,
+            "height": 14
+          }
+        ],
+        "columnWidths": [
+          38,
+          32,
+          30
+        ],
+        "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
+      },
+      "render3d": {
+        "assetType": "wardrobe",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "honeyWood",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": true,
+        "switchControl": [
+          "柜内灯带门控/感应"
+        ],
+        "needsLighting": true,
+        "lightingType": "cabinetStrip",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "240x60x240cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
+      }
+    },
+    {
+      "id": "furn-1f-entry-cabinet-001",
+      "code": "EC-1F-01",
+      "name": "1F 入户玄关展示柜",
+      "type": "entryCabinet",
+      "moduleCategory": "storage",
+      "moduleType": "entryCabinet",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-001",
+      "dimensions": {
+        "width": 150,
+        "depth": 38,
+        "height": 230,
+        "unit": "cm"
+      },
+      "material": "浅橡木柜体 + 茶色玻璃展示格 + 暖色灯带",
+      "note": "入户收纳、换鞋与展示一体，底部悬空并预留感应灯带。",
+      "constructionNote": "贴玄关西侧墙复尺定制，避开门套和开关；灯带电源、扫地机器人位和换鞋凳收口同步确认。",
+      "position": {
+        "x": 33.6,
+        "y": 18.8,
+        "rotation": 90
+      },
+      "color": "#c8ad8b",
+      "render3d": {
+        "assetType": "entryCabinet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "warmLightEmissive",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "常规插座回路",
+        "notes": "贴玄关西侧墙复尺定制，避开门套和开关；灯带电源、扫地机器人位和换鞋凳收口同步确认。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "150x38x230cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "贴玄关西侧墙复尺定制，避开门套和开关；灯带电源、扫地机器人位和换鞋凳收口同步确认。"
+      }
+    },
+    {
+      "id": "furn-1f-living-sofa-001",
+      "code": "SF-1F-01",
+      "name": "1F 起居区奶油直排沙发",
+      "type": "sofa",
+      "moduleCategory": "living",
+      "moduleType": "sofa",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 290,
+        "depth": 100,
+        "height": 82,
+        "unit": "cm"
+      },
+      "material": "奶油布艺 + 浅橡木脚",
+      "note": "面向壁炉与茶几，保持楼梯和餐厨通道顺畅。",
+      "constructionNote": "成品家具，按插座、落地灯和壁炉观看距离复核最终位置。",
+      "position": {
+        "x": 52,
+        "y": 69,
+        "rotation": 0
+      },
+      "color": "#eee3d6",
+      "render3d": {
+        "assetType": "sofa",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "taupeFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "成品家具，按插座、落地灯和壁炉观看距离复核最终位置。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "290x100x82cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "成品家具，按插座、落地灯和壁炉观看距离复核最终位置。"
+      }
+    },
+    {
+      "id": "furn-1f-living-coffee-table-001",
+      "code": "CT-1F-01",
+      "name": "1F 起居区洞石茶几",
+      "type": "table",
+      "moduleCategory": "living",
+      "moduleType": "table",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 125,
+        "depth": 72,
+        "height": 38,
+        "unit": "cm"
+      },
+      "material": "米色洞石 + 黑钛底座",
+      "note": "与圆餐桌和岛台形成不同材质层次。",
+      "constructionNote": "成品茶几，复核沙发前通道和圆角安全。",
+      "position": {
+        "x": 52,
+        "y": 60.5,
+        "rotation": 0
+      },
+      "color": "#ded2bd",
+      "render3d": {
+        "assetType": "coffeeTable",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "成品茶几，复核沙发前通道和圆角安全。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "125x72x38cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "成品茶几，复核沙发前通道和圆角安全。"
+      }
+    },
+    {
+      "id": "furn-b1-guest-bed-001",
+      "code": "BD-B1-01",
+      "name": "B1 客房双人床",
+      "type": "bed",
+      "moduleCategory": "bedroom",
+      "moduleType": "bed",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-002",
+      "dimensions": {
+        "width": 150,
+        "depth": 200,
+        "height": 95,
+        "unit": "cm"
+      },
+      "material": "米灰布艺软包 + 浅橡木床架",
+      "note": "客房标准比 2F 主卧简化，保持同一色系。",
+      "constructionNote": "床头两侧预留插座和双控，复核整墙衣柜开门与床侧通道。",
+      "position": {
+        "x": 61.5,
+        "y": 19,
+        "rotation": 0
+      },
+      "color": "#d8cabc",
+      "render3d": {
+        "assetType": "bed",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "camelFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 4,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "床头阅读灯",
+          "卧室主灯双控"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "床头两侧预留插座和双控，复核整墙衣柜开门与床侧通道。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "150x200x95cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "床头两侧预留插座和双控，复核整墙衣柜开门与床侧通道。"
+      }
+    },
+    {
+      "id": "furn-b1-nightstand-left-001",
+      "code": "NS-B1-L",
+      "name": "B1 客房左床头柜",
+      "type": "nightstand",
+      "moduleCategory": "bedroom",
+      "moduleType": "nightstand",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-002",
+      "dimensions": {
+        "width": 48,
+        "depth": 42,
+        "height": 52,
+        "unit": "cm"
+      },
+      "material": "浅橡木 + 古铜拉手",
+      "note": "带小台灯和床头插座。",
+      "constructionNote": "按床头完成面复核插座高度。",
+      "position": {
+        "x": 52.5,
+        "y": 19,
+        "rotation": 0
+      },
+      "color": "#c8ad8b",
+      "render3d": {
+        "assetType": "nightstand",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "台灯/任务灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "按床头完成面复核插座高度。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "48x42x52cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "按床头完成面复核插座高度。"
+      }
+    },
+    {
+      "id": "furn-b1-nightstand-right-001",
+      "code": "NS-B1-R",
+      "name": "B1 客房右床头柜",
+      "type": "nightstand",
+      "moduleCategory": "bedroom",
+      "moduleType": "nightstand",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-002",
+      "dimensions": {
+        "width": 48,
+        "depth": 42,
+        "height": 52,
+        "unit": "cm"
+      },
+      "material": "浅橡木 + 古铜拉手",
+      "note": "带小台灯和床头插座。",
+      "constructionNote": "按床头完成面复核插座高度。",
+      "position": {
+        "x": 70.5,
+        "y": 19,
+        "rotation": 0
+      },
+      "color": "#c8ad8b",
+      "render3d": {
+        "assetType": "nightstand",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "台灯/任务灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "task",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "卧室床头回路",
+        "notes": "按床头完成面复核插座高度。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "48x42x52cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "按床头完成面复核插座高度。"
+      }
+    },
+    {
+      "id": "furn-b1-bath-vanity-001",
+      "code": "VA-B1-01",
+      "name": "B1 卫生间壁挂浴室柜",
+      "type": "vanity",
+      "moduleCategory": "bath",
+      "moduleType": "vanity",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-001",
+      "dimensions": {
+        "width": 75,
+        "depth": 48,
+        "height": 85,
+        "unit": "cm"
+      },
+      "material": "暖灰石材 + 浅橡木",
+      "note": "紧凑台盆柜兼顾洗衣房洗手功能。",
+      "constructionNote": "复核冷热水、柜内排水、镜前灯、吹风插座和地下室防潮。",
+      "position": {
+        "x": 35.5,
+        "y": 7.2,
+        "rotation": 0
+      },
+      "color": "#d8d1c6",
+      "render3d": {
+        "assetType": "bathroomVanity",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "travertine",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 1100,
+        "needsSwitch": true,
+        "switchControl": [
+          "镜前灯"
+        ],
+        "needsLighting": true,
+        "lightingType": "mirrorLight",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "复核冷热水、柜内排水、镜前灯、吹风插座和地下室防潮。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "75x48x85cm",
+        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "复核冷热水、柜内排水、镜前灯、吹风插座和地下室防潮。"
+      }
+    },
+    {
+      "id": "furn-b1-bath-toilet-001",
+      "code": "WC-B1-01",
+      "name": "B1 卫生间智能马桶",
+      "type": "toilet",
+      "moduleCategory": "bath",
+      "moduleType": "toilet",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-001",
+      "dimensions": {
+        "width": 68,
+        "depth": 74,
+        "height": 76,
+        "unit": "cm"
+      },
+      "material": "暖白陶瓷",
+      "note": "按紧凑卫浴布置。",
+      "constructionNote": "复核坑距、角阀、防溅插座和检修口。",
+      "position": {
+        "x": 42.2,
+        "y": 14.2,
+        "rotation": 90
+      },
+      "color": "#fbf8f1",
+      "render3d": {
+        "assetType": "toilet",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmWhiteCeramic",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "warmGreyStone",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "cold",
+        "needsDrainage": true,
+        "drainageType": "wallDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": true,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "复核坑距、角阀、防溅插座和检修口。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "68x74x76cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核坑距、角阀、防溅插座和检修口。"
+      }
+    },
+    {
+      "id": "furn-b1-bath-shower-001",
+      "code": "SH-B1-01",
+      "name": "B1 卫生间玻璃淋浴间",
+      "type": "shower",
+      "moduleCategory": "bath",
+      "moduleType": "shower",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-001",
+      "dimensions": {
+        "width": 82,
+        "depth": 82,
+        "height": 205,
+        "unit": "cm"
+      },
+      "material": "低铁玻璃 + 黑钛边框",
+      "note": "紧凑玻璃隔断，避免地下空间显暗。",
+      "constructionNote": "复核冷热水、地漏坡度、防水高度、排风和玻璃门开启。",
+      "position": {
+        "x": 35.5,
+        "y": 18.2,
+        "rotation": 0
+      },
+      "color": "#c9e7e8",
+      "render3d": {
+        "assetType": "shower",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "clearGlass",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "hotCold",
+        "needsDrainage": true,
+        "drainageType": "floorDrain",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "notes": "复核冷热水、地漏坡度、防水高度、排风和玻璃门开启。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "82x82x205cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "与排风、暖风和吊顶检修口协同",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "卫浴设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "复核冷热水、地漏坡度、防水高度、排风和玻璃门开启。"
+      }
+    },
+    {
+      "id": "furn-b1-lounge-chair-001",
+      "code": "SF-B1-01",
+      "name": "B1 休闲角双人沙发",
+      "type": "sofa",
+      "moduleCategory": "living",
+      "moduleType": "sofa",
+      "floorId": "B1",
+      "roomId": "ROOM-B1-004",
+      "dimensions": {
+        "width": 155,
+        "depth": 82,
+        "height": 78,
+        "unit": "cm"
+      },
+      "material": "灰褐布艺 + 浅木脚",
+      "note": "作为地下休闲角阅读与等候座位。",
+      "constructionNote": "成品家具，结合落地灯和插座位置复核。",
+      "position": {
+        "x": 27,
+        "y": 69,
+        "rotation": 0
+      },
+      "color": "#aa9786",
+      "render3d": {
+        "assetType": "sofa",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "taupeFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "成品家具，结合落地灯和插座位置复核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "155x82x78cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "成品家具，结合落地灯和插座位置复核。"
+      }
+    },
+    {
+      "id": "ph-1f-north-yard-gate",
+      "code": "YG-1F-N",
+      "name": "北院庭院门",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "OD-1F-NORTH-001",
+      "dimensions": {
+        "width": 130,
+        "depth": 14,
+        "height": 180,
+        "unit": "cm"
+      },
+      "material": "深灰金属格栅",
+      "note": "入户庭院门占位。",
+      "constructionNote": "复核门柱、门禁、电源、排水和开启净宽。",
+      "position": {
+        "x": 43.5,
+        "y": -15.8,
+        "rotation": 0
+      },
+      "color": "#3f4447",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "复核门柱、门禁、电源、排水和开启净宽。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "130x14x180cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "复核门柱、门禁、电源、排水和开启净宽。"
+      }
+    },
+    {
+      "id": "ph-1f-south-outdoor-cabinet",
+      "code": "YC-1F-S",
+      "name": "南院防水户外柜",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "OD-1F-SOUTH-001",
+      "dimensions": {
+        "width": 150,
+        "depth": 58,
+        "height": 92,
+        "unit": "cm"
+      },
+      "material": "户外木色 + 浅灰石材台面",
+      "note": "洗衣、清洁和园艺用品集中收纳。",
+      "constructionNote": "户外定制柜，防水封边；预留插座、给水、排水和可拆检修背板。",
+      "position": {
+        "x": 18,
+        "y": 113,
+        "rotation": 0
+      },
+      "color": "#9c8a74",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "cold",
+        "needsDrainage": true,
+        "drainageType": "cabinetDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "防溅/防水回路",
+        "notes": "户外定制柜，防水封边；预留插座、给水、排水和可拆检修背板。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "150x58x92cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": true,
+        "purchaseCategory": "户外柜",
+        "supplierType": "户外定制柜供应商",
+        "notes": "户外定制柜，防水封边；预留插座、给水、排水和可拆检修背板。"
+      }
+    },
+    {
+      "id": "ph-1f-south-yard-light",
+      "code": "YL-1F-S",
+      "name": "南院低位庭院灯",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "OD-1F-SOUTH-001",
+      "dimensions": {
+        "width": 24,
+        "depth": 24,
+        "height": 100,
+        "unit": "cm"
+      },
+      "material": "深灰金属 + 3000K 暖光",
+      "note": "低亮度路径与休闲区照明。",
+      "constructionNote": "使用防水接线盒和独立回路，灯光避免直射邻居。",
+      "position": {
+        "x": 50,
+        "y": 111,
+        "rotation": 0
+      },
+      "color": "#3f4447",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "使用防水接线盒和独立回路，灯光避免直射邻居。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "24x24x100cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "庭院设备",
+        "supplierType": "成品家具供应商",
+        "notes": "使用防水接线盒和独立回路，灯光避免直射邻居。"
+      }
+    },
+    {
+      "id": "ph-1f-north-outdoor-socket",
+      "code": "SO-1F-N",
+      "name": "北院防水户外插座",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "OD-1F-NORTH-001",
+      "dimensions": {
+        "width": 18,
+        "depth": 10,
+        "height": 45,
+        "unit": "cm"
+      },
+      "material": "深灰防水盒",
+      "note": "烧烤和清洁设备地插/墙插占位。",
+      "constructionNote": "防水盒、漏保和独立回路，离积水点保持安全距离。",
+      "position": {
+        "x": 30,
+        "y": -9,
+        "rotation": 0
+      },
+      "color": "#3f4447",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "防水盒、漏保和独立回路，离积水点保持安全距离。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "18x10x45cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "庭院设备",
+        "supplierType": "成品家具供应商",
+        "notes": "防水盒、漏保和独立回路，离积水点保持安全距离。"
+      }
+    },
+    {
+      "id": "ph-1f-south-water-tap",
+      "code": "WT-1F-S",
+      "name": "南院给水龙头",
+      "type": "sink",
+      "floorId": "1F",
+      "roomId": "OD-1F-SOUTH-001",
+      "dimensions": {
+        "width": 28,
+        "depth": 22,
+        "height": 75,
+        "unit": "cm"
+      },
+      "material": "古铜户外龙头 + 石材基座",
+      "note": "园艺和冲洗给水点。",
+      "constructionNote": "预留冷水、冬季防冻泄水和墙面固定。",
+      "position": {
+        "x": 14,
+        "y": 110,
+        "rotation": 0
+      },
+      "color": "#a17f5b",
+      "render3d": {
+        "assetType": "sink",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "brushedBronze",
+        "accentMaterial": "clearGlass",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": true,
+        "waterSupplyType": "cold",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "预留冷水、冬季防冻泄水和墙面固定。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "28x22x75cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "庭院设备",
+        "supplierType": "卫浴设备供应商",
+        "notes": "预留冷水、冬季防冻泄水和墙面固定。"
+      }
+    },
+    {
+      "id": "ph-1f-south-drain-point",
+      "code": "DR-1F-S",
+      "name": "南院排水点 / 地漏",
+      "type": "custom",
+      "floorId": "1F",
+      "roomId": "OD-1F-SOUTH-001",
+      "dimensions": {
+        "width": 35,
+        "depth": 35,
+        "height": 4,
+        "unit": "cm"
+      },
+      "material": "深灰金属地漏",
+      "note": "户外柜与宠物角附近排水占位。",
+      "constructionNote": "结合庭院坡度、雨水管和清洗排水复核。",
+      "position": {
+        "x": 72,
+        "y": 115,
+        "rotation": 0
+      },
+      "color": "#62686b",
+      "render3d": {
+        "assetType": "yardModule",
+        "detailLevel": "presentation",
+        "stylePreset": "elevatedTuscanSun",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmGreyStone",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": true,
+        "drainageType": "floorDrain",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "结合庭院坡度、雨水管和清洗排水复核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "floorStanding",
+        "reserveSize": "35x35x4cm",
+        "wallDependency": "",
+        "floorDependency": "复核完成面标高、排水坡度与固定基层",
+        "ceilingDependency": "",
+        "waterproofRequired": true,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "庭院设备",
+        "supplierType": "成品家具供应商",
+        "notes": "结合庭院坡度、雨水管和清洗排水复核。"
       }
     }
   ],
@@ -6625,14 +10135,14 @@
         {
           "id": "D-2F-008",
           "floorId": "2F",
-          "name": "Door 008",
+          "name": "主卧门",
           "geometryType": "line",
           "hostId": "W-2F-017",
           "hostType": "wall",
           "positionOnWall": 0.44,
           "width": 900,
           "height": 2100,
-          "openDirection": "leftIn"
+          "openDirection": "rightIn"
         }
       ],
       "windows": [
@@ -6892,5 +10402,259 @@
       "columns": []
     }
   },
-  "wallSyncOverrides": {}
+  "wallSyncOverrides": {},
+  "cameraViews": [
+    {
+      "id": "view-1f-living-dining-overview",
+      "name": "1F 客餐厨总览",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 7.8,
+        "y": 7.2,
+        "z": 8.6
+      },
+      "target": {
+        "x": 0.2,
+        "y": 0.45,
+        "z": 0.2
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "description": "同时交代厨房、岛台、圆桌、起居区和楼梯关系。"
+    },
+    {
+      "id": "view-1f-island-dining",
+      "name": "1F 中岛 + 餐桌",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 5.8,
+        "y": 3.8,
+        "z": 4.8
+      },
+      "target": {
+        "x": 1.05,
+        "y": 0.55,
+        "z": -0.1
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "突出微水泥岛台与木石圆桌的材质差异。"
+    },
+    {
+      "id": "view-1f-entry",
+      "name": "1F 玄关柜",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -5.6,
+        "y": 3.1,
+        "z": -5.8
+      },
+      "target": {
+        "x": -1.47,
+        "y": 0.65,
+        "z": -2.8
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "查看玄关柜、挂衣区和入户动线。"
+    },
+    {
+      "id": "view-1f-fireplace",
+      "name": "1F 壁炉 / 起居区",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -5.2,
+        "y": 2.7,
+        "z": 4.7
+      },
+      "target": {
+        "x": -1.95,
+        "y": 0.58,
+        "z": 1.7
+      },
+      "zoom": 1.05,
+      "mode": "perspective",
+      "description": "强调壁炉墙面、沙发、茶几与通道关系。"
+    },
+    {
+      "id": "view-2f-master-bedroom",
+      "name": "2F 主卧",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": 6.1,
+        "y": 3.6,
+        "z": 5.8
+      },
+      "target": {
+        "x": 2.58,
+        "y": 0.62,
+        "z": 0.92
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "主床、整墙衣柜和主卫入口总览。"
+    },
+    {
+      "id": "view-2f-closet",
+      "name": "2F 衣帽间",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": 4.8,
+        "y": 3.2,
+        "z": -6.1
+      },
+      "target": {
+        "x": 0.53,
+        "y": 0.7,
+        "z": -2.8
+      },
+      "zoom": 1.1,
+      "mode": "perspective",
+      "description": "开放柜、玻璃门、灯带与整理桌组合。"
+    },
+    {
+      "id": "view-2f-master-bath",
+      "name": "2F 主卫",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": 6.3,
+        "y": 3.2,
+        "z": -5.5
+      },
+      "target": {
+        "x": 2.58,
+        "y": 0.62,
+        "z": -2.8
+      },
+      "zoom": 1.12,
+      "mode": "perspective",
+      "description": "双台盆、浴缸、淋浴和马桶的轴测关系。"
+    },
+    {
+      "id": "view-2f-secondary-bedroom",
+      "name": "2F 次卧",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -6.1,
+        "y": 3.5,
+        "z": 5.4
+      },
+      "target": {
+        "x": -3.57,
+        "y": 0.58,
+        "z": 1.97
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "次卧床与衣柜的简洁统一方案。"
+    },
+    {
+      "id": "view-b2-activity",
+      "name": "B2 活动区",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 5.8,
+        "y": 3.5,
+        "z": 6.3
+      },
+      "target": {
+        "x": 1.62,
+        "y": 0.5,
+        "z": 1.97
+      },
+      "zoom": 1.06,
+      "mode": "perspective",
+      "description": "活动留白、软垫、收纳与挑空边界。"
+    },
+    {
+      "id": "view-b2-study",
+      "name": "B2 书房",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -6.1,
+        "y": 3.5,
+        "z": 5.8
+      },
+      "target": {
+        "x": -2.65,
+        "y": 0.55,
+        "z": 1.97
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "大板桌、展示书柜与阅读照明。"
+    },
+    {
+      "id": "view-b1-guest-room",
+      "name": "B1 客房",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": 5.6,
+        "y": 3.4,
+        "z": -4.8
+      },
+      "target": {
+        "x": 0.13,
+        "y": 0.58,
+        "z": -2.46
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "客房床、床头柜和整墙换季衣柜。"
+    },
+    {
+      "id": "view-b1-bath",
+      "name": "B1 卫生间",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.6,
+        "y": 3,
+        "z": -5.6
+      },
+      "target": {
+        "x": -1.33,
+        "y": 0.58,
+        "z": -3.27
+      },
+      "zoom": 1.12,
+      "mode": "perspective",
+      "description": "紧凑卫浴与洗衣功能的给排水检修关系。"
+    },
+    {
+      "id": "view-yard-south",
+      "name": "南院",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 7,
+        "y": 5.4,
+        "z": 10.6
+      },
+      "target": {
+        "x": 0,
+        "y": 0.35,
+        "z": 4.75
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "description": "休闲平台、晾晒、户外柜、宠物角和排水。"
+    },
+    {
+      "id": "view-yard-north",
+      "name": "北院",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 5.5,
+        "y": 4.6,
+        "z": -10.2
+      },
+      "target": {
+        "x": 0,
+        "y": 0.35,
+        "z": -5.7
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "description": "入户院门、围栏、烧烤岛台与户外插座。"
+    }
+  ]
 }

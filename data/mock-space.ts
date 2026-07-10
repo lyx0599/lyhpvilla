@@ -1,5 +1,5 @@
 import type { SpaceData } from "@/types/space";
-import type { Furniture } from "@/types/space";
+import type { FixedCameraView, Furniture } from "@/types/space";
 import { getInteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import defaultWorkspace from "@/data/default-workspace.json";
@@ -23,7 +23,7 @@ function moduleMeta(catalogId: string) {
   };
 }
 
-const savedDefaultWorkspace = defaultWorkspace as Partial<{ selectedFloorId: SpaceData["selectedFloorId"]; furniture: Furniture[] }>;
+const savedDefaultWorkspace = defaultWorkspace as Partial<{ selectedFloorId: SpaceData["selectedFloorId"]; furniture: Furniture[]; cameraViews: FixedCameraView[] }>;
 
 const defaultFurniture: Furniture[] = [
   {
@@ -178,6 +178,7 @@ const defaultFurniture: Furniture[] = [
 
 export const mockSpaceData: SpaceData = {
   selectedFloorId: savedDefaultWorkspace.selectedFloorId ?? "1F",
+  cameraViews: savedDefaultWorkspace.cameraViews ?? [],
   floors: [
     { id: "B2", label: "b2", subtitle: "地下室二层", floorPlanImage: assetPath("/floor-plans/hd-clean/b2-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
     { id: "B1", label: "b1", subtitle: "地下室一层", floorPlanImage: assetPath("/floor-plans/hd-clean/b1-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },

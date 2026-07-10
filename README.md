@@ -69,19 +69,21 @@ http://127.0.0.1:3010/
 pnpm local-code-sync
 ```
 
-然后保持页面上的「自动写代码」开启。页面会把当前方案写入：
+然后保持页面上的「自动写代码」开启。页面会先保存浏览器草稿，再把当前方案写入：
 
 ```text
 data/default-workspace.json
 ```
 
-同时会备份一份当前页面方案到：
+每次覆盖前，服务会把旧代码文件备份到：
 
 ```text
-.codex-current-browser-workspace.json
+data/backups/default-workspace-YYYYMMDD-HHmmss.json
 ```
 
-这个服务只监听 `127.0.0.1:3011`，用于本机开发，不需要部署到线上。
+写入完成后，页面会重新读取代码文件并比较 SHA-256；只有内容一致才显示「代码已验证」。当前页面方案仍会额外保存在 `.codex-current-browser-workspace.json`，用于本机排查。
+
+这个服务只监听 `127.0.0.1:3011`，允许来自任意本机 `localhost` / `127.0.0.1` 端口的开发页面访问，不需要部署到线上。
 
 ## 构建发布
 
