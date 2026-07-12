@@ -2345,6 +2345,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     canWriteCode,
     canUseExternalSync
   } = accessCapabilities;
+  const canUseBrowserDrafts = IS_DEVELOPMENT && canPersistDraft;
 
   useEffect(() => {
     const { sources } = applyWorkspaceMigrations(data.workspace);
@@ -2599,14 +2600,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     let cancelled = false;
     async function restoreWorkspace() {
       try {
-      if (!canPersistDraft || !canUseExternalSync) {
+      if (!canUseBrowserDrafts || !canUseExternalSync) {
         const codeHash = await getWorkspaceHash(data.workspace);
         if (cancelled) return;
         applyWorkspaceToEditor(data.workspace);
         setWorkspaceSource("code");
         setCurrentWorkspaceHash(codeHash);
         setDraftSaveState({ status: "idle" });
-        setCodeSaveState({ status: "idle", target: "none", hash: codeHash });
+        setCodeSaveState({
+          status: "verified",
+          target: "none",
+          lastVerifiedAt: data.workspace.updatedAt ?? data.workspace.savedAt,
+          filePath: GITHUB_SOLIDIFY_PATH,
+          hash: codeHash
+        });
         setWorkspaceConflict(null);
         setHasLoadedWebWorkspace(true);
         return;
@@ -2674,10 +2681,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return () => {
       cancelled = true;
     };
-  }, [canPersistDraft, canUseExternalSync, data.workspace]);
+  }, [canUseBrowserDrafts, canUseExternalSync, data.workspace]);
 
   useEffect(() => {
-    if (!canPersistDraft || !hasLoadedWebWorkspace || workspaceConflict) return;
+    if (!canUseBrowserDrafts || !hasLoadedWebWorkspace || workspaceConflict) return;
     latestWorkspaceRef.current = getCurrentWorkspace("draft");
     setDefaultWorkspacePayload(JSON.stringify(getCurrentWorkspace("manual"), null, 2));
     setDraftSaveState((current) => ({ ...current, status: "saving", error: undefined }));
@@ -2699,7 +2706,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     wallSyncOverrides,
     cameraViews,
     workspaceConflict,
-    canPersistDraft
+    canUseBrowserDrafts
   ]);
 
   useEffect(() => {
@@ -2735,12 +2742,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   useEffect(() => {
     function saveDraftBeforeUnload() {
-      if (!canPersistDraft || !latestWorkspaceRef.current) return;
+      if (!canUseBrowserDrafts || !latestWorkspaceRef.current) return;
       void persistWorkspace(latestWorkspaceRef.current, "draft").catch(() => undefined);
     }
     window.addEventListener("beforeunload", saveDraftBeforeUnload);
     return () => window.removeEventListener("beforeunload", saveDraftBeforeUnload);
-  }, [canPersistDraft]);
+  }, [canUseBrowserDrafts]);
 
   useEffect(() => {
     if (!hasLoadedWebWorkspace || workspaceConflict) return;
@@ -4493,12 +4500,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const isYard3DWorkspace = yardPreview3DMode && !focusMode && !furnitureImmersiveMode;
   const isImmersiveWorkspace = focusMode || isFurnitureWorkspace || isYard3DWorkspace;
   const localCodeFileReady = Boolean(localCodeFileHandle) || localCodeServerOnline;
-  const isCurrentDraftSaved = Boolean(currentWorkspaceHash) && draftSaveState.status === "saved" && draftSaveState.hash === currentWorkspaceHash;
+  const isPublishedCodeWorkspace = !canUseBrowserDrafts;
+  const isCurrentDraftSaved = canUseBrowserDrafts && Boolean(currentWorkspaceHash) && draftSaveState.status === "saved" && draftSaveState.hash === currentWorkspaceHash;
   const hasUnwrittenCodeChanges = Boolean(currentWorkspaceHash) && currentWorkspaceHash !== codeSaveState.hash;
   const isCurrentCodeVerified = Boolean(currentWorkspaceHash) && codeSaveState.status === "verified" && codeSaveState.hash === currentWorkspaceHash;
   const showSeparateCodeDirty = hasUnwrittenCodeChanges && !["dirty", "verified"].includes(codeSaveState.status);
   const unwrittenCodeLabel = workspaceSource === "draft" ? "当前使用浏览器草稿，尚未写入代码文件" : "有未写入代码文件的修改";
-  const draftSaveLabel = getDraftSaveLabel(draftSaveState, currentWorkspaceHash);
+  const draftSaveLabel = canUseBrowserDrafts ? getDraftSaveLabel(draftSaveState, currentWorkspaceHash) : "发布代码版本";
   const codeSaveLabel = getCodeSaveLabel(codeSaveState, currentWorkspaceHash, workspaceSource);
   const codeWriteTargetLabel = getCodeWriteTargetLabel(codeSaveState, localCodeServerOnline, localCodeFileHandle);
   const localCodeFileLabel = localCodeServerOnline && !localCodeFileHandle
@@ -4836,7 +4844,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm">
-                <span className={`size-2 rounded-full ${draftSaveState.status === "error" ? "bg-red-500" : isCurrentDraftSaved ? "bg-emerald-500" : "bg-amber-500"}`} />
+                <span className={`size-2 rounded-full ${draftSaveState.status === "error" ? "bg-red-500" : isPublishedCodeWorkspace || isCurrentDraftSaved ? "bg-emerald-500" : "bg-amber-500"}`} />
                 <span>{draftSaveLabel}</span>
                 <span className={`rounded-md px-2 py-1 ${isCurrentCodeVerified ? "bg-emerald-50 text-emerald-700" : codeSaveState.status === "error" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{codeSaveLabel}</span>
                 {showSeparateCodeDirty && <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700">{unwrittenCodeLabel}</span>}
@@ -5086,7 +5094,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-900">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold">方案保存</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${draftSaveState.status === "error" ? "bg-red-100 text-red-700" : isCurrentDraftSaved ? "bg-white text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{draftSaveLabel}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${draftSaveState.status === "error" ? "bg-red-100 text-red-700" : isPublishedCodeWorkspace || isCurrentDraftSaved ? "bg-white text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{draftSaveLabel}</span>
                 </div>
                 <p className={`mt-2 rounded-lg px-2 py-1 font-semibold ${isCurrentCodeVerified ? "bg-white text-emerald-800" : codeSaveState.status === "error" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`}>{codeSaveLabel}</p>
                 {showSeparateCodeDirty && <p className="mt-2 font-semibold text-amber-800">{unwrittenCodeLabel}</p>}
