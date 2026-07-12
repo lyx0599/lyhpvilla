@@ -10,10 +10,10 @@ function railingWall(id: string, floorId: FloorId, start: { x: number; y: number
   const baseWall = wall(id, floorId, start, end);
   return {
     ...baseWall,
-    name: `${baseWall.name} · 挑空镂空栏杆`,
+    name: `${baseWall.name} · 木扶手透明玻璃护栏`,
     barrierType: "railing",
-    material: "metal",
-    openness: 0.72,
+    material: "glass",
+    openness: 0.88,
     thickness: 90,
     height: 1100
   };
@@ -159,7 +159,7 @@ function turningStairs(floorId: FloorId): HouseStair[] {
     return [
       {
         ...stairStackStair("ST-1F-001", floorId, "upper"),
-        name: "右侧平台上行梯段",
+        name: "右侧上行至 2F 梯段",
         baseHeight: 0,
         height: 1400,
         stepCount: 10,
@@ -167,7 +167,7 @@ function turningStairs(floorId: FloorId): HouseStair[] {
       },
       {
         ...stairStackStair("ST-1F-002", floorId, "lower"),
-        name: "右侧平台下行梯段",
+        name: "左侧下行至 B1 梯段",
         baseHeight: 0,
         height: 1400,
         stepCount: 10,
@@ -179,16 +179,16 @@ function turningStairs(floorId: FloorId): HouseStair[] {
   if (floorId === "B1") {
     return [
       {
-        ...stairStackStair("ST-B1-001", floorId, "lower"),
-        name: "B1 上行至 1F 梯段",
+        ...stairStackStair("ST-B1-001", floorId, "upper"),
+        name: "右侧上行至 1F 梯段",
         baseHeight: 0,
         height: 1400,
         stepCount: 10,
         direction: "up"
       },
       {
-        ...stairStackStair("ST-B1-002", floorId, "upper"),
-        name: "B1 下行至 B2 梯段",
+        ...stairStackStair("ST-B1-002", floorId, "lower"),
+        name: "左侧下行至 B2 梯段",
         baseHeight: 0,
         height: 1400,
         stepCount: 10,

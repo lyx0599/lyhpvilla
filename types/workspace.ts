@@ -10,6 +10,7 @@ import type {
   Furniture,
   HouseStructure
 } from "@/types/space";
+import type { RoomTourView } from "@/types/space";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 
 export type WorkspaceDocument = {
@@ -30,6 +31,7 @@ export type WorkspaceDocument = {
   houseStructuresByFloor: Record<FloorId, HouseStructure>;
   wallSyncOverrides: WallSyncOverrides;
   cameraViews: FixedCameraView[];
+  roomTourViews: RoomTourView[];
 };
 
 export type WorkspaceDataCategory =
@@ -40,6 +42,7 @@ export type WorkspaceDataCategory =
   | "drawingPackage"
   | "semanticObjects"
   | "cameraViews"
+  | "roomTourViews"
   | "visualSettingsByFloor"
   | "cleanPatchesByFloor";
 

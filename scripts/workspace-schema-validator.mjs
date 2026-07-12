@@ -9,6 +9,11 @@ const STRUCTURE_COLLECTIONS = [
 const DRAWING_ITEM_CATEGORIES = new Set(["socket", "switch", "light", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "cabinet", "annotation", "network", "ventilation"]);
 const DRAWING_ITEM_SOURCES = new Set(["manual", "generated-from-furniture", "generated-from-room"]);
 const DRAWING_ITEM_STATUSES = new Set(["draft", "confirmed", "todo", "deprecated"]);
+const TOUR_NODE_TYPES = new Set(["room", "yard", "corridor", "stair", "viewpoint"]);
+const TOUR_NODE_STATUSES = new Set(["active", "draft", "disabled"]);
+const LIGHTING_LAYERS = new Set(["ambient", "task", "accent", "decorative", "cabinetStrip", "mirrorLight", "outdoor"]);
+const LIGHT_COLOR_TEMPERATURES = new Set(["2700K", "3000K", "3500K", "4000K"]);
+const LIGHT_MOUNTING_TYPES = new Set(["recessed", "surfaceMounted", "pendant", "wallMounted", "concealed", "cabinetIntegrated", "mirrorIntegrated", "stepMounted", "floorMounted", "bollard", "groundSpike"]);
 
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -57,7 +62,8 @@ function collectPersistedObjects(workspace) {
     [workspace.furniture, "furniture"],
     [workspace.drawingItems, "drawingItems"],
     [workspace.semanticObjects, "semanticObjects"],
-    [workspace.cameraViews, "cameraViews"]
+    [workspace.cameraViews, "cameraViews"],
+    [workspace.roomTourViews, "roomTourViews"]
   ];
   const structures = isRecord(workspace.houseStructuresByFloor) ? workspace.houseStructuresByFloor : {};
   for (const floorId of REQUIRED_FLOOR_IDS) {
@@ -95,6 +101,7 @@ export function validateWorkspaceDocument(workspace) {
     if (!Array.isArray(workspace[key])) issues.push(issue(`workspace.${key}`, "must be an array"));
     else if (!allowEmpty && workspace[key].length === 0) issues.push(issue(`workspace.${key}`, "must not be empty"));
   }
+  if (!Array.isArray(workspace.roomTourViews)) issues.push(issue("workspace.roomTourViews", "must be an array"));
   if (!Array.isArray(workspace.drawingItems)) issues.push(issue("workspace.drawingItems", "must be an array"));
   if (!isRecord(workspace.drawingPackage)) issues.push(issue("workspace.drawingPackage", "must be an object"));
 
@@ -136,7 +143,28 @@ export function validateWorkspaceDocument(workspace) {
         for (const key of ["type", "label", "notes", "createdAt", "updatedAt"]) if (typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string", id || path));
         if (item.polygon !== undefined && (!Array.isArray(item.polygon) || item.polygon.length < 3 || item.polygon.some((point) => !isRecord(point) || !Number.isFinite(point.x) || !Number.isFinite(point.y)))) issues.push(issue(`${path}.polygon`, "must contain at least three finite millimeter points", id || path));
         for (const key of ["controlledLightIds", "relatedLightIds", "switchControl"]) if (item[key] !== undefined && (!Array.isArray(item[key]) || item[key].some((value) => typeof value !== "string"))) issues.push(issue(`${path}.${key}`, "must be a string array", id || path));
+        for (const key of ["smartControl", "dimming"]) if (item[key] !== undefined && typeof item[key] !== "boolean") issues.push(issue(`${path}.${key}`, "must be a boolean", id || path));
+        for (const key of ["relatedSwitchId", "controlGroupId", "relatedRoomId", "hostCeilingAreaId", "hostWallId", "relatedFurnitureId"]) if (item[key] !== undefined && item[key] !== null && typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string or null", id || path));
+        if (item.category === "light") {
+          if (typeof item.lightType !== "string" || !item.lightType) issues.push(issue(`${path}.lightType`, "must be a non-empty string for light items", id || path));
+          if (!LIGHTING_LAYERS.has(item.lightingLayer)) issues.push(issue(`${path}.lightingLayer`, "must be a supported lighting layer", id || path));
+          if (!LIGHT_COLOR_TEMPERATURES.has(item.colorTemperature)) issues.push(issue(`${path}.colorTemperature`, "must be a supported color temperature", id || path));
+          if (item.beamAngle !== null && (!Number.isFinite(item.beamAngle) || item.beamAngle <= 0 || item.beamAngle > 180)) issues.push(issue(`${path}.beamAngle`, "must be null or an angle between 0 and 180", id || path));
+          if (!LIGHT_MOUNTING_TYPES.has(item.mountingType)) issues.push(issue(`${path}.mountingType`, "must be a supported mounting type", id || path));
+          for (const key of ["smartControl", "dimming"]) if (typeof item[key] !== "boolean") issues.push(issue(`${path}.${key}`, "must be present for light items", id || path));
+        }
         if (item.heightRange !== undefined && item.heightRange !== null && (!isRecord(item.heightRange) || !Number.isFinite(item.heightRange.minMm) || !Number.isFinite(item.heightRange.maxMm))) issues.push(issue(`${path}.heightRange`, "must contain finite minMm and maxMm", id || path));
+      }
+      if (label === "roomTourViews") {
+        if (!TOUR_NODE_TYPES.has(item.type)) issues.push(issue(`${path}.type`, "must be a supported tour node type", id || path));
+        if (!TOUR_NODE_STATUSES.has(item.status)) issues.push(issue(`${path}.status`, "must be a supported tour node status", id || path));
+        for (const key of ["cameraPosition", "target"]) {
+          const point = item[key];
+          if (!isRecord(point) || !Number.isFinite(point.x) || !Number.isFinite(point.y) || !Number.isFinite(point.z)) issues.push(issue(`${path}.${key}`, "must contain finite x, y and z", id || path));
+        }
+        for (const key of ["yaw", "pitch"]) if (!Number.isFinite(item[key])) issues.push(issue(`${path}.${key}`, "must be a finite number", id || path));
+        if (!Array.isArray(item.linkedNodeIds) || item.linkedNodeIds.some((value) => typeof value !== "string")) issues.push(issue(`${path}.linkedNodeIds`, "must be a string array", id || path));
+        for (const key of ["name", "description"]) if (typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string", id || path));
       }
     });
   }

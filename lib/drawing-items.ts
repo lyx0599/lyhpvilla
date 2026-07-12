@@ -55,7 +55,7 @@ export function createDrawingItem(input: {
     type: input.category, positionMm: input.positionMm, hostObjectId: null, hostWallId: null,
     relatedFurnitureId: null, heightMm: null, circuitId: null, materialId: null,
     label: drawingItemCategoryLabels[input.category], notes: "", source: "manual", status: "draft",
-    quantity: 1, createdAt: now, updatedAt: now
+    quantity: 1, relatedRoomId: input.roomId ?? null, createdAt: now, updatedAt: now
   };
 }
 
@@ -102,6 +102,12 @@ function generatedFields(item: DrawingItem) {
     quantity: item.quantity, lightColorTemperature: item.lightColorTemperature ?? null,
     needsSmartControl: Boolean(item.needsSmartControl), switchControl: item.switchControl ?? [],
     controlledLightIds: item.controlledLightIds ?? [], lightGroupId: item.lightGroupId ?? null,
+    lightType: item.lightType ?? null, lightingLayer: item.lightingLayer ?? null,
+    colorTemperature: item.colorTemperature ?? null, beamAngle: item.beamAngle ?? null,
+    mountingType: item.mountingType ?? null, relatedSwitchId: item.relatedSwitchId ?? null,
+    controlGroupId: item.controlGroupId ?? null, smartControl: Boolean(item.smartControl),
+    dimming: Boolean(item.dimming), relatedRoomId: item.relatedRoomId ?? null,
+    hostCeilingAreaId: item.hostCeilingAreaId ?? null,
     polygon: item.polygon ?? [], ceilingHeightMm: item.ceilingHeightMm ?? null,
     relatedLightIds: item.relatedLightIds ?? [], inspectionAccess: Boolean(item.inspectionAccess),
     airVent: Boolean(item.airVent), returnAir: Boolean(item.returnAir), maintenanceOpening: Boolean(item.maintenanceOpening),
@@ -170,7 +176,11 @@ export function generateDrawingItemsFromFurniture(input: {
         notes: [...(demand.noteParts ?? []).filter(Boolean), "需人工确认"].join("；"),
         source: "generated-from-furniture",
         quantity: demand.quantity ?? 1,
+        lightType: demand.category === "light" ? demand.type : null,
+        lightingLayer: demand.category === "light" && demand.type !== "lighting" ? demand.type as DrawingItem["lightingLayer"] : null,
+        colorTemperature: demand.lightColorTemperature ?? null,
         lightColorTemperature: demand.lightColorTemperature ?? null,
+        smartControl: Boolean(demand.needsSmartControl),
         needsSmartControl: Boolean(demand.needsSmartControl),
         switchControl: demand.switchControl ?? [],
         generatedKey,

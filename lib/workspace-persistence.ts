@@ -98,6 +98,7 @@ function collectWorkspaceObjects(workspace: Record<string, unknown>) {
   addItems(getArray(workspace.drawingItems));
   addItems(getArray(workspace.semanticObjects));
   addItems(getArray(workspace.cameraViews));
+  addItems(getArray(workspace.roomTourViews));
   const structures = asRecord(workspace.houseStructuresByFloor) ?? {};
   Object.values(structures).forEach((structureValue) => {
     const structure = asRecord(structureValue);
@@ -168,6 +169,7 @@ export function getWorkspaceValidationErrors(value: unknown) {
     if (!Array.isArray(workspace.drawingItems)) errors.push("schemaVersion 6+ 缺少 drawingItems 数组。");
     if (!asRecord(workspace.drawingPackage)) errors.push("schemaVersion 6+ 缺少 drawingPackage。");
   }
+  if (schemaVersion >= 8 && !Array.isArray(workspace.roomTourViews)) errors.push("schemaVersion 8+ 缺少 roomTourViews 数组。");
 
   const seenIds = new Set<string>();
   const validateItems = (items: unknown[], label: string) => {
@@ -189,6 +191,7 @@ export function getWorkspaceValidationErrors(value: unknown) {
   validateItems(getArray(workspace.drawingItems), "drawingItems");
   validateItems(getArray(workspace.semanticObjects), "semanticObjects");
   validateItems(getArray(workspace.cameraViews), "cameraViews");
+  validateItems(getArray(workspace.roomTourViews), "roomTourViews");
   Object.entries(structures ?? {}).forEach(([floorId, structureValue]) => {
     const structure = asRecord(structureValue);
     if (!structure) return;
@@ -212,6 +215,7 @@ export function getWorkspaceStats(value: unknown) {
     drawingItemCount: getArray(workspace.drawingItems).length,
     semanticObjectCount: getArray(workspace.semanticObjects).length,
     cameraViewCount: getArray(workspace.cameraViews).length,
+    roomTourViewCount: getArray(workspace.roomTourViews).length,
     updatedAt: typeof workspace.updatedAt === "string"
       ? workspace.updatedAt
       : typeof workspace.savedAt === "string" ? workspace.savedAt : undefined
