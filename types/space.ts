@@ -1,7 +1,9 @@
+import type { WorkspaceDocument } from "@/types/workspace";
+
 export type FloorId = "B2" | "B1" | "1F" | "2F" | "YARD";
 
 export type ViewMode = "2d" | "3d";
-export type AppViewMode = "desktop-edit" | "mobile-presentation" | "mobile-edit";
+export type AccessMode = "view-only" | "comment-only" | "controlled-edit" | "full-edit";
 export type MobileDisplayLevel = "simple" | "annotated" | "professional";
 export type MobileQuality = "balanced" | "high";
 export type PlannerMode = "view" | "edit";
@@ -29,6 +31,12 @@ export type ObjectInteractionFlags = {
   selected?: boolean;
   hover?: boolean;
   active?: boolean;
+  locked?: boolean;
+};
+
+export type SyncObjectState = {
+  visible?: boolean;
+  hidden?: boolean;
   locked?: boolean;
 };
 
@@ -303,7 +311,7 @@ export type WallKind = "straight" | "arc";
 export type HouseWallBarrierType = "wall" | "railing";
 export type HouseWallMaterial = "masonry" | "metal" | "glass" | "wood";
 
-export type StraightHouseWall = {
+export type StraightHouseWall = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -319,7 +327,7 @@ export type StraightHouseWall = {
   openness?: number;
 };
 
-export type ArcHouseWall = {
+export type ArcHouseWall = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -340,7 +348,7 @@ export type ArcHouseWall = {
 
 export type HouseWall = StraightHouseWall | ArcHouseWall;
 
-export type HouseRoom = {
+export type HouseRoom = SyncObjectState & {
   id: string;
   floorId: FloorId;
   roomNumber: string;
@@ -352,7 +360,7 @@ export type HouseRoom = {
   sourceWallIds: string[];
 };
 
-export type HousePartition = {
+export type HousePartition = SyncObjectState & {
   id: string;
   name: string;
   floorId: FloorId;
@@ -370,7 +378,7 @@ export type HousePartition = {
   removable: true;
 };
 
-export type HouseDoor = {
+export type HouseDoor = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -386,7 +394,7 @@ export type HouseDoor = {
   transparency?: number;
 };
 
-export type HouseWindow = {
+export type HouseWindow = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -398,7 +406,7 @@ export type HouseWindow = {
   height: number;
 };
 
-export type HouseBayWindow = {
+export type HouseBayWindow = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -410,7 +418,7 @@ export type HouseBayWindow = {
   height: number;
 };
 
-export type HouseSkylight = {
+export type HouseSkylight = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -420,6 +428,9 @@ export type HouseSkylight = {
   depth: number;
   height: number;
   rotation: number;
+  hostId?: string;
+  wallId?: string;
+  positionOnWall?: number;
   operation?: "fixed" | "manualOperable" | "electricOperable";
   openable?: boolean;
   motorized?: boolean;
@@ -428,7 +439,7 @@ export type HouseSkylight = {
   removable: true;
 };
 
-export type HouseOutdoor = {
+export type HouseOutdoor = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -439,7 +450,7 @@ export type HouseOutdoor = {
   area: number;
 };
 
-export type HouseFence = {
+export type HouseFence = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -453,7 +464,7 @@ export type HouseFence = {
   removable: true;
 };
 
-export type HouseOutdoorSurface = {
+export type HouseOutdoorSurface = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -466,7 +477,7 @@ export type HouseOutdoorSurface = {
   removable: true;
 };
 
-export type HouseStair = {
+export type HouseStair = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -482,7 +493,7 @@ export type HouseStair = {
   removable: true;
 };
 
-export type HouseColumn = {
+export type HouseColumn = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -577,6 +588,8 @@ export type Furniture = {
   mepMeta?: MepMeta;
   constructionMeta?: ConstructionMeta;
   locked?: boolean;
+  visible?: boolean;
+  hidden?: boolean;
   interaction?: ObjectInteractionFlags;
 };
 
@@ -590,10 +603,15 @@ export type Floor = {
 };
 
 export type SpaceData = {
+  workspace: WorkspaceDocument;
   selectedFloorId?: FloorId;
   floors: Floor[];
-  rooms: Room[];
-  walls: Wall[];
+  legacyRooms?: Room[];
+  legacyWalls?: Wall[];
+  /** @deprecated Use houseStructuresByFloor.*.rooms through workspace. */
+  rooms?: Room[];
+  /** @deprecated Use houseStructuresByFloor.*.walls through workspace. */
+  walls?: Wall[];
   furniture: Furniture[];
   cameraViews?: FixedCameraView[];
 };

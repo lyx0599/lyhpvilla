@@ -1,6 +1,6 @@
 "use client";
 
-import type { ConstructionMeta, Furniture, MepMeta } from "@/types/space";
+import type { ConstructionMeta, Furniture, MepMeta, Render3DMeta } from "@/types/space";
 
 type Props = {
   furniture: Furniture;
@@ -33,8 +33,13 @@ function MetadataSection({ children, summary }: { children: React.ReactNode; sum
 }
 
 export function FurnitureMetadataEditor({ furniture, disabled = false, onChange }: Props) {
+  const render3d = furniture.render3d ?? { assetType: furniture.moduleType ?? furniture.type };
   const mep = furniture.mepMeta ?? {};
   const construction = furniture.constructionMeta ?? {};
+
+  function updateRender3D(patch: Partial<Render3DMeta>) {
+    onChange({ ...furniture, render3d: { ...render3d, ...patch } });
+  }
 
   function updateMep(patch: Partial<MepMeta>) {
     onChange({ ...furniture, mepMeta: { ...mep, ...patch } });
@@ -46,6 +51,42 @@ export function FurnitureMetadataEditor({ furniture, disabled = false, onChange 
 
   return (
     <div>
+      <MetadataSection summary="3D 表现">
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-stone-500">
+            资产类型
+            <input className={fieldClass} disabled={disabled} value={render3d.assetType ?? ""} onChange={(event) => updateRender3D({ assetType: event.target.value })} />
+          </label>
+          <label className="text-xs text-stone-500">
+            风格预设
+            <select className={fieldClass} disabled={disabled} value={render3d.stylePreset ?? "tuscan-sunlight"} onChange={(event) => updateRender3D({ stylePreset: event.target.value })}>
+              <option value="tuscan-sunlight">托斯卡纳阳光</option>
+              <option value="elevatedTuscanSun">高级托斯卡纳</option>
+              <option value="warmJapandi">暖白浅木</option>
+              <option value="naturalWood">浅木自然</option>
+              <option value="softCream">奶油白</option>
+              <option value="modernStone">现代灰</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <label className="text-xs text-stone-500">主材质<input className={fieldClass} disabled={disabled} value={render3d.primaryMaterial ?? ""} onChange={(event) => updateRender3D({ primaryMaterial: event.target.value })} /></label>
+          <label className="text-xs text-stone-500">辅材质<input className={fieldClass} disabled={disabled} value={render3d.secondaryMaterial ?? ""} onChange={(event) => updateRender3D({ secondaryMaterial: event.target.value })} /></label>
+          <label className="text-xs text-stone-500">点缀材质<input className={fieldClass} disabled={disabled} value={render3d.accentMaterial ?? ""} onChange={(event) => updateRender3D({ accentMaterial: event.target.value })} /></label>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <ToggleField checked={render3d.visibleIn3d ?? true} disabled={disabled} label="3D 可见" onChange={(checked) => updateRender3D({ visibleIn3d: checked })} />
+          <ToggleField checked={render3d.selectableIn3d ?? true} disabled={disabled} label="3D 可选" onChange={(checked) => updateRender3D({ selectableIn3d: checked })} />
+        </div>
+        <label className="mt-3 block text-xs text-stone-500">
+          子部件组织
+          <select className={fieldClass} disabled={disabled} value={render3d.childrenMode ?? "merged"} onChange={(event) => updateRender3D({ childrenMode: event.target.value as NonNullable<Render3DMeta["childrenMode"]> })}>
+            <option value="merged">跟随主对象</option>
+            <option value="grouped">分组预留</option>
+          </select>
+        </label>
+      </MetadataSection>
+
       <MetadataSection summary="水电需求">
         <div className="grid grid-cols-2 gap-2">
           <ToggleField checked={Boolean(mep.needsSocket)} disabled={disabled} label="需要插座" onChange={(checked) => updateMep({ needsSocket: checked })} />

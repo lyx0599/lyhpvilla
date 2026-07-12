@@ -1,3 +1,5 @@
+import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
+
 const UI_TEMPORARY_WORKSPACE_KEYS = new Set([
   "savedAt",
   "updatedAt",
@@ -143,6 +145,24 @@ export function getWorkspaceValidationErrors(value: unknown) {
   });
   if (!Array.isArray(workspace.furniture)) errors.push("缺少 furniture 数组。");
   if (!Array.isArray(workspace.semanticObjects)) errors.push("缺少 semanticObjects 数组。");
+  const schemaVersion = typeof workspace.schemaVersion === "number" ? workspace.schemaVersion : 0;
+  if (schemaVersion >= 5) {
+    if (!Array.isArray(workspace.floors)) errors.push("schemaVersion 5+ 缺少 floors 数组。");
+    if (typeof workspace.dataRevision !== "string" || !workspace.dataRevision) errors.push("schemaVersion 5+ 缺少 dataRevision。");
+    const floorIds = new Set(getArray(workspace.floors).map((floor) => asRecord(floor)?.id).filter((id): id is string => typeof id === "string"));
+    REQUIRED_FLOOR_IDS.forEach((floorId) => {
+      if (!floorIds.has(floorId)) errors.push(`floors 缺少楼层 ${floorId}。`);
+    });
+    if (!Array.isArray(workspace.cameraViews)) errors.push("schemaVersion 5+ 缺少 cameraViews 数组。");
+    if (!asRecord(workspace.visualSettingsByFloor)) errors.push("schemaVersion 5+ 缺少 visualSettingsByFloor。");
+    if (!asRecord(workspace.cleanPatchesByFloor)) errors.push("schemaVersion 5+ 缺少 cleanPatchesByFloor。");
+    getArray(workspace.floors).forEach((floor, index) => {
+      const floorRecord = asRecord(floor);
+      if (!floorRecord) return;
+      if (!asRecord(floorRecord.visualSettings)) errors.push(`floors[${index}] 缺少 visualSettings。`);
+      if (!Array.isArray(floorRecord.cleanPatches)) errors.push(`floors[${index}] 缺少 cleanPatches 数组。`);
+    });
+  }
 
   const seenIds = new Set<string>();
   const validateItems = (items: unknown[], label: string) => {
@@ -169,6 +189,9 @@ export function getWorkspaceValidationErrors(value: unknown) {
     Object.entries(structure).forEach(([key, collection]) => {
       if (Array.isArray(collection)) validateItems(collection, `houseStructuresByFloor.${floorId}.${key}`);
     });
+  });
+  validateWorkspaceReferences(workspace).errors.forEach((issue) => {
+    errors.push(`${issue.path}: ${issue.message}`);
   });
   return Array.from(new Set(errors));
 }

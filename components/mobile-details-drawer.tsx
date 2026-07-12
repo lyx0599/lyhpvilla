@@ -327,7 +327,7 @@ export function MobileDetailsDrawer({
           : [{ label: "对象", value: "点击房间、家具、门窗、柜体或点位后查看详情" }];
 
   return (
-    <details className="fixed inset-x-3 bottom-[4.75rem] z-[80] max-h-[54vh] overflow-hidden rounded-[1.25rem] border border-white/80 bg-white/96 shadow-[0_18px_46px_rgba(39,34,28,0.24)] backdrop-blur open:overflow-y-auto md:hidden">
+    <details className="fixed inset-x-3 bottom-[4.75rem] z-[80] max-h-[54vh] overflow-hidden rounded-[1.25rem] border border-white/80 bg-white/96 shadow-[0_18px_46px_rgba(39,34,28,0.24)] backdrop-blur open:overflow-y-auto">
       <summary className="list-none px-4 py-3 [&::-webkit-details-marker]:hidden">
         <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-stone-300" />
         <div className="flex items-start justify-between gap-3">

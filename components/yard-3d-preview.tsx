@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { FixedCameraView, Furniture, HouseFence, HouseOutdoor, HouseOutdoorSurface, HouseStructure, MmPoint } from "@/types/space";
+import { getSyncCoordinateSystem, normalizeObjectForSync, resolveVisibility } from "@/lib/object-sync-adapter";
 
 type Yard3DPreviewProps = {
   houseStructure: HouseStructure;
@@ -15,14 +16,14 @@ type Yard3DPreviewProps = {
   onSelectCameraView?: (view: FixedCameraView) => void;
   onExit?: () => void;
   onEditYard?: (yard: "north" | "south") => void;
+  selectedObjectId?: string;
+  onSelectObject?: (objectId: string) => void;
 };
 
 type YardPreviewFocus = "all" | "north" | "south";
 
 const MM_TO_M = 0.001;
-const SITE_CENTER = { x: 5225, y: 5050 };
-const STRUCTURE_WIDTH_MM = 12000;
-const STRUCTURE_HEIGHT_MM = 9000;
+const YardCoordinateContext = createContext(getSyncCoordinateSystem());
 const BUILDING_POLYGON: MmPoint[] = [
   { x: 950, y: 350 },
   { x: 9495, y: 350 },
@@ -90,14 +91,12 @@ const cameraPresets: Record<YardPreviewFocus, { position: [number, number, numbe
 };
 
 function toScenePoint(point: MmPoint): [number, number] {
-  return [(point.x - SITE_CENTER.x) * MM_TO_M, (point.y - SITE_CENTER.y) * MM_TO_M];
+  return [point.x * MM_TO_M, point.y * MM_TO_M];
 }
 
-function furnitureToPoint(item: Furniture) {
-  return {
-    x: (item.position.x / 100) * STRUCTURE_WIDTH_MM,
-    y: (item.position.y / 100) * STRUCTURE_HEIGHT_MM
-  };
+function useFurniturePoint(item: Furniture) {
+  const coordinateSystem = useContext(YardCoordinateContext);
+  return normalizeObjectForSync(item, coordinateSystem).positionMm;
 }
 
 function getPolygonCenter(points: MmPoint[]) {
@@ -253,7 +252,7 @@ function FenceSegment({ fence }: { fence: HouseFence }) {
 }
 
 function FurnitureBox({ item, label = true }: { item: Furniture; label?: boolean }) {
-  const point = furnitureToPoint(item);
+  const point = useFurniturePoint(item);
   const [x, z] = toScenePoint(point);
   const width = item.dimensions.width * 0.01;
   const depth = item.dimensions.depth * 0.01;
@@ -272,7 +271,7 @@ function FurnitureBox({ item, label = true }: { item: Furniture; label?: boolean
 }
 
 function BbqIsland({ item }: { item: Furniture }) {
-  const point = furnitureToPoint(item);
+  const point = useFurniturePoint(item);
   const [x, z] = toScenePoint(point);
   const width = item.dimensions.width * 0.01;
   const depth = item.dimensions.depth * 0.01;
@@ -300,7 +299,7 @@ function BbqIsland({ item }: { item: Furniture }) {
 }
 
 function DryingRack({ item }: { item: Furniture }) {
-  const point = furnitureToPoint(item);
+  const point = useFurniturePoint(item);
   const [x, z] = toScenePoint(point);
   return (
     <group position={[x, 0, z]}>
@@ -322,7 +321,7 @@ function DryingRack({ item }: { item: Furniture }) {
 }
 
 function LoungeSet({ item }: { item: Furniture }) {
-  const point = furnitureToPoint(item);
+  const point = useFurniturePoint(item);
   const [x, z] = toScenePoint(point);
   const chairPositions: Array<[number, number]> = [[-0.9, 0], [0.9, 0], [0, -0.75], [0, 0.75]];
   return (
@@ -343,7 +342,7 @@ function LoungeSet({ item }: { item: Furniture }) {
 }
 
 function DogHouse({ item }: { item: Furniture }) {
-  const point = furnitureToPoint(item);
+  const point = useFurniturePoint(item);
   const [x, z] = toScenePoint(point);
   return (
     <group position={[x, 0, z]}>
@@ -361,7 +360,7 @@ function DogHouse({ item }: { item: Furniture }) {
 }
 
 function PetWater({ item }: { item: Furniture }) {
-  const point = furnitureToPoint(item);
+  const point = useFurniturePoint(item);
   const [x, z] = toScenePoint(point);
   return (
     <group position={[x, 0, z]}>
@@ -379,7 +378,7 @@ function PetWater({ item }: { item: Furniture }) {
 }
 
 function YardGate({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   const width = Math.max(1.1, item.dimensions.width * 0.01);
   const height = Math.max(1.45, item.dimensions.height * 0.01);
   return (
@@ -392,7 +391,7 @@ function YardGate({ item }: { item: Furniture }) {
 }
 
 function OutdoorCabinet({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   const width = item.dimensions.width * 0.01;
   const depth = item.dimensions.depth * 0.01;
   return (
@@ -406,7 +405,7 @@ function OutdoorCabinet({ item }: { item: Furniture }) {
 }
 
 function YardLight({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   return (
     <group position={[x, 0, z]}>
       <mesh position={[0, 0.48, 0]} castShadow><cylinderGeometry args={[0.035, 0.055, 0.96, 12]} /><meshStandardMaterial color="#3f4447" roughness={0.32} metalness={0.62} /></mesh>
@@ -417,12 +416,12 @@ function YardLight({ item }: { item: Furniture }) {
 }
 
 function YardDrain({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   return <mesh position={[x, 0.045, z]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.2, 24]} /><meshStandardMaterial color="#62686b" roughness={0.38} metalness={0.48} /></mesh>;
 }
 
 function YardSocket({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   return (
     <group position={[x, 0, z]}>
       <mesh position={[0, 0.32, 0]} castShadow><boxGeometry args={[0.18, 0.64, 0.14]} /><meshStandardMaterial color="#41474a" roughness={0.38} metalness={0.48} /></mesh>
@@ -433,7 +432,7 @@ function YardSocket({ item }: { item: Furniture }) {
 }
 
 function YardTap({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   return (
     <group position={[x, 0, z]}>
       <mesh position={[0, 0.36, 0]} castShadow><boxGeometry args={[0.24, 0.72, 0.2]} /><meshStandardMaterial color="#c4beb4" roughness={0.74} /></mesh>
@@ -444,7 +443,7 @@ function YardTap({ item }: { item: Furniture }) {
 }
 
 function YardTree({ item }: { item: Furniture }) {
-  const [x, z] = toScenePoint(furnitureToPoint(item));
+  const [x, z] = toScenePoint(useFurniturePoint(item));
   return (
     <group position={[x, 0, z]}>
       <mesh position={[0, 0.72, 0]} castShadow><cylinderGeometry args={[0.08, 0.12, 1.44, 12]} /><meshStandardMaterial color="#80654b" roughness={0.82} /></mesh>
@@ -456,7 +455,8 @@ function YardTree({ item }: { item: Furniture }) {
   );
 }
 
-function YardFurnitureObject({ item }: { item: Furniture }) {
+function YardFurnitureObject({ item, selected, onSelect }: { item: Furniture; selected: boolean; onSelect: (id: string) => void }) {
+  const content = (() => {
   if (item.id === "ph-1f-north-bbq-island") return <BbqIsland item={item} />;
   if (item.id === "ph-1f-south-drying-rack") return <DryingRack item={item} />;
   if (item.id === "ph-1f-south-lounge-set") return <LoungeSet item={item} />;
@@ -470,12 +470,21 @@ function YardFurnitureObject({ item }: { item: Furniture }) {
   if (item.name.includes("排水点") || item.name.includes("地漏")) return <YardDrain item={item} />;
   if (item.type === "plant") return <YardTree item={item} />;
   return <FurnitureBox item={item} />;
+  })();
+  return (
+    <group
+      onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}
+      scale={selected ? 1.035 : 1}
+    >
+      {content}
+    </group>
+  );
 }
 
 function YardCameraRig({ focus, fixedView, requestVersion }: { focus: YardPreviewFocus; fixedView: FixedCameraView | null; requestVersion: number }) {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
-  const transitionRef = useRef<{ elapsed: number; startPosition: THREE.Vector3; endPosition: THREE.Vector3; startTarget: THREE.Vector3; endTarget: THREE.Vector3 } | null>(null);
+  const transitionRef = useRef<{ elapsed: number; startPosition: THREE.Vector3; endPosition: THREE.Vector3; startTarget: THREE.Vector3; endTarget: THREE.Vector3; startZoom: number; endZoom: number } | null>(null);
 
   useEffect(() => {
     const controls = new OrbitControls(camera, gl.domElement);
@@ -507,7 +516,10 @@ function YardCameraRig({ focus, fixedView, requestVersion }: { focus: YardPrevie
       startPosition: camera.position.clone(),
       endPosition,
       startTarget: controlsRef.current?.target.clone() ?? new THREE.Vector3(...preset.target),
-      endTarget
+      endTarget,
+      startZoom: camera.zoom,
+      // Yard preview uses a perspective Canvas; fixed orthographic zoom is applied as an equivalent lens zoom.
+      endZoom: fixedView?.zoom ?? 1
     };
   }, [camera, fixedView, focus, requestVersion]);
 
@@ -519,8 +531,10 @@ function YardCameraRig({ focus, fixedView, requestVersion }: { focus: YardPrevie
       const progress = raw * raw * (3 - 2 * raw);
       const target = transition.startTarget.clone().lerp(transition.endTarget, progress);
       camera.position.lerpVectors(transition.startPosition, transition.endPosition, progress);
+      camera.zoom = THREE.MathUtils.lerp(transition.startZoom, transition.endZoom, progress);
       controlsRef.current?.target.copy(target);
       camera.lookAt(target);
+      camera.updateProjectionMatrix();
       if (raw >= 1) transitionRef.current = null;
     }
     controlsRef.current?.update();
@@ -529,13 +543,14 @@ function YardCameraRig({ focus, fixedView, requestVersion }: { focus: YardPrevie
   return null;
 }
 
-function YardScene({ houseStructure, furniture, focus, fixedView, requestVersion }: { houseStructure: HouseStructure; furniture: Furniture[]; focus: YardPreviewFocus; fixedView: FixedCameraView | null; requestVersion: number }) {
+function YardScene({ houseStructure, furniture, focus, fixedView, requestVersion, selectedObjectId, onSelectObject }: { houseStructure: HouseStructure; furniture: Furniture[]; focus: YardPreviewFocus; fixedView: FixedCameraView | null; requestVersion: number; selectedObjectId: string; onSelectObject: (id: string) => void }) {
+  const coordinateSystem = getSyncCoordinateSystem(houseStructure.coordinateSystem);
   const outdoors = useMemo(() => {
     const namedOutdoors = houseStructure.outdoors.filter((outdoor) => outdoor.id.includes("NORTH") || outdoor.id.includes("SOUTH") || outdoor.name.includes("院"));
     return namedOutdoors.length ? namedOutdoors : FALLBACK_OUTDOORS;
   }, [houseStructure.outdoors]);
   const yardFurniture = useMemo(() => (
-    furniture.filter((item) => item.floorId === "YARD" || (item.floorId === "1F" && (item.id.startsWith("ph-1f-") || item.roomId.startsWith("OD-1F"))))
+    furniture.filter((item) => resolveVisibility(item).visible3d && (item.floorId === "YARD" || (item.floorId === "1F" && (item.id.startsWith("ph-1f-") || item.roomId.startsWith("OD-1F")))))
   ), [furniture]);
 
   return (
@@ -546,20 +561,22 @@ function YardScene({ houseStructure, furniture, focus, fixedView, requestVersion
       <directionalLight position={[4, 9, 5]} intensity={2.1} castShadow shadow-mapSize={[2048, 2048]} />
       <ambientLight intensity={0.38} />
       <YardCameraRig focus={focus} fixedView={fixedView} requestVersion={requestVersion} />
-      <group>
+      <YardCoordinateContext.Provider value={coordinateSystem}>
+      <group position={[-(coordinateSystem.origin.x + coordinateSystem.width / 2) / 1000, 0, -(coordinateSystem.origin.y + coordinateSystem.height / 2) / 1000]}>
         {outdoors.map((outdoor) => (
-          <OutdoorArea key={outdoor.id} outdoor={outdoor} />
+          <group key={outdoor.id} onClick={(event) => { event.stopPropagation(); onSelectObject(outdoor.id); }} scale={selectedObjectId === outdoor.id ? 1.01 : 1}><OutdoorArea outdoor={outdoor} /></group>
         ))}
         {houseStructure.outdoorSurfaces.map((surface) => (
-          <group key={surface.id}>
+          <group key={surface.id} onClick={(event) => { event.stopPropagation(); onSelectObject(surface.id); }} scale={selectedObjectId === surface.id ? 1.01 : 1}>
             <OutdoorSurfaceMesh surface={surface} yOffset={0.028} />
             <LabelSprite text={surface.name.replace("占位｜", "占位 | ")} position={[toScenePoint(getPolygonCenter(surface.polygon))[0], 0.38, toScenePoint(getPolygonCenter(surface.polygon))[1]]} />
           </group>
         ))}
         <BuildingMass />
-        {houseStructure.fences.map((fence) => <FenceSegment key={fence.id} fence={fence} />)}
-        {yardFurniture.map((item) => <YardFurnitureObject key={item.id} item={item} />)}
+        {houseStructure.fences.map((fence) => <group key={fence.id} onClick={(event) => { event.stopPropagation(); onSelectObject(fence.id); }} scale={selectedObjectId === fence.id ? 1.02 : 1}><FenceSegment fence={fence} /></group>)}
+        {yardFurniture.map((item) => <YardFurnitureObject key={item.id} item={item} selected={selectedObjectId === item.id} onSelect={onSelectObject} />)}
       </group>
+      </YardCoordinateContext.Provider>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.018, 0]} receiveShadow>
         <planeGeometry args={[20, 18]} />
         <shadowMaterial transparent opacity={0.18} />
@@ -568,7 +585,7 @@ function YardScene({ houseStructure, furniture, focus, fixedView, requestVersion
   );
 }
 
-export function Yard3DPreview({ houseStructure, furniture, initialFocus = "all", cameraViews = [], cameraViewRequest = null, onSelectCameraView, onExit, onEditYard }: Yard3DPreviewProps) {
+export function Yard3DPreview({ houseStructure, furniture, initialFocus = "all", cameraViews = [], cameraViewRequest = null, onSelectCameraView, onExit, onEditYard, selectedObjectId = "", onSelectObject = () => {} }: Yard3DPreviewProps) {
   const [focus, setFocus] = useState<YardPreviewFocus>(initialFocus);
   const [fixedView, setFixedView] = useState<FixedCameraView | null>(cameraViewRequest?.view.floor === "YARD" ? cameraViewRequest.view : null);
   const [cameraRequestVersion, setCameraRequestVersion] = useState(0);
@@ -591,7 +608,7 @@ export function Yard3DPreview({ houseStructure, furniture, initialFocus = "all",
         shadows
         gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       >
-        <YardScene houseStructure={houseStructure} furniture={furniture} focus={focus} fixedView={fixedView} requestVersion={cameraRequestVersion} />
+        <YardScene houseStructure={houseStructure} furniture={furniture} focus={focus} fixedView={fixedView} requestVersion={cameraRequestVersion} selectedObjectId={selectedObjectId} onSelectObject={onSelectObject} />
       </Canvas>
       <div className="pointer-events-none absolute left-4 top-4 z-10 w-[min(360px,calc(100%-2rem))] rounded-lg border border-white/70 bg-white/90 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.16)] backdrop-blur">
         <div className="flex items-start justify-between gap-3">
@@ -647,6 +664,11 @@ export function Yard3DPreview({ houseStructure, furniture, initialFocus = "all",
             {cameraViews.map((view) => <option key={view.id} value={view.id}>{view.floor} · {view.name}</option>)}
           </select>
         </div>
+        {fixedView?.description && (
+          <p className="pointer-events-auto mt-2 rounded-lg bg-white/75 px-3 py-2 text-xs font-semibold leading-5 text-stone-600">
+            {fixedView.name} · {fixedView.mode === "orthographic" ? "正交轴测" : "透视视角"}：{fixedView.description}
+          </p>
+        )}
         {onEditYard && (
           <div className="pointer-events-auto mt-2 grid grid-cols-2 gap-2">
             <button className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100" onClick={() => onEditYard("south")} type="button">定位南院</button>

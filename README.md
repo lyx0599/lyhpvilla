@@ -26,12 +26,83 @@ https://lyx0599.github.io/lyhpvilla/
 - 代码同步：本地写入服务开启后，页面改动可以同步写入 `data/default-workspace.json`。
 - 静态发布：通过 Next.js 导出 `out` 目录，并发布到 GitHub Pages。
 
+## 访问模式
+
+页面权限由明确的 `accessMode` 控制，不由视口宽度直接决定：
+
+- `view-only`：手机端当前默认。只允许楼层切换、2D/3D 浏览、视图手势、对象信息卡和截图；不允许方案 mutation、浏览器草稿、本机服务、代码文件或 GitHub 同步。
+- `comment-only`：预留给评论、圈注和现场反馈；这些内容不得直接修改主方案对象。
+- `controlled-edit`：预留给低风险调整；未来修改必须进入 `pendingChanges` / proposals，经桌面端确认后才能合并。
+- `full-edit`：桌面端默认，保留完整编辑、草稿和代码写入能力。
+
+`comment-only` 与 `controlled-edit` 当前只定义权限能力，不在手机 UI 中开放。手机识别基于设备信号，旋转横屏不会升级为 `full-edit`。
+
+权限自检：
+
+```bash
+pnpm test:workspace-access
+```
+
+## 自动化回归门禁
+
+提交与 Pull Request 的最小门禁包括：
+
+- `pnpm typecheck`：TypeScript 静态检查。
+- `pnpm validate:workspace`：默认 workspace schema、有限数值、唯一 ID 与引用完整性。
+- workspace migration、reference、access 回归测试。
+- `pnpm test:save-service`：在临时目录验证备份、写入、回读 hash、非法请求和回滚。
+- `pnpm test:object-sync`：验证 2D/3D ID、开口 host 与坐标往返。
+- `pnpm test:mobile`：iPhone 竖屏/横屏和 Android 的只读 smoke test。
+- `pnpm build` 与 Pages 子路径产物检查。
+
+本地核心门禁：
+
+```bash
+pnpm test
+```
+
+包含移动端和生产构建的完整门禁：
+
+```bash
+pnpm test:ci
+```
+
+保存服务测试只使用系统临时目录；移动端测试使用独立开发端口且禁止访问本机写入服务，不会覆盖 `data/default-workspace.json`。
+
 ## 当前方案数据
 
-默认方案保存在：
+`data/default-workspace.json` 是项目唯一的持久化方案主数据源：
 
 ```text
 data/default-workspace.json
+```
+
+它统一保存 `floors`、`houseStructuresByFloor`、`furniture`、`semanticObjects`、`cameraViews`、`visualSettingsByFloor` 和 `cleanPatchesByFloor`。页面刷新、浏览器草稿迁移和保存写回都必须先经过同一套 workspace schema。
+
+数据流为：
+
+```text
+data/default-workspace.json
+  -> applyWorkspaceMigrations(workspace)
+  -> data/mock-space.ts（仅适配 SpaceData 与部署资源路径）
+  -> SpacePlanner / PlanCanvas
+  -> 浏览器草稿或本地写入服务
+  -> data/default-workspace.json
+```
+
+约束如下：
+
+- `data/mock-space.ts` 不存放真实楼层、房间、墙体或家具，只负责适配。
+- `data/mock-house-structure.ts` 和 `data/mock-semantic-map.ts` 只保留旧数据迁移资料，正常启动不会导入它们。
+- 真实房间和墙体来自 `houseStructuresByFloor.*.rooms` 与 `houseStructuresByFloor.*.walls`；旧 `SpaceData.rooms/walls` 仅是 deprecated debug fallback。
+- `applyWorkspaceMigrations` 只对旧 `schemaVersion` / `dataRevision` 缺失字段做幂等补齐。已有字段和已有数组（包括空数组）不会被默认数据覆盖或追加。
+- 家具运行时 enrich 只补缺失的 `render3d`、`mepMeta`、`constructionMeta`，不修改位置、尺寸、房间、名称或材质。
+- 开发环境控制台会输出 `[workspace source]` 表格，显示各类数据来自 `default-workspace` 还是 `migration`；正常默认方案不应出现 `fallback` 或 `mock`。
+
+迁移自检：
+
+```bash
+pnpm test:workspace-migrations
 ```
 
 当前默认数据已包含：
@@ -96,21 +167,33 @@ pnpm build
 GitHub Pages 发布构建：
 
 ```bash
-NEXT_PUBLIC_BASE_PATH=/lyhpvilla pnpm build
-touch out/.nojekyll
+pnpm build:pages
+pnpm check:pages
 ```
 
-提交代码和 `out` 目录后，推送到 `main` 分支：
+推送代码到 `main` 分支：
 
 ```bash
 git push origin main
 ```
 
-GitHub Pages 会自动使用 `out` 目录发布到：
+GitHub Actions 会安装依赖、执行 Pages 专用构建、检查 `out`，再发布到：
 
 ```text
 https://lyx0599.github.io/lyhpvilla/
 ```
+
+发布不依赖本地或仓库中旧的 `out`。检查脚本会确认 `out/index.html` 与 `out/404.html` 的 Next.js 资源带 `/lyhpvilla/_next/` 前缀、底图带 `/lyhpvilla/floor-plans/` 前缀、`.nojekyll` 存在，并拒绝开发模式产物。
+
+如需临时手工提交 `out`，发布前必须运行：
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/lyhpvilla pnpm build
+touch out/.nojekyll
+pnpm check:pages
+```
+
+`data/default-workspace.json` 不是线上独立接口或静态 JSON；它会被编译进 JavaScript。默认方案、底图或其他 `public` 资源更新后，都必须重新构建并发布，不能只上传 JSON。
 
 ## 技术栈
 

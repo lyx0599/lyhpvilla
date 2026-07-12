@@ -1,11 +1,16 @@
 node_modules
 .next
+.next-build
+.next-pages
+.next-playwright
 .next-corrupt-*/
 .DS_Store
 .codex-current-browser-workspace.json
 .env*.local
 npm-debug.log*
 tsconfig.tsbuildinfo
+playwright-report/
+test-results/
 
 .pnpm-store
 .workspace-backups/

@@ -221,13 +221,11 @@ function getGroundPolygons(floorId: FloorId, structure: HouseStructure): GroundP
     polygon: room.boundary,
     type: "room" as const
   }));
-  const outdoorPolygons = floorId === "1F"
-    ? structure.outdoors.map((outdoor) => ({
-      id: outdoor.id,
-      polygon: outdoor.polygon,
-      type: "outdoor" as const
-    }))
-    : [];
+  const outdoorPolygons = structure.outdoors.map((outdoor) => ({
+    id: outdoor.id,
+    polygon: outdoor.polygon,
+    type: "outdoor" as const
+  }));
   return [...roomPolygons, ...outdoorPolygons].filter((ground) => ground.polygon.length >= 3);
 }
 
@@ -1407,7 +1405,7 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       }
     }
     const linkedGround = groundPolygons.find((ground) => ground.id === item.roomId) ?? null;
-    const roomExists = Boolean(linkedGround) || item.roomId.startsWith("room-");
+    const roomExists = Boolean(linkedGround);
     if (!roomExists) {
       warnings.push({ type: "furniture", id: item.id, message: "家具引用的 Room/Zone 不在当前结构房间或院子中，可能漂浮在未定义空间。" });
     }

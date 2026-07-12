@@ -6,8 +6,9 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { resolve3DAsset } from "@/lib/render3d-assets";
-import type { Resolved3DAsset } from "@/lib/render3d-assets";
+import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
+import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
+import type { Resolved3DAsset, ResolvedRender3DMaterialLayer, ResolvedRender3DMaterials } from "@/lib/render3d-assets";
 import type {
   Floor,
   FixedCameraView,
@@ -249,6 +250,23 @@ function interiorMaterialProps(key: InteriorMaterialKey, overrides: Partial<Effe
 function materialColor(key: InteriorMaterialKey) {
   return interiorMaterialCatalog[key].color;
 }
+function materialLayerProps(layer: ResolvedRender3DMaterialLayer, overrides: Partial<EffectMaterial> = {}) {
+  const material = { ...layer, ...overrides };
+  return {
+    color: material.color,
+    roughness: material.roughness,
+    metalness: material.metalness,
+    transparent: material.opacity !== undefined && material.opacity < 1,
+    opacity: material.opacity ?? 1,
+    emissive: material.emissive,
+    emissiveIntensity: material.emissiveIntensity ?? 0,
+    envMapIntensity: material.envMapIntensity ?? 0.65
+  };
+}
+type Render3DMaterialRole = ResolvedRender3DMaterialLayer["role"];
+function pickMaterialLayer(materials: ResolvedRender3DMaterials, roles: Render3DMaterialRole[], fallback: ResolvedRender3DMaterialLayer) {
+  return [materials.primary, materials.secondary, materials.accent].find((layer) => roles.includes(layer.role)) ?? fallback;
+}
 function CatalogMaterial({
   materialKey,
   map = null,
@@ -459,7 +477,7 @@ function isClosetFurnitureModule(item: Furniture, structure: HouseStructure) {
   return Boolean(room && isClosetRoom(room)) || item.name.includes("衣帽间");
 }
 
-function useFineAssetMetrics({ item, structure, designStyle }: FurnitureAssetGroupProps) {
+function useFineAssetMetrics({ item, structure, designStyle, resolvedAsset }: FurnitureAssetGroupProps) {
   const position = getFurnitureScenePosition(item, structure);
   const width = Math.max(0.12, item.dimensions.width / 100);
   const depth = Math.max(0.08, item.dimensions.depth / 100);
@@ -467,7 +485,8 @@ function useFineAssetMetrics({ item, structure, designStyle }: FurnitureAssetGro
   const rotation = -(item.position.rotation || 0) * Math.PI / 180;
   const groupY = height / 2 + 0.035;
   const palette = designStylePalettes[designStyle];
-  const renderVariant = getFurnitureRenderVariant(item, palette);
+  const materials = resolvedAsset.materials;
+  const renderVariant = getFurnitureRenderVariant(item, palette, materials);
   return {
     position,
     width,
@@ -479,6 +498,7 @@ function useFineAssetMetrics({ item, structure, designStyle }: FurnitureAssetGro
     topLocalY: height / 2 + 0.025,
     ceilingLocalY: 2.28 - groupY,
     palette,
+    materials,
     renderVariant
   };
 }
@@ -497,8 +517,13 @@ function SelectableFurnitureGroup({
   children: ReactNode;
 }) {
   const { item, resolvedAsset, onSelect, onHover, onClearHover } = props;
+  const childContent = resolvedAsset.childrenMode === "grouped"
+    ? <group name={`${item.id}-render3d-children`} userData={{ childrenMode: "grouped" }}>{children}</group>
+    : children;
   return (
     <group
+      name={`${item.id}-render3d-root`}
+      userData={{ childrenMode: resolvedAsset.childrenMode, assetType: resolvedAsset.assetType }}
       position={[position.x, groupY, position.z]}
       rotation={[0, rotation, 0]}
       onClick={(event) => {
@@ -514,7 +539,7 @@ function SelectableFurnitureGroup({
         if (resolvedAsset.selectableIn3d) onClearHover(item.id);
       }}
     >
-      {children}
+      {childContent}
     </group>
   );
 }
@@ -524,9 +549,9 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
   const metrics = useFineAssetMetrics(props);
   const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
   const isMaster = item.roomId === "ROOM-2F-006";
-  const woodTexture = useProceduralTexture("wood", materialColor(isMaster ? "walnut" : "warmOak"), "#ad9678", 2.4, 1.25);
-  const fabricTexture = useProceduralTexture("fabric", materialColor(isMaster ? "creamFabric" : "beigeFabric"), "#9b8674", 3.2, 3.2);
-  const accentTexture = useProceduralTexture("fabric", materialColor(isMaster ? "camelFabric" : "taupeFabric"), "#806b59", 2.4, 2.4);
+  const woodTexture = useProceduralTexture("wood", renderVariant.wood, renderVariant.woodGrain, 2.4, 1.25);
+  const fabricTexture = useProceduralTexture("fabric", renderVariant.fabric, renderVariant.runner, 3.2, 3.2);
+  const accentTexture = useProceduralTexture("fabric", renderVariant.accent, renderVariant.runner, 2.4, 2.4);
   const pillowCount = width >= 1.65 ? 4 : 2;
   const pillowWidth = Math.min(0.5, width * (pillowCount > 2 ? 0.22 : 0.32));
   const pillowRows = pillowCount > 2 ? [-0.34, -0.2] : [-0.3];
@@ -542,11 +567,11 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
         position={[0, -height * 0.5, 0.06]}
         radius={0.08}
         smoothness={5}
-        color={materialColor("beigeFabric")}
+        color={renderVariant.rug}
         map={fabricTexture}
         transparent
         opacity={0.78}
-        roughness={interiorMaterialCatalog.beigeFabric.roughness}
+        roughness={0.94}
         castShadow={false}
       />
       <RoundedBoxMesh
@@ -554,7 +579,7 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
         position={[0, -height * 0.29, 0.04]}
         radius={0.085}
         smoothness={5}
-        color={isMaster ? materialColor("walnut") : materialColor("warmOak")}
+        color={renderVariant.wood}
         map={woodTexture}
         roughness={interiorMaterialCatalog.warmOak.roughness}
         metalness={interiorMaterialCatalog.warmOak.metalness}
@@ -564,7 +589,7 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
         position={[0, mattressY, depth * 0.045]}
         radius={0.095}
         smoothness={7}
-        color={materialColor("creamFabric")}
+        color={renderVariant.fabric}
         map={fabricTexture}
         roughness={interiorMaterialCatalog.creamFabric.roughness}
       />
@@ -596,7 +621,7 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
         position={[0, height * 0.02, -depth / 2 - 0.06]}
         radius={0.07}
         smoothness={5}
-        color={isMaster ? materialColor("taupeFabric") : materialColor("beigeFabric")}
+        color={renderVariant.bedding}
         map={fabricTexture}
         roughness={0.9}
       />
@@ -631,7 +656,7 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
           rotation={[0, 0, index ? -0.1 : 0.1]}
           radius={0.048}
           smoothness={6}
-          color={index ? renderVariant.accent : materialColor("camelFabric")}
+          color={index ? renderVariant.accent : renderVariant.runner}
           map={accentTexture}
           roughness={0.93}
         />
@@ -655,7 +680,7 @@ function Bed3DAsset(props: FurnitureAssetGroupProps) {
           <CatalogMaterial materialKey={isMaster ? "walnut" : "warmOak"} />
         </mesh>
       )))}
-      {isMaster && <pointLight color={materialColor("warmLightEmissive")} intensity={0.28} distance={1.8} position={[0, 0.52, -depth * 0.42]} />}
+      {isMaster && <pointLight color={renderVariant.light} intensity={0.28} distance={1.8} position={[0, 0.52, -depth * 0.42]} />}
     </SelectableFurnitureGroup>
   );
 }
@@ -731,9 +756,9 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
   const { position, width, depth, height, rotation, groupY, frontZ, renderVariant } = metrics;
   const closetMode = forceOpen || isClosetFurnitureModule(item, structure);
   const woodKey: InteriorMaterialKey = item.roomId === "ROOM-2F-006" ? "walnut" : "warmOak";
-  const woodTexture = useProceduralTexture("wood", materialColor(woodKey), "#a99375", 2.6, 1.2);
-  const interiorTexture = useProceduralTexture("wood", materialColor("honeyWood"), "#b89d78", 2.2, 1.1);
-  const fabricTexture = useProceduralTexture("fabric", materialColor("beigeFabric"), "#968273", 2.4, 2.4);
+  const woodTexture = useProceduralTexture("wood", renderVariant.wood, renderVariant.woodGrain, 2.6, 1.2);
+  const interiorTexture = useProceduralTexture("wood", renderVariant.wardrobeInterior, renderVariant.darkWood, 2.2, 1.1);
+  const fabricTexture = useProceduralTexture("fabric", renderVariant.fabric, renderVariant.runner, 2.4, 2.4);
   const openRatio = closetMode ? 0.78 : item.roomId === "ROOM-2F-006" ? 0.58 : 0.44;
   const openWidth = Math.max(width * openRatio, Math.min(width * 0.72, 0.72));
   const closedPanelWidth = Math.max(0, (width - openWidth) / 2);
@@ -749,7 +774,7 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
         position={[0, 0, -depth * 0.04]}
         radius={0.034}
         smoothness={4}
-        color={materialColor(woodKey)}
+        color={renderVariant.wood}
         map={woodTexture}
         roughness={interiorMaterialCatalog[woodKey].roughness}
         metalness={interiorMaterialCatalog[woodKey].metalness}
@@ -758,7 +783,7 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
         args={[width * 1.02, 0.06, depth * 0.94]}
         position={[0, height * 0.5 + 0.02, -depth * 0.04]}
         radius={0.018}
-        color={materialColor("warmOak")}
+        color={renderVariant.wood}
         map={woodTexture}
         roughness={0.52}
       />
@@ -766,7 +791,7 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
         args={[width * 1.01, 0.07, depth * 0.92]}
         position={[0, -height * 0.48, -depth * 0.035]}
         radius={0.018}
-        color={materialColor("blackTitanium")}
+        color={renderVariant.metal}
         roughness={0.34}
         metalness={0.36}
       />
@@ -774,7 +799,7 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
         args={[openWidth, height * 0.72, depth * 0.72]}
         position={[0, height * 0.03, frontZ - depth * 0.38]}
         radius={0.026}
-        color={materialColor("honeyWood")}
+        color={renderVariant.wardrobeInterior}
         map={interiorTexture}
         roughness={0.56}
         metalness={0.02}
@@ -826,7 +851,7 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
             <RoundedBoxMesh
               args={[drawerWidth - 0.025, height * 0.12, 0.052]}
               radius={0.018}
-              color={materialColor(woodKey)}
+              color={renderVariant.wood}
               map={woodTexture}
               roughness={0.54}
               metalness={0.02}
@@ -843,7 +868,7 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
           <RoundedBoxMesh
             args={[closedPanelWidth * 0.9, height * 0.74, 0.05]}
             radius={0.024}
-            color={materialColor(woodKey)}
+            color={renderVariant.wood}
             map={woodTexture}
             roughness={0.52}
             metalness={0.02}
@@ -878,13 +903,13 @@ function Wardrobe3DAsset(props: FurnitureAssetGroupProps & { forceOpen?: boolean
             args={[boxWidth, height * 0.082, 0.14]}
             position={[x, -height * 0.155, frontZ + 0.055]}
             radius={0.018}
-            color={index % 2 ? materialColor("taupeFabric") : materialColor("creamFabric")}
+            color={index % 2 ? renderVariant.accent : renderVariant.fabric}
             map={fabricTexture}
             roughness={0.86}
           />
         );
       })}
-      {closetMode && <pointLight color={materialColor("warmLightEmissive")} intensity={0.34} distance={1.55} position={[0, height * 0.38, frontZ + 0.12]} />}
+      {closetMode && <pointLight color={renderVariant.light} intensity={0.34} distance={1.55} position={[0, height * 0.38, frontZ + 0.12]} />}
     </SelectableFurnitureGroup>
   );
 }
@@ -893,8 +918,9 @@ function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
   const { item } = props;
   const metrics = useFineAssetMetrics(props);
   const { position, width, depth, height, rotation, groupY, frontZ, topLocalY } = metrics;
-  const woodTexture = useProceduralTexture("wood", materialColor("warmOak"), "#a99072", 1.8, 1.1);
-  const stoneTexture = useProceduralTexture("stone", materialColor("travertine"), "#b8aa98", 1.6, 1.2);
+  const { renderVariant } = metrics;
+  const woodTexture = useProceduralTexture("wood", renderVariant.wood, renderVariant.woodGrain, 1.8, 1.1);
+  const stoneTexture = useProceduralTexture("stone", renderVariant.stone, "#b8aa98", 1.6, 1.2);
   const basinCount = width >= 1.25 ? 2 : 1;
 
   return (
@@ -904,7 +930,7 @@ function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
         position={[0, -height * 0.15, 0]}
         radius={0.045}
         smoothness={5}
-        color={materialColor("warmOak")}
+        color={renderVariant.wood}
         map={woodTexture}
         roughness={interiorMaterialCatalog.warmOak.roughness}
         metalness={interiorMaterialCatalog.warmOak.metalness}
@@ -913,7 +939,7 @@ function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
         args={[width * 1.04, 0.065, depth * 0.92]}
         position={[0, topLocalY, 0]}
         radius={0.03}
-        color={materialColor("travertine")}
+        color={renderVariant.stone}
         map={stoneTexture}
         roughness={interiorMaterialCatalog.travertine.roughness}
         metalness={interiorMaterialCatalog.travertine.metalness}
@@ -962,7 +988,7 @@ function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
         position={[0, Math.min(height * 0.75, 0.62), frontZ + 0.046]}
         radius={0.025}
         smoothness={4}
-        color={materialColor("mirror")}
+        color={renderVariant.glass}
         roughness={interiorMaterialCatalog.mirror.roughness}
         metalness={interiorMaterialCatalog.mirror.metalness}
         transparent
@@ -971,7 +997,7 @@ function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
       />
       <mesh position={[0, Math.min(height * 1.02, 0.84), frontZ + 0.07]}>
         <boxGeometry args={[width * 0.82, 0.026, 0.03]} />
-        <CatalogMaterial materialKey="warmLightEmissive" overrides={{ emissiveIntensity: 0.76 }} />
+        <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.76} roughness={0.18} />
       </mesh>
       <group position={[width * 0.34, topLocalY + 0.08, depth * 0.12]}>
         <mesh>
@@ -983,7 +1009,7 @@ function BathroomVanity3DAsset(props: FurnitureAssetGroupProps) {
           <CatalogMaterial materialKey="plantSoftGreen" />
         </mesh>
       </group>
-      <pointLight color={materialColor("warmLightEmissive")} intensity={0.2} distance={1.4} position={[0, 0.72, frontZ + 0.16]} />
+      <pointLight color={renderVariant.light} intensity={0.2} distance={1.4} position={[0, 0.72, frontZ + 0.16]} />
     </SelectableFurnitureGroup>
   );
 }
@@ -1555,10 +1581,10 @@ function getHostSegment(structure: HouseStructure, hostId: string): HostSegment 
 }
 
 function getFurnitureScenePosition(item: Furniture, structure: HouseStructure): ScenePoint {
-  const size = getStructureSize(structure);
+  const scene = toSceneObject(normalizeObjectForSync(item, structure.coordinateSystem, structure), structure.coordinateSystem);
   return {
-    x: ((item.position.x / 100) * size.width - size.width / 2) * MM_TO_M,
-    z: ((item.position.y / 100) * size.height - size.height / 2) * MM_TO_M
+    x: scene.scenePosition.x,
+    z: scene.scenePosition.z
   };
 }
 
@@ -1595,7 +1621,7 @@ function pickByHash<T>(items: T[], key: string) {
   return items[Math.abs(hashString(key)) % items.length];
 }
 
-function getFurnitureRenderVariant(item: Furniture, palette: DesignStylePalette) {
+function getFurnitureRenderVariant(item: Furniture, palette: DesignStylePalette, materials: ResolvedRender3DMaterials = resolveRender3DMaterials(item)) {
   const isMasterBedroom = item.roomId === "ROOM-2F-006";
   const isBedroomOne = item.roomId === "ROOM-2F-004";
   const isBedroomTwo = item.roomId === "ROOM-2F-005";
@@ -1628,18 +1654,29 @@ function getFurnitureRenderVariant(item: Furniture, palette: DesignStylePalette)
   const wood = pickByHash(woodOptions, seed);
   const fabric = pickByHash(fabricOptions, `${seed}-fabric`);
   const accent = pickByHash(accentOptions, `${seed}-accent`);
+  const woodLayer = pickMaterialLayer(materials, ["wood"], materials.primary);
+  const fabricLayer = pickMaterialLayer(materials, ["fabric"], materials.primary);
+  const stoneLayer = pickMaterialLayer(materials, ["stone", "ceramic"], materials.secondary);
+  const metalLayer = pickMaterialLayer(materials, ["metal"], materials.accent);
+  const glassLayer = pickMaterialLayer(materials, ["glass"], materials.secondary);
+  const lightLayer = pickMaterialLayer(materials, ["light"], materials.accent);
+  const primaryColor = materials.primary.color;
+  const secondaryColor = materials.secondary.color;
+  const accentColor = materials.accent.color;
   return {
-    wood,
-    darkWood: isCloset || isMasterBedroom ? "#a28d73" : "#ad9474",
-    woodGrain: isMasterBedroom ? "#b69d7d" : "#bfa582",
-    fabric,
-    bedding: isMasterBedroom ? "#f1e9de" : isBedroomOne ? "#eee7dc" : isBedroomTwo ? "#f4ece1" : "#efe7dc",
-    runner: isMasterBedroom ? "#b69576" : isBedroomOne ? "#92887f" : isBedroomTwo ? "#bda27f" : accent,
-    accent,
-    rug: isMasterBedroom ? "#d6cabb" : isBedroomOne ? "#d7cec4" : isBedroomTwo ? "#d9cab9" : "#d8cfc0",
-    metal: isBath ? masterBathPalette.metal : "#8f8a82",
-    stone: isBath ? masterBathPalette.stoneTop : palette.countertop,
-    wardrobeInterior: isCloset || isMasterBedroom ? "#d8d2c8" : "#d2c7b8",
+    wood: woodLayer.role === "wood" ? woodLayer.color : primaryColor || wood,
+    darkWood: woodLayer.role === "wood" ? woodLayer.color : isCloset || isMasterBedroom ? "#a28d73" : "#ad9474",
+    woodGrain: secondaryColor || (isMasterBedroom ? "#b69d7d" : "#bfa582"),
+    fabric: fabricLayer.role === "fabric" ? fabricLayer.color : primaryColor || fabric,
+    bedding: materials.secondary.role === "fabric" ? secondaryColor : isMasterBedroom ? "#f1e9de" : isBedroomOne ? "#eee7dc" : isBedroomTwo ? "#f4ece1" : "#efe7dc",
+    runner: materials.accent.role === "fabric" ? accentColor : isMasterBedroom ? "#b69576" : isBedroomOne ? "#92887f" : isBedroomTwo ? "#bda27f" : accent,
+    accent: accentColor || accent,
+    rug: materials.secondary.role === "fabric" ? secondaryColor : isMasterBedroom ? "#d6cabb" : isBedroomOne ? "#d7cec4" : isBedroomTwo ? "#d9cab9" : "#d8cfc0",
+    metal: metalLayer.role === "metal" ? metalLayer.color : isBath ? masterBathPalette.metal : "#8f8a82",
+    stone: stoneLayer.role === "stone" || stoneLayer.role === "ceramic" ? stoneLayer.color : isBath ? masterBathPalette.stoneTop : palette.countertop,
+    glass: glassLayer.role === "glass" ? glassLayer.color : palette.glass,
+    light: lightLayer.role === "light" ? lightLayer.color : palette.light,
+    wardrobeInterior: materials.secondary.role === "wood" ? secondaryColor : isCloset || isMasterBedroom ? "#d8d2c8" : "#d2c7b8",
     clothColors: isMasterBedroom
       ? ["#dfd0bf", "#a58c78", "#f1e8dd", "#bda184", "#8d7b70", "#d1bda7"]
       : isBedroomOne
@@ -1720,6 +1757,18 @@ function getFurnitureMaterialStyle(item: Furniture, materialPreview: boolean, de
       roughness: 0.62,
       metalness: 0.03,
       opacity: item.moduleType === "shower" ? 0.42 : item.moduleType === "fireplace" ? 0.82 : item.type === "plant" ? 0.78 : 1
+    };
+  }
+
+  const resolvedMaterials = resolveRender3DMaterials(item);
+  if (item.render3d?.primaryMaterial) {
+    const primary = resolvedMaterials.primary;
+    return {
+      label: primary.label,
+      color: primary.color,
+      roughness: primary.roughness,
+      metalness: primary.metalness,
+      opacity: primary.opacity ?? 1
     };
   }
 
@@ -3182,7 +3231,7 @@ function FurnitureBlock({
   const rotation = -(item.position.rotation || 0) * Math.PI / 180;
   const palette = designStylePalettes[designStyle];
   const assetType = resolvedAsset.assetType;
-  const renderVariant = getFurnitureRenderVariant(item, palette);
+  const renderVariant = getFurnitureRenderVariant(item, palette, resolvedAsset.materials);
   const materialStyle = getFurnitureMaterialStyle(item, materialPreview, designStyle);
   const useSelectionTint = selected && !materialPreview;
   const color = useSelectionTint ? "#2563eb" : materialStyle.color;
@@ -3256,6 +3305,8 @@ function FurnitureBlock({
 
   return (
     <group
+      name={`${item.id}-render3d-root`}
+      userData={{ childrenMode: resolvedAsset.childrenMode, assetType: resolvedAsset.assetType }}
       position={[position.x, groupY, position.z]}
       rotation={[0, rotation, 0]}
       onClick={(event) => {
@@ -3313,15 +3364,15 @@ function FurnitureBlock({
             <>
               <mesh castShadow receiveShadow position={[0, topLocalY, 0]}>
                 <cylinderGeometry args={[Math.min(width, depth) * 0.22, Math.min(width, depth) * 0.22, 0.07, 64]} />
-                <meshStandardMaterial color={useSelectionTint ? "#2563eb" : palette.wood} roughness={0.48} metalness={0.02} />
+                <meshStandardMaterial color={useSelectionTint ? "#2563eb" : renderVariant.wood} roughness={0.48} metalness={0.02} />
               </mesh>
               <mesh castShadow receiveShadow position={[0, -height * 0.07, 0]}>
                 <cylinderGeometry args={[0.08, 0.11, height * 0.72, 24]} />
-                <meshStandardMaterial color={palette.metal} roughness={0.26} metalness={0.48} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.26} metalness={0.48} />
               </mesh>
               <mesh receiveShadow position={[0, -height * 0.44, 0]}>
                 <cylinderGeometry args={[Math.min(width, depth) * 0.12, Math.min(width, depth) * 0.14, 0.035, 36]} />
-                <meshStandardMaterial color={palette.metal} roughness={0.34} metalness={0.35} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.34} metalness={0.35} />
               </mesh>
               {Array.from({ length: 6 }, (_, index) => {
                 const angle = (index / 6) * Math.PI * 2;
@@ -3334,16 +3385,16 @@ function FurnitureBlock({
                   >
                     <mesh castShadow receiveShadow position={[0, -0.02, 0]}>
                       <boxGeometry args={[0.38, 0.09, 0.38]} />
-                      <meshStandardMaterial color={palette.fabric} roughness={0.86} />
+                      <meshStandardMaterial color={renderVariant.fabric} roughness={0.86} />
                     </mesh>
                     <mesh castShadow receiveShadow position={[0, 0.19, -0.18]}>
                       <boxGeometry args={[0.4, 0.42, 0.075]} />
-                      <meshStandardMaterial color={palette.fabric} roughness={0.84} />
+                      <meshStandardMaterial color={renderVariant.fabric} roughness={0.84} />
                     </mesh>
                     {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
                       <mesh key={`${xSide}-${zSide}`} castShadow position={[xSide * 0.145, -0.22, zSide * 0.145]}>
                         <boxGeometry args={[0.035, 0.34, 0.035]} />
-                        <meshStandardMaterial color={palette.wood} roughness={0.56} />
+                        <meshStandardMaterial color={renderVariant.wood} roughness={0.56} />
                       </mesh>
                     )))}
                   </group>
@@ -3387,11 +3438,11 @@ function FurnitureBlock({
                   </group>
                   <mesh position={[0, ceilingLocalY, 0]}>
                     <boxGeometry args={[0.018, 0.46, 0.018]} />
-                    <meshStandardMaterial color={palette.metal} roughness={0.3} metalness={0.45} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.3} metalness={0.45} />
                   </mesh>
                   <mesh position={[0, ceilingLocalY - 0.26, 0]}>
                     <cylinderGeometry args={[0.23, 0.3, 0.16, 36]} />
-                    <meshStandardMaterial color={palette.light} emissive={palette.light} emissiveIntensity={0.55} roughness={0.38} />
+                    <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.55} roughness={0.38} />
                   </mesh>
                 </group>
               )}
@@ -3400,18 +3451,18 @@ function FurnitureBlock({
             <>
               <mesh castShadow receiveShadow position={[0, topLocalY, 0]}>
                 <boxGeometry args={[width * (coffeeTableLike ? 0.92 : 0.78), 0.06, depth * (coffeeTableLike ? 0.82 : 0.78)]} />
-                <meshStandardMaterial color={useSelectionTint ? "#2563eb" : palette.wood} roughness={0.48} metalness={0.02} />
+                <meshStandardMaterial color={useSelectionTint ? "#2563eb" : renderVariant.wood} roughness={0.48} metalness={0.02} />
               </mesh>
               {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
                 <mesh key={`${item.id}-leg-${xSide}-${zSide}`} castShadow position={[xSide * width * 0.32, -height * 0.08, zSide * depth * 0.28]}>
                   <boxGeometry args={[0.04, height * 0.62, 0.04]} />
-                  <meshStandardMaterial color={palette.metal} roughness={0.28} metalness={0.5} />
+                  <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.5} />
                 </mesh>
               )))}
               {coffeeTableLike && materialPreview && (
                 <mesh position={[0, topLocalY + 0.05, 0]}>
                   <boxGeometry args={[width * 0.42, 0.024, depth * 0.24]} />
-                  <meshStandardMaterial color={palette.countertop} roughness={0.35} metalness={0.02} />
+                  <meshStandardMaterial color={renderVariant.stone} roughness={0.35} metalness={0.02} />
                 </mesh>
               )}
             </>
@@ -3424,7 +3475,7 @@ function FurnitureBlock({
             args={[width * 0.82, height * 0.18, depth * 0.72]}
             position={[0, -height * 0.18, 0]}
             radius={0.055}
-            color={useSelectionTint ? "#2563eb" : palette.fabric}
+            color={useSelectionTint ? "#2563eb" : renderVariant.fabric}
             map={fabricTexture}
             roughness={0.86}
           />
@@ -3432,14 +3483,14 @@ function FurnitureBlock({
             args={[width * 0.82, height * 0.72, 0.085]}
             position={[0, height * 0.1, -depth * 0.34]}
             radius={0.045}
-            color={useSelectionTint ? "#2563eb" : palette.fabric}
+            color={useSelectionTint ? "#2563eb" : renderVariant.fabric}
             map={fabricTexture}
             roughness={0.84}
           />
           {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
             <mesh key={`${item.id}-chair-leg-${xSide}-${zSide}`} castShadow position={[xSide * width * 0.28, -height * 0.41, zSide * depth * 0.22]}>
               <cylinderGeometry args={[0.018, 0.026, height * 0.48, 12]} />
-              <meshStandardMaterial color={palette.wood} roughness={0.58} />
+              <meshStandardMaterial color={renderVariant.wood} roughness={0.58} />
             </mesh>
           )))}
         </group>
@@ -3479,7 +3530,7 @@ function FurnitureBlock({
                 args={[width + 0.08, 0.055, depth + 0.08]}
                 position={[0, height / 2 + 0.028, 0]}
                 radius={0.026}
-                color={assetType === "island" ? palette.islandTop : palette.countertop}
+                color={renderVariant.stone}
                 map={stoneTexture}
                 roughness={0.31}
                 metalness={0.04}
@@ -3500,7 +3551,7 @@ function FurnitureBlock({
             <group>
               <mesh castShadow receiveShadow position={[0, -height * 0.5 + 0.055, frontZ + 0.014]}>
                 <boxGeometry args={[width * 0.92, 0.11, 0.06]} />
-                <meshStandardMaterial color={effectMaterialCatalog.blackMetal.color} roughness={0.44} metalness={0.18} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.44} metalness={0.18} />
               </mesh>
               <mesh position={[0, height * 0.38, frontZ + 0.018]}>
                 <boxGeometry args={[width * 0.94, 0.024, 0.026]} />
@@ -3520,7 +3571,7 @@ function FurnitureBlock({
                 return (
                   <mesh key={`${item.id}-handle-${index}`} position={[x, -height * 0.04, frontZ + 0.01]}>
                     <boxGeometry args={[Math.min(0.18, width / (panelCount * 3)), 0.018, 0.018]} />
-                    <meshStandardMaterial color={palette.metal} roughness={0.28} metalness={0.58} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.58} />
                   </mesh>
                 );
               })}
@@ -3532,8 +3583,8 @@ function FurnitureBlock({
                     <RoundedBoxMesh
                       args={[drawerWidth * 0.82, height * 0.18, 0.022]}
                       radius={0.018}
-                      color={assetType === "kitchenCabinet" || item.moduleType === "kitchenCabinet" ? effectMaterialCatalog.cabinetPaint.color : renderVariant.wood}
-                      map={assetType === "kitchenCabinet" || item.moduleType === "kitchenCabinet" ? null : woodTexture}
+                      color={renderVariant.wood}
+                      map={woodTexture}
                       roughness={0.52}
                       metalness={0.02}
                     />
@@ -3547,7 +3598,7 @@ function FurnitureBlock({
               {(["kitchenCabinet", "sideboard", "bathroomVanity"].includes(assetType) || item.moduleType === "kitchenCabinet" || item.moduleType === "sideboard" || item.moduleType === "vanity") && (
                 <mesh position={[0, height * 0.24, frontZ + 0.012]}>
                   <boxGeometry args={[width * 0.88, 0.026, 0.018]} />
-                  <meshStandardMaterial color={palette.light} emissive={palette.light} emissiveIntensity={0.75} roughness={0.18} />
+                  <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.75} roughness={0.18} />
                 </mesh>
               )}
               {wardrobeLike && (
@@ -3558,7 +3609,7 @@ function FurnitureBlock({
                       args={[wardrobeClosedPanelWidth * 0.92, height * 0.72, 0.062]}
                       position={[xSide * (wardrobeOpenWidth / 2 + wardrobeClosedPanelWidth / 2), height * 0.05, frontZ + 0.056]}
                       radius={0.026}
-                      color={xSide < 0 ? renderVariant.wood : "#d9c4aa"}
+                      color={xSide < 0 ? renderVariant.wood : renderVariant.wardrobeInterior}
                       map={woodTexture}
                       roughness={0.54}
                       metalness={0.02}
@@ -3587,7 +3638,7 @@ function FurnitureBlock({
                   ))}
                   <mesh position={[0, height * 0.44, frontZ + 0.076]}>
                     <boxGeometry args={[wardrobeOpenWidth * 0.94, 0.024, 0.028]} />
-                    <meshStandardMaterial color={palette.light} emissive={palette.light} emissiveIntensity={0.98} roughness={0.18} />
+                    <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.98} roughness={0.18} />
                   </mesh>
                   <mesh position={[0, height * 0.24, frontZ + 0.072]} rotation={[0, 0, Math.PI / 2]}>
                     <cylinderGeometry args={[0.012, 0.012, wardrobeOpenWidth * 0.82, 12]} />
@@ -3710,11 +3761,11 @@ function FurnitureBlock({
             <group>
               <mesh position={[-width / 2 - 0.035, 0.04, 0]}>
                 <boxGeometry args={[0.055, height * 0.84, depth + 0.08]} />
-                <meshStandardMaterial color={palette.islandTop} roughness={0.34} metalness={0.04} />
+                <meshStandardMaterial color={renderVariant.stone} roughness={0.34} metalness={0.04} />
               </mesh>
               <mesh position={[width / 2 + 0.035, 0.04, 0]}>
                 <boxGeometry args={[0.055, height * 0.84, depth + 0.08]} />
-                <meshStandardMaterial color={palette.islandTop} roughness={0.34} metalness={0.04} />
+                <meshStandardMaterial color={renderVariant.stone} roughness={0.34} metalness={0.04} />
               </mesh>
               <mesh castShadow receiveShadow position={[0, height * 0.1, -depth / 2 - 0.035]}>
                 <boxGeometry args={[width * 0.86, height * 0.52, 0.05]} />
@@ -3728,7 +3779,7 @@ function FurnitureBlock({
               ))}
               <mesh position={[0, -height * 0.42, -depth / 2 - 0.03]}>
                 <boxGeometry args={[width * 0.78, 0.08, 0.055]} />
-                <meshStandardMaterial color={effectMaterialCatalog.blackMetal.color} roughness={0.42} metalness={0.16} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.42} metalness={0.16} />
               </mesh>
               {[-0.34, 0.34].map((xOffset, index) => (
                 <group key={`${item.id}-counter-stool-${index}`} position={[xOffset * width, -height * 0.17, -depth * 0.64]}>
@@ -3750,11 +3801,11 @@ function FurnitureBlock({
                 <group key={`${item.id}-island-pendant-${index}`} position={[xOffset * Math.min(width, 2.2), 0, 0]}>
                   <mesh position={[0, ceilingLocalY, 0]}>
                     <boxGeometry args={[0.018, 0.42, 0.018]} />
-                    <meshStandardMaterial color={palette.metal} roughness={0.3} metalness={0.48} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.3} metalness={0.48} />
                   </mesh>
                   <mesh position={[0, ceilingLocalY - 0.24, 0]}>
                     <cylinderGeometry args={[0.12, 0.16, 0.12, 28]} />
-                    <meshStandardMaterial color={palette.light} emissive={palette.light} emissiveIntensity={0.52} roughness={0.36} />
+                    <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.52} roughness={0.36} />
                   </mesh>
                 </group>
               ))}
@@ -3889,15 +3940,15 @@ function FurnitureBlock({
             <group>
               <mesh castShadow receiveShadow position={[0, -height * 0.04, -depth / 2 + 0.08]}>
                 <boxGeometry args={[width, height * 0.72, 0.16]} />
-                <meshStandardMaterial color={palette.fabric} roughness={0.88} />
+                <meshStandardMaterial color={renderVariant.fabric} roughness={0.88} />
               </mesh>
               <mesh castShadow receiveShadow position={[-width / 2 + 0.08, -height * 0.08, 0]}>
                 <boxGeometry args={[0.16, height * 0.55, depth * 0.88]} />
-                <meshStandardMaterial color={palette.fabric} roughness={0.88} />
+                <meshStandardMaterial color={renderVariant.fabric} roughness={0.88} />
               </mesh>
               <mesh castShadow receiveShadow position={[width / 2 - 0.08, -height * 0.08, 0]}>
                 <boxGeometry args={[0.16, height * 0.55, depth * 0.88]} />
-                <meshStandardMaterial color={palette.fabric} roughness={0.88} />
+                <meshStandardMaterial color={renderVariant.fabric} roughness={0.88} />
               </mesh>
               {Array.from({ length: Math.max(2, Math.min(4, Math.round(width / 0.72))) }, (_, index) => {
                 const cushionWidth = width / Math.max(2, Math.min(4, Math.round(width / 0.72))) - 0.06;
@@ -3905,14 +3956,14 @@ function FurnitureBlock({
                 return (
                   <mesh key={`${item.id}-seat-cushion-${index}`} castShadow receiveShadow position={[x, -height * 0.01, depth * 0.08]}>
                     <boxGeometry args={[cushionWidth, 0.065, depth * 0.62]} />
-                    <meshStandardMaterial color="#e8d9c9" roughness={0.92} />
+                    <meshStandardMaterial color={renderVariant.bedding} roughness={0.92} />
                   </mesh>
                 );
               })}
               {[-0.24, 0.2].map((xOffset, index) => (
                 <mesh key={`${item.id}-throw-pillow-${index}`} castShadow receiveShadow position={[xOffset * width, height * 0.12, -depth * 0.24]} rotation={[0, 0, index ? -0.12 : 0.12]}>
                   <boxGeometry args={[0.32, 0.25, 0.08]} />
-                  <meshStandardMaterial color={index ? palette.accent : "#f4eee5"} roughness={0.9} />
+                  <meshStandardMaterial color={index ? renderVariant.accent : renderVariant.rug} roughness={0.9} />
                 </mesh>
               ))}
             </group>
@@ -3921,19 +3972,19 @@ function FurnitureBlock({
             <group>
               <mesh position={[0, height / 2 + 0.018, 0]}>
                 <boxGeometry args={[width * 0.78, 0.035, depth * 0.68]} />
-                <meshStandardMaterial color="#8fa6ad" roughness={0.2} metalness={0.45} />
+                <meshStandardMaterial color={renderVariant.stone} roughness={0.2} metalness={0.45} />
               </mesh>
               <mesh position={[0, height / 2 + 0.04, 0]}>
                 <boxGeometry args={[width * 0.56, 0.018, depth * 0.46]} />
-                <meshStandardMaterial color="#d8e1e3" roughness={0.18} metalness={0.58} />
+                <meshStandardMaterial color={renderVariant.glass} roughness={0.18} metalness={0.58} />
               </mesh>
               <mesh position={[width * 0.22, height / 2 + 0.18, -depth * 0.08]}>
                 <cylinderGeometry args={[0.022, 0.022, 0.28, 14]} />
-                <meshStandardMaterial color={palette.metal} roughness={0.18} metalness={0.7} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.18} metalness={0.7} />
               </mesh>
               <mesh position={[width * 0.13, height / 2 + 0.3, -depth * 0.08]}>
                 <boxGeometry args={[0.2, 0.026, 0.026]} />
-                <meshStandardMaterial color={palette.metal} roughness={0.18} metalness={0.7} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.18} metalness={0.7} />
               </mesh>
             </group>
           )}
@@ -4442,7 +4493,7 @@ const furnitureAssetComponentMap = {
 
 function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
   const resolvedAsset = resolve3DAsset(props.item);
-  if (!resolvedAsset.visibleIn3d) return null;
+  if (!resolveVisibility(props.item).visible3d || !resolvedAsset.visibleIn3d) return null;
   const Component = furnitureAssetComponentMap[resolvedAsset.componentKey] ?? Generic3DGroup;
   return <Component {...props} resolvedAsset={resolvedAsset} />;
 }
@@ -4586,6 +4637,12 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
       startZoom: camera.zoom,
       endZoom: fixedView?.zoom ?? 1
     };
+    // The Canvas camera type is chosen by viewport. Orthographic fixed views use a locked-rotation,
+    // zoomed axonometric fallback when the active Canvas is perspective.
+    if (controls) {
+      controls.enableRotate = fixedView?.mode !== "orthographic";
+      controls.enablePan = true;
+    }
     walkInitializedRef.current = false;
   }, [camera, fixedView, preset, requestVersion]);
 
@@ -4607,13 +4664,14 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
       return;
     }
     if (mode === "orbit") {
+      controls.enableRotate = fixedView?.mode !== "orthographic";
       controls.minDistance = 0.75;
       controls.maxDistance = 18;
       controls.maxPolarAngle = Math.PI / 2.08;
       walkInitializedRef.current = false;
       controls.update();
     }
-  }, [camera, mode]);
+  }, [camera, fixedView?.mode, mode]);
 
   useEffect(() => {
     if (mode !== "walkthrough") return;
@@ -5197,7 +5255,12 @@ export function Floor3DView({
       {!presentationMode && (cameraRequest.fixedView || cameraRequest.preset !== "stair") && (
         <div className="pointer-events-none absolute bottom-4 right-4 z-[70] max-w-[18rem] rounded-lg border border-white/75 bg-white/78 p-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
           <div className="font-black text-stone-900">{materialPreview ? `${floor.label} 效果轴测` : `${floor.label} 白模检查`}</div>
-          {cameraRequest.fixedView?.description && <div className="mt-1 font-semibold text-stone-700">{cameraRequest.fixedView.name}：{cameraRequest.fixedView.description}</div>}
+          {cameraRequest.fixedView && (
+            <div className="mt-1 font-semibold text-stone-700">
+              {cameraRequest.fixedView.name} · {cameraRequest.fixedView.mode === "orthographic" ? "正交轴测" : "透视视角"}
+              {cameraRequest.fixedView.description ? `：${cameraRequest.fixedView.description}` : ""}
+            </div>
+          )}
           <div className="mt-1">
             {cameraMode === "walkthrough"
               ? "自由漫游中：W/A/S/D 或方向键前后左右移动，Q/E 升降，鼠标拖拽调整视角；退出后回到鸟瞰旋转模式。"

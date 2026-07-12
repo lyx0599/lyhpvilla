@@ -5,11 +5,24 @@
   "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NEXT_DIST_DIR=.next-build next build",
+    "build:pages": "NEXT_PUBLIC_BASE_PATH=/lyhpvilla NEXT_DIST_DIR=.next-pages next build && touch out/.nojekyll && node scripts/check-pages-build.mjs",
+    "check:pages": "node scripts/check-pages-build.mjs",
+    "check:pages-build": "node scripts/check-pages-build.mjs",
+    "typecheck": "tsc --noEmit",
+    "validate:workspace": "node --experimental-strip-types scripts/validate-default-workspace.mjs",
     "apply-workspace": "node scripts/apply-workspace-to-default.mjs",
-    "local-code-sync": "node scripts/local-code-sync-server.mjs",
-    "start": "next start",
-    "lint": "next lint"
+    "local-code-sync": "node --experimental-strip-types scripts/local-code-sync-server.mjs",
+    "test:workspace-migrations": "node --experimental-strip-types scripts/test-workspace-migrations.mjs",
+    "test:workspace-access": "node --experimental-strip-types scripts/test-workspace-access.mjs",
+    "test:workspace-references": "node --experimental-strip-types scripts/test-workspace-reference-validator.mjs",
+    "test:save-service": "node --experimental-strip-types scripts/test-local-code-sync-server.mjs",
+    "test:object-sync": "node --experimental-strip-types scripts/test-object-sync.mjs",
+    "test:mobile": "playwright test tests/mobile-presentation.spec.ts",
+    "audit:schema-coverage": "python3 scripts/schema-coverage-report.py",
+    "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:workspace-access && pnpm test:save-service && pnpm test:object-sync",
+    "test:ci": "pnpm test && pnpm test:mobile && pnpm build",
+    "start": "next start"
   },
   "dependencies": {
     "@react-three/fiber": "^8.17.10",
@@ -26,6 +39,7 @@
     "typescript": "^5.7.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^22.10.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

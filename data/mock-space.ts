@@ -1,208 +1,43 @@
-import type { SpaceData } from "@/types/space";
-import type { FixedCameraView, Furniture } from "@/types/space";
-import { getInteriorModuleCatalogItem } from "@/data/interior-module-catalog";
-import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import defaultWorkspace from "@/data/default-workspace.json";
+import { applyWorkspaceMigrations } from "@/lib/workspace-migrations";
+import type { SpaceData } from "@/types/space";
+import type { WorkspaceDocument } from "@/types/workspace";
 
-const cleanGrayVisualSettings = getDefaultVisualSettings();
 const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+const migratedDefaultWorkspace = applyWorkspaceMigrations(defaultWorkspace as unknown as WorkspaceDocument);
 
-function assetPath(path: string) {
-  return `${assetBasePath}${path}`;
-}
-
-function moduleMeta(catalogId: string) {
-  const item = getInteriorModuleCatalogItem(catalogId);
-  if (!item) return {};
-  return {
-    catalogId: item.id,
-    moduleCategory: item.category,
-    moduleType: item.moduleType,
-    serviceRequirements: item.serviceRequirements,
-    constructionNote: item.note
-  };
-}
-
-const savedDefaultWorkspace = defaultWorkspace as Partial<{ selectedFloorId: SpaceData["selectedFloorId"]; furniture: Furniture[]; cameraViews: FixedCameraView[] }>;
-
-const defaultFurniture: Furniture[] = [
-  {
-    id: "furn-sofa-001",
-    code: "SF-001",
-    name: "客厅米白直排沙发",
-    type: "sofa",
-    floorId: "1F",
-    roomId: "room-living",
-    dimensions: { width: 240, depth: 90, height: 78, unit: "cm" },
-    material: "米白色绒布",
-    note: "自然语言示例目标：往南移动 30cm。",
-    position: { x: 26, y: 67, rotation: 0 },
-    color: "#e8ded0"
-  },
-  {
-    id: "furn-table-001",
-    code: "TB-001",
-    name: "六人圆餐桌套组",
-    type: "table",
-    floorId: "1F",
-    roomId: "room-dining",
-    dimensions: { width: 240, depth: 240, height: 75, unit: "cm" },
-    material: "圆餐桌 + 6 把餐椅",
-    note: "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。",
-    position: { x: 72, y: 43, rotation: 0 },
-    color: "#d6d9d7"
-  },
-  {
-    id: "furn-tv-001",
-    code: "TV-001",
-    name: "客厅电视矮柜",
-    type: "cabinet",
-    floorId: "1F",
-    roomId: "room-living",
-    dimensions: { width: 280, depth: 42, height: 45, unit: "cm" },
-    material: "悬浮暖白柜 + 木饰面",
-    note: "先按南侧客厅视线布置，后续配合电视墙立面深化。",
-    position: { x: 27, y: 82, rotation: 0 },
-    color: "#eadfcd"
-  },
-  {
-    id: "furn-kitchen-run-001",
-    code: "KC-001",
-    name: "餐厨一字型操作台",
-    type: "cabinet",
-    floorId: "1F",
-    roomId: "room-dining",
-    dimensions: { width: 360, depth: 65, height: 90, unit: "cm" },
-    material: "浅灰柜体 + 石英石台面",
-    note: "靠近北侧窗，作为灶台、水槽和备餐主操作面。",
-    position: { x: 70, y: 20, rotation: 0 },
-    color: "#cfd7d3"
-  },
-  {
-    id: "furn-island-001",
-    code: "IS-001",
-    name: "中岛台",
-    type: "island",
-    ...moduleMeta("kitchen-island"),
-    floorId: "1F",
-    roomId: "room-dining",
-    dimensions: { width: 240, depth: 95, height: 90, unit: "cm" },
-    material: "岩板台面 + 储物柜体",
-    note: "预留岛台地插、净水和排水可选方案。",
-    position: { x: 69, y: 36, rotation: 0 },
-    color: "#d8ddd9"
-  },
-  {
-    id: "furn-sink-001",
-    code: "SK-001",
-    name: "岛台水槽",
-    type: "sink",
-    ...moduleMeta("kitchen-sink"),
-    floorId: "1F",
-    roomId: "room-dining",
-    dimensions: { width: 72, depth: 48, height: 20, unit: "cm" },
-    material: "不锈钢台下盆",
-    note: "对应给水、排水和净水点位。",
-    position: { x: 68, y: 36, rotation: 0 },
-    color: "#9cc7d9"
-  },
-  {
-    id: "furn-cooktop-001",
-    code: "CK-001",
-    name: "嵌入式灶台",
-    type: "cooktop",
-    ...moduleMeta("kitchen-cooktop"),
-    floorId: "1F",
-    roomId: "room-dining",
-    dimensions: { width: 90, depth: 52, height: 12, unit: "cm" },
-    material: "燃气灶 / 电磁灶预留",
-    note: "后续和烟道、排烟路径一起校核。",
-    position: { x: 78, y: 20, rotation: 0 },
-    color: "#1f2937"
-  },
-  {
-    id: "furn-fridge-001",
-    code: "RF-001",
-    name: "嵌入式冰箱位",
-    type: "fridge",
-    ...moduleMeta("kitchen-fridge"),
-    floorId: "1F",
-    roomId: "room-dining",
-    dimensions: { width: 92, depth: 70, height: 190, unit: "cm" },
-    material: "高柜嵌入",
-    note: "建议独立回路，侧边预留散热。",
-    position: { x: 88, y: 18, rotation: 0 },
-    color: "#d9dee4"
-  },
-  {
-    id: "furn-bed-001",
-    code: "BD-001",
-    name: "主卧双人床",
-    type: "bed",
-    floorId: "2F",
-    roomId: "room-bedroom",
-    dimensions: { width: 180, depth: 200, height: 95, unit: "cm" },
-    material: "浅木色床架 + 奶咖软包",
-    note: "床头朝西，后续确认插座。",
-    position: { x: 38, y: 42, rotation: 90 },
-    color: "#c8a887"
-  },
-  {
-    id: "furn-cabinet-001",
-    code: "CB-001",
-    name: "B1 活动区收纳柜",
-    type: "entryCabinet",
-    ...moduleMeta("storage-entry-cabinet"),
-    floorId: "B1",
-    roomId: "room-b1-activity",
-    dimensions: { width: 220, depth: 40, height: 240, unit: "cm" },
-    material: "暖白柜门 + 原木开放格",
-    note: "考虑扫地机器人和临时挂衣。",
-    position: { x: 26, y: 29, rotation: 0 },
-    color: "#f0e7d8"
-  },
-  {
-    id: "furn-plant-001",
-    code: "PL-001",
-    name: "院子桂花树",
-    type: "plant",
-    floorId: "YARD",
-    roomId: "room-yard",
-    dimensions: { width: 120, depth: 120, height: 260, unit: "cm" },
-    material: "植物",
-    note: "作为入户视线焦点。",
-    position: { x: 72, y: 34, rotation: 0 },
-    color: "#7c9468"
+function assetPath(path: string | undefined) {
+  if (!path || /^(?:data:|blob:|https?:\/\/)/.test(path)) return path;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (!assetBasePath || normalizedPath === assetBasePath || normalizedPath.startsWith(`${assetBasePath}/`)) {
+    return normalizedPath;
   }
-];
+  return `${assetBasePath}${normalizedPath}`;
+}
 
-export const mockSpaceData: SpaceData = {
-  selectedFloorId: savedDefaultWorkspace.selectedFloorId ?? "1F",
-  cameraViews: savedDefaultWorkspace.cameraViews ?? [],
-  floors: [
-    { id: "B2", label: "b2", subtitle: "地下室二层", floorPlanImage: assetPath("/floor-plans/hd-clean/b2-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "B1", label: "b1", subtitle: "地下室一层", floorPlanImage: assetPath("/floor-plans/hd-clean/b1-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "1F", label: "1f", subtitle: "一层 / 客餐厨", floorPlanImage: assetPath("/floor-plans/hd-clean/1f-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "2F", label: "2f", subtitle: "二层 / 卧室区", floorPlanImage: assetPath("/floor-plans/hd-clean/2f-hd-clean.png"), visualSettings: cleanGrayVisualSettings, cleanPatches: [] },
-    { id: "YARD", label: "院子", subtitle: "庭院 / 入户", visualSettings: cleanGrayVisualSettings, cleanPatches: [] }
-  ],
-  rooms: [
-    { id: "room-living", name: "客厅", floorId: "1F", bounds: { x: 12, y: 14, width: 52, height: 48 } },
-    { id: "room-dining", name: "客厅", floorId: "1F", bounds: { x: 65, y: 14, width: 25, height: 48 } },
-    { id: "room-hollow", name: "挑空区", floorId: "B2", bounds: { x: 16, y: 16, width: 58, height: 54 } },
-    { id: "room-b1-laundry", name: "洗衣房", floorId: "B1", bounds: { x: 33, y: 4, width: 12, height: 19 } },
-    { id: "room-b1-room", name: "房间", floorId: "B1", bounds: { x: 33, y: 4, width: 46, height: 31 } },
-    { id: "room-b1-corridor", name: "走廊", floorId: "B1", bounds: { x: 33, y: 35, width: 16, height: 30 } },
-    { id: "room-b1-activity", name: "活动区", floorId: "B1", bounds: { x: 8, y: 35, width: 48, height: 52 } },
-    { id: "room-bedroom", name: "主卧", floorId: "2F", bounds: { x: 14, y: 16, width: 46, height: 45 } },
-    { id: "room-yard", name: "前院", floorId: "YARD", bounds: { x: 10, y: 12, width: 80, height: 58 } }
-  ],
-  walls: [
-    { id: "wall-1f-1", floorId: "1F", x1: 10, y1: 12, x2: 92, y2: 12, thickness: 2 },
-    { id: "wall-1f-2", floorId: "1F", x1: 92, y1: 12, x2: 92, y2: 64, thickness: 2 },
-    { id: "wall-1f-3", floorId: "1F", x1: 10, y1: 64, x2: 92, y2: 64, thickness: 2 },
-    { id: "wall-1f-4", floorId: "1F", x1: 10, y1: 12, x2: 10, y2: 64, thickness: 2 },
-    { id: "wall-1f-5", floorId: "1F", x1: 64, y1: 12, x2: 64, y2: 64, thickness: 1 }
-  ],
-  furniture: savedDefaultWorkspace.furniture ?? defaultFurniture
+const resolvedFloors = migratedDefaultWorkspace.workspace.floors.map((floor) => ({
+  ...floor,
+  floorPlanImage: assetPath(floor.floorPlanImage)
+}));
+
+/**
+ * Compatibility adapter for SpacePlanner. Real project data lives only in
+ * data/default-workspace.json; this module only resolves deploy-time asset paths.
+ */
+export const defaultSpaceData: SpaceData = {
+  workspace: {
+    ...migratedDefaultWorkspace.workspace,
+    floors: resolvedFloors
+  },
+  selectedFloorId: migratedDefaultWorkspace.workspace.selectedFloorId,
+  floors: resolvedFloors,
+  furniture: migratedDefaultWorkspace.workspace.furniture,
+  cameraViews: migratedDefaultWorkspace.workspace.cameraViews,
+  legacyRooms: [],
+  legacyWalls: []
 };
+
+export const defaultWorkspaceSourceReport = migratedDefaultWorkspace.sources;
+
+/** @deprecated Use defaultSpaceData; retained for older imports only. */
+export const mockSpaceData = defaultSpaceData;

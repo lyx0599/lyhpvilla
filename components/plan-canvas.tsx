@@ -49,6 +49,13 @@ import {
   getRepairOverlayStyles
 } from "@/lib/floor-plan-cleanup";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
+import {
+  applyPlanDelta,
+  normalizeObjectForSync,
+  resolveLock,
+  resolveVisibility,
+  toPlanObject
+} from "@/lib/object-sync-adapter";
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
 import { Floor3DView } from "@/components/floor-3d-view";
@@ -72,13 +79,16 @@ import type {
   Wall
 } from "@/types/space";
 import { getSemanticObjectPosition, semanticCategoryLabels, semanticIdPrefixes } from "@/lib/semantic-map";
+import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
 import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
 
 type Props = {
   floor: Floor;
   floors: Floor[];
-  rooms: Room[];
-  walls: Wall[];
+  /** @deprecated Debug-only fallback for workspaces without structural rooms. */
+  legacyRooms?: Room[];
+  /** @deprecated Debug-only fallback for workspaces without structural walls. */
+  legacyWalls?: Wall[];
   furniture: Furniture[];
   semanticObjects: SemanticObject[];
   selectedFurnitureId: string;
@@ -95,6 +105,7 @@ type Props = {
   yardImmersiveMode?: boolean;
   yardFocus?: YardFocus;
   mobilePresentationMode?: boolean;
+  workspaceMutationAllowed?: boolean;
   mobileDisplayLevel?: MobileDisplayLevel;
   mobileProfessionalSheetMode?: PlanSheetMode;
   mobileQuality?: MobileQuality;
@@ -109,6 +120,7 @@ type Props = {
   onScaleChange: (scale: number) => void;
   onSelectFloor: (floorId: Floor["id"]) => void;
   onActiveObjectChange: (objectId: string) => void;
+  onSelectStructureObject?: (objectId: string) => void;
   onUndo: () => void;
   onRedo: () => void;
   onPlannerModeChange: (mode: PlannerMode) => void;
@@ -178,6 +190,7 @@ type ConstructionSpecRow = {
 type FurnitureDemandHint = {
   key: "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "construction";
   label: string;
+  details: string[];
   color: string;
   background: string;
 };
@@ -258,16 +271,118 @@ const wallEditableSheetModes = new Set<PlanSheetMode>(["structure", "constructio
 const wallEditableSheetModeLabel = "空白结构、施工标注";
 const furnitureDemandSheetModes = new Set<PlanSheetMode>(["socket", "switch", "lighting", "water", "drainage", "ceiling", "construction"]);
 
+const lightingTypeLabels: Record<string, string> = {
+  ambient: "环境光",
+  task: "任务灯",
+  cabinetStrip: "柜内灯带",
+  mirrorLight: "镜前灯",
+  decorative: "装饰灯",
+  none: "无照明"
+};
+const waterSupplyTypeLabels: Record<string, string> = {
+  cold: "冷水",
+  hotCold: "冷热水",
+  filtered: "净水",
+  none: "无给水"
+};
+const drainageTypeLabels: Record<string, string> = {
+  floorDrain: "地漏",
+  wallDrain: "墙排",
+  cabinetDrain: "柜内排水",
+  none: "无排水"
+};
+const installTypeLabels: Record<string, string> = {
+  finishedFurniture: "成品家具",
+  customCabinet: "定制柜体",
+  builtIn: "内嵌建造",
+  wallMounted: "壁挂安装",
+  floorStanding: "落地安装",
+  embedded: "设备嵌入",
+  other: "其他"
+};
+
+function compactList(items: Array<string | false | null | undefined>, limit = 3) {
+  return items.filter((item): item is string => Boolean(item && item.trim())).slice(0, limit);
+}
+
+function getConstructionNote(item: Furniture) {
+  return item.constructionMeta?.notes || item.constructionNote || item.note || "";
+}
+
 function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): FurnitureDemandHint | null {
   const mep = item.mepMeta ?? {};
   const construction = item.constructionMeta ?? {};
-  if (mode === "socket" && mep.needsSocket) return { key: "socket", label: `插${mep.socketCount ? ` ${mep.socketCount}` : ""}`, color: "#2563eb", background: "#dbeafe" };
-  if (mode === "switch" && mep.needsSwitch) return { key: "switch", label: "控", color: "#7c3aed", background: "#ede9fe" };
-  if (mode === "lighting" && mep.needsLighting) return { key: "lighting", label: "灯", color: "#ca8a04", background: "#fef9c3" };
-  if (mode === "water" && mep.needsWaterSupply) return { key: "water", label: "水", color: "#0284c7", background: "#e0f2fe" };
-  if (mode === "drainage" && mep.needsDrainage) return { key: "drainage", label: "排", color: "#15803d", background: "#dcfce7" };
-  if (mode === "ceiling" && (construction.ceilingDependency || construction.inspectionAccessRequired)) return { key: "ceiling", label: "顶", color: "#0f766e", background: "#ccfbf1" };
-  if (mode === "construction" && construction.notes?.trim()) return { key: "construction", label: "施", color: "#c2410c", background: "#ffedd5" };
+  if (mode === "socket" && (mep.needsSocket || mep.needsNetwork)) return {
+    key: "socket",
+    label: mep.needsNetwork && !mep.needsSocket ? "弱电" : `插${mep.socketCount ? ` ${mep.socketCount}` : ""}`,
+    details: compactList([
+      mep.needsSocket ? `${mep.socketHeight ?? 300}mm` : null,
+      mep.relatedCircuit,
+      mep.needsNetwork ? "网络/弱电" : null
+    ]),
+    color: "#2563eb",
+    background: "#dbeafe"
+  };
+  if (mode === "switch" && (mep.needsSwitch || mep.needsSmartControl)) return {
+    key: "switch",
+    label: mep.needsSmartControl && !mep.needsSwitch ? "智" : "控",
+    details: compactList([
+      ...(mep.switchControl ?? []),
+      mep.relatedCircuit,
+      mep.needsSmartControl ? "智能控制" : null
+    ]),
+    color: "#7c3aed",
+    background: "#ede9fe"
+  };
+  if (mode === "lighting" && (mep.needsLighting || mep.needsSmartControl)) return {
+    key: "lighting",
+    label: mep.needsSmartControl && !mep.needsLighting ? "智" : "灯",
+    details: compactList([
+      mep.lightingType ? lightingTypeLabels[mep.lightingType] ?? mep.lightingType : null,
+      mep.lightColorTemperature,
+      mep.needsSmartControl ? "智能/感应" : null
+    ]),
+    color: "#ca8a04",
+    background: "#fef9c3"
+  };
+  if (mode === "water" && mep.needsWaterSupply) return {
+    key: "water",
+    label: "水",
+    details: compactList([mep.waterSupplyType ? waterSupplyTypeLabels[mep.waterSupplyType] ?? mep.waterSupplyType : null, mep.notes]),
+    color: "#0284c7",
+    background: "#e0f2fe"
+  };
+  if (mode === "drainage" && mep.needsDrainage) return {
+    key: "drainage",
+    label: "排",
+    details: compactList([mep.drainageType ? drainageTypeLabels[mep.drainageType] ?? mep.drainageType : null, mep.notes]),
+    color: "#15803d",
+    background: "#dcfce7"
+  };
+  if (mode === "ceiling" && (construction.ceilingDependency || construction.inspectionAccessRequired || mep.needsVentilation)) return {
+    key: "ceiling",
+    label: mep.needsVentilation && !construction.ceilingDependency ? "风" : "顶",
+    details: compactList([
+      construction.ceilingDependency,
+      construction.inspectionAccessRequired ? "检修口" : null,
+      mep.needsVentilation ? "通风/排风" : null
+    ]),
+    color: "#0f766e",
+    background: "#ccfbf1"
+  };
+  if (mode === "construction" && (getConstructionNote(item).trim() || construction.customMade || construction.waterproofRequired || construction.inspectionAccessRequired || construction.ceilingDependency)) return {
+    key: "construction",
+    label: construction.waterproofRequired ? "防" : construction.customMade ? "定" : "施",
+    details: compactList([
+      construction.customMade ? "定制" : null,
+      construction.installType ? installTypeLabels[construction.installType] ?? construction.installType : null,
+      construction.waterproofRequired ? "防水" : null,
+      construction.inspectionAccessRequired ? "检修" : null,
+      construction.ceilingDependency
+    ]),
+    color: "#c2410c",
+    background: "#ffedd5"
+  };
   return null;
 }
 
@@ -474,8 +589,8 @@ function isClickDrawTool(tool: DrawTool): tool is ClickDrawTool {
 export function PlanCanvas({
   floor,
   floors,
-  rooms,
-  walls,
+  legacyRooms = [],
+  legacyWalls = [],
   furniture,
   semanticObjects = [],
   selectedFurnitureId,
@@ -492,6 +607,7 @@ export function PlanCanvas({
   yardImmersiveMode = false,
   yardFocus = "south",
   mobilePresentationMode = false,
+  workspaceMutationAllowed = true,
   mobileDisplayLevel = "simple",
   mobileProfessionalSheetMode = "socket",
   mobileQuality = "balanced",
@@ -506,24 +622,56 @@ export function PlanCanvas({
   onScaleChange,
   onSelectFloor,
   onActiveObjectChange,
-  onUndo,
-  onRedo,
-  onPlannerModeChange,
-  onDrawToolChange,
-  onHouseStructureChange,
-  onWallLengthChange,
-  onWallSyncOverridesChange,
-  onFloorPlanVisualSettingsChange,
-  onCleanPatchesChange,
+  onSelectStructureObject,
+  onUndo: requestUndo,
+  onRedo: requestRedo,
+  onPlannerModeChange: requestPlannerModeChange,
+  onDrawToolChange: requestDrawToolChange,
+  onHouseStructureChange: requestHouseStructureChange,
+  onWallLengthChange: requestWallLengthChange,
+  onWallSyncOverridesChange: requestWallSyncOverridesChange,
+  onFloorPlanVisualSettingsChange: requestFloorPlanVisualSettingsChange,
+  onCleanPatchesChange: requestCleanPatchesChange,
   onSelectFurniture,
-  onFurnitureChange,
+  onFurnitureChange: requestFurnitureChange,
   onShowFurnitureLabelsChange,
   onOpenWardrobeDesigner,
   onOpenStairDesigner,
   onSelectSemanticObject,
-  onMoveSemanticObject,
+  onMoveSemanticObject: requestMoveSemanticObject,
   onSelectCameraView
 }: Props) {
+  const onUndo = () => {
+    if (workspaceMutationAllowed) requestUndo();
+  };
+  const onRedo = () => {
+    if (workspaceMutationAllowed) requestRedo();
+  };
+  const onPlannerModeChange = (mode: PlannerMode) => {
+    if (workspaceMutationAllowed) requestPlannerModeChange(mode);
+  };
+  const onDrawToolChange = (tool: DrawTool) => {
+    if (workspaceMutationAllowed) requestDrawToolChange(tool);
+  };
+  const onHouseStructureChange = (structure: HouseStructure) => {
+    if (workspaceMutationAllowed) requestHouseStructureChange(structure);
+  };
+  const onWallLengthChange = workspaceMutationAllowed ? requestWallLengthChange : undefined;
+  const onWallSyncOverridesChange = (overrides: WallSyncOverrides) => {
+    if (workspaceMutationAllowed) requestWallSyncOverridesChange(overrides);
+  };
+  const onFloorPlanVisualSettingsChange = (settings: FloorPlanVisualSettings) => {
+    if (workspaceMutationAllowed) requestFloorPlanVisualSettingsChange(settings);
+  };
+  const onCleanPatchesChange = (patches: CleanPatch[]) => {
+    if (workspaceMutationAllowed) requestCleanPatchesChange(patches);
+  };
+  const onFurnitureChange = (nextFurniture: Furniture[]) => {
+    if (workspaceMutationAllowed) requestFurnitureChange(nextFurniture);
+  };
+  const onMoveSemanticObject = (objectId: string, position: { x: number; y: number }) => {
+    if (workspaceMutationAllowed) requestMoveSemanticObject(objectId, position);
+  };
   const [scale, setScale] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isManualCleanupMode, setIsManualCleanupMode] = useState(false);
@@ -557,7 +705,7 @@ export function PlanCanvas({
   const structureMoveRef = useRef<{ pointerId: number; objectId: string; lastPoint: MmPoint; moved: boolean } | null>(null);
   const drawDragRef = useRef<{ pointerId: number; start: MmPoint } | null>(null);
   const openingDragRef = useRef<{ pointerId: number; objectId: string; objectType: "door" | "window"; moved: boolean } | null>(null);
-  const furnitureDragRef = useRef<{ pointerId: number; objectId: string; lastPosition: Point; moved: boolean } | null>(null);
+  const furnitureDragRef = useRef<{ pointerId: number; objectId: string; lastPosition: MmPoint; moved: boolean } | null>(null);
   const cleanupDragRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
@@ -579,6 +727,45 @@ export function PlanCanvas({
     if (yardImmersiveMode && focusedYardOutdoor) return getPointsBounds(focusedYardOutdoor.polygon, 280);
     return getPlanBounds(floor.id);
   }, [floor.id, focusedYardOutdoor, yardImmersiveMode]);
+  const debugRooms = useMemo(() => {
+    if (!houseStructure.rooms.length) return legacyRooms;
+    return houseStructure.rooms.flatMap((room) => {
+      if (!room.boundary.length) return [];
+      const points = room.boundary.map((point) => toPlanPercent(point, planBounds));
+      const xValues = points.map((point) => point.x);
+      const yValues = points.map((point) => point.y);
+      const x = Math.min(...xValues);
+      const y = Math.min(...yValues);
+      return [{
+        id: room.id,
+        floorId: room.floorId,
+        name: room.name,
+        bounds: {
+          x,
+          y,
+          width: Math.max(0, Math.max(...xValues) - x),
+          height: Math.max(0, Math.max(...yValues) - y)
+        }
+      }];
+    });
+  }, [houseStructure.rooms, legacyRooms, planBounds]);
+  const debugWalls = useMemo(() => {
+    const structuralWalls = houseStructure.walls.flatMap((wall) => {
+      if (wall.kind !== "straight") return [];
+      const start = toPlanPercent(wall.start, planBounds);
+      const end = toPlanPercent(wall.end, planBounds);
+      return [{
+        id: wall.id,
+        floorId: wall.floorId,
+        x1: start.x,
+        y1: start.y,
+        x2: end.x,
+        y2: end.y,
+        thickness: Math.max(0.5, wall.thickness / 100)
+      }];
+    });
+    return houseStructure.walls.length ? structuralWalls : legacyWalls;
+  }, [houseStructure.walls, legacyWalls, planBounds]);
   const furnitureLabelsVisible = showFurnitureLabels ?? internalShowFurnitureLabels;
 
   function updateFurnitureLabelsVisible(visible: boolean) {
@@ -902,17 +1089,15 @@ export function PlanCanvas({
   }
 
   function getFurnitureDisplayPosition(item: Furniture) {
-    const point = {
-      x: (item.position.x / 100) * STRUCTURE_WIDTH_MM,
-      y: (item.position.y / 100) * STRUCTURE_HEIGHT_MM
-    };
-    return toPlanPercent(point, planBounds);
+    const normalized = normalizeObjectForSync(item, houseStructure.coordinateSystem, houseStructure, interactionState);
+    return toPlanPercent(normalized.positionMm, planBounds);
   }
 
   function getFurnitureDisplaySize(item: Furniture) {
+    const planObject = toPlanObject(normalizeObjectForSync(item, houseStructure.coordinateSystem, houseStructure, interactionState), houseStructure.coordinateSystem);
     return {
-      width: Math.max(5, (item.dimensions.width * 10 / planBounds.width) * 100),
-      height: Math.max(4, (item.dimensions.depth * 10 / planBounds.height) * 100)
+      width: Math.max(5, planObject.dimensionsPercent.width * houseStructure.coordinateSystem.width / planBounds.width),
+      height: Math.max(4, planObject.dimensionsPercent.depth * houseStructure.coordinateSystem.height / planBounds.height)
     };
   }
 
@@ -921,7 +1106,7 @@ export function PlanCanvas({
   }
 
   function updateFurnitureObject(furnitureId: string, updater: (item: Furniture) => Furniture) {
-    onFurnitureChange(furniture.map((item) => item.id === furnitureId && !item.locked && !objectIsLocked(item.id) ? updater(item) : item));
+    onFurnitureChange(furniture.map((item) => item.id === furnitureId && !resolveLock(item, interactionState).locked2d ? updater(item) : item));
   }
 
   function nudgeFurnitureObject(furnitureId: string, delta: { x: number; y: number }) {
@@ -1730,14 +1915,20 @@ export function PlanCanvas({
     }
 
     if (houseStructure.walls.some((wall) => wall.id === selectedStructureId)) {
+      const affectedRoomIds = houseStructure.rooms
+        .filter((room) => room.sourceWallIds.includes(selectedStructureId))
+        .map((room) => room.id);
       updateHouseStructure({
         ...houseStructure,
         walls: houseStructure.walls.filter((wall) => wall.id !== selectedStructureId),
+        rooms: houseStructure.rooms.map((room) => room.sourceWallIds.includes(selectedStructureId)
+          ? { ...room, sourceWallIds: room.sourceWallIds.filter((wallId) => wallId !== selectedStructureId) }
+          : room),
         doors: houseStructure.doors.filter((door) => door.hostType !== "wall" || door.hostId !== selectedStructureId),
         windows: houseStructure.windows.filter((windowObject) => windowObject.hostType !== "wall" || windowObject.hostId !== selectedStructureId),
         bayWindows: houseStructure.bayWindows.filter((bayWindow) => bayWindow.wallId !== selectedStructureId)
       });
-      setStructureMessage("已删除墙体，并同步移除依附在这面墙上的门窗。");
+      setStructureMessage(`已删除墙体，并同步处理门窗与 ${affectedRoomIds.length} 个房间的 sourceWallIds。`);
       setSelectedStructureId("");
       onActiveObjectChange("");
       return;
@@ -1798,6 +1989,17 @@ export function PlanCanvas({
       setSelectedStructureId("");
       onActiveObjectChange("");
       return;
+    }
+
+    const deletingSpace = [...houseStructure.rooms, ...houseStructure.outdoors].find((space) => space.id === selectedStructureId);
+    if (deletingSpace) {
+      const furnitureDependencies = furniture.filter((item) => item.roomId === selectedStructureId).map((item) => item.id);
+      const semanticDependencies = semanticObjects.filter((item) => JSON.stringify(item.details).includes(`"${selectedStructureId}"`)).map((item) => item.id);
+      const noteDependencies = furniture.filter((item) => JSON.stringify({ note: item.note, constructionNote: item.constructionNote, constructionMeta: item.constructionMeta, mepMeta: item.mepMeta }).includes(selectedStructureId)).map((item) => item.id);
+      if (furnitureDependencies.length || semanticDependencies.length || noteDependencies.length) {
+        setStructureMessage(`不能删除 ${selectedStructureId}：家具 ${furnitureDependencies.join("、") || "无"}；语义对象 ${semanticDependencies.join("、") || "无"}；施工/机电备注 ${noteDependencies.join("、") || "无"} 仍在引用。`);
+        return;
+      }
     }
 
     onHouseStructureChange({
@@ -2673,16 +2875,154 @@ export function PlanCanvas({
       .replaceAll('"', "&quot;");
   }
 
+  function yesNo(value: boolean | undefined) {
+    return value ? "是" : "否";
+  }
+
+  function getFurnitureDimensionsText(item: Furniture) {
+    return `${item.dimensions.width} x ${item.dimensions.depth} x ${item.dimensions.height} cm`;
+  }
+
+  function joinList(items: string[] | undefined) {
+    return items?.filter(Boolean).join(" / ") || "";
+  }
+
+  function getFurnitureExportRecord(item: Furniture) {
+    const renderAsset = resolve3DAsset(item);
+    const renderMaterials = resolveRender3DMaterials(item, renderAsset.assetType);
+    const mep = item.mepMeta ?? {};
+    const construction = item.constructionMeta ?? {};
+    return {
+      floorId: item.floorId,
+      roomId: item.roomId,
+      objectId: item.id,
+      code: item.code,
+      name: item.name,
+      type: item.moduleType ?? item.type,
+      dimensions: getFurnitureDimensionsText(item),
+      material: item.material || "待定",
+      renderAssetType: renderAsset.assetType,
+      renderStyle: renderMaterials.styleLabel,
+      renderMaterials: renderMaterials.summary,
+      visibleIn3d: renderAsset.visibleIn3d,
+      selectableIn3d: renderAsset.selectableIn3d,
+      childrenMode: renderAsset.childrenMode,
+      needsSocket: Boolean(mep.needsSocket),
+      socketCount: mep.socketCount ?? 0,
+      socketHeight: mep.socketHeight ?? "",
+      needsSwitch: Boolean(mep.needsSwitch),
+      switchControl: joinList(mep.switchControl),
+      needsLighting: Boolean(mep.needsLighting),
+      lightingType: mep.lightingType ? lightingTypeLabels[mep.lightingType] ?? mep.lightingType : "",
+      lightColorTemperature: mep.lightColorTemperature ?? "",
+      needsWaterSupply: Boolean(mep.needsWaterSupply),
+      waterSupplyType: mep.waterSupplyType ? waterSupplyTypeLabels[mep.waterSupplyType] ?? mep.waterSupplyType : "",
+      needsDrainage: Boolean(mep.needsDrainage),
+      drainageType: mep.drainageType ? drainageTypeLabels[mep.drainageType] ?? mep.drainageType : "",
+      needsNetwork: Boolean(mep.needsNetwork),
+      needsVentilation: Boolean(mep.needsVentilation),
+      needsSmartControl: Boolean(mep.needsSmartControl),
+      relatedCircuit: mep.relatedCircuit ?? "",
+      mepNotes: mep.notes ?? "",
+      customMade: Boolean(construction.customMade),
+      installType: construction.installType ? installTypeLabels[construction.installType] ?? construction.installType : "",
+      reserveSize: construction.reserveSize ?? "",
+      wallDependency: construction.wallDependency ?? "",
+      floorDependency: construction.floorDependency ?? "",
+      ceilingDependency: construction.ceilingDependency ?? "",
+      waterproofRequired: Boolean(construction.waterproofRequired),
+      inspectionAccessRequired: Boolean(construction.inspectionAccessRequired),
+      purchaseCategory: construction.purchaseCategory ?? "",
+      supplierType: construction.supplierType ?? "",
+      constructionNotes: getConstructionNote(item)
+    };
+  }
+
+  function getConstructionExportData() {
+    const furnitureRecords = furniture.map(getFurnitureExportRecord);
+    return {
+      floorId: floor.id,
+      floorLabel: floor.label,
+      sheetMode,
+      exportedAt: new Date().toISOString(),
+      furniture: furnitureRecords,
+      mep: furnitureRecords.filter((record) => record.needsSocket || record.needsSwitch || record.needsLighting || record.needsWaterSupply || record.needsDrainage || record.needsNetwork || record.needsVentilation || record.needsSmartControl),
+      construction: furnitureRecords.filter((record) => record.customMade || record.installType || record.waterproofRequired || record.inspectionAccessRequired || record.wallDependency || record.floorDependency || record.ceilingDependency || record.constructionNotes),
+      cameraViews: cameraViews.map((view) => ({
+        id: view.id,
+        floor: view.floor,
+        name: view.name,
+        mode: view.mode ?? "perspective",
+        zoom: view.zoom ?? "",
+        description: view.description ?? "",
+        cameraPosition: view.cameraPosition,
+        target: view.target
+      }))
+    };
+  }
+
   function getConstructionPackageHtml() {
     const currentDrawingMarkup = planRef.current?.querySelector("svg")?.outerHTML ?? "";
-    const furnitureRows = furniture.map((item) => `
+    const exportData = getConstructionExportData();
+    const activeCameraView = cameraViewRequest?.view;
+    const furnitureRows = exportData.furniture.map((item) => `
       <tr>
         <td>${escapeHtml(item.code)}</td>
         <td>${escapeHtml(item.name)}</td>
         <td>${escapeHtml(item.roomId)}</td>
-        <td>${item.dimensions.width} x ${item.dimensions.depth} x ${item.dimensions.height} cm</td>
+        <td>${escapeHtml(item.dimensions)}</td>
         <td>${escapeHtml(item.material || "待定")}</td>
-        <td>${escapeHtml(item.note || item.constructionNote || "现场复核")}</td>
+        <td>${escapeHtml(item.renderAssetType)} · ${escapeHtml(item.renderMaterials)}</td>
+        <td>${escapeHtml(item.purchaseCategory || "待定")}</td>
+        <td>${escapeHtml(yesNo(item.customMade))}</td>
+        <td>${escapeHtml(item.installType || "待定")}</td>
+        <td>${escapeHtml(item.supplierType || "待定")}</td>
+        <td>${escapeHtml(item.constructionNotes || "现场复核")}</td>
+      </tr>
+    `).join("");
+    const mepRows = exportData.mep.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.floorId)}</td>
+        <td>${escapeHtml(item.roomId)}</td>
+        <td>${escapeHtml(item.objectId)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.needsSocket ? `${item.socketCount || 1} 个 / ${item.socketHeight || 300} mm` : "否")}</td>
+        <td>${escapeHtml(item.needsSwitch ? item.switchControl || "需开关" : "否")}</td>
+        <td>${escapeHtml(item.needsLighting ? `${item.lightingType || "照明"} ${item.lightColorTemperature}`.trim() : "否")}</td>
+        <td>${escapeHtml(item.needsWaterSupply ? item.waterSupplyType || "需要" : "否")}</td>
+        <td>${escapeHtml(item.needsDrainage ? item.drainageType || "需要" : "否")}</td>
+        <td>${escapeHtml([item.needsNetwork ? "网络" : "", item.needsSmartControl ? "智能" : "", item.needsVentilation ? "通风/排风" : ""].filter(Boolean).join(" / ") || "无")}</td>
+        <td>${escapeHtml(item.relatedCircuit || "待定")}</td>
+        <td>${escapeHtml(item.mepNotes || "")}</td>
+      </tr>
+    `).join("");
+    const constructionRows = exportData.construction.map((item) => `
+      <tr>
+        <td>${escapeHtml(item.floorId)}</td>
+        <td>${escapeHtml(item.roomId)}</td>
+        <td>${escapeHtml(item.objectId)}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(yesNo(item.customMade))}</td>
+        <td>${escapeHtml(item.installType || "待定")}</td>
+        <td>${escapeHtml(item.reserveSize || item.dimensions)}</td>
+        <td>${escapeHtml(item.wallDependency || "")}</td>
+        <td>${escapeHtml(item.floorDependency || "")}</td>
+        <td>${escapeHtml(item.ceilingDependency || "")}</td>
+        <td>${escapeHtml([item.waterproofRequired ? "防水" : "", item.inspectionAccessRequired ? "检修" : ""].filter(Boolean).join(" / ") || "无")}</td>
+        <td>${escapeHtml(item.purchaseCategory || "待定")}</td>
+        <td>${escapeHtml(item.supplierType || "待定")}</td>
+        <td>${escapeHtml(item.constructionNotes || "")}</td>
+      </tr>
+    `).join("");
+    const cameraRows = exportData.cameraViews.map((view) => `
+      <tr>
+        <td>${escapeHtml(view.floor)}</td>
+        <td>${escapeHtml(view.name)}</td>
+        <td>${escapeHtml(view.mode)}</td>
+        <td>${escapeHtml(String(view.zoom || ""))}</td>
+        <td>${escapeHtml(view.description || "")}</td>
+        <td>${escapeHtml(`${view.cameraPosition.x}, ${view.cameraPosition.y}, ${view.cameraPosition.z}`)}</td>
+        <td>${escapeHtml(`${view.target.x}, ${view.target.y}, ${view.target.z}`)}</td>
       </tr>
     `).join("");
     const sheetRows = constructionSheets.map((sheet) => `
@@ -2754,6 +3094,7 @@ export function PlanCanvas({
     <section>
       <h2>当前图纸画面 · ${escapeHtml(planSheetModeLabels[sheetMode])}</h2>
       ${currentDrawingMarkup ? `<div class="drawing">${currentDrawingMarkup}</div>` : "<p>当前没有可导出的绘制图纸，请先回到画布查看图纸后再导出。</p>"}
+      ${activeCameraView ? `<p class="meta">当前固定视角：${escapeHtml(activeCameraView.name)} · ${escapeHtml(activeCameraView.mode === "orthographic" ? "正交轴测" : "透视视角")} · ${escapeHtml(activeCameraView.description || "无说明")}</p>` : ""}
       <p class="meta">这张图来自当前画布的绘制结构，不包含原始底图。要导出其他专业图，请先在网页顶部“当前图纸”切换到对应图纸后再导出。</p>
     </section>
     <section>
@@ -2779,8 +3120,29 @@ export function PlanCanvas({
     <section>
       <h2>家具 / 硬装定位清单</h2>
       <table>
-        <thead><tr><th>编号</th><th>名称</th><th>区域</th><th>尺寸</th><th>材质</th><th>施工备注</th></tr></thead>
-        <tbody>${furnitureRows || "<tr><td colspan='6'>当前楼层暂无家具对象。</td></tr>"}</tbody>
+        <thead><tr><th>编号</th><th>名称</th><th>区域</th><th>尺寸</th><th>材质</th><th>3D 表现</th><th>采购品类</th><th>定制</th><th>安装</th><th>供应商</th><th>施工备注</th></tr></thead>
+        <tbody>${furnitureRows || "<tr><td colspan='11'>当前楼层暂无家具对象。</td></tr>"}</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>MEP 需求清单</h2>
+      <table>
+        <thead><tr><th>楼层</th><th>区域</th><th>对象 ID</th><th>名称</th><th>插座</th><th>开关控制</th><th>灯光</th><th>给水</th><th>排水</th><th>弱电/智能/通风</th><th>关联回路</th><th>说明</th></tr></thead>
+        <tbody>${mepRows || "<tr><td colspan='12'>当前楼层暂无 MEP 需求对象。</td></tr>"}</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>施工备注清单</h2>
+      <table>
+        <thead><tr><th>楼层</th><th>区域</th><th>对象 ID</th><th>名称</th><th>定制</th><th>安装方式</th><th>预留尺寸</th><th>墙面依赖</th><th>地面依赖</th><th>吊顶依赖</th><th>防水/检修</th><th>采购品类</th><th>供应商</th><th>备注</th></tr></thead>
+        <tbody>${constructionRows || "<tr><td colspan='14'>当前楼层暂无施工备注对象。</td></tr>"}</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>固定视角清单</h2>
+      <table>
+        <thead><tr><th>楼层</th><th>视角</th><th>模式</th><th>Zoom</th><th>说明</th><th>相机位置</th><th>目标点</th></tr></thead>
+        <tbody>${cameraRows || "<tr><td colspan='7'>暂无固定视角。</td></tr>"}</tbody>
       </table>
     </section>
   </main>
@@ -2795,6 +3157,117 @@ export function PlanCanvas({
     link.download = `${floor.id}-construction-package.html`;
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  function downloadTextFile(fileName: string, content: string, type: string) {
+    const blob = new Blob([content], { type });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function escapeCsv(value: unknown) {
+    const text = String(value ?? "");
+    return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  }
+
+  function getConstructionExportCsv() {
+    const exportData = getConstructionExportData();
+    const rows = [
+      ["recordType", "floorId", "roomId", "objectId", "name", "type", "dimensions", "material", "render3d", "mep", "construction", "cameraMode", "description"],
+      ...exportData.furniture.map((item) => [
+        "furniture",
+        item.floorId,
+        item.roomId,
+        item.objectId,
+        item.name,
+        item.type,
+        item.dimensions,
+        item.material,
+        `${item.renderAssetType} / ${item.renderStyle} / ${item.renderMaterials}`,
+        "",
+        "",
+        "",
+        ""
+      ]),
+      ...exportData.mep.map((item) => [
+        "mep",
+        item.floorId,
+        item.roomId,
+        item.objectId,
+        item.name,
+        item.type,
+        item.dimensions,
+        item.material,
+        "",
+        [
+          item.needsSocket ? `插座 ${item.socketCount || 1} 个 ${item.socketHeight || 300}mm` : "",
+          item.needsSwitch ? `开关 ${item.switchControl || "需确认"}` : "",
+          item.needsLighting ? `灯光 ${item.lightingType || ""} ${item.lightColorTemperature}` : "",
+          item.needsWaterSupply ? `给水 ${item.waterSupplyType}` : "",
+          item.needsDrainage ? `排水 ${item.drainageType}` : "",
+          item.needsNetwork ? "网络/弱电" : "",
+          item.needsSmartControl ? "智能控制" : "",
+          item.needsVentilation ? "通风/排风" : "",
+          item.relatedCircuit
+        ].filter(Boolean).join("；"),
+        "",
+        "",
+        item.mepNotes
+      ]),
+      ...exportData.construction.map((item) => [
+        "construction",
+        item.floorId,
+        item.roomId,
+        item.objectId,
+        item.name,
+        item.type,
+        item.dimensions,
+        item.material,
+        "",
+        "",
+        [
+          item.customMade ? "定制" : "非定制",
+          item.installType,
+          item.reserveSize,
+          item.wallDependency,
+          item.floorDependency,
+          item.ceilingDependency,
+          item.waterproofRequired ? "防水" : "",
+          item.inspectionAccessRequired ? "检修" : "",
+          item.purchaseCategory,
+          item.supplierType
+        ].filter(Boolean).join("；"),
+        "",
+        item.constructionNotes
+      ]),
+      ...exportData.cameraViews.map((view) => [
+        "cameraView",
+        view.floor,
+        "",
+        view.id,
+        view.name,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        view.mode,
+        view.description
+      ])
+    ];
+    return rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
+  }
+
+  function exportConstructionData(format: "json" | "csv") {
+    if (format === "json") {
+      downloadTextFile(`${floor.id}-construction-metadata.json`, JSON.stringify(getConstructionExportData(), null, 2), "application/json;charset=utf-8");
+      return;
+    }
+    downloadTextFile(`${floor.id}-construction-metadata.csv`, getConstructionExportCsv(), "text/csv;charset=utf-8");
   }
 
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
@@ -3742,8 +4215,10 @@ export function PlanCanvas({
                 <h3 className="mt-1 text-base font-semibold text-ink">施工图纸包</h3>
                 <p className="mt-1 leading-5 text-stone-500">顶部“当前图纸”下拉用来查看具体图纸；切到空白结构/施工标注时可编辑墙体门窗，切到家具布置时编辑家具，水电灯光等图纸先作为施工表达层查看。</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <button className="rounded-xl bg-ink px-3 py-2 font-semibold text-white hover:bg-clay" onClick={exportConstructionPackage} type="button">导出 HTML</button>
+                <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => exportConstructionData("json")} type="button">导出 JSON 清单</button>
+                <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => exportConstructionData("csv")} type="button">导出 CSV 清单</button>
                 <button className="rounded-xl bg-slate-100 px-3 py-2 font-semibold text-stone-600 hover:bg-stone-200" onClick={() => setIsConstructionPackageOpen(false)} type="button">收起</button>
               </div>
             </div>
@@ -5331,7 +5806,7 @@ export function PlanCanvas({
 
             {visibleDebugLayer && (
               <div className="absolute inset-0" data-layer="DebugLayer" data-coordinate-system="percent-of-floor-plan">
-                {rooms.map((room) => (
+                {debugRooms.map((room) => (
                   <div
                     key={room.id}
                     className="absolute rounded-xl border border-dashed border-amber-500/70 bg-amber-100/15 px-3 py-2 text-xs font-semibold text-amber-700"
@@ -5341,7 +5816,7 @@ export function PlanCanvas({
                   </div>
                 ))}
 
-                {walls.map((wall) => {
+                {debugWalls.map((wall) => {
                   const width = Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1);
                   const angle = Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1) * (180 / Math.PI);
                   return (
@@ -5368,10 +5843,10 @@ export function PlanCanvas({
                 data-coordinate-system="percent-of-floor-plan"
                 style={{ pointerEvents: furniturePointerEventsEnabled ? "auto" : "none" }}
               >
-	              {furniture.map((item) => {
+	              {furniture.filter((item) => resolveVisibility(item).visible2d).map((item) => {
 	                const isSelected = isObjectSelected(item.id);
 	                const isHovered = isObjectHovered(item.id);
-	                const locked = objectIsLocked(item.id) || item.locked;
+	                const locked = resolveLock(item, interactionState).locked2d;
 	                const demandModeActive = furnitureDemandSheetModes.has(sheetMode);
 	                const demandHint = demandModeActive ? getFurnitureDemandHint(item, sheetMode) : null;
 	                const demandMuted = demandModeActive && !demandHint;
@@ -5426,11 +5901,11 @@ export function PlanCanvas({
                         onSelectFurniture(item);
                         return;
                       }
-                      if (plannerMode !== "edit" || drawTool !== "select" || locked) {
+                      if (!workspaceMutationAllowed || plannerMode !== "edit" || drawTool !== "select" || locked) {
                         onSelectFurniture(item);
                         return;
                       }
-                      const position = getFurniturePosition(event);
+                      const position = getMmPosition(event);
                       if (!position) return;
                       furnitureDragRef.current = { pointerId: event.pointerId, objectId: item.id, lastPosition: position, moved: false };
                       event.currentTarget.setPointerCapture(event.pointerId);
@@ -5438,11 +5913,14 @@ export function PlanCanvas({
                     onPointerMove={(event) => {
                       const drag = furnitureDragRef.current;
                       if (!drag || drag.pointerId !== event.pointerId || drag.objectId !== item.id) return;
-                      const position = getFurniturePosition(event);
+                      const position = getMmPosition(event);
                       if (!position) return;
                       const delta = { x: position.x - drag.lastPosition.x, y: position.y - drag.lastPosition.y };
-                      const nextModel = runInteractionDrag({ houseStructure, furniture }, interactionState, item.id, delta);
-                      onFurnitureChange(nextModel.furniture);
+                      const minY = floor.id === "1F" ? SITE_PLAN_MIN_Y_MM / houseStructure.coordinateSystem.height * 100 : 0;
+                      const maxY = floor.id === "1F" ? SITE_PLAN_MAX_Y_MM / houseStructure.coordinateSystem.height * 100 : 100;
+                      onFurnitureChange(furniture.map((candidate) => candidate.id === item.id
+                        ? applyPlanDelta(candidate, delta, houseStructure.coordinateSystem, { minX: 0, maxX: 100, minY, maxY })
+                        : candidate));
                       drag.lastPosition = position;
                       drag.moved = true;
                     }}
@@ -5454,7 +5932,7 @@ export function PlanCanvas({
                       }
                     }}
                     type="button"
-                    title={`${locked ? "已锁定 · " : ""}${item.name}`}
+                    title={`${locked ? "已锁定 · " : ""}${item.name}${demandHint?.details.length ? ` · ${demandHint.details.join(" · ")}` : ""}`}
                   >
                     <div
                       className="h-full w-full"
@@ -5463,12 +5941,22 @@ export function PlanCanvas({
 	                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
 	                    </div>
 	                    {demandHint && (
-	                      <span
-	                        className="pointer-events-none absolute -right-3 -top-3 grid min-h-7 min-w-7 place-items-center rounded-full border-2 border-white px-1.5 text-[10px] font-black leading-none shadow-md"
-	                        style={{ background: demandHint.background, color: demandHint.color }}
-	                      >
-	                        {demandHint.label}
-	                      </span>
+	                      <>
+	                        <span
+	                          className="pointer-events-none absolute -right-3 -top-3 grid min-h-7 min-w-7 place-items-center rounded-full border-2 border-white px-1.5 text-[10px] font-black leading-none shadow-md"
+	                          style={{ background: demandHint.background, color: demandHint.color }}
+	                        >
+	                          {demandHint.label}
+	                        </span>
+	                        {demandHint.details.length > 0 && (
+	                          <span
+	                            className="pointer-events-none absolute left-1/2 top-full mt-1 max-w-40 -translate-x-1/2 rounded-md border border-white/90 px-2 py-1 text-[10px] font-bold leading-4 shadow-md"
+	                            style={{ background: demandHint.background, color: demandHint.color }}
+	                          >
+	                            {demandHint.details.join(" · ")}
+	                          </span>
+	                        )}
+	                      </>
 	                    )}
                     {isFurnitureSheetMode && !mobilePresentationMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && (
                       <span className="pointer-events-none absolute -bottom-5 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-white">
@@ -5601,7 +6089,7 @@ export function PlanCanvas({
                       }}
                       onPointerDown={(event) => {
                         event.stopPropagation();
-                        if (mobilePresentationMode) return;
+                        if (mobilePresentationMode || !workspaceMutationAllowed) return;
                         objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, moved: false };
                         event.currentTarget.setPointerCapture(event.pointerId);
                         onSelectSemanticObject(object);
@@ -5643,8 +6131,8 @@ export function PlanCanvas({
                     }}
                     onPointerDown={(event) => {
                       event.stopPropagation();
-                      if (mobilePresentationMode) return;
-                      if (!isDraggableFurniture) return;
+                      if (mobilePresentationMode || !workspaceMutationAllowed) return;
+                      if (!workspaceMutationAllowed || !isDraggableFurniture) return;
                       objectDragRef.current = { pointerId: event.pointerId, objectId: object.id, moved: false };
                       event.currentTarget.setPointerCapture(event.pointerId);
                       onSelectSemanticObject(object);
@@ -5719,10 +6207,13 @@ export function PlanCanvas({
           onSelectStructure={(objectId) => {
             setSelectedStructureId(objectId);
             selectObject(objectId);
+            onSelectStructureObject?.(objectId);
             onActiveObjectChange(objectId);
             setStructureMessage(`已在 3D 效果中选择 ${objectId}。`);
           }}
           onSelectFurniture={(item) => {
+            setSelectedStructureId("");
+            setInteractionState((currentState) => ({ ...currentState, selectedObjectId: item.id, editingObjectId: item.id }));
             selectObject(item.id);
             onSelectFurniture(item);
           }}

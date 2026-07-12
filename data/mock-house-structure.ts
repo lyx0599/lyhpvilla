@@ -1,6 +1,5 @@
 import { createColumn, createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls, getPolygonArea } from "@/lib/house-geometry";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
-import defaultWorkspace from "@/data/default-workspace.json";
 import type { FloorId, HouseBayWindow, HouseColumn, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
 
 function wall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
@@ -461,8 +460,6 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
   })
 };
 
-const savedDefaultWorkspace = defaultWorkspace as unknown as Partial<{ houseStructuresByFloor: Record<FloorId, HouseStructure> }>;
-
 function withStructureDefaults(structures: Record<FloorId, HouseStructure>): Record<FloorId, HouseStructure> {
   return Object.fromEntries(
     Object.entries(structures).map(([floorId, structure]) => [
@@ -475,4 +472,8 @@ function withStructureDefaults(structures: Record<FloorId, HouseStructure>): Rec
   ) as Record<FloorId, HouseStructure>;
 }
 
-export const initialHouseStructures: Record<FloorId, HouseStructure> = withStructureDefaults(savedDefaultWorkspace.houseStructuresByFloor ?? syncHouseStructuresToReference(rawInitialHouseStructures));
+/**
+ * Legacy migration material only. Runtime project data must come from
+ * data/default-workspace.json through applyWorkspaceMigrations.
+ */
+export const legacyHouseStructureFallback: Record<FloorId, HouseStructure> = withStructureDefaults(syncHouseStructuresToReference(rawInitialHouseStructures));

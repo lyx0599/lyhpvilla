@@ -2,13 +2,15 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { access, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { validateWorkspaceReferences } from "../lib/workspace-reference-validator.ts";
 
 const host = "127.0.0.1";
 const port = Number(process.env.LOCAL_CODE_SYNC_PORT ?? 3011);
-const defaultWorkspacePath = resolve("data/default-workspace.json");
-const temporaryWorkspacePath = resolve("data/default-workspace.json.tmp");
-const backupDirectoryPath = resolve("data/backups");
-const currentBrowserWorkspacePath = resolve(".codex-current-browser-workspace.json");
+const defaultWorkspacePath = resolve(process.env.LOCAL_CODE_SYNC_WORKSPACE_PATH ?? "data/default-workspace.json");
+const temporaryWorkspacePath = `${defaultWorkspacePath}.tmp`;
+const backupDirectoryPath = resolve(process.env.LOCAL_CODE_SYNC_BACKUP_DIR ?? "data/backups");
+const currentBrowserWorkspacePath = resolve(process.env.LOCAL_CODE_SYNC_DRAFT_MIRROR_PATH ?? ".codex-current-browser-workspace.json");
+const failAfterReplaceForTest = process.env.NODE_ENV === "test" && process.env.LOCAL_CODE_SYNC_TEST_FAIL_AFTER_REPLACE === "true";
 const requiredFloorIds = ["B2", "B1", "1F", "2F", "YARD"];
 const maxBodyBytes = 5 * 1024 * 1024;
 const uiTemporaryWorkspaceKeys = new Set([
@@ -204,6 +206,21 @@ function validateWorkspace(workspace) {
 
   if (!Array.isArray(workspace.furniture) || workspace.furniture.length === 0) return "furniture must be a non-empty array.";
   if (!Array.isArray(workspace.semanticObjects) || workspace.semanticObjects.length === 0) return "semanticObjects must be a non-empty array.";
+  if ((workspace.schemaVersion ?? 0) >= 5) {
+    if (!Array.isArray(workspace.floors)) return "schemaVersion 5+ requires floors.";
+    if (typeof workspace.dataRevision !== "string" || !workspace.dataRevision) return "schemaVersion 5+ requires dataRevision.";
+    const floorIds = new Set(workspace.floors.map((floor) => floor?.id));
+    for (const floorId of requiredFloorIds) {
+      if (!floorIds.has(floorId)) return `floors is missing ${floorId}.`;
+    }
+    if (!Array.isArray(workspace.cameraViews)) return "schemaVersion 5+ requires cameraViews.";
+    if (!workspace.visualSettingsByFloor || typeof workspace.visualSettingsByFloor !== "object") return "schemaVersion 5+ requires visualSettingsByFloor.";
+    if (!workspace.cleanPatchesByFloor || typeof workspace.cleanPatchesByFloor !== "object") return "schemaVersion 5+ requires cleanPatchesByFloor.";
+    for (const [index, floor] of workspace.floors.entries()) {
+      if (!floor?.visualSettings || typeof floor.visualSettings !== "object") return `floors[${index}] requires visualSettings.`;
+      if (!Array.isArray(floor.cleanPatches)) return `floors[${index}] requires cleanPatches.`;
+    }
+  }
 
   const seenIds = new Set();
   const topLevelCollections = [
@@ -227,7 +244,12 @@ function validateWorkspace(workspace) {
     }
   }
 
-  return validateGeometryValues(workspace);
+  const geometryError = validateGeometryValues(workspace);
+  if (geometryError) return geometryError;
+  const referenceReport = validateWorkspaceReferences(workspace);
+  return referenceReport.errors[0]
+    ? `${referenceReport.errors[0].path}: ${referenceReport.errors[0].message}`
+    : "";
 }
 
 async function readDefaultWorkspace() {
@@ -314,6 +336,7 @@ const server = createServer(async (request, response) => {
     await writeFile(temporaryWorkspacePath, nextContent, "utf8");
     await rename(temporaryWorkspacePath, defaultWorkspacePath);
     replaced = true;
+    if (failAfterReplaceForTest) throw new Error("Injected failure after replace for rollback verification.");
 
     const { workspace: verifiedWorkspace, updatedAt } = await readDefaultWorkspace();
     const verifiedValidationError = validateWorkspace(verifiedWorkspace);
@@ -364,5 +387,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Local code sync server listening on http://${host}:${port}`);
+  const address = server.address();
+  const listeningPort = typeof address === "object" && address ? address.port : port;
+  console.log(`Local code sync server listening on http://${host}:${listeningPort}`);
 });

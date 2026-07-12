@@ -1,9 +1,156 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
+  "dataRevision": "2026-07-11-data-source-convergence-v1",
   "defaultWorkspaceRevision": "2026-07-10-five-level-presentation-v1",
   "savedAt": "2026-07-11T15:06:54.021Z",
   "saveMode": "manual",
   "selectedFloorId": "2F",
+  "floors": [
+    {
+      "id": "B2",
+      "label": "b2",
+      "subtitle": "地下室二层",
+      "floorPlanImage": "/floor-plans/hd-clean/b2-hd-clean.png",
+      "visualSettings": {
+        "preset": "clean_gray",
+        "grayscale": true,
+        "opacity": 0.96,
+        "contrast": 1.28,
+        "brightness": 1.02,
+        "saturation": 0,
+        "sharpen": true,
+        "removeTextMarks": true,
+        "removeWhiteBorder": true,
+        "hideDebugFrames": true,
+        "cleanWhiteBackground": true,
+        "lineEnhance": true,
+        "repairMode": false,
+        "layerVisibility": {
+          "baseFloorPlan": true,
+          "cleanupPatch": true,
+          "semanticOverlay": true,
+          "furnitureOverlay": true,
+          "debug": false
+        }
+      },
+      "cleanPatches": []
+    },
+    {
+      "id": "B1",
+      "label": "b1",
+      "subtitle": "地下室一层",
+      "floorPlanImage": "/floor-plans/hd-clean/b1-hd-clean.png",
+      "visualSettings": {
+        "preset": "clean_gray",
+        "grayscale": true,
+        "opacity": 0.96,
+        "contrast": 1.28,
+        "brightness": 1.02,
+        "saturation": 0,
+        "sharpen": true,
+        "removeTextMarks": true,
+        "removeWhiteBorder": true,
+        "hideDebugFrames": true,
+        "cleanWhiteBackground": true,
+        "lineEnhance": true,
+        "repairMode": false,
+        "layerVisibility": {
+          "baseFloorPlan": true,
+          "cleanupPatch": true,
+          "semanticOverlay": true,
+          "furnitureOverlay": true,
+          "debug": false
+        }
+      },
+      "cleanPatches": []
+    },
+    {
+      "id": "1F",
+      "label": "1f",
+      "subtitle": "一层 / 客餐厨",
+      "floorPlanImage": "/floor-plans/hd-clean/1f-hd-clean.png",
+      "visualSettings": {
+        "preset": "clean_gray",
+        "grayscale": true,
+        "opacity": 0.96,
+        "contrast": 1.28,
+        "brightness": 1.02,
+        "saturation": 0,
+        "sharpen": true,
+        "removeTextMarks": true,
+        "removeWhiteBorder": true,
+        "hideDebugFrames": true,
+        "cleanWhiteBackground": true,
+        "lineEnhance": true,
+        "repairMode": false,
+        "layerVisibility": {
+          "baseFloorPlan": true,
+          "cleanupPatch": true,
+          "semanticOverlay": true,
+          "furnitureOverlay": true,
+          "debug": false
+        }
+      },
+      "cleanPatches": []
+    },
+    {
+      "id": "2F",
+      "label": "2f",
+      "subtitle": "二层 / 卧室区",
+      "floorPlanImage": "/floor-plans/hd-clean/2f-hd-clean.png",
+      "visualSettings": {
+        "preset": "clean_gray",
+        "grayscale": true,
+        "opacity": 0.96,
+        "contrast": 1.28,
+        "brightness": 1.02,
+        "saturation": 0,
+        "sharpen": true,
+        "removeTextMarks": true,
+        "removeWhiteBorder": true,
+        "hideDebugFrames": true,
+        "cleanWhiteBackground": true,
+        "lineEnhance": true,
+        "repairMode": false,
+        "layerVisibility": {
+          "baseFloorPlan": true,
+          "cleanupPatch": true,
+          "semanticOverlay": true,
+          "furnitureOverlay": true,
+          "debug": false
+        }
+      },
+      "cleanPatches": []
+    },
+    {
+      "id": "YARD",
+      "label": "院子",
+      "subtitle": "庭院 / 入户",
+      "visualSettings": {
+        "preset": "clean_gray",
+        "grayscale": true,
+        "opacity": 0.96,
+        "contrast": 1.28,
+        "brightness": 1.02,
+        "saturation": 0,
+        "sharpen": true,
+        "removeTextMarks": true,
+        "removeWhiteBorder": true,
+        "hideDebugFrames": true,
+        "cleanWhiteBackground": true,
+        "lineEnhance": true,
+        "repairMode": false,
+        "layerVisibility": {
+          "baseFloorPlan": true,
+          "cleanupPatch": true,
+          "semanticOverlay": true,
+          "furnitureOverlay": true,
+          "debug": false
+        }
+      },
+      "cleanPatches": []
+    }
+  ],
   "furniture": [
     {
       "id": "furn-b2-living-tv-console-001",
@@ -3255,7 +3402,7 @@
       "name": "院子桂花树",
       "type": "plant",
       "floorId": "YARD",
-      "roomId": "room-yard",
+      "roomId": "OD-YARD-001",
       "dimensions": {
         "width": 120,
         "depth": 120,
@@ -6807,6 +6954,14 @@
         "y": 55
       },
       "details": {
+        "structureRoomIds": [
+          "ROOM-1F-001",
+          "ROOM-1F-002",
+          "ROOM-1F-003",
+          "ROOM-1F-005",
+          "ROOM-1F-006"
+        ],
+        "bindingType": "aggregate",
         "area": 52.99,
         "boundary": [
           {
@@ -6906,6 +7061,7 @@
         "y": 58
       },
       "details": {
+        "structureRoomId": "ROOM-B2-001",
         "area": 90.74,
         "boundary": []
       }
@@ -6922,6 +7078,7 @@
         "y": 48
       },
       "details": {
+        "structureRoomId": "ROOM-2F-006",
         "area": 12.86,
         "boundary": []
       }
@@ -7005,6 +7162,7 @@
         "y": 14
       },
       "details": {
+        "structureRoomId": "ROOM-B1-001",
         "area": 2.51,
         "boundary": [
           {
@@ -7038,6 +7196,7 @@
         "y": 21
       },
       "details": {
+        "structureRoomId": "ROOM-B1-002",
         "area": 12.84,
         "boundary": [
           {
@@ -7083,6 +7242,7 @@
         "y": 49
       },
       "details": {
+        "structureRoomId": "ROOM-B1-003",
         "area": 4.63,
         "boundary": [
           {
@@ -7132,6 +7292,7 @@
         "y": 72
       },
       "details": {
+        "structureRoomId": "ROOM-B1-004",
         "area": 19.45,
         "boundary": [
           {
@@ -7412,6 +7573,24 @@
           "thickness": 220,
           "height": 2800,
           "length": 4750
+        },
+        {
+          "id": "W-B2-009",
+          "floorId": "B2",
+          "name": "Wall 009",
+          "kind": "straight",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 5150
+          },
+          "end": {
+            "x": 3897,
+            "y": 5150
+          },
+          "thickness": 220,
+          "height": 2800,
+          "length": 2947
         },
         {
           "id": "W-B2-010",

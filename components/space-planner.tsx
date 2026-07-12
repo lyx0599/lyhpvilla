@@ -11,17 +11,19 @@ import { ViewToggle } from "@/components/view-toggle";
 import { Yard3DPreview } from "@/components/yard-3d-preview";
 import { interiorModuleCatalog, interiorModuleCategoryLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
-import defaultWorkspace from "@/data/default-workspace.json";
-import { initialHouseStructures } from "@/data/mock-house-structure";
-import { initialSemanticObjects } from "@/data/mock-semantic-map";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmptyStructure, createOutdoor, getLineLength, getPolygonArea } from "@/lib/house-geometry";
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
+import { createSyncSelfCheckReport, resolveSelection } from "@/lib/object-sync-adapter";
+import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspaceAccessCapabilities } from "@/lib/workspace-access";
+import { applyWorkspaceMigrations, CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION, reportWorkspaceDataSources } from "@/lib/workspace-migrations";
 import { compareWorkspace, getDetailedWorkspaceDifference, getWorkspaceDifferenceSummary, getWorkspaceHash, getWorkspaceStats, getWorkspaceValidationErrors, validateWorkspacePayload } from "@/lib/workspace-persistence";
-import type { AppViewMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
+import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
+import type { WorkspaceDocument } from "@/types/workspace";
 
 type ModelSnapshot = {
   structure: HouseStructure;
@@ -32,19 +34,6 @@ type DesignPageRequest = {
   kind: "furniture" | "stair";
   id: string;
 };
-
-function isPhonePresentationDevice() {
-  const narrowViewport = window.innerWidth < 768 || document.documentElement.clientWidth < 768;
-  if (!narrowViewport) return false;
-
-  const userAgent = navigator.userAgent;
-  const phoneUserAgent = /iPhone|iPod|Android.*Mobile|Windows Phone|BlackBerry|Opera Mini|IEMobile/i.test(userAgent);
-  const compactTouchDevice = navigator.maxTouchPoints > 1
-    && window.matchMedia("(pointer: coarse)").matches
-    && Math.min(window.screen.width, window.screen.height) <= 600;
-
-  return phoneUserAgent || compactTouchDevice;
-}
 
 type DesignPageData = {
   id: string;
@@ -114,7 +103,7 @@ type LocalFilePickerWindow = Window & {
   }) => Promise<LocalCodeFileHandle[]>;
 };
 
-const WEB_WORKSPACE_SCHEMA_VERSION = 4;
+const WEB_WORKSPACE_SCHEMA_VERSION = CURRENT_WORKSPACE_SCHEMA_VERSION;
 const DEFAULT_WORKSPACE_REVISION = "2026-07-10-five-level-presentation-v1";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
@@ -138,6 +127,7 @@ const LOCAL_CODE_AUTO_SYNC_KEY = "villa-space-local-code-auto-sync";
 const LOCAL_CODE_SYNC_ENDPOINT = "http://127.0.0.1:3011/default-workspace";
 const LOCAL_CODE_SYNC_HEALTH_ENDPOINT = "http://127.0.0.1:3011/health";
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
+const WORKSPACE_ASSET_BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const moduleCategoryOrder: InteriorModuleCategory[] = ["living", "bedroom", "kitchen", "bath", "storage", "decor"];
 const retiredDefaultFurnitureIds = new Set([
   "furn-bed-001",
@@ -527,284 +517,19 @@ function getFurnitureDesignButtonLabel(furniture: Furniture) {
   return "进入模块设计";
 }
 
-function normalizeFurnitureDefaults(furnitureItems: Furniture[], defaultFurniture: Furniture[] = []) {
-  const defaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
-    ...oneFloorDefaultFurnitureOverrides,
-    ...twoFloorDefaultFurnitureOverrides
-  };
-  const normalizedFurniture = furnitureItems.filter((item) => !retiredDefaultFurnitureIds.has(item.id)).map((item) => {
-    const visibilityRepairPosition = getTwoFloorMasterBedroomVisibilityRepair(item);
-    const repairedItem = visibilityRepairPosition ? { ...item, position: visibilityRepairPosition } : item;
-    const defaultOverride = defaultFurnitureOverrides[item.id];
-    if (defaultOverride) {
-      return {
-        ...repairedItem,
-        ...defaultOverride
-      };
-    }
-    if (repairedItem.id === "furn-table-001") {
-      return {
-        ...repairedItem,
-        roomId: "ROOM-1F-005",
-        note: "餐桌所在位置定义为客厅活动区，按整套餐桌椅占地估算并预留椅后通道。"
-      };
-    }
-    if (repairedItem.id === "module-1f-bed-002" || repairedItem.id === "module-1f-wardrobe-001") {
-      return {
-        ...repairedItem,
-        roomId: "ROOM-1F-004"
-      };
-    }
-    if ((repairedItem.type === "wardrobe" || repairedItem.moduleType === "wardrobe") && !repairedItem.wardrobeDesign?.modules?.length) {
-      return {
-        ...repairedItem,
-        wardrobeDesign: createRecommendedWardrobeDesign(repairedItem.dimensions)
-      };
-    }
-    const looksLikeOldRoundTable = repairedItem.type === "table" && repairedItem.dimensions.width <= 160 && repairedItem.dimensions.depth <= 160;
-    if (!looksLikeOldRoundTable) return repairedItem;
+function enrichMissingFurnitureMetadata(furnitureItems: Furniture[]) {
+  return furnitureItems.map((item) => {
+    const enriched = enrichFurniture3DMeta(item);
     return {
-      ...repairedItem,
-      name: repairedItem.name.includes("圆餐桌") ? "六人圆餐桌套组" : repairedItem.name,
-      dimensions: {
-        ...repairedItem.dimensions,
-        width: 240,
-        depth: 240,
-        height: repairedItem.dimensions.height || 75
-      },
-      material: repairedItem.material.includes("餐桌") || repairedItem.material.includes("岩板") ? "圆餐桌 + 6 把餐椅" : repairedItem.material,
-      note: repairedItem.note.includes("通道") || repairedItem.note.includes("餐厨") ? "按整套餐桌椅占地估算，靠近餐厨动线，预留椅后通道。" : repairedItem.note
+      ...item,
+      render3d: item.render3d ?? enriched.render3d,
+      mepMeta: item.mepMeta ?? enriched.mepMeta,
+      constructionMeta: item.constructionMeta ?? enriched.constructionMeta
     };
   });
-  const persistentDefaultFurniture = defaultFurniture.filter((item) => persistentDefaultFurnitureIds.has(item.id));
-  const requiredDefaultFurniture = appendMissingById(
-    appendMissingById(
-      appendMissingById(persistentDefaultFurniture, b1DefaultFurniture),
-      twoFloorDefaultFurniture
-    ),
-    b2DefaultFurniture
-  );
-  return appendMissingById(normalizedFurniture, requiredDefaultFurniture).map((item) => {
-    const defaultOverride = defaultFurnitureOverrides[item.id];
-    const nextItem = defaultOverride ? { ...item, ...defaultOverride } : item;
-    if ((nextItem.type === "wardrobe" || nextItem.moduleType === "wardrobe") && !nextItem.wardrobeDesign?.modules?.length) {
-      return enrichFurniture3DMeta({
-        ...nextItem,
-        wardrobeDesign: createRecommendedWardrobeDesign(nextItem.dimensions)
-      });
-    }
-    return enrichFurniture3DMeta(nextItem);
-  });
 }
 
-function normalizeOutdoorSurfaceDefaults(structuresByFloor: Record<FloorId, HouseStructure>, options: { resetOneFloorYardSurfaces?: boolean } = {}) {
-  const defaultSurfaceById = new Map(Object.values(initialHouseStructures).flatMap((structure) => structure.outdoorSurfaces.map((surface) => [surface.id, surface] as const)));
-  const legacySurfaceNames = new Set(["北院入户硬地", "北院引导小路", "北院绿化带", "南院会客平台", "南院草坪", "南院步道", "Hardscape 001", "Path 002", "Planting 003"]);
-  return Object.fromEntries(Object.entries(structuresByFloor).map(([floorId, structure]) => [
-    floorId,
-    {
-      ...structure,
-      outdoorSurfaces: floorId === "1F" && options.resetOneFloorYardSurfaces ? [] : [
-        ...structure.outdoorSurfaces.map((surface) => {
-          const defaultSurface = defaultSurfaceById.get(surface.id);
-          const isLegacySurface = legacySurfaceNames.has(surface.name) || (surface.surfaceType === "path" && surface.material === "gravel");
-          if (!defaultSurface || !isLegacySurface) {
-            return surface.surfaceType === "path" && surface.material === "gravel" ? { ...surface, material: "pebble" as const } : surface;
-          }
-          return {
-            ...surface,
-            name: defaultSurface.name,
-            surfaceType: defaultSurface.surfaceType,
-            polygon: defaultSurface.polygon,
-            area: defaultSurface.area,
-            material: defaultSurface.material
-          };
-        }),
-        ...(floorId === "1F" && structure.outdoorSurfaces.some((surface) => legacySurfaceNames.has(surface.name)) && !structure.outdoorSurfaces.some((surface) => surface.id === "OS-1F-SOUTH-004")
-          ? [defaultSurfaceById.get("OS-1F-SOUTH-004")].filter(Boolean) as HouseOutdoorSurface[]
-          : [])
-      ],
-      outdoors: floorId === "1F"
-        ? [
-          ...protectedYardOutdoors,
-          ...structure.outdoors.filter((outdoor) => !protectedYardOutdoors.some((protectedOutdoor) => protectedOutdoor.id === outdoor.id))
-        ]
-        : structure.outdoors
-    }
-  ])) as Record<FloorId, HouseStructure>;
-}
-
-function normalizeSemanticDefaults(objects: SemanticObject[]) {
-  const activeObjects = objects.filter((object) => !retiredSemanticObjectIds.has(object.id));
-  const hasEntryZone = activeObjects.some((object) => object.id === "Z-1F-ENTRY");
-  const hasStairZone = activeObjects.some((object) => object.id === "Z-1F-STAIR");
-  const hasCloakroomZone = activeObjects.some((object) => object.id === "Z-2F-CLOAKROOM");
-  const hasB1LaundryRoom = activeObjects.some((object) => object.id === "R-B1-LAUNDRY");
-  const hasB1Room = activeObjects.some((object) => object.id === "R-B1-ROOM");
-  const hasB1Corridor = activeObjects.some((object) => object.id === "R-B1-CORRIDOR");
-  const hasB1Activity = activeObjects.some((object) => object.id === "R-B1-ACTIVITY");
-  const nextObjects = activeObjects.map((object) => {
-    if (object.id === "R-1F-001" && (object.name === "1F 客餐厅" || object.name === "1F 客厅")) {
-      return {
-        ...object,
-        name: "1F 公共区",
-        notes: "一层主要公共空间，具体功能区以玄关、客厅、厨房、卫生间等标签为准。"
-      };
-    }
-    if (object.id === "Z-1F-001") {
-      return {
-        ...object,
-        name: object.name === "1F 餐厨区" || object.name === "餐厨区" ? "1F 客厅" : object.name,
-        type: "living",
-        notes: "六人圆餐桌所在的客厅活动区。",
-        position: { x: 72, y: 54 },
-        details: {
-          ...(object.details ?? {}),
-          roomId: "ROOM-1F-005"
-        }
-      };
-    }
-    if (object.id === "Z-1F-ENTRY") {
-      return {
-        ...object,
-        name: "1F 玄关",
-        type: "entry",
-        notes: "厨房左侧的入户/玄关过渡空间。",
-        position: { x: 45, y: 28 },
-        details: {
-          ...(object.details ?? {}),
-          roomId: "ROOM-1F-001"
-        }
-      };
-    }
-    return object;
-  });
-  return [
-    ...nextObjects,
-    ...(!hasEntryZone ? [
-    {
-      id: "Z-1F-ENTRY",
-      name: "1F 玄关",
-      floorId: "1F",
-      category: "Zone",
-      type: "entry",
-      notes: "厨房左侧的入户/玄关过渡空间。",
-      position: { x: 45, y: 28 },
-      details: {
-        roomId: "ROOM-1F-001",
-        boundary: [{ x: 36, y: 18 }, { x: 54, y: 18 }, { x: 54, y: 42 }, { x: 36, y: 42 }]
-      }
-    } satisfies SemanticObject
-    ] : []),
-    ...(!hasStairZone ? [
-    {
-      id: "Z-1F-STAIR",
-      name: "1F 楼梯间",
-      floorId: "1F",
-      category: "Zone",
-      type: "stair",
-      notes: "楼梯所在区域，作为上下层动线和施工校核重点。",
-      position: { x: 30, y: 45 },
-      details: {
-        roomId: "ROOM-1F-006",
-        stairId: "ST-1F-001",
-        boundary: [{ x: 10, y: 36 }, { x: 38, y: 36 }, { x: 38, y: 58 }, { x: 10, y: 58 }]
-      }
-    } satisfies SemanticObject
-    ] : []),
-    ...(!hasB1LaundryRoom ? [
-    {
-      id: "R-B1-LAUNDRY",
-      name: "洗衣房",
-      floorId: "B1",
-      category: "Room",
-      type: "laundry",
-      notes: "楼梯上来左上的小房间。",
-      position: { x: 39, y: 14 },
-      details: {
-        area: 2.51,
-        boundary: [{ x: 32.9, y: 3.9 }, { x: 44.9, y: 3.9 }, { x: 44.9, y: 23.3 }, { x: 32.9, y: 23.2 }]
-      }
-    } satisfies SemanticObject
-    ] : []),
-    ...(!hasB1Room ? [
-    {
-      id: "R-B1-ROOM",
-      name: "房间",
-      floorId: "B1",
-      category: "Room",
-      type: "room",
-      notes: "洗衣房外围的大房间。",
-      position: { x: 57, y: 21 },
-      details: {
-        area: 12.84,
-        boundary: [{ x: 44.9, y: 3.9 }, { x: 79.1, y: 3.9 }, { x: 79.1, y: 34.6 }, { x: 44, y: 34.6 }, { x: 32.9, y: 34.6 }, { x: 32.9, y: 23.2 }, { x: 44.9, y: 23.3 }]
-      }
-    } satisfies SemanticObject
-    ] : []),
-    ...(!hasB1Corridor ? [
-    {
-      id: "R-B1-CORRIDOR",
-      name: "走廊",
-      floorId: "B1",
-      category: "Room",
-      type: "corridor",
-      notes: "弧形空间对应的走廊。",
-      position: { x: 42, y: 49 },
-      details: {
-        area: 4.63,
-        boundary: [{ x: 32.9, y: 34.6 }, { x: 44, y: 34.6 }, { x: 47.3, y: 40 }, { x: 49.2, y: 50.4 }, { x: 47.3, y: 60.6 }, { x: 44.9, y: 65 }, { x: 35.8, y: 65 }, { x: 32.9, y: 55.6 }]
-      }
-    } satisfies SemanticObject
-    ] : []),
-    ...(!hasB1Activity ? [
-    {
-      id: "R-B1-ACTIVITY",
-      name: "活动区",
-      floorId: "B1",
-      category: "Room",
-      type: "activity",
-      notes: "最下方稍微延伸出去的活动区域。",
-      position: { x: 34, y: 72 },
-      details: {
-        area: 19.45,
-        boundary: [{ x: 7.9, y: 34.6 }, { x: 32.9, y: 34.6 }, { x: 32.9, y: 55.6 }, { x: 35.8, y: 65 }, { x: 44.9, y: 65 }, { x: 55.4, y: 65 }, { x: 55.4, y: 86.7 }, { x: 7.9, y: 86.7 }]
-      }
-    } satisfies SemanticObject
-    ] : []),
-    ...(!hasCloakroomZone ? [
-    {
-      id: "Z-2F-CLOAKROOM",
-      name: "2F 衣帽间方案",
-      floorId: "2F",
-      category: "Zone",
-      type: "storage",
-      notes: "左右墙做挂衣柜，中间靠窗放整理桌；挂衣、包包和被褥优先，叠放区压缩到最少。",
-      position: { x: 58, y: 38 },
-      details: {
-        roomId: "ROOM-2F-002",
-        boundary: [{ x: 30, y: 8 }, { x: 86, y: 8 }, { x: 86, y: 82 }, { x: 30, y: 82 }]
-      }
-    } satisfies SemanticObject
-    ] : [])
-  ];
-}
-
-type PersistedWebWorkspace = {
-  schemaVersion?: number;
-  defaultWorkspaceRevision?: string;
-  savedAt?: string;
-  updatedAt?: string;
-  saveMode?: "manual" | "draft" | "legacy";
-  selectedFloorId: FloorId;
-  furniture: Furniture[];
-  semanticObjects: SemanticObject[];
-  visualSettingsByFloor: Record<FloorId, FloorPlanVisualSettings>;
-  cleanPatchesByFloor: Record<FloorId, CleanPatch[]>;
-  houseStructuresByFloor: Record<FloorId, HouseStructure>;
-  wallSyncOverrides: WallSyncOverrides;
-  cameraViews?: FixedCameraView[];
-};
+type PersistedWebWorkspace = WorkspaceDocument;
 
 type WorkspaceConflict = {
   draft: PersistedWebWorkspace;
@@ -828,8 +553,6 @@ type SaveSelfCheckResult = {
   codeWorkspace?: PersistedWebWorkspace;
   codeHash?: string;
 };
-
-const CODE_WORKSPACE = defaultWorkspace as unknown as PersistedWebWorkspace;
 
 function formatSaveTime(value?: string) {
   if (!value) return "";
@@ -2304,246 +2027,27 @@ const twoFloorMasterBedroomFurnitureIds = new Set([
   "furn-2f-master-bedroom-chest-001"
 ]);
 
-function normalizeRoom(floorId: FloorId, room: HouseRoom, index: number): HouseRoom {
-  const overrideName = defaultRoomNameOverrides[floorId]?.[room.id];
-  const defaultName = `${floorId} 房间 ${index + 1}`;
-  const isOneFloorDefinedRoom = floorId === "1F" && ["ROOM-1F-001", "ROOM-1F-005", "ROOM-1F-006"].includes(room.id);
-  const b1DefinedRoom = floorId === "B1" ? b1DefinedRooms.find((defaultRoom) => defaultRoom.id === room.id) : undefined;
-  const b2DefinedRoom = floorId === "B2" ? b2DefinedRooms.find((defaultRoom) => defaultRoom.id === room.id) : undefined;
-  const twoFloorDefinedRoom = floorId === "2F" ? twoFloorDefinedRooms.find((defaultRoom) => defaultRoom.id === room.id) : undefined;
-  const canApplyOverride = Boolean(overrideName) && (
-    !room.name ||
-    room.name === defaultName ||
-    /^B1 房间 [1-4]$/.test(room.name) ||
-    /^B2 房间 [1-5]$/.test(room.name) ||
-    /^1F 房间 [1-6]$/.test(room.name) ||
-    /^2F 房间 [1-7]$/.test(room.name) ||
-    isOneFloorDefinedRoom ||
-    Boolean(b1DefinedRoom) ||
-    Boolean(b2DefinedRoom) ||
-    Boolean(twoFloorDefinedRoom)
-  );
-  const nextName = canApplyOverride && overrideName ? overrideName : room.name || defaultName;
-  if (floorId === "1F" && room.id === "ROOM-1F-001") {
-    return {
-      ...room,
-      floorId,
-      roomNumber: room.roomNumber || getDefaultRoomNumber(floorId, index),
-      name: nextName,
-      boundary: oneFloorEntryRoomBoundary,
-      area: 4608900,
-      sourceWallIds: ["W-1F-001", "W-1F-004", "W-1F-003"]
-    };
-  }
-  if (floorId === "1F" && room.id === "ROOM-1F-005") {
-    return {
-      ...room,
-      floorId,
-      roomNumber: room.roomNumber || "R-1F-005",
-      name: nextName,
-      boundary: oneFloorLivingRoomBoundary,
-      area: 26067600,
-      sourceWallIds: ["W-1F-009", "W-1F-011", "W-1F-015", "W-1F-013"]
-    };
-  }
-  if (floorId === "1F" && room.id === "ROOM-1F-006") {
-    return {
-      ...room,
-      floorId,
-      roomNumber: room.roomNumber || "R-1F-006",
-      name: nextName,
-      boundary: oneFloorStairRoomBoundary,
-      area: 6711600,
-      sourceWallIds: ["W-1F-010", "W-1F-012", "W-1F-016"]
-    };
-  }
-  if (b1DefinedRoom) {
-    return {
-      ...room,
-      ...b1DefinedRoom,
-      name: nextName
-    };
-  }
-  if (b2DefinedRoom) {
-    return {
-      ...room,
-      ...b2DefinedRoom,
-      name: nextName
-    };
-  }
-  if (twoFloorDefinedRoom) {
-    return {
-      ...room,
-      ...twoFloorDefinedRoom,
-      name: nextName
-    };
-  }
-  return {
-    ...room,
-    floorId,
-    roomNumber: room.roomNumber || getDefaultRoomNumber(floorId, index),
-    name: nextName,
-    boundary: room.boundary ?? [],
-    sourceWallIds: room.sourceWallIds ?? []
-  };
-}
-
-function normalizeWall(floorId: FloorId, wall: HouseWall): HouseWall {
-  if (floorId !== "B1" || !b1VoidRailingWallIds.has(wall.id)) return wall;
-  return {
-    ...wall,
-    barrierType: b1VoidRailingWallOverrides.barrierType,
-    material: b1VoidRailingWallOverrides.material,
-    openness: b1VoidRailingWallOverrides.openness,
-    thickness: b1VoidRailingWallOverrides.thickness,
-    height: b1VoidRailingWallOverrides.height,
-    name: wall.name.includes("栏杆") ? wall.name : `${wall.name} · 挑空镂空栏杆`
-  } as HouseWall;
-}
-
 function normalizeHouseStructure(floorId: FloorId, structure: HouseStructure | undefined, fallback?: HouseStructure): HouseStructure {
   const emptyStructure = fallback ?? createEmptyStructure(floorId);
   if (!structure) return emptyStructure;
-  const normalizedWalls = (structure.walls ?? []).map((wall) => normalizeWall(floorId, wall));
-  const normalizedRooms = (structure.rooms ?? []).map((room, index) => normalizeRoom(floorId, room, index));
-  const normalizedBayWindows = (structure.bayWindows ?? []).filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id));
-  const normalizedWindows = (structure.windows ?? []).map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id]
-    ? { ...windowObject, ...oneFloorWindowOverrides[windowObject.id] }
-    : windowObject);
-  const normalizedDoors = (structure.doors ?? []).map((door) => floorId === "1F" && door.id === "D-1F-004"
-    ? { ...door, ...oneFloorKitchenSlidingDoorOverride }
-    : door);
-  const normalizedSkylights = floorId === "B1"
-    ? appendMissingById(structure.skylights ?? [], b1OperableSkylights)
-    : floorId === "B2"
-      ? appendMissingById(structure.skylights ?? [], b2W012Skylights)
-      : structure.skylights ?? [];
   return {
     ...emptyStructure,
     ...structure,
     floorId,
     coordinateSystem: structure.coordinateSystem ?? emptyStructure.coordinateSystem,
-    walls: normalizedWalls,
-    rooms: floorId === "1F"
-      ? appendMissingById(normalizedRooms, oneFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-      : floorId === "B1"
-        ? appendMissingById(normalizedRooms, b1DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-        : floorId === "B2"
-          ? appendMissingById(normalizedRooms, b2DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-          : floorId === "2F"
-            ? mergeDefinedRoomsById(normalizedRooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-            : normalizedRooms,
+    walls: structure.walls ?? [],
+    rooms: structure.rooms ?? [],
     partitions: structure.partitions ?? [],
-    stairs: floorId === "2F" ? twoFloorTopStairs : structure.stairs ?? [],
+    stairs: structure.stairs ?? [],
     columns: structure.columns ?? [],
     fences: structure.fences ?? [],
     outdoorSurfaces: structure.outdoorSurfaces ?? [],
-    doors: normalizedDoors,
-    windows: normalizedWindows,
-    bayWindows: normalizedBayWindows,
-    skylights: normalizedSkylights,
+    doors: structure.doors ?? [],
+    windows: structure.windows ?? [],
+    bayWindows: structure.bayWindows ?? [],
+    skylights: structure.skylights ?? [],
     outdoors: structure.outdoors ?? []
   };
-}
-
-function appendMissingById<T extends { id: string }>(items: T[], defaultItems: T[]) {
-  const existingIds = new Set(items.map((item) => item.id));
-  return [
-    ...items,
-    ...defaultItems.filter((item) => !existingIds.has(item.id))
-  ];
-}
-
-function mergeDefinedRoomsById(rooms: HouseRoom[], definedRooms: HouseRoom[]) {
-  const definedRoomById = new Map(definedRooms.map((room) => [room.id, room]));
-  const mergedRooms = rooms.map((room) => {
-    const definedRoom = definedRoomById.get(room.id);
-    return definedRoom ? { ...room, ...definedRoom } : room;
-  });
-  return appendMissingById(mergedRooms, definedRooms);
-}
-
-function applyDefaultFurnitureRevision(furnitureItems: Furniture[], defaultFurniture: Furniture[]) {
-  const requiredRevisionFurniture = [
-    ...b1DefaultFurniture,
-    ...twoFloorDefaultFurniture,
-    ...b2DefaultFurniture
-  ];
-  const defaultFurnitureById = new Map([
-    ...defaultFurniture,
-    ...requiredRevisionFurniture
-  ].map((item) => [item.id, item]));
-  const nextFurniture = furnitureItems
-    .filter((item) => !retiredDefaultFurnitureIds.has(item.id))
-    .filter((item) => !revisionControlledFurnitureIds.has(item.id) || defaultFurnitureById.has(item.id))
-    .map((item) => {
-      const defaultItem = revisionControlledFurnitureIds.has(item.id) ? defaultFurnitureById.get(item.id) : null;
-      if (!defaultItem) return item;
-      const forceDefaultPlacement = twoFloorMasterBedroomFurnitureIds.has(item.id);
-      return {
-        ...defaultItem,
-        ...item,
-        catalogId: defaultItem.catalogId ?? item.catalogId,
-        moduleCategory: defaultItem.moduleCategory ?? item.moduleCategory,
-        moduleType: defaultItem.moduleType ?? item.moduleType,
-        serviceRequirements: defaultItem.serviceRequirements ?? item.serviceRequirements,
-        material: defaultItem.material,
-        note: defaultItem.note,
-        constructionNote: defaultItem.constructionNote,
-        color: defaultItem.color,
-        roomId: forceDefaultPlacement ? defaultItem.roomId : item.roomId || defaultItem.roomId,
-        dimensions: item.dimensions ?? defaultItem.dimensions,
-        position: forceDefaultPlacement ? defaultItem.position : item.position ?? defaultItem.position
-      };
-    });
-  return appendMissingById(nextFurniture, appendMissingById(requiredRevisionFurniture, defaultFurniture));
-}
-
-function applyDefaultWorkspaceRevision(structuresByFloor: Record<FloorId, HouseStructure>) {
-  return Object.fromEntries(Object.entries(structuresByFloor).map(([floorId, structure]) => {
-    const defaultStructure = initialHouseStructures[floorId as FloorId];
-    if (!defaultStructure) return [floorId, structure];
-    const defaultSkylights = floorId === "B1"
-      ? appendMissingById(defaultStructure.skylights, b1OperableSkylights)
-      : floorId === "B2"
-        ? appendMissingById(defaultStructure.skylights, b2W012Skylights)
-        : defaultStructure.skylights;
-    return [
-      floorId,
-      {
-        ...structure,
-        walls: (structure.walls ?? []).map((wall) => normalizeWall(floorId as FloorId, wall)),
-        rooms: floorId === "B1"
-          ? appendMissingById(structure.rooms, b1DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-          : floorId === "B2"
-            ? appendMissingById(structure.rooms, b2DefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-            : floorId === "2F"
-              ? mergeDefinedRoomsById(structure.rooms, twoFloorDefinedRooms).sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true }))
-              : appendMissingById(structure.rooms, defaultStructure.rooms),
-        doors: appendMissingById(
-          structure.doors.map((door) => {
-            if (floorId === "1F" && door.id === "D-1F-004") return { ...door, ...oneFloorKitchenSlidingDoorOverride };
-            if (floorId === "2F" && twoFloorDoorOverrides[door.id]) return { ...door, ...twoFloorDoorOverrides[door.id] };
-            return door;
-          }),
-          defaultStructure.doors.map((door) => floorId === "2F" && twoFloorDoorOverrides[door.id] ? { ...door, ...twoFloorDoorOverrides[door.id] } : door)
-        ),
-        windows: appendMissingById(
-          structure.windows.map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id] ? { ...windowObject, ...oneFloorWindowOverrides[windowObject.id] } : windowObject),
-          defaultStructure.windows.map((windowObject) => floorId === "1F" && oneFloorWindowOverrides[windowObject.id] ? { ...windowObject, ...oneFloorWindowOverrides[windowObject.id] } : windowObject)
-        ),
-        bayWindows: appendMissingById(
-          structure.bayWindows.filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id)),
-          defaultStructure.bayWindows.filter((bayWindow) => !retiredDefaultBayWindowIds.has(bayWindow.id))
-        ),
-        stairs: floorId === "2F" ? twoFloorTopStairs : defaultStructure.stairs.length ? defaultStructure.stairs : structure.stairs,
-        columns: appendMissingById(structure.columns ?? [], defaultStructure.columns ?? []),
-        skylights: appendMissingById(structure.skylights, defaultSkylights),
-        outdoors: appendMissingById(structure.outdoors, defaultStructure.outdoors),
-        outdoorSurfaces: appendMissingById(structure.outdoorSurfaces, defaultStructure.outdoorSurfaces)
-      }
-    ];
-  })) as Record<FloorId, HouseStructure>;
 }
 
 function getWorkspaceStructureScore(workspace: Partial<PersistedWebWorkspace>) {
@@ -2742,24 +2246,21 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const defaultSelectedFloorId: FloorId = data.selectedFloorId ?? "1F";
   const initialSelectedFloorId: FloorId = data.floors.some((floor) => floor.id === defaultSelectedFloorId) ? defaultSelectedFloorId : "1F";
   const initialVisualSettings = data.floors.reduce((settingsByFloor, floor) => {
-    settingsByFloor[floor.id] = floor.visualSettings ?? getDefaultVisualSettings();
+    settingsByFloor[floor.id] = data.workspace.visualSettingsByFloor[floor.id] ?? floor.visualSettings ?? getDefaultVisualSettings();
     return settingsByFloor;
   }, {} as Record<FloorId, FloorPlanVisualSettings>);
   const initialCleanPatches = data.floors.reduce((patchesByFloor, floor) => {
-    patchesByFloor[floor.id] = [];
+    patchesByFloor[floor.id] = data.workspace.cleanPatchesByFloor[floor.id] ?? floor.cleanPatches ?? [];
     return patchesByFloor;
   }, {} as Record<FloorId, CleanPatch[]>);
-  const initialAppViewMode = (): AppViewMode => {
-    return "desktop-edit";
-  };
-
+  const [floors, setFloors] = useState(data.floors);
   const [selectedFloorId, setSelectedFloorId] = useState<FloorId>(initialSelectedFloorId);
-  const [furniture, setFurniture] = useState<Furniture[]>(() => normalizeFurnitureDefaults(data.furniture, data.furniture));
-  const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.furniture.find((item) => item.floorId === initialSelectedFloorId)?.id ?? data.furniture[0]?.id ?? "");
-  const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => normalizeSemanticDefaults(initialSemanticObjects));
-  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState(normalizeSemanticDefaults(initialSemanticObjects).find((object) => object.floorId === initialSelectedFloorId)?.id ?? "");
+  const [furniture, setFurniture] = useState<Furniture[]>(() => enrichMissingFurnitureMetadata(data.workspace.furniture));
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.workspace.furniture.find((item) => item.floorId === initialSelectedFloorId)?.id ?? data.workspace.furniture[0]?.id ?? "");
+  const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => data.workspace.semanticObjects);
+  const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("2d");
-  const [appViewMode, setAppViewMode] = useState<AppViewMode>(initialAppViewMode);
+  const [accessMode, setAccessMode] = useState<AccessMode>(DEFAULT_MOBILE_ACCESS_MODE);
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
   const [mobileDisplayLevel, setMobileDisplayLevel] = useState<MobileDisplayLevel>("simple");
   const [mobileQuality, setMobileQuality] = useState<MobileQuality>("balanced");
@@ -2772,13 +2273,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [floorPlanScale, setFloorPlanScale] = useState(1);
   const [visualSettingsByFloor, setVisualSettingsByFloor] = useState<Record<FloorId, FloorPlanVisualSettings>>(initialVisualSettings);
   const [cleanPatchesByFloor, setCleanPatchesByFloor] = useState<Record<FloorId, CleanPatch[]>>(initialCleanPatches);
-  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(() => normalizeOutdoorSurfaceDefaults(initialHouseStructures));
+  const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(() => data.workspace.houseStructuresByFloor);
   const [wallSyncOverrides, setWallSyncOverrides] = useState<WallSyncOverrides>({});
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
   const [furnitureImmersiveMode, setFurnitureImmersiveMode] = useState(false);
   const [yardPreview3DMode, setYardPreview3DMode] = useState(false);
-  const [cameraViews, setCameraViews] = useState<FixedCameraView[]>(data.cameraViews ?? []);
+  const [cameraViews, setCameraViews] = useState<FixedCameraView[]>(data.workspace.cameraViews);
   const [fixedCameraViewRequest, setFixedCameraViewRequest] = useState<{ view: FixedCameraView; nonce: number } | null>(null);
   const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
   const [command, setCommand] = useState("");
@@ -2827,45 +2328,62 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const latestWorkspaceRef = useRef<PersistedWebWorkspace | null>(null);
   const workspaceImportInputRef = useRef<HTMLInputElement | null>(null);
   const wardrobeCanvasRef = useRef<HTMLDivElement | null>(null);
-  const initialFurnitureWith3DMeta = useMemo(() => normalizeFurnitureDefaults(data.furniture, data.furniture), [data.furniture]);
+  const initialFurnitureWith3DMeta = useMemo(() => enrichMissingFurnitureMetadata(data.workspace.furniture), [data.workspace.furniture]);
   const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
-    Object.fromEntries(data.floors.map((floor) => [
+    Object.fromEntries(floors.map((floor) => [
       floor.id,
       {
-        structure: normalizeOutdoorSurfaceDefaults(initialHouseStructures)[floor.id] ?? createEmptyStructure(floor.id),
+        structure: data.workspace.houseStructuresByFloor[floor.id] ?? createEmptyStructure(floor.id),
         furniture: initialFurnitureWith3DMeta.filter((item) => item.floorId === floor.id)
       }
     ])) as Partial<Record<FloorId, ModelSnapshot>>
   );
+  const accessCapabilities = getWorkspaceAccessCapabilities(accessMode);
+  const {
+    canMutateWorkspace,
+    canPersistDraft,
+    canWriteCode,
+    canUseExternalSync
+  } = accessCapabilities;
 
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 767px)");
-    const syncViewMode = () => {
-      const mobileWidth = query.matches && isPhonePresentationDevice();
-      setIsPhoneDevice(mobileWidth);
-      setAppViewMode((currentMode) => {
-        if (mobileWidth) return currentMode === "mobile-edit" ? "mobile-edit" : "mobile-presentation";
-        return "desktop-edit";
+    const { sources } = applyWorkspaceMigrations(data.workspace);
+    reportWorkspaceDataSources(sources, "data/default-workspace.json");
+  }, [data.workspace]);
+
+  useEffect(() => {
+    const syncAccessMode = () => {
+      const nextAccessMode = getDefaultAccessModeForDevice({
+        userAgent: navigator.userAgent,
+        maxTouchPoints: navigator.maxTouchPoints,
+        coarsePointer: window.matchMedia("(pointer: coarse)").matches,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height
       });
-      if (!mobileWidth) {
+      const mobileDevice = nextAccessMode !== "full-edit";
+      setIsPhoneDevice(mobileDevice);
+      if (mobileDevice) {
+        setAccessMode(DEFAULT_MOBILE_ACCESS_MODE);
+        setPlannerMode("view");
+        setDrawTool("select");
+      } else {
+        setAccessMode(nextAccessMode);
         setMobileMoreOpen(false);
         setMobileSheetTarget(null);
       }
     };
-    syncViewMode();
-    const firstTimer = window.setTimeout(syncViewMode, 0);
-    const secondTimer = window.setTimeout(syncViewMode, 250);
-    query.addEventListener("change", syncViewMode);
-    window.addEventListener("resize", syncViewMode);
+    syncAccessMode();
+    const firstTimer = window.setTimeout(syncAccessMode, 0);
+    const secondTimer = window.setTimeout(syncAccessMode, 250);
+    window.addEventListener("orientationchange", syncAccessMode);
     return () => {
       window.clearTimeout(firstTimer);
       window.clearTimeout(secondTimer);
-      query.removeEventListener("change", syncViewMode);
-      window.removeEventListener("resize", syncViewMode);
+      window.removeEventListener("orientationchange", syncAccessMode);
     };
   }, []);
 
-  const currentFloor = data.floors.find((floor) => floor.id === selectedFloorId) ?? data.floors[0];
+  const currentFloor = floors.find((floor) => floor.id === selectedFloorId) ?? floors[0];
   const floorPlanVisualSettings = visualSettingsByFloor[selectedFloorId] ?? getDefaultVisualSettings();
   const floorCleanPatches = cleanPatchesByFloor[selectedFloorId] ?? [];
   const floorHouseStructure = houseStructuresByFloor[selectedFloorId] ?? createEmptyStructure(selectedFloorId);
@@ -2878,18 +2396,25 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     () => furniture.filter((item) => item.floorId === "1F"),
     [furniture]
   );
-  const floorRooms = useMemo(() => data.rooms.filter((room) => room.floorId === selectedFloorId), [data.rooms, selectedFloorId]);
-  const floorWalls = useMemo(() => data.walls.filter((wall) => wall.floorId === selectedFloorId), [data.walls, selectedFloorId]);
+  const floorLegacyRooms = useMemo(() => (data.legacyRooms ?? data.rooms ?? []).filter((room) => room.floorId === selectedFloorId), [data.legacyRooms, data.rooms, selectedFloorId]);
+  const floorLegacyWalls = useMemo(() => (data.legacyWalls ?? data.walls ?? []).filter((wall) => wall.floorId === selectedFloorId), [data.legacyWalls, data.walls, selectedFloorId]);
   const floorSemanticObjects = useMemo(
     () => semanticObjects.filter((object) => object.floorId === selectedFloorId),
     [semanticObjects, selectedFloorId]
   );
-  const selectedFurniture = floorFurniture.find((item) => item.id === selectedFurnitureId) ?? floorFurniture[0] ?? null;
+  const selectedFurniture = floorFurniture.find((item) => item.id === selectedFurnitureId) ?? null;
   const selectedSemanticObject = semanticObjects.find((object) => object.id === selectedSemanticObjectId) ?? null;
   const houseValidation = useMemo(
     () => validateHouse(selectedFloorId, floorHouseStructure, floorFurniture),
     [selectedFloorId, floorHouseStructure, floorFurniture]
   );
+  const referenceReport = useMemo(() => validateWorkspaceReferences({
+    floors,
+    furniture,
+    semanticObjects,
+    houseStructuresByFloor,
+    cameraViews
+  }), [floors, furniture, semanticObjects, houseStructuresByFloor, cameraViews]);
   const floorHistory = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
   const activeStructureObject = useMemo(() => (
     floorHouseStructure.walls.find((item) => item.id === activeObjectId) ??
@@ -2907,6 +2432,27 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     null
   ), [activeObjectId, floorHouseStructure]);
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const yardObjectIds = selectedFloorId === "1F"
+      ? [
+          ...oneFloorHouseStructure.outdoors.map((item) => item.id),
+          ...oneFloorHouseStructure.outdoorSurfaces.map((item) => item.id),
+          ...oneFloorHouseStructure.fences.map((item) => item.id),
+          ...furniture.filter((item) => item.floorId === "YARD").map((item) => item.id)
+        ]
+      : [];
+    const report = createSyncSelfCheckReport({
+      structure: floorHouseStructure,
+      furniture: [...floorFurniture, ...(selectedFloorId === "1F" ? furniture.filter((item) => item.floorId === "YARD") : [])],
+      selectedFurnitureId: activeFurniture?.id ?? "",
+      selectedStructureId: activeStructureObject?.id ?? "",
+      selectedSemanticObjectId,
+      yardObjectIds
+    });
+    console.info(`[2D/3D sync self-check] ${selectedFloorId}`, report);
+    report.orphanHosts.forEach((warning) => console.warn(`[2D/3D sync] ${warning.openingId}: ${warning.message}`));
+  }, [activeFurniture?.id, activeStructureObject?.id, floorFurniture, floorHouseStructure, furniture, oneFloorHouseStructure, selectedFloorId, selectedSemanticObjectId]);
   const wardrobeDesignFurniture = floorFurniture.find((item) => item.id === wardrobeDesignFurnitureId) ?? null;
   const wardrobeDesign = normalizeWardrobeDesign(wardrobeDesignFurniture?.wardrobeDesign);
   const wardrobeColumnWidths = wardrobeDesign.columnWidths ?? normalizeWardrobeColumnWidths(undefined, wardrobeDesign.columns);
@@ -2951,33 +2497,36 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }, [designPageRequest, furniture, houseStructuresByFloor]);
 
   function applyWorkspaceToEditor(parsed: PersistedWebWorkspace) {
-    const loadedStructures = data.floors.reduce((structuresByFloor, floor) => {
-      structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, parsed.houseStructuresByFloor?.[floor.id], initialHouseStructures[floor.id]);
+    const migration = applyWorkspaceMigrations(parsed, { canonicalWorkspace: data.workspace });
+    const migratedWorkspace = migration.workspace;
+    reportWorkspaceDataSources(migration.sources, "workspace loaded into editor");
+    const nextFloors = migratedWorkspace.floors.map((floor) => ({
+      ...floor,
+      floorPlanImage: floor.floorPlanImage && WORKSPACE_ASSET_BASE_PATH && !floor.floorPlanImage.startsWith(WORKSPACE_ASSET_BASE_PATH)
+        ? `${WORKSPACE_ASSET_BASE_PATH}${floor.floorPlanImage}`
+        : floor.floorPlanImage
+    }));
+    const loadedStructures = nextFloors.reduce((structuresByFloor, floor) => {
+      structuresByFloor[floor.id] = normalizeHouseStructure(floor.id, migratedWorkspace.houseStructuresByFloor[floor.id]);
       return structuresByFloor;
     }, {} as Record<FloorId, HouseStructure>);
-    const shouldApplyDefaultRevision = parsed.defaultWorkspaceRevision !== DEFAULT_WORKSPACE_REVISION;
-    const normalizedStructures = normalizeOutdoorSurfaceDefaults(loadedStructures, {
-      resetOneFloorYardSurfaces: (parsed.schemaVersion ?? 0) < WEB_WORKSPACE_SCHEMA_VERSION && !shouldApplyDefaultRevision
-    });
-    const nextStructures = shouldApplyDefaultRevision ? applyDefaultWorkspaceRevision(normalizedStructures) : normalizedStructures;
-    const nextSelectedFloorId = !shouldApplyDefaultRevision && parsed.selectedFloorId && data.floors.some((floor) => floor.id === parsed.selectedFloorId)
-      ? parsed.selectedFloorId
+    const nextStructures = loadedStructures;
+    const nextSelectedFloorId = migratedWorkspace.selectedFloorId && nextFloors.some((floor) => floor.id === migratedWorkspace.selectedFloorId)
+      ? migratedWorkspace.selectedFloorId
       : initialSelectedFloorId;
-    const nextFurniture = normalizeFurnitureDefaults(shouldApplyDefaultRevision
-      ? applyDefaultFurnitureRevision(parsed.furniture ?? data.furniture, data.furniture)
-      : parsed.furniture ?? data.furniture,
-      data.furniture);
-    const nextSemanticObjects = normalizeSemanticDefaults(parsed.semanticObjects ?? initialSemanticObjects);
+    const nextFurniture = enrichMissingFurnitureMetadata(migratedWorkspace.furniture);
+    const nextSemanticObjects = migratedWorkspace.semanticObjects;
 
     setSelectedFloorId(nextSelectedFloorId);
+    setFloors(nextFloors);
     setFurniture(nextFurniture);
     setSemanticObjects(nextSemanticObjects);
-    setVisualSettingsByFloor(parsed.visualSettingsByFloor ?? initialVisualSettings);
-    setCleanPatchesByFloor(parsed.cleanPatchesByFloor ?? initialCleanPatches);
-    setWallSyncOverrides(parsed.wallSyncOverrides ?? {});
-    setCameraViews(parsed.cameraViews ?? data.cameraViews ?? []);
+    setVisualSettingsByFloor(migratedWorkspace.visualSettingsByFloor);
+    setCleanPatchesByFloor(migratedWorkspace.cleanPatchesByFloor);
+    setWallSyncOverrides(migratedWorkspace.wallSyncOverrides);
+    setCameraViews(migratedWorkspace.cameraViews);
     setHouseStructuresByFloor(nextStructures);
-    committedModelRef.current = Object.fromEntries(data.floors.map((floor) => [
+    committedModelRef.current = Object.fromEntries(nextFloors.map((floor) => [
       floor.id,
       {
         structure: nextStructures[floor.id],
@@ -2989,6 +2538,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   useEffect(() => {
+    if (!canUseExternalSync) {
+      setLocalCodeAutoSync(false);
+      setLocalCodeServerOnline(false);
+      setLocalCodeFileHandle(null);
+      setLocalCodeFileName("");
+      setLocalCodeFileStatus("unsupported");
+      return;
+    }
     let cancelled = false;
     async function restoreLocalCodeFile() {
       const savedAutoSyncSetting = window.localStorage.getItem(LOCAL_CODE_AUTO_SYNC_KEY);
@@ -3019,9 +2576,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canUseExternalSync]);
 
   useEffect(() => {
+    if (!canUseExternalSync) return;
     if (localCodeFileHandle || localCodeServerOnline) return;
     let cancelled = false;
     let retryTimer: number | undefined;
@@ -3035,12 +2593,24 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       cancelled = true;
       if (retryTimer) window.clearTimeout(retryTimer);
     };
-  }, [localCodeFileHandle, localCodeServerOnline]);
+  }, [canUseExternalSync, localCodeFileHandle, localCodeServerOnline]);
 
   useEffect(() => {
     let cancelled = false;
     async function restoreWorkspace() {
       try {
+      if (!canPersistDraft || !canUseExternalSync) {
+        const codeHash = await getWorkspaceHash(data.workspace);
+        if (cancelled) return;
+        applyWorkspaceToEditor(data.workspace);
+        setWorkspaceSource("code");
+        setCurrentWorkspaceHash(codeHash);
+        setDraftSaveState({ status: "idle" });
+        setCodeSaveState({ status: "idle", target: "none", hash: codeHash });
+        setWorkspaceConflict(null);
+        setHasLoadedWebWorkspace(true);
+        return;
+      }
       const workspaceCandidates = [...WEB_WORKSPACE_STORAGE_KEYS, WEB_WORKSPACE_DRAFT_KEY]
         .map((storageKey) => {
           const savedWorkspace = window.localStorage.getItem(storageKey);
@@ -3053,7 +2623,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         })
         .filter(Boolean) as Partial<PersistedWebWorkspace>[];
       const parsed = pickBestWorkspace(workspaceCandidates);
-      let codeWorkspace = CODE_WORKSPACE;
+      let codeWorkspace = data.workspace;
       try {
         const liveCodeWorkspace = await readWorkspaceFromLocalService();
         codeWorkspace = {
@@ -3104,10 +2674,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canPersistDraft, canUseExternalSync, data.workspace]);
 
   useEffect(() => {
-    if (!hasLoadedWebWorkspace || workspaceConflict) return;
+    if (!canPersistDraft || !hasLoadedWebWorkspace || workspaceConflict) return;
     latestWorkspaceRef.current = getCurrentWorkspace("draft");
     setDefaultWorkspacePayload(JSON.stringify(getCurrentWorkspace("manual"), null, 2));
     setDraftSaveState((current) => ({ ...current, status: "saving", error: undefined }));
@@ -3119,6 +2689,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return () => window.clearTimeout(draftTimer);
   }, [
     hasLoadedWebWorkspace,
+    floors,
     selectedFloorId,
     furniture,
     semanticObjects,
@@ -3127,11 +2698,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     houseStructuresByFloor,
     wallSyncOverrides,
     cameraViews,
-    workspaceConflict
+    workspaceConflict,
+    canPersistDraft
   ]);
 
   useEffect(() => {
-    if (!hasLoadedWebWorkspace || workspaceConflict || !localCodeAutoSync || (!localCodeFileHandle && !localCodeServerOnline)) return;
+    if (!canWriteCode || !canUseExternalSync || !hasLoadedWebWorkspace || workspaceConflict || !localCodeAutoSync || (!localCodeFileHandle && !localCodeServerOnline)) return;
     if (focusMode || furnitureImmersiveMode || yardPreview3DMode) return;
     const codeSyncTimer = window.setTimeout(() => {
       const payload = getDefaultWorkspacePayload("manual");
@@ -3147,6 +2719,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     focusMode,
     furnitureImmersiveMode,
     yardPreview3DMode,
+    floors,
     selectedFloorId,
     furniture,
     semanticObjects,
@@ -3155,17 +2728,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     houseStructuresByFloor,
     wallSyncOverrides,
     cameraViews,
-    workspaceConflict
+    workspaceConflict,
+    canWriteCode,
+    canUseExternalSync
   ]);
 
   useEffect(() => {
     function saveDraftBeforeUnload() {
-      if (!latestWorkspaceRef.current) return;
+      if (!canPersistDraft || !latestWorkspaceRef.current) return;
       void persistWorkspace(latestWorkspaceRef.current, "draft").catch(() => undefined);
     }
     window.addEventListener("beforeunload", saveDraftBeforeUnload);
     return () => window.removeEventListener("beforeunload", saveDraftBeforeUnload);
-  }, []);
+  }, [canPersistDraft]);
 
   useEffect(() => {
     if (!hasLoadedWebWorkspace || workspaceConflict) return;
@@ -3181,6 +2756,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     });
   }, [
     hasLoadedWebWorkspace,
+    floors,
     selectedFloorId,
     furniture,
     semanticObjects,
@@ -3245,7 +2821,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     const firstFurniture = furniture.find((item) => item.floorId === floorId);
     const firstSemanticObject = semanticObjects.find((object) => object.floorId === floorId);
     setSelectedFurnitureId(firstFurniture?.id ?? "");
-    setSelectedSemanticObjectId(firstSemanticObject?.id ?? "");
+    setSelectedSemanticObjectId(firstFurniture ? "" : firstSemanticObject?.id ?? "");
     setDrawTool("select");
     setActiveObjectId("");
     setLocateObjectRequest(null);
@@ -3367,11 +2943,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   function getCurrentWorkspace(saveMode: PersistedWebWorkspace["saveMode"] = "manual"): PersistedWebWorkspace {
     return {
       schemaVersion: WEB_WORKSPACE_SCHEMA_VERSION,
+      dataRevision: CURRENT_WORKSPACE_DATA_REVISION,
       defaultWorkspaceRevision: DEFAULT_WORKSPACE_REVISION,
       savedAt: new Date().toISOString(),
       saveMode,
       selectedFloorId,
-      furniture: furniture.map(enrichFurniture3DMeta),
+      floors: floors.map((floor) => ({
+        ...floor,
+        floorPlanImage: floor.floorPlanImage && WORKSPACE_ASSET_BASE_PATH && floor.floorPlanImage.startsWith(WORKSPACE_ASSET_BASE_PATH)
+          ? floor.floorPlanImage.slice(WORKSPACE_ASSET_BASE_PATH.length)
+          : floor.floorPlanImage,
+        visualSettings: visualSettingsByFloor[floor.id],
+        cleanPatches: cleanPatchesByFloor[floor.id] ?? []
+      })),
+      furniture: enrichMissingFurnitureMetadata(furniture),
       semanticObjects,
       visualSettingsByFloor,
       cleanPatchesByFloor,
@@ -3385,6 +2970,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return {
       ...workspace,
       schemaVersion: WEB_WORKSPACE_SCHEMA_VERSION,
+      dataRevision: CURRENT_WORKSPACE_DATA_REVISION,
       defaultWorkspaceRevision: DEFAULT_WORKSPACE_REVISION,
       savedAt: new Date().toISOString(),
       saveMode
@@ -3392,7 +2978,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function persistWorkspace(workspace: PersistedWebWorkspace, saveMode: "manual" | "draft") {
+    if (!canPersistDraft) throw new Error(`accessMode=${accessMode} 不允许保存浏览器草稿。`);
     const finalizedWorkspace = finalizeWorkspace(workspace, saveMode);
+    const referenceReport = validateWorkspaceReferences(finalizedWorkspace);
+    if (!referenceReport.valid) {
+      throw new Error(`引用完整性校验失败：${referenceReport.errors[0].path} ${referenceReport.errors[0].message}`);
+    }
+    if (referenceReport.warnings.length > 0) {
+      setValidatorRepairLog(referenceReport.warnings.map((issue) => `引用警告 · ${issue.objectId} · ${issue.path}: ${issue.message}`));
+    }
     const payload = JSON.stringify(finalizedWorkspace);
     const storageKeys = saveMode === "manual"
       ? [...WEB_WORKSPACE_STORAGE_KEYS, WEB_WORKSPACE_DRAFT_KEY]
@@ -3416,6 +3010,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function readWorkspaceFromLocalService() {
+    if (!canUseExternalSync) throw new Error(`accessMode=${accessMode} 不允许访问本机写入服务。`);
     const response = await fetch(`${LOCAL_CODE_SYNC_ENDPOINT}?t=${Date.now()}`, { cache: "no-store" });
     const result = await response.json() as { ok?: boolean; error?: string; hash?: string; filePath?: string; path?: string; updatedAt?: string; workspace?: unknown };
     if (!response.ok || !result.ok || !validateWorkspacePayload(result.workspace)) {
@@ -3435,6 +3030,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     handleOverride?: LocalCodeFileHandle,
     preferredTarget?: "local-service" | "file-handle"
   ) {
+    if (!canWriteCode || !canUseExternalSync) throw new Error(`accessMode=${accessMode} 不允许写入代码文件。`);
     const useLocalService = preferredTarget === "local-service" || (preferredTarget !== "file-handle" && !handleOverride && localCodeServerOnline);
     const targetHandle = useLocalService ? null : handleOverride ?? localCodeFileHandle;
     const target: CodeSaveTarget = useLocalService ? "local-service" : targetHandle ? "file-handle" : "local-service";
@@ -3545,6 +3141,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function checkLocalCodeSyncServer(enableAutoSync = false) {
+    if (!canUseExternalSync) return false;
     try {
       const response = await fetch(LOCAL_CODE_SYNC_HEALTH_ENDPOINT, { cache: "no-store" });
       if (!response.ok) throw new Error(`本地写入服务不可用：${response.status}`);
@@ -3565,6 +3162,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function bindLocalCodeFile() {
+    if (!canWriteCode || !canUseExternalSync) return;
     const serverReady = await checkLocalCodeSyncServer(true);
     if (serverReady && !localCodeFileHandle) {
       window.localStorage.setItem(LOCAL_CODE_AUTO_SYNC_KEY, "true");
@@ -3607,6 +3205,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function toggleLocalCodeAutoSync() {
+    if (!canWriteCode || !canUseExternalSync) return;
     if (!localCodeFileHandle && !localCodeServerOnline) {
       bindLocalCodeFile();
       return;
@@ -3631,6 +3230,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function downloadWorkspace() {
+    if (!canMutateWorkspace) return;
     downloadJsonFile(`villa-space-workspace-${new Date().toISOString().slice(0, 10)}.json`, getCurrentWorkspace());
     setCodeSaveState((current) => ({
       ...current,
@@ -3669,6 +3269,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function commitDefaultWorkspaceToGitHub(defaultWorkspacePayload: string) {
+    if (!canWriteCode || !canUseExternalSync) throw new Error(`accessMode=${accessMode} 不允许同步 GitHub。`);
     const token = getGitHubSolidifyToken();
     if (!token) {
       downloadJsonFile("default-workspace.json", JSON.parse(defaultWorkspacePayload));
@@ -3743,7 +3344,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function solidifyDefaultWorkspace() {
-    if (!hasLoadedWebWorkspace || workspaceConflict) return;
+    if (!canWriteCode || !canUseExternalSync || !hasLoadedWebWorkspace || workspaceConflict) return;
     const attemptStartedAt = new Date().toISOString();
     const writeVersion = workspaceChangeVersionRef.current;
     try {
@@ -3837,7 +3438,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function continueWithDraft() {
-    if (!workspaceConflict) return;
+    if (!canMutateWorkspace || !canPersistDraft || !workspaceConflict) return;
     const draft = workspaceConflict.draft;
     const draftHash = await getWorkspaceHash(draft);
     applyWorkspaceToEditor(draft);
@@ -3850,7 +3451,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function discardDraftAndUseCode() {
-    if (!workspaceConflict) return;
+    if (!canMutateWorkspace || !canPersistDraft || !workspaceConflict) return;
     const codeWorkspace = workspaceConflict.code;
     const archived = archiveAndClearStoredWorkspaceDrafts(workspaceConflict.draft);
     if (!archived) {
@@ -3877,13 +3478,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function exportConflictingDraft() {
-    if (!workspaceConflict) return;
+    if (!canMutateWorkspace || !workspaceConflict) return;
     downloadJsonFile(`villa-space-recovery-${new Date().toISOString().slice(0, 10)}.json`, workspaceConflict.draft);
     setValidatorRepairLog(["较新的浏览器草稿已导出；请选择继续草稿或放弃草稿。"]);
   }
 
   async function handleWorkspaceImport(file: File | undefined) {
-    if (!file) return;
+    if (!canMutateWorkspace || !canPersistDraft || !file) return;
     setWorkspaceImportError("");
     try {
       const imported = JSON.parse(await file.text()) as unknown;
@@ -3906,7 +3507,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function confirmWorkspaceImport() {
-    if (!workspaceImportPreview) return;
+    if (!canMutateWorkspace || !canPersistDraft || !workspaceImportPreview) return;
     const { workspace, fileName } = workspaceImportPreview;
     try {
       applyWorkspaceToEditor(workspace);
@@ -3928,7 +3529,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function runSaveSelfCheck() {
-    if (!IS_DEVELOPMENT) return;
+    if (!IS_DEVELOPMENT || !canUseExternalSync) return;
     setConfirmSelfCheckOverwrite(false);
     setSaveSelfCheckResult({ status: "checking", message: "正在通过本机服务读取 data/default-workspace.json…" });
     try {
@@ -3981,7 +3582,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function confirmOverwriteFromSelfCheck() {
-    if (!IS_DEVELOPMENT) return;
+    if (!IS_DEVELOPMENT || !canWriteCode || !canUseExternalSync) return;
     const serverReady = localCodeServerOnline || await checkLocalCodeSyncServer(false);
     if (!serverReady) {
       setSaveSelfCheckResult({ status: "error", message: "本机写入服务不可用，不能覆盖 data/default-workspace.json。" });
@@ -3994,6 +3595,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   async function reloadCodeWorkspaceFromSelfCheck() {
+    if (!canMutateWorkspace || !canUseExternalSync) return;
     const codeWorkspace = saveSelfCheckResult.codeWorkspace;
     if (!codeWorkspace) return;
     const codeHash = saveSelfCheckResult.codeHash ?? await getWorkspaceHash(codeWorkspace);
@@ -4033,6 +3635,29 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...currentPanels,
       object: true
     }));
+  }
+
+  function handleStructureObjectSelect(objectId: string) {
+    setSelectedFurnitureId("");
+    setSelectedSemanticObjectId("");
+    setActiveObjectId(objectId);
+  }
+
+  function handleYard3DObjectSelect(objectId: string) {
+    const selection = resolveSelection(objectId, furniture, Object.values(houseStructuresByFloor));
+    if (!selection) {
+      if (process.env.NODE_ENV !== "production") console.warn(`[2D/3D sync] Yard object ${objectId} cannot be linked back to source data.`);
+      return;
+    }
+    const targetFloorId = houseStructuresByFloor[selection.floorId as FloorId] ? selection.floorId as FloorId : "1F";
+    setSelectedFloorId(targetFloorId);
+    setSelectedSemanticObjectId("");
+    setActiveObjectId(selection.id);
+    if (selection.kind === "furniture" || selection.kind === "cabinet") setSelectedFurnitureId(selection.id);
+    else setSelectedFurnitureId("");
+    setLocateObjectRequest({ id: selection.id, nonce: Date.now() });
+    setViewMode("2d");
+    setYardPreview3DMode(false);
   }
 
   function handleFurnitureUpdate(nextFurniture: Furniture) {
@@ -4174,26 +3799,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setMobileMoreOpen(false);
   }
 
-  function enterMobileEditMode() {
-    const confirmed = window.confirm("手机端编辑不适合精细操作，建议在电脑端编辑，是否继续？");
-    if (!confirmed) return;
-    setAppViewMode("mobile-edit");
-    setPlannerMode("edit");
-    setDrawTool("select");
-    setMobileMoreOpen(false);
-  }
-
   function handleCreateSemanticObject(object: SemanticObject) {
+    if (!canMutateWorkspace) return;
     setSemanticObjects((currentObjects) => [...currentObjects, object]);
     setSelectedSemanticObjectId(object.id);
   }
 
   function handleUpdateSemanticObject(object: SemanticObject) {
+    if (!canMutateWorkspace) return;
     setSemanticObjects((currentObjects) => currentObjects.map((item) => item.id === object.id ? object : item));
     setSelectedSemanticObjectId(object.id);
   }
 
   function handleMoveSemanticObject(objectId: string, position: { x: number; y: number }) {
+    if (!canMutateWorkspace) return;
     setSemanticObjects((currentObjects) => currentObjects.map((item) => {
       if (item.id !== objectId) return item;
       const details = item.details as Record<string, unknown>;
@@ -4209,6 +3828,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleDeleteSemanticObject(objectId: string) {
+    if (!canMutateWorkspace) return;
+    const dependentObject = semanticObjects.find((item) => item.id !== objectId && JSON.stringify(item.details).includes(`"${objectId}"`));
+    if (dependentObject) {
+      setValidatorRepairLog([`不能删除语义对象 ${objectId}：${dependentObject.id} 仍在引用它。请先解除绑定。`]);
+      return;
+    }
     setSemanticObjects((currentObjects) => currentObjects.filter((item) => item.id !== objectId));
     if (selectedSemanticObjectId === objectId) {
       const nextObject = semanticObjects.find((item) => item.id !== objectId && item.floorId === selectedFloorId);
@@ -4221,6 +3846,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }, []);
 
   function handleFloorPlanVisualSettingsChange(settings: FloorPlanVisualSettings) {
+    if (!canMutateWorkspace) return;
     setVisualSettingsByFloor((currentSettings) => ({
       ...currentSettings,
       [selectedFloorId]: settings
@@ -4228,6 +3854,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleCleanPatchesChange(patches: CleanPatch[]) {
+    if (!canMutateWorkspace) return;
     setCleanPatchesByFloor((currentPatches) => ({
       ...currentPatches,
       [selectedFloorId]: patches
@@ -4235,6 +3862,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleHouseStructureChange(structure: HouseStructure) {
+    if (!canMutateWorkspace) return;
     setHouseStructuresByFloor((currentStructures) => ({
       ...currentStructures,
       [selectedFloorId]: structure
@@ -4242,10 +3870,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleWallSyncOverridesChange(nextOverrides: WallSyncOverrides) {
+    if (!canMutateWorkspace) return;
     setWallSyncOverrides(nextOverrides);
   }
 
   function applySnapshot(snapshot: ModelSnapshot) {
+    if (!canMutateWorkspace) return;
     const snapshotFurniture = snapshot.furniture.map(enrichFurniture3DMeta);
     suppressHistoryRef.current = true;
     committedModelRef.current[selectedFloorId] = { ...snapshot, furniture: snapshotFurniture };
@@ -4261,6 +3891,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleUndo() {
+    if (!canMutateWorkspace) return;
     if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
     const pendingBase = pendingHistoryBaseRef.current[selectedFloorId];
     const history = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
@@ -4279,6 +3910,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleRedo() {
+    if (!canMutateWorkspace) return;
     const history = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
     const target = history.future[0];
     if (!target) return;
@@ -4335,6 +3967,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function addModuleFromCatalog(item: InteriorModuleCatalogItem) {
+    if (!canMutateWorkspace) return;
     const sequence = getNextFurnitureSequence(item.codePrefix);
     const sequenceLabel = String(sequence).padStart(3, "0");
     const targetRoom = moduleTargetRoom ?? floorStructureRooms[0] ?? null;
@@ -4388,6 +4021,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function updateActiveObject(patch: Record<string, unknown>) {
+    if (!canMutateWorkspace) return;
     if (activeFurniture) {
       if (activeFurniture.locked) return;
       handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? { ...item, ...patch } as Furniture : item));
@@ -4423,6 +4057,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function updateActiveFurniture(updater: (item: Furniture) => Furniture) {
+    if (!canMutateWorkspace) return;
     if (!activeFurniture || activeFurniture.locked) return;
     handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? updater(item) : item));
     setSelectedFurnitureId(activeFurniture.id);
@@ -4464,6 +4099,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function openWardrobeDesigner(furnitureId: string) {
+    if (!canMutateWorkspace) return;
     const target = furniture.find((item) => item.id === furnitureId);
     if (!target) return;
     setSelectedFloorId(target.floorId);
@@ -4497,12 +4133,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function updateWardrobeDesign(patch: Partial<WardrobeDesign>) {
+    if (!canMutateWorkspace) return;
     if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
     const nextDesign = normalizeWardrobeDesign({ ...wardrobeDesign, ...patch });
     handleFloorFurnitureChange(floorFurniture.map((item) => item.id === wardrobeDesignFurniture.id ? { ...item, wardrobeDesign: nextDesign } : item));
   }
 
   function updateWardrobeDimensions(field: "width" | "depth" | "height", value: number) {
+    if (!canMutateWorkspace) return;
     if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
     const nextDimensions = {
       ...wardrobeDesignFurniture.dimensions,
@@ -4512,6 +4150,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function generateRecommendedWardrobe() {
+    if (!canMutateWorkspace) return;
     if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
     const recommendedDesign = createRecommendedWardrobeDesign(wardrobeDesignFurniture.dimensions);
     handleFloorFurnitureChange(floorFurniture.map((item) => item.id === wardrobeDesignFurniture.id ? { ...item, wardrobeDesign: recommendedDesign } : item));
@@ -4751,13 +4390,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     sourceFurniture: Furniture[],
     leadingRepairLog: string[] = []
   ) {
+    if (!canMutateWorkspace) return;
     let nextFurniture = sourceFurniture;
     const sourceFurnitureById = new Map(sourceFurniture.map((item) => [item.id, item]));
     const repairLog: string[] = [];
-    const repairedStructures = data.floors.reduce((structures, floor) => {
+    const repairedStructures = floors.reduce((structures, floor) => {
       const structure = structures[floor.id] ?? createEmptyStructure(floor.id);
       const result = autoRepairHouse(floor.id, structure, nextFurniture.filter((item) => item.floorId === floor.id));
-      structures[floor.id] = normalizeHouseStructure(floor.id, result.structure, initialHouseStructures[floor.id]);
+      structures[floor.id] = normalizeHouseStructure(floor.id, result.structure);
       const nextFloorFurniture = result.furniture.map((item) => {
         const sourceItem = sourceFurnitureById.get(item.id);
         return sourceItem && revisionControlledFurnitureIds.has(item.id) ? sourceItem : item;
@@ -4782,6 +4422,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleWallLengthChange(wallId: string, nextLengthValue: number) {
+    if (!canMutateWorkspace) return;
     const targetWall = floorHouseStructure.walls.find((wall) => wall.id === wallId);
     if (!targetWall) return;
     const nextLength = Math.max(100, Math.round(nextLengthValue) || targetWall.length);
@@ -4804,6 +4445,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleFloorFurnitureChange(nextFloorFurniture: Furniture[]) {
+    if (!canMutateWorkspace) return;
+    const removedIds = floorFurniture.filter((item) => !nextFloorFurniture.some((next) => next.id === item.id)).map((item) => item.id);
+    const blockedId = removedIds.find((id) =>
+      semanticObjects.some((object) => JSON.stringify(object).includes(id)) ||
+      nextFloorFurniture.some((item) => JSON.stringify({ note: item.note, constructionNote: item.constructionNote, constructionMeta: item.constructionMeta, mepMeta: item.mepMeta }).includes(id))
+    );
+    if (blockedId) {
+      setValidatorRepairLog([`不能删除家具 ${blockedId}：语义对象、施工备注或机电备注仍引用它。请先解除引用。`]);
+      return;
+    }
     setFurniture((currentFurniture) => {
       return [
         ...currentFurniture.filter((item) => item.floorId !== selectedFloorId),
@@ -4813,6 +4464,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleDeleteFurniture(furnitureId: string) {
+    if (!canMutateWorkspace) return;
     const targetFurniture = floorFurniture.find((item) => item.id === furnitureId);
     if (!targetFurniture || targetFurniture.locked) return;
     const nextFloorFurniture = floorFurniture.filter((item) => item.id !== furnitureId);
@@ -4826,6 +4478,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleRotateFurniture(furnitureId: string) {
+    if (!canMutateWorkspace) return;
     const targetFurniture = floorFurniture.find((item) => item.id === furnitureId);
     if (!targetFurniture || targetFurniture.locked) return;
     handleFloorFurnitureChange(floorFurniture.map((item) => item.id === furnitureId
@@ -4858,10 +4511,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         : localCodeFileReady
           ? "写入目标已绑定"
           : "绑定代码文件";
-  const mobileShellActive = isPhoneDevice && appViewMode !== "desktop-edit";
-  const mobilePresentationActive = appViewMode === "mobile-presentation";
-  const mobilePlannerMode: PlannerMode = mobilePresentationActive ? "view" : plannerMode;
-  const mobileFloorTabs = data.floors.filter((floor) => ["B2", "B1", "1F", "2F", "YARD"].includes(floor.id));
+  const mobileShellActive = isPhoneDevice;
+  const mobilePresentationActive = mobileShellActive && !canMutateWorkspace;
+  const mobilePlannerMode: PlannerMode = canMutateWorkspace ? plannerMode : "view";
+  const mobileFloorTabs = floors.filter((floor) => ["B2", "B1", "1F", "2F", "YARD"].includes(floor.id));
   const mobileSheetKind = mobileSheetTarget?.kind ?? null;
   const mobileSheetTargetId = mobileSheetTarget && "id" in mobileSheetTarget ? mobileSheetTarget.id : "";
   const mobileProjectInfoOpen = mobileSheetKind === "project";
@@ -4885,7 +4538,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   if (mobileShellActive) {
     return (
-      <main className="box-border h-[100dvh] overflow-hidden bg-[#f7f3ed] text-ink">
+      <main className="box-border h-[100dvh] overflow-hidden bg-[#f7f3ed] text-ink" data-access-mode={accessMode}>
         {defaultWorkspacePayload ? (
           <pre className="hidden" data-testid="villa-default-workspace-payload">
             {defaultWorkspacePayload}
@@ -4903,7 +4556,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-[15px] font-semibold leading-tight text-ink">林屿湖畔装修方案</h1>
               <p className="mt-0.5 truncate text-[11px] font-semibold text-stone-500">
-                {currentFloor.id === "YARD" ? "院子" : currentFloor.id} · {mobileDisplayLabel}{appViewMode === "mobile-edit" ? " · 编辑" : ""}
+                {currentFloor.id === "YARD" ? "院子" : currentFloor.id} · {mobileDisplayLabel}
               </p>
             </div>
             <div className="grid h-9 shrink-0 grid-cols-2 rounded-full bg-stone-100 p-1 text-[12px] font-semibold text-stone-500">
@@ -4966,22 +4619,6 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   查看项目信息
                 </button>
                 <button className="block w-full rounded-xl px-3 py-2.5 text-left hover:bg-stone-50" onClick={exportMobileCurrentView} type="button">导出当前视图截图</button>
-                {appViewMode === "mobile-edit" ? (
-                  <button
-                    className="block w-full rounded-xl px-3 py-2.5 text-left text-emerald-700 hover:bg-emerald-50"
-                    onClick={() => {
-                      setAppViewMode("mobile-presentation");
-                      setPlannerMode("view");
-                      setDrawTool("select");
-                      setMobileMoreOpen(false);
-                    }}
-                    type="button"
-                  >
-                    退出编辑模式
-                  </button>
-                ) : (
-                  <button className="block w-full rounded-xl px-3 py-2.5 text-left text-amber-700 hover:bg-amber-50" onClick={enterMobileEditMode} type="button">进入编辑模式</button>
-                )}
               </div>
             )}
           </header>
@@ -4993,9 +4630,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           >
             <PlanCanvas
               floor={currentFloor}
-              floors={data.floors}
-              rooms={floorRooms}
-              walls={floorWalls}
+              floors={floors}
+              legacyRooms={floorLegacyRooms}
+              legacyWalls={floorLegacyWalls}
               furniture={floorFurniture}
               semanticObjects={floorSemanticObjects}
               selectedFurnitureId={activeFurniture?.id ?? selectedFurniture?.id ?? ""}
@@ -5010,6 +4647,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               focusMode={false}
               furnitureImmersiveMode={false}
               mobilePresentationMode={mobilePresentationActive}
+              workspaceMutationAllowed={canMutateWorkspace}
               mobileDisplayLevel={mobileDisplayLevel}
               mobileProfessionalSheetMode={mobileProfessionalSheetMode}
               mobileQuality={mobileQuality}
@@ -5024,10 +4662,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onScaleChange={handleScaleChange}
               onSelectFloor={handleFloorChange}
               onActiveObjectChange={handleMobileActiveObjectChange}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              onPlannerModeChange={setPlannerMode}
-              onDrawToolChange={setDrawTool}
+              onSelectStructureObject={handleStructureObjectSelect}
+              onUndo={canMutateWorkspace ? handleUndo : () => undefined}
+              onRedo={canMutateWorkspace ? handleRedo : () => undefined}
+              onPlannerModeChange={(mode) => {
+                if (canMutateWorkspace) setPlannerMode(mode);
+              }}
+              onDrawToolChange={(tool) => {
+                if (canMutateWorkspace) setDrawTool(tool);
+              }}
               onHouseStructureChange={handleHouseStructureChange}
               onWallLengthChange={handleWallLengthChange}
               onWallSyncOverridesChange={handleWallSyncOverridesChange}
@@ -5244,7 +4887,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   value={selectedFloorId}
                   onChange={(event) => handleFloorChange(event.target.value as FloorId)}
                 >
-                  {data.floors.filter((floor) => floor.id !== "YARD").map((floor) => (
+                  {floors.filter((floor) => floor.id !== "YARD").map((floor) => (
                     <option key={floor.id} value={floor.id}>{floor.label} · {floor.subtitle}</option>
                   ))}
                 </select>
@@ -5276,14 +4919,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               cameraViewRequest={fixedCameraViewRequest}
               onSelectCameraView={handleSelectFixedCameraView}
               onEditYard={handleFocusYard}
+              selectedObjectId={activeObjectId}
+              onSelectObject={handleYard3DObjectSelect}
               onExit={() => setYardPreview3DMode(false)}
             />
           ) : (
             <PlanCanvas
               floor={currentFloor}
-              floors={data.floors}
-              rooms={floorRooms}
-              walls={floorWalls}
+              floors={floors}
+              legacyRooms={floorLegacyRooms}
+              legacyWalls={floorLegacyWalls}
               furniture={floorFurniture}
               semanticObjects={floorSemanticObjects}
               selectedFurnitureId={selectedFurniture?.id ?? ""}
@@ -5297,6 +4942,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               cleanPatches={floorCleanPatches}
               focusMode={focusMode}
               furnitureImmersiveMode={isFurnitureWorkspace}
+              workspaceMutationAllowed={canMutateWorkspace}
               showFurnitureLabels={showFurnitureLabels}
               activeFurnitureId={activeFurniture?.id ?? ""}
               cameraViews={cameraViews}
@@ -5307,6 +4953,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onScaleChange={handleScaleChange}
               onSelectFloor={handleFloorChange}
               onActiveObjectChange={setActiveObjectId}
+              onSelectStructureObject={handleStructureObjectSelect}
               onUndo={handleUndo}
               onRedo={handleRedo}
               onPlannerModeChange={setPlannerMode}
@@ -5368,7 +5015,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             >
               <div className="space-y-3">
                 {!isYard3DWorkspace && <div className="grid grid-cols-2 gap-2">
-                  {data.floors.filter((floor) => floor.id !== "YARD").map((floor) => {
+                  {floors.filter((floor) => floor.id !== "YARD").map((floor) => {
                     const isActive = floor.id === selectedFloorId;
                     return (
                       <button
@@ -5470,7 +5117,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               id="status"
               eyebrow="Validator"
               title="模型状态"
-              summary={`${houseValidation.errors.length} 错误 · ${houseValidation.warnings.length} 警告`}
+              summary={`${houseValidation.errors.length + referenceReport.errors.length} 错误 · ${houseValidation.warnings.length + referenceReport.warnings.length} 警告`}
               open={openRightPanels.status}
               onToggle={toggleRightPanel}
             >
@@ -5488,10 +5135,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   </div>
                 )}
                 {publishState.status !== "idle" && <p className="mt-2 text-[11px] text-stone-500">发布：{publishState.status === "pending" ? "进行中" : publishState.status === "published" ? "已发布" : "发布失败"}</p>}
-                <div className={`mt-3 grid gap-2 ${IS_DEVELOPMENT ? "grid-cols-3" : "grid-cols-2"}`}>
+                <div className={`mt-3 grid gap-2 ${IS_DEVELOPMENT ? "grid-cols-2" : "grid-cols-2"}`}>
                   <button className="rounded-lg bg-stone-100 px-2 py-1.5 font-semibold text-stone-600 hover:bg-stone-200" onClick={() => workspaceImportInputRef.current?.click()} type="button">导入</button>
                   <button className="rounded-lg bg-stone-100 px-2 py-1.5 font-semibold text-stone-600 hover:bg-stone-200" onClick={downloadWorkspace} type="button">导出</button>
                   {IS_DEVELOPMENT && <button className="rounded-lg bg-ink px-2 py-1.5 font-semibold text-white hover:bg-ink/90" onClick={() => void runSaveSelfCheck()} type="button">保存自检</button>}
+                  {IS_DEVELOPMENT && <button className="rounded-lg bg-stone-800 px-2 py-1.5 font-semibold text-white hover:bg-stone-700" onClick={() => setValidatorRepairLog(referenceReport.issues.length ? referenceReport.issues.map((issue) => `${issue.severity === "error" ? "错误" : "警告"} · ${issue.objectId} · ${issue.path} = ${issue.value ?? "未绑定"} · ${issue.message} 建议：${issue.suggestion}`) : ["引用完整性自检通过：当前没有断链或引用警告。"]) } type="button">引用自检</button>}
                 </div>
                 {IS_DEVELOPMENT && saveSelfCheckResult.status !== "idle" && (
                   <div className="mt-3 border-t border-stone-100 pt-3">
@@ -5534,7 +5182,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${houseValidation.valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-                  {houseValidation.valid ? "结构通过" : "需检查"}
+                  {houseValidation.valid && referenceReport.valid ? "结构与引用通过" : "需检查"}
                 </span>
                 <button className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-ink/90" onClick={handleAutoRepairHouse} type="button">
                   校准全屋比例
@@ -5542,11 +5190,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-xl bg-red-50 px-3 py-2 text-red-700">
-                  <p className="font-semibold">{houseValidation.errors.length}</p>
+                  <p className="font-semibold">{houseValidation.errors.length + referenceReport.errors.length}</p>
                   <p>错误</p>
                 </div>
                 <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-700">
-                  <p className="font-semibold">{houseValidation.warnings.length}</p>
+                  <p className="font-semibold">{houseValidation.warnings.length + referenceReport.warnings.length}</p>
                   <p>警告</p>
                 </div>
               </div>
@@ -5558,8 +5206,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     <p className="mt-1 font-semibold text-blue-600">定位对象</p>
                   </button>
                 ))}
-                {houseValidation.errors.length + houseValidation.warnings.length === 0 && (
-                  <p className="rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-500">当前楼层未发现结构表达错误。</p>
+                {referenceReport.issues.map((issue, index) => (
+                  <button key={`${issue.code}-${issue.objectId}-${index}`} className="block w-full rounded-xl bg-slate-50 p-2 text-left text-xs leading-5 text-slate-600 transition hover:bg-blue-50" onClick={() => locateValidationObject(issue.objectId)} type="button">
+                    <p className="font-semibold text-ink">引用{issue.severity === "error" ? "错误" : "警告"} · {issue.objectId}</p>
+                    <p>{issue.path} = {issue.value ?? "未绑定"}</p>
+                    <p>{issue.message}</p>
+                    <p className="mt-1 text-stone-500">建议：{issue.suggestion}</p>
+                  </button>
+                ))}
+                {houseValidation.errors.length + houseValidation.warnings.length + referenceReport.issues.length === 0 && (
+                  <p className="rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-500">当前楼层未发现结构表达或引用错误。</p>
                 )}
               </div>
               {validatorRepairLog.length > 0 && (
@@ -6046,7 +5702,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 floorId={selectedFloorId}
                 objects={floorSemanticObjects}
                 allObjects={semanticObjects}
-                floors={data.floors}
+                floors={floors}
                 selectedObjectId={selectedSemanticObjectId}
                 onSelectObject={setSelectedSemanticObjectId}
                 onCreateObject={handleCreateSemanticObject}

@@ -16,6 +16,7 @@ import type {
   Position2D,
   StraightHouseWall
 } from "@/types/space";
+import { syncHostedOpeningsOnWallIdChange } from "@/lib/object-sync-adapter";
 
 export type InteractionModel = {
   houseStructure: HouseStructure;
@@ -324,10 +325,12 @@ export function splitWall(structure: HouseStructure, state: ObjectInteractionSta
   const midpoint = { x: Math.round((wall.start.x + wall.end.x) / 2), y: Math.round((wall.start.y + wall.end.y) / 2) };
   const left: StraightHouseWall = { ...wall, id: `${wall.id}-A`, end: midpoint, length: getLineLength(wall.start, midpoint) };
   const right: StraightHouseWall = { ...wall, id: `${wall.id}-B`, start: midpoint, length: getLineLength(midpoint, wall.end) };
-  return refreshRooms({
+  return refreshRooms(syncHostedOpeningsOnWallIdChange({
     ...structure,
     walls: structure.walls.flatMap((item) => item.id === wallId ? [left, right] : [item])
-  });
+  }, [{ oldWalls: [wall], newWalls: [left, right] }], (warning) => {
+    if (process.env.NODE_ENV !== "production") console.warn(`[2D/3D sync] ${warning.openingId}: ${warning.message}`);
+  }));
 }
 
 export function mergeWall(structure: HouseStructure, state: ObjectInteractionState, wallId: string): HouseStructure {
@@ -345,10 +348,12 @@ export function mergeWall(structure: HouseStructure, state: ObjectInteractionSta
     end: candidate.end,
     length: getLineLength(wall.start, candidate.end)
   };
-  return refreshRooms({
+  return refreshRooms(syncHostedOpeningsOnWallIdChange({
     ...structure,
     walls: structure.walls.filter((item) => item.id !== wall.id && item.id !== candidate.id).concat(merged)
-  });
+  }, [{ oldWalls: [wall, candidate], newWalls: [merged] }], (warning) => {
+    if (process.env.NODE_ENV !== "production") console.warn(`[2D/3D sync] ${warning.openingId}: ${warning.message}`);
+  }));
 }
 
 export function recalcRoomArea(structure: HouseStructure): HouseStructure {

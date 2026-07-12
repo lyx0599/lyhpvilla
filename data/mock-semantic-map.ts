@@ -1,6 +1,7 @@
 import type { SemanticObject } from "@/types/semantic-map";
 
-export const initialSemanticObjects: SemanticObject[] = [
+/** Legacy migration material; never injected into a current workspace at runtime. */
+export const legacySemanticObjectFallback: SemanticObject[] = [
   {
     id: "R-1F-001",
     name: "1F 公共区",
