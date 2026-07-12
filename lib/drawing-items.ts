@@ -1,3 +1,4 @@
+import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "./house-geometry.ts";
 import type { DrawingItem, DrawingItemCategory, DrawingItemStatus, DrawingSheetType, FloorId, Furniture, HouseStructure } from "../types/space";
 
 export const drawingItemCategories: DrawingItemCategory[] = [
@@ -16,6 +17,13 @@ export const drawingItemStatusLabels: Record<DrawingItemStatus, string> = {
   draft: "草稿", confirmed: "已确认", todo: "待确认", deprecated: "已废弃"
 };
 
+export const floorFinishMaterialLabels: Record<string, string> = {
+  woodFloor: "木地板", tile: "地砖", stone: "石材", microcement: "微水泥",
+  courtyardStone: "庭院石材", grass: "草坪", hardscape: "硬地"
+};
+
+export const wallFinishMaterialOptions = ["乳胶漆", "微水泥", "木饰面", "岩板", "瓷砖", "防水涂层", "背景墙"];
+
 const categoriesBySheet: Partial<Record<DrawingSheetType, DrawingItemCategory[]>> = {
   socketPlan: ["socket", "network"],
   switchPlan: ["switch"],
@@ -25,6 +33,7 @@ const categoriesBySheet: Partial<Record<DrawingSheetType, DrawingItemCategory[]>
   ceilingPlan: ["ceiling"],
   floorFinishPlan: ["floorFinish"],
   wallFinishPlan: ["wallFinish"],
+  materialPlan: ["cabinet"],
   annotationPlan: ["annotation"]
 };
 
@@ -58,6 +67,7 @@ type GeneratedDemand = {
   circuitId?: string | null;
   lightColorTemperature?: DrawingItem["lightColorTemperature"];
   needsSmartControl?: boolean;
+  switchControl?: string[];
   noteParts?: string[];
 };
 
@@ -74,6 +84,7 @@ function getFurnitureDemands(furniture: Furniture): GeneratedDemand[] {
   const construction = furniture.constructionMeta ?? {};
   const demands: GeneratedDemand[] = [];
   if (mep.needsSocket) demands.push({ category: "socket", type: mep.relatedCircuit || "power", quantity: Math.max(1, mep.socketCount ?? 1), heightMm: mep.socketHeight ?? 300, circuitId: mep.relatedCircuit ?? null, noteParts: [mep.notes ?? ""] });
+  if (mep.needsSwitch) demands.push({ category: "switch", type: "switchControl", circuitId: mep.relatedCircuit ?? null, switchControl: mep.switchControl ?? [], noteParts: [mep.switchControl?.join(" / ") ?? "", mep.notes ?? ""] });
   if (mep.needsLighting) demands.push({ category: "light", type: mep.lightingType && mep.lightingType !== "none" ? mep.lightingType : "lighting", lightColorTemperature: mep.lightColorTemperature ?? null, needsSmartControl: Boolean(mep.needsSmartControl), noteParts: [mep.lightColorTemperature ?? "", mep.needsSmartControl ? "智能控制" : "", mep.notes ?? ""] });
   if (mep.needsWaterSupply) demands.push({ category: "waterSupply", type: mep.waterSupplyType && mep.waterSupplyType !== "none" ? mep.waterSupplyType : "waterSupply", noteParts: [mep.notes ?? ""] });
   if (mep.needsDrainage) demands.push({ category: "drainage", type: mep.drainageType && mep.drainageType !== "none" ? mep.drainageType : "drainage", noteParts: [mep.notes ?? ""] });
@@ -89,7 +100,16 @@ function generatedFields(item: DrawingItem) {
     positionMm: item.positionMm, relatedFurnitureId: item.relatedFurnitureId, heightMm: item.heightMm,
     circuitId: item.circuitId, label: item.label, notes: item.notes, status: item.status,
     quantity: item.quantity, lightColorTemperature: item.lightColorTemperature ?? null,
-    needsSmartControl: Boolean(item.needsSmartControl)
+    needsSmartControl: Boolean(item.needsSmartControl), switchControl: item.switchControl ?? [],
+    controlledLightIds: item.controlledLightIds ?? [], lightGroupId: item.lightGroupId ?? null,
+    polygon: item.polygon ?? [], ceilingHeightMm: item.ceilingHeightMm ?? null,
+    relatedLightIds: item.relatedLightIds ?? [], inspectionAccess: Boolean(item.inspectionAccess),
+    airVent: Boolean(item.airVent), returnAir: Boolean(item.returnAir), maintenanceOpening: Boolean(item.maintenanceOpening),
+    material: item.material ?? null, pattern: item.pattern ?? null, directionDeg: item.directionDeg ?? null,
+    startPoint: item.startPoint ?? null, seamWidthMm: item.seamWidthMm ?? null,
+    threshold: item.threshold ?? null, transition: item.transition ?? null,
+    wallId: item.wallId ?? null, heightRange: item.heightRange ?? null, area: item.area ?? null,
+    waterproofHeightMm: item.waterproofHeightMm ?? null, specialTreatment: item.specialTreatment ?? null
   };
 }
 
@@ -103,9 +123,14 @@ function getGeneratedPosition(furniture: Furniture, structure: HouseStructure, i
   const centerY = coordinateSystem.origin.y + (furniture.position.y / 100) * coordinateSystem.height;
   const offset = Math.min(600, Math.max(180, furniture.dimensions.width * 5 + 120));
   const angle = ((index % 8) / 8) * Math.PI * 2;
+  const usesSiteBounds = furniture.floorId === "1F" || furniture.floorId === "YARD";
+  const minX = usesSiteBounds ? 0 : coordinateSystem.origin.x;
+  const maxX = usesSiteBounds ? STRUCTURE_WIDTH_MM : coordinateSystem.origin.x + coordinateSystem.width;
+  const minY = usesSiteBounds ? SITE_PLAN_MIN_Y_MM : coordinateSystem.origin.y;
+  const maxY = usesSiteBounds ? SITE_PLAN_MAX_Y_MM : coordinateSystem.origin.y + coordinateSystem.height;
   return {
-    x: Math.round(Math.min(coordinateSystem.origin.x + coordinateSystem.width, Math.max(coordinateSystem.origin.x, centerX + Math.cos(angle) * offset))),
-    y: Math.round(Math.min(coordinateSystem.origin.y + coordinateSystem.height, Math.max(coordinateSystem.origin.y, centerY + Math.sin(angle) * offset)))
+    x: Math.round(Math.min(maxX, Math.max(minX, centerX + Math.cos(angle) * offset))),
+    y: Math.round(Math.min(maxY, Math.max(minY, centerY + Math.sin(angle) * offset)))
   };
 }
 
@@ -140,12 +165,14 @@ export function generateDrawingItemsFromFurniture(input: {
         relatedFurnitureId: furniture.id,
         heightMm: demand.heightMm ?? null,
         circuitId: demand.circuitId ?? null,
+        relatedCircuit: demand.circuitId ?? null,
         label: `${furniture.name} · ${drawingItemCategoryLabels[demand.category]}`,
         notes: [...(demand.noteParts ?? []).filter(Boolean), "需人工确认"].join("；"),
         source: "generated-from-furniture",
         quantity: demand.quantity ?? 1,
         lightColorTemperature: demand.lightColorTemperature ?? null,
         needsSmartControl: Boolean(demand.needsSmartControl),
+        switchControl: demand.switchControl ?? [],
         generatedKey,
         createdAt: current?.createdAt ?? now,
         updatedAt: now

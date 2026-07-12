@@ -134,6 +134,9 @@ export function validateWorkspaceDocument(workspace) {
         if (!isRecord(item.positionMm) || !Number.isFinite(item.positionMm.x) || !Number.isFinite(item.positionMm.y)) issues.push(issue(`${path}.positionMm`, "must contain finite millimeter x and y", id || path));
         if (!Number.isInteger(item.quantity) || item.quantity < 1) issues.push(issue(`${path}.quantity`, "must be a positive integer", id || path));
         for (const key of ["type", "label", "notes", "createdAt", "updatedAt"]) if (typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string", id || path));
+        if (item.polygon !== undefined && (!Array.isArray(item.polygon) || item.polygon.length < 3 || item.polygon.some((point) => !isRecord(point) || !Number.isFinite(point.x) || !Number.isFinite(point.y)))) issues.push(issue(`${path}.polygon`, "must contain at least three finite millimeter points", id || path));
+        for (const key of ["controlledLightIds", "relatedLightIds", "switchControl"]) if (item[key] !== undefined && (!Array.isArray(item[key]) || item[key].some((value) => typeof value !== "string"))) issues.push(issue(`${path}.${key}`, "must be a string array", id || path));
+        if (item.heightRange !== undefined && item.heightRange !== null && (!isRecord(item.heightRange) || !Number.isFinite(item.heightRange.minMm) || !Number.isFinite(item.heightRange.maxMm))) issues.push(issue(`${path}.heightRange`, "must contain finite minMm and maxMm", id || path));
       }
     });
   }

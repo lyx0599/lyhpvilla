@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 6,
-  "dataRevision": "2026-07-12-drawing-package-system-v1",
-  "defaultWorkspaceRevision": "2026-07-12-drawing-package-system-v1",
+  "schemaVersion": 7,
+  "dataRevision": "2026-07-12-drawing-package-finishes-v1",
+  "defaultWorkspaceRevision": "2026-07-12-drawing-package-finishes-v1",
   "savedAt": "2026-07-12T05:48:23.775Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -840,7 +840,7 @@
       "name": "院子桂花树",
       "type": "plant",
       "floorId": "YARD",
-      "roomId": "OD-YARD-001",
+      "roomId": "OD-YARD-NORTH-001",
       "dimensions": {
         "width": 120,
         "depth": 120,
@@ -848,7 +848,7 @@
         "unit": "cm"
       },
       "material": "植物",
-      "note": "作为入户视线焦点。",
+      "note": "作为北院入户视线焦点，后续按日照和排水复核树池位置。",
       "position": {
         "x": 78,
         "y": -7,
@@ -856,12 +856,12 @@
       },
       "color": "#7c9468",
       "render3d": {
-        "assetType": "dryingRack",
+        "assetType": "plant",
         "detailLevel": "presentation",
         "stylePreset": "elevatedTuscanSun",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "warmGreyStone",
-        "accentMaterial": "blackTitanium",
+        "primaryMaterial": "植物",
+        "secondaryMaterial": "树池",
+        "accentMaterial": "leafGreen",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "merged"
@@ -4887,7 +4887,7 @@
         ],
         "cautionNotes": [
           "门洞左侧墙段略短于 150cm，复尺后优先确认门套、踢脚线和开门净距。",
-          "如果现场门套占位更大，柜体宽度宁可缩短，也不要压到卫生间门口。"
+          "如果现场门套厚度更大，柜体宽度宁可缩短，也不要压到卫生间门口。"
         ]
       },
       "render3d": {
@@ -5171,13 +5171,13 @@
     {
       "id": "ph-1f-north-bbq-island",
       "code": "PH-BBQ-ISLAND",
-      "name": "占位｜北院烧烤岛台",
+      "name": "北院烧烤岛台",
       "type": "island",
       "catalogId": "kitchen-island",
       "moduleCategory": "kitchen",
       "moduleType": "island",
-      "floorId": "1F",
-      "roomId": "OD-1F-NORTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-NORTH-001",
       "dimensions": {
         "width": 260,
         "depth": 75,
@@ -5185,8 +5185,8 @@
         "unit": "cm"
       },
       "material": "户外耐候柜体 + 石材台面 + 烧烤炉位预留",
-      "note": "PLACEHOLDER：北院烧烤庭院岛台占位，先按靠中部布置，后续可拖动、旋转、改尺寸。",
-      "constructionNote": "占位符：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。",
+      "note": "方案示意：北院烧烤庭院岛台，先按靠中部布置，后续可拖动、旋转、改尺寸。",
+      "constructionNote": "施工前确认：燃气/电源、排烟、防水插座和台面耐候做法。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -5201,7 +5201,7 @@
       "color": "#9ca3af",
       "cabinetDesign": {
         "template": "island",
-        "title": "北院烧烤岛台占位设计",
+        "title": "北院烧烤岛台方案设计",
         "designThinking": "岛台先作为可移动体块，承担烧烤炉、备餐台面和户外收纳，等现场确认管线和尺度后再决定固定做法。",
         "recommendedPlacement": "北院硬化区中部偏一侧，给门口和院门之间留下通行。",
         "layoutNotes": [
@@ -5238,7 +5238,7 @@
           }
         ],
         "cautionNotes": [
-          "这是占位符，最终尺寸需按北院净宽和通行复核。",
+          "最终尺寸需按北院净宽和通行复核。",
           "户外电源和燃气做法需要单独确认安全规范。"
         ]
       },
@@ -5272,7 +5272,7 @@
         "needsVentilation": true,
         "needsSmartControl": false,
         "relatedCircuit": "厨房台面回路",
-        "notes": "占位符：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。"
+        "notes": "施工前确认：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。"
       },
       "constructionMeta": {
         "customMade": true,
@@ -5285,16 +5285,16 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "占位符：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。"
+        "notes": "施工前确认：需现场确认燃气/电源、排烟、防水插座和台面耐候做法。"
       }
     },
     {
       "id": "ph-1f-south-drying-rack",
       "code": "PH-DRYING",
-      "name": "占位｜南院可移动晾晒架",
+      "name": "南院可移动晾晒架",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 210,
         "depth": 80,
@@ -5302,8 +5302,8 @@
         "unit": "cm"
       },
       "material": "可折叠晾晒架 / 后续可替换为固定晾衣杆",
-      "note": "PLACEHOLDER：南院晾晒区活动晾晒架，占位在靠近室内出入口的硬化区。",
-      "constructionNote": "占位符：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。",
+      "note": "方案示意：南院晾晒区活动晾晒架，靠近室内出入口的硬化区。",
+      "constructionNote": "施工前确认：如改固定晾衣杆，复核墙面/地面固定点和排水坡度。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -5342,7 +5342,7 @@
         "needsNetwork": false,
         "needsVentilation": false,
         "needsSmartControl": false,
-        "notes": "占位符：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。"
+        "notes": "施工前确认：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。"
       },
       "constructionMeta": {
         "customMade": false,
@@ -5355,16 +5355,16 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "成品家具",
         "supplierType": "成品家具供应商",
-        "notes": "占位符：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。"
+        "notes": "施工前确认：若改固定晾衣杆，需确认墙面/地面固定点和排水坡度。"
       }
     },
     {
       "id": "ph-1f-south-lounge-set",
       "code": "PH-LOUNGE",
-      "name": "占位｜南院休闲活动桌椅",
+      "name": "南院休闲活动桌椅",
       "type": "table",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 260,
         "depth": 180,
@@ -5372,8 +5372,8 @@
         "unit": "cm"
       },
       "material": "户外桌椅 / 可替换为休闲椅组合",
-      "note": "PLACEHOLDER：南院休闲活动区，占位用于喝茶、聊天和宠物活动陪伴。",
-      "constructionNote": "占位符：后续按遮阳、灯光、插座和家具真实尺寸细化。",
+      "note": "方案示意：南院休闲活动区，用于喝茶、聊天和宠物活动陪伴。",
+      "constructionNote": "待深化：后续按遮阳、灯光、插座和家具真实尺寸细化。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -5413,7 +5413,7 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "常规插座回路",
-        "notes": "占位符：后续按遮阳、灯光、插座和家具真实尺寸细化。"
+        "notes": "施工前确认：后续按遮阳、灯光、插座和家具真实尺寸细化。"
       },
       "constructionMeta": {
         "customMade": false,
@@ -5426,16 +5426,16 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "成品家具",
         "supplierType": "成品家具供应商",
-        "notes": "占位符：后续按遮阳、灯光、插座和家具真实尺寸细化。"
+        "notes": "施工前确认：后续按遮阳、灯光、插座和家具真实尺寸细化。"
       }
     },
     {
       "id": "ph-1f-south-dog-house",
       "code": "PH-DOG-HOUSE",
-      "name": "占位｜南院角落狗窝",
+      "name": "南院角落狗窝",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 110,
         "depth": 85,
@@ -5443,8 +5443,8 @@
         "unit": "cm"
       },
       "material": "户外防水狗窝",
-      "note": "PLACEHOLDER：狗窝放在南院右下角宠物角，避开主要活动区和晾晒动线。",
-      "constructionNote": "占位符：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。",
+      "note": "方案示意：狗窝放在南院右下角宠物角，避开主要活动区和晾晒动线。",
+      "constructionNote": "施工前确认：避开强西晒和雨水直冲，底部留可冲洗硬化面。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -5483,7 +5483,7 @@
         "needsNetwork": false,
         "needsVentilation": false,
         "needsSmartControl": false,
-        "notes": "占位符：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。"
+        "notes": "施工前确认：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。"
       },
       "constructionMeta": {
         "customMade": false,
@@ -5496,18 +5496,18 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "成品家具",
         "supplierType": "成品家具供应商",
-        "notes": "占位符：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。"
+        "notes": "施工前确认：建议避开强西晒和雨水直冲，底部留可冲洗硬化面。"
       }
     },
     {
       "id": "ph-1f-south-pet-water",
       "code": "PH-PET-WATER",
-      "name": "占位｜南院宠物饮水装置",
+      "name": "南院宠物饮水装置",
       "type": "sink",
       "catalogId": "kitchen-sink",
       "moduleCategory": "decor",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 45,
         "depth": 45,
@@ -5515,8 +5515,8 @@
         "unit": "cm"
       },
       "material": "自动饮水器 / 壁挂补水点",
-      "note": "PLACEHOLDER：宠物饮水装置靠近狗窝，位置先预留，后续按水源和排水调整。",
-      "constructionNote": "占位符：需确认给水、排水或渗水区，避免长期积水。",
+      "note": "方案示意：宠物饮水装置靠近狗窝，后续按水源和排水调整。",
+      "constructionNote": "施工前确认：给水、排水或渗水区，避免长期积水。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -5555,7 +5555,7 @@
         "needsNetwork": false,
         "needsVentilation": false,
         "needsSmartControl": false,
-        "notes": "占位符：需确认给水、排水或渗水区，避免长期积水。"
+        "notes": "施工前确认：需确认给水、排水或渗水区，避免长期积水。"
       },
       "constructionMeta": {
         "customMade": false,
@@ -5568,7 +5568,7 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "卫浴设备",
         "supplierType": "卫浴设备供应商",
-        "notes": "占位符：需确认给水、排水或渗水区，避免长期积水。"
+        "notes": "施工前确认：需确认给水、排水或渗水区，避免长期积水。"
       }
     },
     {
@@ -5576,8 +5576,8 @@
       "code": "YG-1F-N",
       "name": "北院庭院门",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-NORTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-NORTH-001",
       "dimensions": {
         "width": 130,
         "depth": 14,
@@ -5585,7 +5585,7 @@
         "unit": "cm"
       },
       "material": "深灰金属格栅",
-      "note": "入户庭院门占位。",
+      "note": "入户庭院门方案示意。",
       "constructionNote": "复核门柱、门禁、电源、排水和开启净宽。",
       "position": {
         "x": 43.5,
@@ -5641,8 +5641,8 @@
       "code": "YC-1F-S",
       "name": "南院防水户外柜",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 150,
         "depth": 58,
@@ -5706,8 +5706,8 @@
       "code": "YL-1F-S",
       "name": "南院低位庭院灯",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 24,
         "depth": 24,
@@ -5772,8 +5772,8 @@
       "code": "SO-1F-N",
       "name": "北院防水户外插座",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-NORTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-NORTH-001",
       "dimensions": {
         "width": 18,
         "depth": 10,
@@ -5781,7 +5781,7 @@
         "unit": "cm"
       },
       "material": "深灰防水盒",
-      "note": "烧烤和清洁设备地插/墙插占位。",
+      "note": "烧烤和清洁设备地插/墙插需求提示。",
       "constructionNote": "防水盒、漏保和独立回路，离积水点保持安全距离。",
       "position": {
         "x": 30,
@@ -5837,8 +5837,8 @@
       "code": "WT-1F-S",
       "name": "南院给水龙头",
       "type": "sink",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 28,
         "depth": 22,
@@ -5901,8 +5901,8 @@
       "code": "DR-1F-S",
       "name": "南院排水点 / 地漏",
       "type": "custom",
-      "floorId": "1F",
-      "roomId": "OD-1F-SOUTH-001",
+      "floorId": "YARD",
+      "roomId": "OD-YARD-SOUTH-001",
       "dimensions": {
         "width": 35,
         "depth": 35,
@@ -5910,7 +5910,7 @@
         "unit": "cm"
       },
       "material": "深灰金属地漏",
-      "note": "户外柜与宠物角附近排水占位。",
+      "note": "户外柜与宠物角附近排水需求提示。",
       "constructionNote": "结合庭院坡度、雨水管和清洗排水复核。",
       "position": {
         "x": 72,
@@ -9037,157 +9037,7 @@
           "removable": true
         }
       ],
-      "outdoorSurfaces": [
-        {
-          "id": "OS-1F-NORTH-BBQ-HARD-PH",
-          "floorId": "1F",
-          "name": "占位｜北院烧烤硬化区",
-          "geometryType": "polygon",
-          "surfaceType": "hardscape",
-          "polygon": [
-            {
-              "x": 2600,
-              "y": -1550
-            },
-            {
-              "x": 7950,
-              "y": -1550
-            },
-            {
-              "x": 7950,
-              "y": 150
-            },
-            {
-              "x": 2600,
-              "y": 150
-            }
-          ],
-          "area": 9095000,
-          "material": "concrete",
-          "editable": true,
-          "removable": true
-        },
-        {
-          "id": "OS-1F-SOUTH-DRYING-PH",
-          "floorId": "1F",
-          "name": "占位｜南院晾晒硬化区",
-          "geometryType": "polygon",
-          "surfaceType": "hardscape",
-          "polygon": [
-            {
-              "x": 1200,
-              "y": 8200
-            },
-            {
-              "x": 3650,
-              "y": 8200
-            },
-            {
-              "x": 3650,
-              "y": 9650
-            },
-            {
-              "x": 1200,
-              "y": 9650
-            }
-          ],
-          "area": 3552500,
-          "material": "concrete",
-          "editable": true,
-          "removable": true
-        },
-        {
-          "id": "OS-1F-SOUTH-LOUNGE-PH",
-          "floorId": "1F",
-          "name": "占位｜南院休闲活动硬化区",
-          "geometryType": "polygon",
-          "surfaceType": "hardscape",
-          "polygon": [
-            {
-              "x": 5400,
-              "y": 8450
-            },
-            {
-              "x": 9100,
-              "y": 8450
-            },
-            {
-              "x": 9100,
-              "y": 10100
-            },
-            {
-              "x": 5400,
-              "y": 10100
-            }
-          ],
-          "area": 6105000,
-          "material": "stone",
-          "editable": true,
-          "removable": true
-        },
-        {
-          "id": "OS-1F-SOUTH-PATH-PH",
-          "floorId": "1F",
-          "name": "占位｜南院连接小路",
-          "geometryType": "polygon",
-          "surfaceType": "path",
-          "polygon": [
-            {
-              "x": 3450,
-              "y": 8950
-            },
-            {
-              "x": 4200,
-              "y": 8700
-            },
-            {
-              "x": 5850,
-              "y": 9400
-            },
-            {
-              "x": 5600,
-              "y": 10150
-            },
-            {
-              "x": 4050,
-              "y": 9550
-            }
-          ],
-          "area": 1710000,
-          "material": "pebble",
-          "editable": true,
-          "removable": true
-        },
-        {
-          "id": "OS-1F-SOUTH-PET-CORNER-PH",
-          "floorId": "1F",
-          "name": "占位｜南院宠物角排水铺装",
-          "geometryType": "polygon",
-          "surfaceType": "hardscape",
-          "polygon": [
-            {
-              "x": 7600,
-              "y": 10400
-            },
-            {
-              "x": 9250,
-              "y": 10400
-            },
-            {
-              "x": 9250,
-              "y": 11600
-            },
-            {
-              "x": 7600,
-              "y": 11600
-            }
-          ],
-          "area": 1980000,
-          "material": "pebble",
-          "editable": true,
-          "removable": true
-        }
-      ],
+      "outdoorSurfaces": [],
       "doors": [
         {
           "id": "D-1F-002",
@@ -10226,7 +10076,7 @@
         "width": 12000,
         "height": 9000,
         "scale": 1,
-        "note": "统一楼层坐标：左上角为原点，所有结构对象使用毫米。底图仅作为参考层。"
+        "note": "YARD 使用与 1F 总平面一致的毫米坐标；北院可出现负 Y，南院可延伸到一层室内基准外，用于 2D 编辑、3D 和图纸共用。"
       },
       "walls": [],
       "rooms": [],
@@ -10235,129 +10085,323 @@
       "columns": [],
       "fences": [
         {
-          "id": "FN-YARD-001",
+          "id": "FN-YARD-NORTH-001",
           "floorId": "YARD",
-          "name": "Fence 001",
+          "name": "北院北侧金属围栏",
           "geometryType": "line",
           "start": {
-            "x": 900,
-            "y": 850
+            "x": 950,
+            "y": -1650
           },
           "end": {
-            "x": 10700,
-            "y": 850
+            "x": 9495,
+            "y": -1650
           },
           "height": 1200,
           "thickness": 80,
           "material": "metal",
           "editable": true,
-          "removable": true
+          "removable": true,
+          "status": "design-intent",
+          "source": "default-workspace"
         },
         {
-          "id": "FN-YARD-002",
+          "id": "FN-YARD-NORTH-002",
           "floorId": "YARD",
-          "name": "Fence 002",
+          "name": "北院西侧分户围栏",
           "geometryType": "line",
           "start": {
-            "x": 10700,
-            "y": 850
+            "x": 950,
+            "y": -1650
           },
           "end": {
-            "x": 10700,
-            "y": 7100
+            "x": 950,
+            "y": 350
           },
           "height": 1200,
           "thickness": 80,
           "material": "metal",
           "editable": true,
-          "removable": true
+          "removable": true,
+          "status": "design-intent",
+          "source": "default-workspace"
+        },
+        {
+          "id": "FN-YARD-NORTH-003",
+          "floorId": "YARD",
+          "name": "北院东侧分户围栏",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": -1650
+          },
+          "end": {
+            "x": 9495,
+            "y": 350
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "metal",
+          "editable": true,
+          "removable": true,
+          "status": "design-intent",
+          "source": "default-workspace"
+        },
+        {
+          "id": "FN-YARD-SOUTH-001",
+          "floorId": "YARD",
+          "name": "南院南侧木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 11800
+          },
+          "end": {
+            "x": 9495,
+            "y": 11800
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true,
+          "status": "design-intent",
+          "source": "default-workspace"
+        },
+        {
+          "id": "FN-YARD-SOUTH-002",
+          "floorId": "YARD",
+          "name": "南院西侧分户木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 950,
+            "y": 7800
+          },
+          "end": {
+            "x": 950,
+            "y": 11800
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true,
+          "status": "design-intent",
+          "source": "default-workspace"
+        },
+        {
+          "id": "FN-YARD-SOUTH-003",
+          "floorId": "YARD",
+          "name": "南院东侧分户木篱笆",
+          "geometryType": "line",
+          "start": {
+            "x": 9495,
+            "y": 7800
+          },
+          "end": {
+            "x": 9495,
+            "y": 11800
+          },
+          "height": 1200,
+          "thickness": 80,
+          "material": "wood",
+          "editable": true,
+          "removable": true,
+          "status": "design-intent",
+          "source": "default-workspace"
         }
       ],
       "outdoorSurfaces": [
         {
-          "id": "OS-YARD-001",
+          "id": "OS-YARD-NORTH-BBQ-HARD",
           "floorId": "YARD",
-          "name": "石板休闲平台",
+          "name": "北院烧烤硬化区",
+          "label": "北院烧烤硬化区",
+          "category": "hardscape",
           "geometryType": "polygon",
           "surfaceType": "hardscape",
           "polygon": [
             {
-              "x": 1600,
-              "y": 1400
+              "x": 2600,
+              "y": -1550
             },
             {
-              "x": 4600,
-              "y": 1400
+              "x": 7950,
+              "y": -1550
             },
             {
-              "x": 4600,
-              "y": 3200
+              "x": 7950,
+              "y": 150
             },
             {
-              "x": 1600,
-              "y": 3200
+              "x": 2600,
+              "y": 150
             }
           ],
-          "area": 5400000,
-          "material": "stone",
+          "pathWidthMm": null,
+          "area": 9095000,
+          "material": "concrete",
+          "notes": "方案示意：服务北院烧烤岛台、户外插座和清洁设备，施工前确认排水坡度与防滑做法。",
+          "status": "design-intent",
+          "source": "default-workspace",
           "editable": true,
           "removable": true
         },
         {
-          "id": "OS-YARD-002",
+          "id": "OS-YARD-SOUTH-DRYING",
           "floorId": "YARD",
-          "name": "鹅卵石步道",
+          "name": "南院晾晒硬化区",
+          "label": "南院晾晒硬化区",
+          "category": "hardscape",
+          "geometryType": "polygon",
+          "surfaceType": "hardscape",
+          "polygon": [
+            {
+              "x": 1200,
+              "y": 8200
+            },
+            {
+              "x": 3650,
+              "y": 8200
+            },
+            {
+              "x": 3650,
+              "y": 9650
+            },
+            {
+              "x": 1200,
+              "y": 9650
+            }
+          ],
+          "pathWidthMm": null,
+          "area": 3552500,
+          "material": "concrete",
+          "notes": "方案示意：靠近室内出入口，便于晾晒和清洁，施工前确认排水坡度。",
+          "status": "design-intent",
+          "source": "default-workspace",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-YARD-SOUTH-LOUNGE",
+          "floorId": "YARD",
+          "name": "南院休闲活动硬化区",
+          "label": "南院休闲活动硬化区",
+          "category": "hardscape",
+          "geometryType": "polygon",
+          "surfaceType": "hardscape",
+          "polygon": [
+            {
+              "x": 5400,
+              "y": 8450
+            },
+            {
+              "x": 9100,
+              "y": 8450
+            },
+            {
+              "x": 9100,
+              "y": 10100
+            },
+            {
+              "x": 5400,
+              "y": 10100
+            }
+          ],
+          "pathWidthMm": null,
+          "area": 6105000,
+          "material": "stone",
+          "notes": "方案示意：用于休闲桌椅、庭院灯和日常活动，施工前确认铺装模数与缝宽。",
+          "status": "design-intent",
+          "source": "default-workspace",
+          "editable": true,
+          "removable": true
+        },
+        {
+          "id": "OS-YARD-SOUTH-PATH",
+          "floorId": "YARD",
+          "name": "南院连接小路",
+          "label": "南院连接小路",
+          "category": "path",
           "geometryType": "polygon",
           "surfaceType": "path",
           "polygon": [
             {
-              "x": 4550,
-              "y": 2300
+              "x": 3450,
+              "y": 8950
             },
             {
-              "x": 5550,
-              "y": 2300
+              "x": 4200,
+              "y": 8700
             },
             {
-              "x": 9050,
-              "y": 6100
+              "x": 5850,
+              "y": 9400
             },
             {
-              "x": 8050,
-              "y": 6100
+              "x": 5600,
+              "y": 10150
+            },
+            {
+              "x": 4050,
+              "y": 9550
             }
           ],
-          "area": 3800000,
+          "pathPoints": [
+            {
+              "x": 3750,
+              "y": 9100
+            },
+            {
+              "x": 5000,
+              "y": 9250
+            },
+            {
+              "x": 5750,
+              "y": 9800
+            }
+          ],
+          "pathWidthMm": 900,
+          "area": 1710000,
           "material": "pebble",
+          "notes": "方案示意：连接晾晒区与休闲区，后续可在庭院绘制模式中改路径中心线和宽度。",
+          "status": "design-intent",
+          "source": "default-workspace",
           "editable": true,
           "removable": true
         },
         {
-          "id": "OS-YARD-003",
+          "id": "OS-YARD-SOUTH-PET-CORNER",
           "floorId": "YARD",
-          "name": "边界花境",
+          "name": "南院宠物角排水铺装",
+          "label": "南院宠物角排水铺装",
+          "category": "hardscape",
           "geometryType": "polygon",
-          "surfaceType": "planting",
+          "surfaceType": "hardscape",
           "polygon": [
             {
-              "x": 1300,
-              "y": 3900
+              "x": 7600,
+              "y": 10400
             },
             {
-              "x": 4200,
-              "y": 3900
+              "x": 9250,
+              "y": 10400
             },
             {
-              "x": 4200,
-              "y": 6600
+              "x": 9250,
+              "y": 11600
             },
             {
-              "x": 1300,
-              "y": 6600
+              "x": 7600,
+              "y": 11600
             }
           ],
-          "area": 7830000,
-          "material": "shrub",
+          "pathWidthMm": null,
+          "area": 1980000,
+          "material": "pebble",
+          "notes": "方案示意：服务狗窝、宠物饮水和排水点，施工前确认可冲洗、防积水和排水接入。",
+          "status": "design-intent",
+          "source": "default-workspace",
           "editable": true,
           "removable": true
         }
@@ -10368,31 +10412,62 @@
       "skylights": [],
       "outdoors": [
         {
-          "id": "OD-YARD-001",
+          "id": "OD-YARD-NORTH-001",
           "floorId": "YARD",
-          "name": "Outdoor 001",
+          "name": "北院 / 入户庭院 · 编辑底盘",
           "spaceType": "Outdoor",
           "geometryType": "polygon",
-          "outdoorType": "patio",
+          "outdoorType": "frontYard",
           "polygon": [
             {
-              "x": 900,
-              "y": 850
+              "x": 950,
+              "y": -1650
             },
             {
-              "x": 10700,
-              "y": 850
+              "x": 9495,
+              "y": -1650
             },
             {
-              "x": 10700,
-              "y": 7100
+              "x": 9495,
+              "y": 350
             },
             {
-              "x": 900,
-              "y": 7100
+              "x": 950,
+              "y": 350
             }
           ],
-          "area": 61250000
+          "area": 17090000,
+          "status": "design-intent",
+          "source": "default-workspace"
+        },
+        {
+          "id": "OD-YARD-SOUTH-001",
+          "floorId": "YARD",
+          "name": "南院 / 生活庭院 · 编辑底盘",
+          "spaceType": "Outdoor",
+          "geometryType": "polygon",
+          "outdoorType": "backYard",
+          "polygon": [
+            {
+              "x": 950,
+              "y": 7800
+            },
+            {
+              "x": 9495,
+              "y": 7800
+            },
+            {
+              "x": 9495,
+              "y": 11800
+            },
+            {
+              "x": 950,
+              "y": 11800
+            }
+          ],
+          "area": 34180000,
+          "status": "design-intent",
+          "source": "default-workspace"
         }
       ]
     }
@@ -10616,8 +10691,48 @@
       "description": "紧凑卫浴与洗衣功能的给排水检修关系。"
     },
     {
+      "id": "view-1f-yard-overview",
+      "name": "1F + 南北院总览",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 8.4,
+        "y": 7.6,
+        "z": 10.8
+      },
+      "target": {
+        "x": 0.1,
+        "y": 0.42,
+        "z": 0.9
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "all",
+      "description": "展示一层室内、北院入户庭院与南院生活庭院的整体关系。"
+    },
+    {
+      "id": "view-yard-all",
+      "name": "全院总览",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 8.2,
+        "y": 7.2,
+        "z": 10.5
+      },
+      "target": {
+        "x": 0,
+        "y": 0.34,
+        "z": 0.4
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "all",
+      "description": "聚焦南北院、围栏、铺装、庭院设备和水电需求点。"
+    },
+    {
       "id": "view-yard-south",
-      "name": "南院",
+      "name": "南院生活庭院",
       "floor": "YARD",
       "cameraPosition": {
         "x": 7,
@@ -10631,11 +10746,13 @@
       },
       "zoom": 1.04,
       "mode": "perspective",
-      "description": "休闲平台、晾晒、户外柜、宠物角和排水。"
+      "scope": "courtyard",
+      "targetArea": "southYard",
+      "description": "查看休闲平台、晾晒、户外柜、宠物角、给水和排水需求。"
     },
     {
       "id": "view-yard-north",
-      "name": "北院",
+      "name": "北院入户庭院",
       "floor": "YARD",
       "cameraPosition": {
         "x": 5.5,
@@ -10649,7 +10766,50 @@
       },
       "zoom": 1.04,
       "mode": "perspective",
-      "description": "入户院门、围栏、烧烤岛台与户外插座。"
+      "scope": "courtyard",
+      "targetArea": "northYard",
+      "description": "查看入户院门、围栏、烧烤岛台、户外插座和通行动线。"
+    },
+    {
+      "id": "view-yard-entry",
+      "name": "入户北院",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 3.8,
+        "y": 3.9,
+        "z": -8.7
+      },
+      "target": {
+        "x": -0.2,
+        "y": 0.35,
+        "z": -5.25
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "entryYard",
+      "description": "聚焦北院入户庭院、庭院门、烧烤岛台与北侧围栏。"
+    },
+    {
+      "id": "view-yard-south-living",
+      "name": "南院生活区",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 5.8,
+        "y": 4.6,
+        "z": 9.7
+      },
+      "target": {
+        "x": 1.4,
+        "y": 0.35,
+        "z": 5.5
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "southLiving",
+      "description": "聚焦南院休闲活动区、连接小路、庭院灯和宠物角。"
     }
-  ]
+  ],
+  "updatedAt": "2026-07-12T11:06:56.899Z"
 }

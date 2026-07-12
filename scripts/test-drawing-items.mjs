@@ -24,6 +24,7 @@ const furniture = [{
   position: { x: 50, y: 50, rotation: 0, flipX: false, flipY: false }, color: "#fff",
   mepMeta: {
     needsSocket: true, socketCount: 2, socketHeight: 350, relatedCircuit: "C-01",
+    needsSwitch: true, switchControl: ["镜前灯", "柜下灯"],
     needsLighting: true, lightingType: "mirrorLight", lightColorTemperature: "3500K", needsSmartControl: true,
     needsWaterSupply: true, waterSupplyType: "hotCold", needsDrainage: true, drainageType: "cabinetDrain",
     needsNetwork: true, needsVentilation: true
@@ -35,11 +36,20 @@ const structure = {
   walls: [], rooms: [], partitions: [], stairs: [], columns: [], fences: [], outdoorSurfaces: [], doors: [], windows: [], bayWindows: [], skylights: [], outdoors: []
 };
 const generated = generateDrawingItemsFromFurniture({ furniture, structuresByFloor: { "1F": structure }, existingItems: [], now: "2026-07-12T01:00:00.000Z" });
-assert.equal(generated.created, 7);
-assert.equal(new Set(generated.items.map((generatedItem) => generatedItem.generatedKey)).size, 7);
+assert.equal(generated.created, 8);
+assert.equal(new Set(generated.items.map((generatedItem) => generatedItem.generatedKey)).size, 8);
 assert.equal(generated.items.find((generatedItem) => generatedItem.category === "socket").quantity, 2);
 assert.equal(generated.items.find((generatedItem) => generatedItem.category === "socket").heightMm, 350);
 assert.equal(generated.items.find((generatedItem) => generatedItem.category === "light").lightColorTemperature, "3500K");
+assert.deepEqual(generated.items.find((generatedItem) => generatedItem.category === "switch").switchControl, ["镜前灯", "柜下灯"]);
+
+const areaItem = {
+  ...createDrawingItem({ id: "DI-AREA-001", floorId: "1F", category: "floorFinish", positionMm: { x: 1000, y: 1000 }, now: "2026-07-12T00:00:00.000Z" }),
+  roomId: "ROOM-1F-001", polygon: [{ x: 0, y: 0 }, { x: 2000, y: 0 }, { x: 2000, y: 3000 }, { x: 0, y: 3000 }],
+  material: "woodFloor", pattern: "工字铺", directionDeg: 90, startPoint: { x: 0, y: 0 }, seamWidthMm: 2, transition: "铜条", area: 6
+};
+assert.equal(areaItem.polygon.length, 4);
+assert.equal(areaItem.material, "woodFloor");
 
 const repeated = generateDrawingItemsFromFurniture({ furniture, structuresByFloor: { "1F": structure }, existingItems: generated.items, now: "2026-07-12T02:00:00.000Z" });
 assert.equal(repeated.items.length, generated.items.length, "Repeated generation must not duplicate demands.");

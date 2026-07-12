@@ -36,6 +36,10 @@ Drawing Package System 使用统一的 `drawingItems` / `drawingPackage` 数据�
 
 编辑模式可按当前楼层或全屋从 `furniture.mepMeta` / `constructionMeta` 生成插座、灯光、给水、排水、网络、通风和检修提示点。生成以 `relatedFurnitureId + category + type` 为幂等键；自动点位若经过人工移动或编辑，后续生成会先提示冲突，不会静默覆盖。这里表达的是预留需求点和施工沟通草图，不包含专业管线路径。
 
+第四阶段继续在 DrawingItem 上承载开关控制关系、吊顶区域、地面铺装区域和墙面材料做法。开关可绑定灯点/灯组；吊顶和铺装使用同一毫米坐标 polygon；墙面材料绑定真实 wallId；柜体深化同时汇总 constructionMeta、mepMeta 和关联点位。第一版表达区域、材料、标注和施工沟通关系，不包含复杂电路或节点详图。
+
+施工沟通包工作流：先从家具 `mepMeta` 生成本层或全屋需求点，再在专业图纸中移动点位、补充控制关系/材料/状态并确认人工调整，最后从图纸包面板导出 HTML、CSV 或 JSON。导出前会检查 drawingItems 引用、孤立点位、draft 和待复核项；HTML 总说明保留这些校验结果，并按楼层输出全部正式图纸、版本、导出时间、状态和 cameraViews 手动截图入口。HTML 面向阅读，CSV/JSON 面向清单复核和后续加工。
+
 ## 使用入口
 
 进入页面后，常用入口是：
@@ -195,6 +199,7 @@ pnpm test:workspace-migrations
 pnpm test:workspace-references
 pnpm test:workspace-access
 pnpm test:drawing-sheets
+pnpm test:construction-export
 pnpm test:save-service
 pnpm test:object-sync
 ```
@@ -227,6 +232,7 @@ pnpm check:pages-build
 - Pages 产物路径包含 `/lyhpvilla/_next/`。
 - Pages 产物里的底图路径包含 `/lyhpvilla/floor-plans/`。
 - 图纸命名 alias 通过 `pnpm test:drawing-sheets`。
+- 施工沟通包目录、清单字段、校验摘要和视角说明通过 `pnpm test:construction-export`。
 - `out/.nojekyll` 存在。
 - `out/404.html` 存在。
 

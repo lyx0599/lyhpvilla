@@ -43,6 +43,7 @@ type Floor3DViewProps = {
   onHoverObject: (objectId: string) => void;
   onClearHoverObject: (objectId: string) => void;
   cameraViews?: FixedCameraView[];
+  cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   mobilePresentationMode?: boolean;
   mobileQuality?: MobileQuality;
@@ -5118,7 +5119,7 @@ function Floor3DScene({
         <meshStandardMaterial color="#d9d1c2" roughness={0.88} />
       </mesh>
 
-      {houseStructure.outdoors.map((outdoor) => (
+      {houseStructure.outdoors.filter((outdoor) => resolveVisibility(outdoor).visible3d).map((outdoor) => (
         <OutdoorGroundMesh
           key={outdoor.id}
           outdoor={outdoor}
@@ -5128,7 +5129,7 @@ function Floor3DScene({
           onClearHover={onClearHoverObject}
         />
       ))}
-      {houseStructure.outdoorSurfaces.map((surface) => (
+      {houseStructure.outdoorSurfaces.filter((surface) => resolveVisibility(surface).visible3d).map((surface) => (
         <OutdoorSurfaceMesh
           key={surface.id}
           surface={surface}
@@ -5163,7 +5164,7 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.fences.map((fence) => (
+      {houseStructure.fences.filter((fence) => resolveVisibility(fence).visible3d).map((fence) => (
         <FenceMesh
           key={fence.id}
           fence={fence}
@@ -5300,6 +5301,7 @@ export function Floor3DView({
   houseStructure,
   furniture,
   cameraViews = [],
+  cameraViewFloorIds,
   cameraViewRequest = null,
   mobilePresentationMode = false,
   mobileQuality = "balanced",
@@ -5330,13 +5332,20 @@ export function Floor3DView({
     houseStructure.partitions.find((item) => item.id === selectedObjectId) ??
     houseStructure.stairs.find((item) => item.id === selectedObjectId) ??
     (houseStructure.columns ?? []).find((item) => item.id === selectedObjectId) ??
+    houseStructure.fences.find((item) => item.id === selectedObjectId) ??
+    houseStructure.outdoorSurfaces.find((item) => item.id === selectedObjectId) ??
+    houseStructure.outdoors.find((item) => item.id === selectedObjectId) ??
     houseStructure.doors.find((item) => item.id === selectedObjectId) ??
     houseStructure.windows.find((item) => item.id === selectedObjectId) ??
     houseStructure.bayWindows.find((item) => item.id === selectedObjectId) ??
     null;
   const selectedName = selectedFurniture?.name ?? selectedStructure?.name ?? selectedObjectId;
   const servicePointCount = useMemo(() => countServiceMarkers(furniture), [furniture]);
-  const currentFloorCameraViews = useMemo(() => cameraViews.filter((view) => view.floor === floor.id), [cameraViews, floor.id]);
+  const acceptedCameraViewFloorIds = useMemo(() => cameraViewFloorIds ?? [floor.id], [cameraViewFloorIds, floor.id]);
+  const currentFloorCameraViews = useMemo(
+    () => cameraViews.filter((view) => acceptedCameraViewFloorIds.includes(view.floor)),
+    [acceptedCameraViewFloorIds, cameraViews]
+  );
   const resetMobileCamera = () => {
     setCameraMode("orbit");
     setMaterialPreview(true);
@@ -5354,10 +5363,10 @@ export function Floor3DView({
   }, [floor.id, mobilePresentationMode, resetViewRequest]);
   useEffect(() => {
     const requestedView = cameraViewRequest?.view;
-    if (!requestedView || requestedView.floor !== floor.id) return;
+    if (!requestedView || !acceptedCameraViewFloorIds.includes(requestedView.floor)) return;
     setCameraMode("orbit");
     setCameraRequest((current) => ({ preset: current.preset, fixedView: requestedView, version: current.version + 1 }));
-  }, [cameraViewRequest?.nonce, cameraViewRequest?.view, floor.id]);
+  }, [acceptedCameraViewFloorIds, cameraViewRequest?.nonce, cameraViewRequest?.view]);
   const requestCameraPreset = (preset: CameraPreset) => {
     setCameraMode("orbit");
     setCameraRequest((current) => ({ preset, fixedView: null, version: current.version + 1 }));
@@ -5454,15 +5463,15 @@ export function Floor3DView({
           </button>
           {currentFloorCameraViews.length > 0 && (
             <select
-              aria-label="当前楼层固定视角"
+              aria-label="当前固定视角"
               className="h-8 max-w-40 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
-              value={cameraRequest.fixedView?.floor === floor.id ? cameraRequest.fixedView.id : ""}
+              value={cameraRequest.fixedView && acceptedCameraViewFloorIds.includes(cameraRequest.fixedView.floor) ? cameraRequest.fixedView.id : ""}
               onChange={(event) => {
                 const view = currentFloorCameraViews.find((item) => item.id === event.target.value);
                 if (view) onSelectCameraView?.(view);
               }}
             >
-              <option value="">当前楼层视角</option>
+              <option value="">当前固定视角</option>
               {currentFloorCameraViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}
             </select>
           )}

@@ -331,7 +331,7 @@ export function SemanticMapPanel({
             </label>
             {furnitureDraft.referenceImage && <img alt="家具参考图预览" className="h-24 w-full rounded-xl object-contain bg-white" src={furnitureDraft.referenceImage} />}
             <label className="block text-xs text-stone-500">
-              自然语言占位输入
+              自然语言快速输入
               <div className="mt-1 flex gap-2">
                 <input className="min-w-0 flex-1 rounded-xl border border-stone-200 px-3 py-2 text-sm text-ink" placeholder="把这个沙发放到 1F 客厅" value={furnitureDraft.naturalText} onChange={(event) => setFurnitureDraft({ ...furnitureDraft, naturalText: event.target.value })} />
                 <button className="rounded-xl bg-stone-100 px-3 text-xs font-semibold text-stone-600" onClick={parseNaturalText} type="button">解析</button>

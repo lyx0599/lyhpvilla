@@ -552,22 +552,31 @@ export function createOutdoorSurface(
   id: string,
   floorId: FloorId,
   surfaceType: HouseOutdoorSurface["surfaceType"],
-  polygon: MmPoint[]
+  polygon: MmPoint[],
+  options: Partial<Pick<HouseOutdoorSurface, "label" | "notes" | "status" | "source" | "category" | "pathPoints" | "pathWidthMm">> = {}
 ): HouseOutdoorSurface {
   const materialByType: Record<HouseOutdoorSurface["surfaceType"], HouseOutdoorSurface["material"]> = {
     hardscape: "stone",
     path: "pebble",
     planting: "grass"
   };
+  const defaultLabel = surfaceType === "hardscape" ? "硬化区域" : surfaceType === "path" ? "庭院小路" : "绿化带";
   return {
     id,
     floorId,
-    name: `${surfaceType === "hardscape" ? "Hardscape" : surfaceType === "path" ? "Path" : "Planting"} ${id.split("-").slice(-1)[0]}`,
+    name: options.label ?? `${defaultLabel} ${id.split("-").slice(-1)[0]}`,
+    label: options.label ?? defaultLabel,
+    category: options.category ?? (surfaceType === "hardscape" ? "hardscape" : surfaceType),
     geometryType: "polygon",
     surfaceType,
     polygon,
+    pathPoints: options.pathPoints,
+    pathWidthMm: options.pathWidthMm ?? null,
     area: getPolygonArea(polygon),
     material: materialByType[surfaceType],
+    notes: options.notes ?? "",
+    status: options.status ?? "draft",
+    source: options.source ?? "manual",
     editable: true,
     removable: true
   };

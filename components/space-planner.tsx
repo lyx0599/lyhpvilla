@@ -8,7 +8,6 @@ import { MobileDetailsDrawer } from "@/components/mobile-details-drawer";
 import { PlanCanvas } from "@/components/plan-canvas";
 import { SemanticMapPanel } from "@/components/semantic-map-panel";
 import { ViewToggle } from "@/components/view-toggle";
-import { Yard3DPreview } from "@/components/yard-3d-preview";
 import { interiorModuleCatalog, interiorModuleCategoryLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
@@ -16,7 +15,8 @@ import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmpt
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
-import { generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
+import { drawingItemCategoryLabels, generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
+import { COURTYARD_CAMERA_VIEW_IDS, createUnifiedCourtyardModel, courtyardViewFloorIds } from "@/lib/courtyard-model";
 import { createSyncSelfCheckReport, resolveSelection } from "@/lib/object-sync-adapter";
 import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspaceAccessCapabilities } from "@/lib/workspace-access";
 import { applyWorkspaceMigrations, CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION, reportWorkspaceDataSources } from "@/lib/workspace-migrations";
@@ -106,7 +106,7 @@ type LocalFilePickerWindow = Window & {
 };
 
 const WEB_WORKSPACE_SCHEMA_VERSION = CURRENT_WORKSPACE_SCHEMA_VERSION;
-const DEFAULT_WORKSPACE_REVISION = "2026-07-12-drawing-package-system-v1";
+const DEFAULT_WORKSPACE_REVISION = "2026-07-12-drawing-package-finishes-v1";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -472,7 +472,7 @@ function getFurnitureDesignPageData(furniture: Furniture): DesignPageData | null
     zones: design.zones,
     cautionNotes: design.cautionNotes,
     metrics: [
-      { label: "宽", value: `${furniture.dimensions.width} cm`, note: "平面占位" },
+      { label: "宽", value: `${furniture.dimensions.width} cm`, note: "平面尺度" },
       { label: "深", value: `${furniture.dimensions.depth} cm`, note: "通道校核" },
       { label: "高", value: `${furniture.dimensions.height} cm`, note: "立面体量" },
       { label: "机电", value: activeServices.length ? activeServices.join(" / ") : "无", note: furniture.material }
@@ -1339,7 +1339,7 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
     roomId: "ROOM-1F-005",
     dimensions: { width: 72, depth: 82, height: 82, unit: "cm" },
     material: "浅木藤编 + 米白坐垫",
-    note: "作为客厅活动区的轻量补座，先做自然风单椅占位。",
+    note: "作为客厅活动区的轻量补座，先做自然风单椅示意。",
     constructionNote: "后期根据客厅动线调整角度，不压餐桌椅后退区和去楼梯的通道。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
     position: { x: 47, y: 60.5, rotation: 320 },
@@ -1446,7 +1446,7 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
         { id: "veg-basket", label: "蔬果拉篮", role: "蔬果 / 常用菜", widthPercent: 30, heightPercent: 100, detail: "中段做可抽拉透气篮，放土豆、洋葱、水果等需要顺手拿的食材。" },
         { id: "stock-cabinet", label: "囤货柜", role: "饮料 / 纸巾", widthPercent: 30, heightPercent: 100, detail: "重物和整箱物品靠下放，门板封闭，客厅看起来更干净。" }
       ],
-      cautionNotes: ["门洞左侧墙段略短于 150cm，复尺后优先确认门套、踢脚线和开门净距。", "如果现场门套占位更大，柜体宽度宁可缩短，也不要压到卫生间门口。"]
+      cautionNotes: ["门洞左侧墙段略短于 150cm，复尺后优先确认门套、踢脚线和开门净距。", "如果现场门套厚度更大，柜体宽度宁可缩短，也不要压到卫生间门口。"]
     }
   },
   "furn-entry-slim-hanging-001": {
@@ -2283,6 +2283,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [focusMode, setFocusMode] = useState(false);
   const [furnitureImmersiveMode, setFurnitureImmersiveMode] = useState(false);
   const [yardPreview3DMode, setYardPreview3DMode] = useState(false);
+  const [yardEditFocus, setYardEditFocus] = useState<"north" | "south">("south");
   const [cameraViews, setCameraViews] = useState<FixedCameraView[]>(data.workspace.cameraViews);
   const [fixedCameraViewRequest, setFixedCameraViewRequest] = useState<{ view: FixedCameraView; nonce: number } | null>(null);
   const [showFurnitureLabels, setShowFurnitureLabels] = useState(true);
@@ -2399,10 +2400,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   );
   const floorDrawingItems = useMemo(() => drawingItems.filter((item) => item.floorId === selectedFloorId), [drawingItems, selectedFloorId]);
   const oneFloorHouseStructure = houseStructuresByFloor["1F"] ?? createEmptyStructure("1F");
-  const oneFloorFurniture = useMemo(
-    () => furniture.filter((item) => item.floorId === "1F"),
-    [furniture]
-  );
+  const yardHouseStructure = houseStructuresByFloor.YARD ?? createEmptyStructure("YARD");
+  const unifiedCourtyardModel = useMemo(() => createUnifiedCourtyardModel({
+    oneFloorStructure: oneFloorHouseStructure,
+    yardStructure: yardHouseStructure,
+    furniture
+  }), [furniture, oneFloorHouseStructure, yardHouseStructure]);
   const floorLegacyRooms = useMemo(() => (data.legacyRooms ?? data.rooms ?? []).filter((room) => room.floorId === selectedFloorId), [data.legacyRooms, data.rooms, selectedFloorId]);
   const floorLegacyWalls = useMemo(() => (data.legacyWalls ?? data.walls ?? []).filter((wall) => wall.floorId === selectedFloorId), [data.legacyWalls, data.walls, selectedFloorId]);
   const floorSemanticObjects = useMemo(
@@ -2441,6 +2444,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     null
   ), [activeObjectId, floorHouseStructure]);
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+  const activeFurnitureDrawingItems = activeFurniture ? floorDrawingItems.filter((item) => item.relatedFurnitureId === activeFurniture.id) : [];
   useEffect(() => {
     if (process.env.NODE_ENV === "production") return;
     const yardObjectIds = selectedFloorId === "1F"
@@ -2492,7 +2496,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     ? `${activeRoomObject.roomNumber} · ${activeRoomObject.name}`
     : activeFurniture
       ? `${activeFurniture.code} · ${activeFurniture.name}`
-      : activeObjectId || "未选择对象";
+      : activeStructureObject
+        ? activeStructureObject.name
+        : activeObjectId || "未选择对象";
   const designPageData = useMemo(() => {
     if (!designPageRequest) return null;
     if (designPageRequest.kind === "furniture") {
@@ -2858,7 +2864,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setFocusMode(false);
     setFurnitureImmersiveMode(false);
     setYardPreview3DMode(true);
-    setSelectedFloorId("1F");
+    setViewMode("3d");
+    setSelectedFloorId("YARD");
     setSelectedFurnitureId("");
     setSelectedSemanticObjectId("");
     setPlannerMode("view");
@@ -2866,6 +2873,33 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setActiveObjectId("");
     setLocateObjectRequest(null);
     setMobileSheetTarget(null);
+    const defaultView = cameraViews.find((view) => view.id === COURTYARD_CAMERA_VIEW_IDS.all);
+    if (defaultView) setFixedCameraViewRequest({ view: defaultView, nonce: Date.now() });
+  }
+
+  function enterYardEditMode(yard: "north" | "south" = "south") {
+    const objectId = yard === "north" ? "OD-YARD-NORTH-001" : "OD-YARD-SOUTH-001";
+    const fallbackObjectId = yard === "north" ? "OD-1F-NORTH-001" : "OD-1F-SOUTH-001";
+    const targetObjectId = yardHouseStructure.outdoors.some((item) => item.id === objectId) ? objectId : fallbackObjectId;
+    setYardEditFocus(yard);
+    setSelectedFloorId("YARD");
+    setSelectedFurnitureId("");
+    setSelectedSemanticObjectId("");
+    setFocusMode(false);
+    setFurnitureImmersiveMode(false);
+    setYardPreview3DMode(false);
+    setViewMode("2d");
+    setDrawTool("select");
+    setPlannerMode("edit");
+    setActiveObjectId(targetObjectId);
+    setLocateObjectRequest({ id: targetObjectId, nonce: Date.now() });
+    setMobileSheetTarget({ kind: "structure", id: targetObjectId });
+    setOpenRightPanels((currentPanels) => ({
+      ...currentPanels,
+      floors: true,
+      object: true
+    }));
+    setValidatorRepairLog([yard === "north" ? "已进入北院绘制模式，后续小路、绿化、硬化和点位会写入 YARD 数据。" : "已进入南院绘制模式，后续小路、绿化、硬化和点位会写入 YARD 数据。"]);
   }
 
   function handleSelectFixedCameraView(view: FixedCameraView) {
@@ -2880,8 +2914,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setLocateObjectRequest(null);
     setMobileSheetTarget(null);
     if (view.floor === "YARD") {
-      setSelectedFloorId("1F");
+      setSelectedFloorId("YARD");
       setYardPreview3DMode(true);
+      setViewMode("3d");
       return;
     }
     setYardPreview3DMode(false);
@@ -2890,19 +2925,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleFocusYard(yard: "north" | "south") {
-    setSelectedFloorId("1F");
-    setSelectedFurnitureId("");
-    setSelectedSemanticObjectId("");
-    setFocusMode(false);
-    setFurnitureImmersiveMode(false);
-    setYardPreview3DMode(false);
-    setDrawTool("select");
-    setPlannerMode("edit");
-    const objectId = yard === "north" ? "OD-1F-NORTH-001" : "OD-1F-SOUTH-001";
-    setActiveObjectId(objectId);
-    setLocateObjectRequest({ id: objectId, nonce: Date.now() });
-    setMobileSheetTarget({ kind: "structure", id: objectId });
-    setValidatorRepairLog([yard === "north" ? "已定位北院，当前显示 1F 总平面中的入户庭院。" : "已定位南院，当前显示 1F 总平面中的生活庭院。"]);
+    enterYardEditMode(yard);
   }
 
   function findCatalogItemByNaturalText(command: string) {
@@ -3655,6 +3678,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       }));
       return;
     }
+    if (furniture.floorId !== selectedFloorId) {
+      setSelectedFloorId(furniture.floorId);
+      if (furniture.floorId === "YARD" && viewMode === "3d") setYardPreview3DMode(true);
+    }
     setSelectedFurnitureId(furniture.id);
     setSelectedSemanticObjectId("");
     setActiveObjectId(furniture.id);
@@ -3665,9 +3692,18 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleStructureObjectSelect(objectId: string) {
+    const selection = resolveSelection(objectId, furniture, Object.values(houseStructuresByFloor));
+    if (selection?.floorId && selection.floorId !== selectedFloorId && houseStructuresByFloor[selection.floorId as FloorId]) {
+      setSelectedFloorId(selection.floorId as FloorId);
+      if (selection.floorId === "YARD" && viewMode === "3d") setYardPreview3DMode(true);
+    }
     setSelectedFurnitureId("");
     setSelectedSemanticObjectId("");
     setActiveObjectId(objectId);
+    setOpenRightPanels((currentPanels) => ({
+      ...currentPanels,
+      object: true
+    }));
   }
 
   function handleYard3DObjectSelect(objectId: string) {
@@ -3683,8 +3719,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     if (selection.kind === "furniture" || selection.kind === "cabinet") setSelectedFurnitureId(selection.id);
     else setSelectedFurnitureId("");
     setLocateObjectRequest({ id: selection.id, nonce: Date.now() });
-    setViewMode("2d");
-    setYardPreview3DMode(false);
+    setViewMode("3d");
+    setYardPreview3DMode(true);
+    setOpenRightPanels((currentPanels) => ({
+      ...currentPanels,
+      object: true
+    }));
   }
 
   function handleFurnitureUpdate(nextFurniture: Furniture) {
@@ -4575,6 +4615,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   const isFurnitureWorkspace = furnitureImmersiveMode && !focusMode && !yardPreview3DMode;
   const isYard3DWorkspace = yardPreview3DMode && !focusMode && !furnitureImmersiveMode;
+  const usesUnifiedCourtyard3D = viewMode === "3d" && !focusMode && !furnitureImmersiveMode && (selectedFloorId === "1F" || isYard3DWorkspace);
   const isImmersiveWorkspace = focusMode || isFurnitureWorkspace || isYard3DWorkspace;
   const localCodeFileReady = Boolean(localCodeFileHandle) || localCodeServerOnline;
   const isPublishedCodeWorkspace = !canUseBrowserDrafts;
@@ -4724,6 +4765,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               legacyWalls={floorLegacyWalls}
               furniture={floorFurniture}
               drawingItems={floorDrawingItems}
+              constructionExportWorkspace={getCurrentWorkspace("manual")}
               semanticObjects={floorSemanticObjects}
               selectedFurnitureId={activeFurniture?.id ?? selectedFurniture?.id ?? ""}
               selectedSemanticObjectId={selectedSemanticObjectId}
@@ -4969,7 +5011,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   onClick={() => enterYard3DPreview()}
                   type="button"
                 >
-                  院子3D
+                  庭院专项视图
+                </button>
+                <button
+                  className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
+                  onClick={() => enterYardEditMode("south")}
+                  type="button"
+                >
+                  编辑庭院
                 </button>
               </div>
               <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
@@ -5003,42 +5052,33 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </div>
           </header>}
 
-          {isYard3DWorkspace ? (
-            <Yard3DPreview
-              houseStructure={oneFloorHouseStructure}
-              furniture={[...oneFloorFurniture, ...furniture.filter((item) => item.floorId === "YARD")]}
-              cameraViews={cameraViews}
-              cameraViewRequest={fixedCameraViewRequest}
-              onSelectCameraView={handleSelectFixedCameraView}
-              onEditYard={handleFocusYard}
-              selectedObjectId={activeObjectId}
-              onSelectObject={handleYard3DObjectSelect}
-              onExit={() => setYardPreview3DMode(false)}
-            />
-          ) : (
-            <PlanCanvas
+          <PlanCanvas
               floor={currentFloor}
               floors={floors}
               legacyRooms={floorLegacyRooms}
               legacyWalls={floorLegacyWalls}
-              furniture={floorFurniture}
+              furniture={usesUnifiedCourtyard3D ? unifiedCourtyardModel.furniture : floorFurniture}
               drawingItems={floorDrawingItems}
+              constructionExportWorkspace={getCurrentWorkspace("manual")}
               semanticObjects={floorSemanticObjects}
               selectedFurnitureId={selectedFurniture?.id ?? ""}
               selectedSemanticObjectId={selectedSemanticObjectId}
-              viewMode={viewMode}
+              viewMode={isYard3DWorkspace ? "3d" : viewMode}
               plannerMode={plannerMode}
               drawTool={drawTool}
-              houseStructure={floorHouseStructure}
+              houseStructure={usesUnifiedCourtyard3D ? unifiedCourtyardModel.houseStructure : floorHouseStructure}
               wallSyncOverrides={wallSyncOverrides}
               floorPlanVisualSettings={floorPlanVisualSettings}
               cleanPatches={floorCleanPatches}
               focusMode={focusMode}
               furnitureImmersiveMode={isFurnitureWorkspace}
+              yardImmersiveMode={selectedFloorId === "YARD" && viewMode === "2d" && !isYard3DWorkspace}
+              yardFocus={yardEditFocus}
               workspaceMutationAllowed={canMutateWorkspace}
               showFurnitureLabels={showFurnitureLabels}
               activeFurnitureId={activeFurniture?.id ?? ""}
               cameraViews={cameraViews}
+              cameraViewFloorIds={usesUnifiedCourtyard3D ? courtyardViewFloorIds : undefined}
               cameraViewRequest={fixedCameraViewRequest}
               locateObjectRequest={locateObjectRequest}
               canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
@@ -5046,7 +5086,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onScaleChange={handleScaleChange}
               onSelectFloor={handleFloorChange}
               onActiveObjectChange={setActiveObjectId}
-              onSelectStructureObject={handleStructureObjectSelect}
+              onSelectStructureObject={isYard3DWorkspace ? handleYard3DObjectSelect : handleStructureObjectSelect}
               onUndo={handleUndo}
               onRedo={handleRedo}
               onPlannerModeChange={setPlannerMode}
@@ -5067,14 +5107,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onMoveSemanticObject={handleMoveSemanticObject}
               onSelectCameraView={handleSelectFixedCameraView}
             />
-          )}
         </section>
 
         <aside className="hidden h-full min-h-0 overflow-y-auto overscroll-contain border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
           <div className="space-y-3">
             <div className="px-1 pb-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isYard3DWorkspace ? "Yard 3D" : isFurnitureWorkspace ? "Furniture" : focusMode ? "Focus" : "Inspector"}</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">{isYard3DWorkspace ? "院子 3D 预览" : isFurnitureWorkspace ? "家具布置台" : focusMode ? "户型绘制台" : "结构检查器"}</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isYard3DWorkspace ? "Courtyard" : isFurnitureWorkspace ? "Furniture" : focusMode ? "Focus" : "Inspector"}</p>
+              <h2 className="mt-1 text-lg font-semibold text-ink">{isYard3DWorkspace ? "庭院专项视图" : isFurnitureWorkspace ? "家具布置台" : focusMode ? "户型绘制台" : "结构检查器"}</h2>
             </div>
             {focusMode && (
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3 text-xs leading-5 text-blue-900">
@@ -5089,15 +5128,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             {isYard3DWorkspace && (
               <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-3 text-xs leading-5 text-blue-950">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold">专门的院子 3D</span>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-700">1F 南北院</span>
+                  <span className="font-semibold">庭院专项 3D 视图</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-700">同一模型</span>
                 </div>
-                <p className="mt-2">3D 场景读取当前一层庭院数据，硬化区、小路和占位模块会跟着默认方案更新。</p>
+                <p className="mt-2">3D 场景读取同一份一层与 YARD 庭院数据，硬化区、小路、绿化、围栏和水电点位会跟着方案更新。</p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-blue-800 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => handleFocusYard("south")} type="button">定位南院</button>
-                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-blue-800 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => handleFocusYard("north")} type="button">定位北院</button>
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-blue-800 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => handleFocusYard("south")} type="button">编辑南院</button>
+                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-blue-800 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => handleFocusYard("north")} type="button">编辑北院</button>
                 </div>
-                <button className="mt-2 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800" onClick={() => setYardPreview3DMode(false)} type="button">退出 3D 预览</button>
+                <button className="mt-2 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800" onClick={() => setYardPreview3DMode(false)} type="button">回到当前楼层</button>
               </div>
             )}
             <RightPanelCard
@@ -5132,13 +5171,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 {!isFurnitureWorkspace && (
                   <>
                     <div className="grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
-                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${activeObjectId === "OD-1F-NORTH-001" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("north")} type="button">
+                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${activeObjectId === "OD-YARD-NORTH-001" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("north")} type="button">
                         北院
-                        <span className="mt-0.5 block text-[11px] font-normal text-stone-400">入户庭院 · 2m</span>
+                        <span className="mt-0.5 block text-[11px] font-normal text-stone-400">入户庭院 · 编辑</span>
                       </button>
-                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${activeObjectId === "OD-1F-SOUTH-001" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("south")} type="button">
+                      <button className={`rounded-xl border px-3 py-2 text-left text-xs font-semibold hover:bg-stone-50 ${activeObjectId === "OD-YARD-SOUTH-001" ? "border-emerald-500 bg-emerald-50 text-emerald-900" : "border-stone-200 bg-white text-stone-600"}`} onClick={() => handleFocusYard("south")} type="button">
                         南院
-                        <span className="mt-0.5 block text-[11px] font-normal text-stone-400">生活庭院 · 4m</span>
+                        <span className="mt-0.5 block text-[11px] font-normal text-stone-400">生活庭院 · 编辑</span>
                       </button>
                     </div>
                     {!isYard3DWorkspace && <div className="border-t border-stone-100 pt-3">
@@ -5457,10 +5496,26 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 	                          <p className="mt-1 text-xs font-semibold text-emerald-800">占地 {activeFurnitureArea} 平米 · 角度 {Math.round(activeFurniture.position.rotation)}°</p>
 	                        </div>
 	                      </div>
-		                      <label className="mt-3 block text-xs text-stone-500">
+	                      <label className="mt-3 block text-xs text-stone-500">
 	                        名称
 	                        <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400" disabled={activeFurniture.locked} value={activeFurniture.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
 	                      </label>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <button
+                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${activeFurniture.locked ? "bg-amber-600 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"}`}
+                            onClick={() => handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? { ...item, locked: !item.locked } : item))}
+                            type="button"
+                          >
+                            {activeFurniture.locked ? "已锁定" : "锁定"}
+                          </button>
+                          <button
+                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${activeFurniture.hidden ? "bg-stone-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"}`}
+                            onClick={() => handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? { ...item, hidden: !item.hidden, visible: item.hidden ? true : item.visible } : item))}
+                            type="button"
+                          >
+                            {activeFurniture.hidden ? "已隐藏" : "隐藏"}
+                          </button>
+                        </div>
 	                      <div className="mt-3 rounded-xl bg-white/70 p-2">
 	                        <div className="flex items-center justify-between gap-2">
 	                          <p className="text-xs font-semibold text-ink">真实家具图片</p>
@@ -5566,6 +5621,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                             <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-amber-700">柜体方案</span>
                           </div>
                           <p className="mt-3 text-[11px] leading-4 text-amber-800">建议位置：{activeFurniture.cabinetDesign.recommendedPlacement}</p>
+                          <div className="mt-3 rounded-lg border border-amber-200 bg-white/80 p-2">
+                            <p className="text-[11px] font-semibold text-amber-900">关联施工需求点 · {activeFurnitureDrawingItems.length}</p>
+                            <div className="mt-2 grid gap-1">{activeFurnitureDrawingItems.length ? activeFurnitureDrawingItems.map((item) => <p key={item.id} className="text-[11px] leading-4 text-stone-600"><span className="font-semibold text-ink">{drawingItemCategoryLabels[item.category]}</span> · {item.label} · x{item.quantity}{item.heightMm ? ` · H${item.heightMm}` : ""} · {item.status}</p>) : <p className="text-[11px] text-stone-500">暂无关联插座、灯带电源、给排水或检修口。</p>}</div>
+                          </div>
+                          <div className="mt-2 grid gap-1 rounded-lg bg-amber-100/70 p-2 text-[11px] leading-4 text-amber-950">
+                            <p><span className="font-semibold">MEP：</span>{[
+                              activeFurniture.mepMeta?.needsSocket ? `插座 x${activeFurniture.mepMeta.socketCount ?? 1}` : "",
+                              activeFurniture.mepMeta?.needsLighting ? "灯带/照明电源" : "",
+                              activeFurniture.mepMeta?.needsWaterSupply ? "给水" : "",
+                              activeFurniture.mepMeta?.needsDrainage ? "排水" : ""
+                            ].filter(Boolean).join("；") || "暂无"}</p>
+                            <p><span className="font-semibold">施工：</span>{activeFurniture.constructionMeta?.notes || activeFurniture.constructionNote || activeFurniture.note || "现场复核"}</p>
+                            {activeFurniture.constructionMeta?.inspectionAccessRequired && <p className="font-semibold">需预留检修口</p>}
+                          </div>
                           <div className="mt-3 space-y-2">
                             {activeFurniture.cabinetDesign.zones.map((zone) => (
                               <div key={zone.id} className="rounded-lg bg-white/80 p-2">
@@ -5630,23 +5699,63 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     </div>
                   ) : activeStructureObject ? (
                     <div className="mt-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          className={`rounded-lg px-3 py-2 text-xs font-semibold ${activeStructureObject.locked ? "bg-amber-600 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"}`}
+                          onClick={() => updateActiveObject({ locked: !activeStructureObject.locked })}
+                          type="button"
+                        >
+                          {activeStructureObject.locked ? "已锁定" : "锁定"}
+                        </button>
+                        <button
+                          className={`rounded-lg px-3 py-2 text-xs font-semibold ${activeStructureObject.hidden ? "bg-stone-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"}`}
+                          onClick={() => updateActiveObject({ hidden: !activeStructureObject.hidden, visible: activeStructureObject.hidden ? true : activeStructureObject.visible })}
+                          type="button"
+                        >
+                          {activeStructureObject.hidden ? "已隐藏" : "隐藏"}
+                        </button>
+                      </div>
                       <label className="block text-xs text-stone-500">
                         名称
                         <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" value={activeStructureObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                       </label>
                       {"surfaceType" in activeStructureObject && (
-                        <label className="block text-xs text-stone-500">
-                          铺装材料
-                          <select
-                            className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-semibold text-ink outline-none focus:border-emerald-400"
-                            value={activeStructureObject.material}
-                            onChange={(event) => updateActiveObject({ material: event.target.value })}
-                          >
-                            {outdoorSurfaceMaterials.map((material) => (
-                              <option key={material.value} value={material.value}>{material.label}</option>
-                            ))}
-                          </select>
-                        </label>
+                        <>
+                          <label className="block text-xs text-stone-500">
+                            标签
+                            <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-emerald-400" value={activeStructureObject.label ?? activeStructureObject.name} onChange={(event) => updateActiveObject({ label: event.target.value })} />
+                          </label>
+                          <label className="block text-xs text-stone-500">
+                            铺装材料
+                            <select
+                              className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-semibold text-ink outline-none focus:border-emerald-400"
+                              value={activeStructureObject.material}
+                              onChange={(event) => updateActiveObject({ material: event.target.value })}
+                            >
+                              {outdoorSurfaceMaterials.map((material) => (
+                                <option key={material.value} value={material.value}>{material.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="block text-xs text-stone-500">
+                            状态
+                            <select
+                              className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 font-semibold text-ink outline-none focus:border-emerald-400"
+                              value={activeStructureObject.status ?? "draft"}
+                              onChange={(event) => updateActiveObject({ status: event.target.value })}
+                            >
+                              <option value="draft">草稿</option>
+                              <option value="design-intent">方案示意</option>
+                              <option value="todo">待深化</option>
+                              <option value="needs-site-check">待复尺</option>
+                              <option value="confirmed">已确认</option>
+                            </select>
+                          </label>
+                          <label className="block text-xs text-stone-500">
+                            备注
+                            <textarea className="mt-1 min-h-20 w-full resize-none rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-emerald-400" value={activeStructureObject.notes ?? ""} onChange={(event) => updateActiveObject({ notes: event.target.value })} />
+                          </label>
+                        </>
                       )}
                     </div>
 	                  ) : (

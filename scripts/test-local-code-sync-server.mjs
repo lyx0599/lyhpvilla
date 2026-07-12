@@ -90,6 +90,15 @@ try {
     createdAt: "2026-07-12T00:00:00.000Z", updatedAt: "2026-07-12T00:00:00.000Z"
   });
   changed.drawingPackage.drawingItemIds.push("DI-SAVE-TEST");
+  changed.drawingItems.push({
+    id: "DI-FLOOR-SAVE-TEST", floorId: "1F", roomId: null, category: "floorFinish", type: "roomFinish", positionMm: { x: 1500, y: 1500 },
+    hostObjectId: null, hostWallId: null, relatedFurnitureId: null, heightMm: null, circuitId: null, materialId: null,
+    label: "铺装保存测试", notes: "区域草图", source: "manual", status: "draft", quantity: 1,
+    polygon: [{ x: 1000, y: 1000 }, { x: 2000, y: 1000 }, { x: 2000, y: 2000 }, { x: 1000, y: 2000 }],
+    material: "tile", pattern: "通铺", directionDeg: 0, startPoint: { x: 1000, y: 1000 }, seamWidthMm: 2, transition: "收口条",
+    createdAt: "2026-07-12T00:00:00.000Z", updatedAt: "2026-07-12T00:00:00.000Z"
+  });
+  changed.drawingPackage.drawingItemIds.push("DI-FLOOR-SAVE-TEST");
   const postResponse = await fetch(`${running.baseUrl}/default-workspace`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: "http://127.0.0.1:3010" },
@@ -110,6 +119,7 @@ try {
   assert.equal(readback.ok, true);
   assert.deepEqual(normalized(readback.workspace), normalized(changed));
   assert.equal(readback.workspace.drawingItems.some((item) => item.id === "DI-SAVE-TEST"), true, "Drawing items must survive save/export readback.");
+  assert.equal(readback.workspace.drawingItems.find((item) => item.id === "DI-FLOOR-SAVE-TEST").polygon.length, 4, "Drawing item area geometry must survive save/export readback.");
   assert.equal(readback.hash, workspaceHash(changed));
 
   const beforeInvalid = await readFile(paths.workspace, "utf8");
