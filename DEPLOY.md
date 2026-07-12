@@ -48,7 +48,7 @@ pnpm build:pages
 pnpm check:pages-build
 ```
 
-GitHub Actions 会在每次发布时重新构建，不依赖仓库中已有的 `out`。部署 job 只能使用 build job 上传的 artifact。`pnpm build:pages` 已包含 `.nojekyll` 和产物检查；如果临时需要手工生成 `out`，也应使用同一命令。
+GitHub Actions 会在每次发布时安装 pnpm 和锁定依赖，依次执行 `pnpm build:pages`、`pnpm check:pages-build`，再上传本次 CI 生成的 `out` artifact。仓库不提交 `out/` 或 `.next/`，部署 job 只能使用 build job 上传的 artifact；如果临时需要手工生成 `out`，也应使用同一构建命令。
 
 ## 数据方式
 

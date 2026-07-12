@@ -21,14 +21,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
+          version: 11.7.0
           run_install: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - run: pnpm build:pages
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate source
+        run: pnpm test
+      - name: Build GitHub Pages artifact
+        run: pnpm build:pages
+      - name: Check GitHub Pages artifact
+        run: pnpm check:pages-build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
