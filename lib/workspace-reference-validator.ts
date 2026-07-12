@@ -71,6 +71,7 @@ function collectKnownIds(workspace: JsonRecord) {
     if (id) ids.add(id);
   });
   add(asArray(workspace.furniture));
+  add(asArray(workspace.drawingItems));
   add(asArray(workspace.semanticObjects));
   add(asArray(workspace.cameraViews));
   const structures = asRecord(workspace.houseStructuresByFloor) ?? {};
@@ -161,6 +162,47 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
       message: "柜体深化数据未挂在真实家具对象上。", suggestion: "将 cabinetDesign 移到有效 furniture 对象，或删除孤立深化数据。"
     });
     collectNoteReferences(furniture, `furniture[${index}]`, id, knownIds, issues);
+  });
+
+  const drawingItemIds = new Set<string>();
+  asArray(workspace.drawingItems).forEach((item, index) => {
+    const drawingItem = asRecord(item);
+    if (!drawingItem) return;
+    const id = stringValue(drawingItem.id) ?? `drawingItems[${index}]`;
+    const floorId = stringValue(drawingItem.floorId) ?? "";
+    drawingItemIds.add(id);
+    const checkReference = (field: "roomId" | "hostWallId" | "hostObjectId" | "relatedFurnitureId", valid: boolean, value?: string) => {
+      if (value && !valid) pushIssue(issues, {
+        severity: "error", code: `ORPHAN_DRAWING_ITEM_${field.toUpperCase()}`, objectId: id,
+        path: `drawingItems[${index}].${field}`, value,
+        message: `图纸点位 ${id} 的 ${field} 未指向同楼层有效对象。`, suggestion: "重新绑定同楼层对象，或清空该可选引用。"
+      });
+    };
+    if (!floorIds.has(floorId)) pushIssue(issues, {
+      severity: "error", code: "INVALID_DRAWING_ITEM_FLOOR", objectId: id, path: `drawingItems[${index}].floorId`, value: floorId,
+      message: `图纸点位 ${id} 指向不存在的楼层。`, suggestion: "改为 floors 中存在的楼层 ID。"
+    });
+    const roomId = stringValue(drawingItem.roomId);
+    const hostWallId = stringValue(drawingItem.hostWallId);
+    const hostObjectId = stringValue(drawingItem.hostObjectId);
+    const relatedFurnitureId = stringValue(drawingItem.relatedFurnitureId);
+    checkReference("roomId", Boolean(roomOutdoorByFloor.get(floorId)?.has(roomId ?? "")), roomId);
+    checkReference("hostWallId", Boolean(hostsByFloor.get(floorId)?.has(hostWallId ?? "")), hostWallId);
+    checkReference("hostObjectId", knownIds.has(hostObjectId ?? ""), hostObjectId);
+    checkReference("relatedFurnitureId", asArray(workspace.furniture).some((furniture) => {
+      const record = asRecord(furniture);
+      return Boolean(record && record.id === relatedFurnitureId && record.floorId === floorId);
+    }), relatedFurnitureId);
+    collectNoteReferences(drawingItem, `drawingItems[${index}]`, id, knownIds, issues);
+  });
+
+  const drawingPackage = asRecord(workspace.drawingPackage);
+  asArray(drawingPackage?.drawingItemIds).forEach((value, index) => {
+    if (typeof value === "string" && !drawingItemIds.has(value)) pushIssue(issues, {
+      severity: "error", code: "ORPHAN_DRAWING_PACKAGE_ITEM", objectId: stringValue(drawingPackage?.id) ?? "drawingPackage",
+      path: `drawingPackage.drawingItemIds[${index}]`, value,
+      message: `图纸包引用了不存在的点位 ${value}。`, suggestion: "恢复点位或从 drawingItemIds 移除该引用。"
+    });
   });
 
   Object.entries(structures).forEach(([floorId, value]) => {
@@ -301,8 +343,8 @@ export function getWorkspaceReverseDependencies(value: unknown, targetId: string
 export function renameWorkspaceObjectId<T>(value: T, oldId: string, newId: string): { workspace: T; updatedPaths: string[] } {
   const workspace = cloneWorkspace(value);
   const updatedPaths: string[] = [];
-  const referenceKeys = new Set(["roomId", "structureRoomId", "hostId", "wallId", "stairId", "furnitureId"]);
-  const referenceArrayKeys = new Set(["sourceWallIds", "structureRoomIds", "roomIds", "relatedWallIds", "relatedObjectIds", "controlledObjectIds"]);
+  const referenceKeys = new Set(["roomId", "structureRoomId", "hostId", "wallId", "stairId", "furnitureId", "hostObjectId", "hostWallId", "relatedFurnitureId"]);
+  const referenceArrayKeys = new Set(["sourceWallIds", "structureRoomIds", "roomIds", "relatedWallIds", "relatedObjectIds", "controlledObjectIds", "drawingItemIds"]);
 
   const visit = (current: unknown, path: string) => {
     if (Array.isArray(current)) {

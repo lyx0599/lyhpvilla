@@ -32,6 +32,7 @@ export const defaultSpaceData: SpaceData = {
   selectedFloorId: migratedDefaultWorkspace.workspace.selectedFloorId,
   floors: resolvedFloors,
   furniture: migratedDefaultWorkspace.workspace.furniture,
+  drawingItems: migratedDefaultWorkspace.workspace.drawingItems,
   cameraViews: migratedDefaultWorkspace.workspace.cameraViews,
   legacyRooms: [],
   legacyWalls: []

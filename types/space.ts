@@ -3,6 +3,65 @@ import type { WorkspaceDocument } from "@/types/workspace";
 export type FloorId = "B2" | "B1" | "1F" | "2F" | "YARD";
 
 export type ViewMode = "2d" | "3d";
+export type DrawingSheetType =
+  | "sitePlan"
+  | "structurePlan"
+  | "demolitionAndBuildPlan"
+  | "furniturePlan"
+  | "socketPlan"
+  | "switchPlan"
+  | "lightingPlan"
+  | "waterSupplyPlan"
+  | "drainagePlan"
+  | "ceilingPlan"
+  | "floorFinishPlan"
+  | "wallFinishPlan"
+  | "materialPlan"
+  | "annotationPlan";
+export type DrawingCheckMode = "structureSyncCheck";
+export type DrawingPresentationMode = "presentationView";
+export type PlanCanvasMode = DrawingSheetType | DrawingCheckMode | DrawingPresentationMode;
+
+export type DrawingItemCategory =
+  | "socket" | "switch" | "light" | "waterSupply" | "drainage" | "ceiling"
+  | "floorFinish" | "wallFinish" | "cabinet" | "annotation" | "network" | "ventilation";
+
+export type DrawingItemSource = "manual" | "generated-from-furniture" | "generated-from-room";
+export type DrawingItemStatus = "draft" | "confirmed" | "todo" | "deprecated";
+
+export type DrawingItem = {
+  id: string;
+  floorId: FloorId;
+  roomId: string | null;
+  category: DrawingItemCategory;
+  type: string;
+  positionMm: { x: number; y: number };
+  hostObjectId: string | null;
+  hostWallId: string | null;
+  relatedFurnitureId: string | null;
+  heightMm: number | null;
+  circuitId: string | null;
+  materialId: string | null;
+  label: string;
+  notes: string;
+  source: DrawingItemSource;
+  status: DrawingItemStatus;
+  quantity: number;
+  generatedKey?: string;
+  generatedFingerprint?: string;
+  lightColorTemperature?: MepMeta["lightColorTemperature"] | null;
+  needsSmartControl?: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DrawingPackage = {
+  id: string;
+  name: string;
+  drawingItemIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
 export type AccessMode = "view-only" | "comment-only" | "controlled-edit" | "full-edit";
 export type MobileDisplayLevel = "simple" | "annotated" | "professional";
 export type MobileQuality = "balanced" | "high";
@@ -635,5 +694,6 @@ export type SpaceData = {
   /** @deprecated Use houseStructuresByFloor.*.walls through workspace. */
   walls?: Wall[];
   furniture: Furniture[];
+  drawingItems: DrawingItem[];
   cameraViews?: FixedCameraView[];
 };

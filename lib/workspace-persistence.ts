@@ -95,6 +95,7 @@ function collectWorkspaceObjects(workspace: Record<string, unknown>) {
     });
   };
   addItems(getArray(workspace.furniture));
+  addItems(getArray(workspace.drawingItems));
   addItems(getArray(workspace.semanticObjects));
   addItems(getArray(workspace.cameraViews));
   const structures = asRecord(workspace.houseStructuresByFloor) ?? {};
@@ -163,6 +164,10 @@ export function getWorkspaceValidationErrors(value: unknown) {
       if (!Array.isArray(floorRecord.cleanPatches)) errors.push(`floors[${index}] 缺少 cleanPatches 数组。`);
     });
   }
+  if (schemaVersion >= 6) {
+    if (!Array.isArray(workspace.drawingItems)) errors.push("schemaVersion 6+ 缺少 drawingItems 数组。");
+    if (!asRecord(workspace.drawingPackage)) errors.push("schemaVersion 6+ 缺少 drawingPackage。");
+  }
 
   const seenIds = new Set<string>();
   const validateItems = (items: unknown[], label: string) => {
@@ -181,6 +186,7 @@ export function getWorkspaceValidationErrors(value: unknown) {
     });
   };
   validateItems(getArray(workspace.furniture), "furniture");
+  validateItems(getArray(workspace.drawingItems), "drawingItems");
   validateItems(getArray(workspace.semanticObjects), "semanticObjects");
   validateItems(getArray(workspace.cameraViews), "cameraViews");
   Object.entries(structures ?? {}).forEach(([floorId, structureValue]) => {
@@ -203,6 +209,7 @@ export function getWorkspaceStats(value: unknown) {
     floorIds: Object.keys(structures).sort(),
     floorCount: Object.keys(structures).length,
     moduleCount: getArray(workspace.furniture).length,
+    drawingItemCount: getArray(workspace.drawingItems).length,
     semanticObjectCount: getArray(workspace.semanticObjects).length,
     cameraViewCount: getArray(workspace.cameraViews).length,
     updatedAt: typeof workspace.updatedAt === "string"

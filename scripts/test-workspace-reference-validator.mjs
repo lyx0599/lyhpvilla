@@ -8,6 +8,13 @@ assert.equal(currentReport.errors.length, 0, JSON.stringify(currentReport.errors
 assert.equal(currentReport.warnings.length, 0, JSON.stringify(currentReport.warnings, null, 2));
 
 const broken = structuredClone(workspace);
+broken.drawingItems.push({
+  id: "DI-TEST-001", floorId: "1F", roomId: "ROOM-MISSING", category: "socket", type: "five-hole",
+  positionMm: { x: 1000, y: 1000 }, hostObjectId: null, hostWallId: "W-MISSING", relatedFurnitureId: "furn-missing",
+  heightMm: 300, circuitId: null, materialId: null, label: "测试插座", notes: "", source: "manual", status: "draft",
+  quantity: 1, createdAt: "2026-07-12T00:00:00.000Z", updatedAt: "2026-07-12T00:00:00.000Z"
+});
+broken.drawingPackage.drawingItemIds.push("DI-MISSING");
 broken.furniture.find((item) => item.id === "furn-plant-001").roomId = "room-yard";
 broken.houseStructuresByFloor.B2.walls = broken.houseStructuresByFloor.B2.walls.filter((wall) => wall.id !== "W-B2-009");
 broken.semanticObjects.find((item) => item.id === "R-B1-LAUNDRY").details.structureRoomId = "ROOM-MISSING";
@@ -15,6 +22,10 @@ const brokenReport = validateWorkspaceReferences(broken);
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_FURNITURE_ROOM"));
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_SOURCE_WALL"));
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_SEMANTIC_ROOM"));
+assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_ROOMID"));
+assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_HOSTWALLID"));
+assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_RELATEDFURNITUREID"));
+assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_PACKAGE_ITEM"));
 
 const repaired = repairWorkspaceReferences(broken);
 assert.equal(repaired.workspace.furniture.find((item) => item.id === "furn-plant-001").roomId, "OD-YARD-001");

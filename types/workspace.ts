@@ -1,6 +1,8 @@
 import type { SemanticObject } from "@/types/semantic-map";
 import type {
   CleanPatch,
+  DrawingItem,
+  DrawingPackage,
   FixedCameraView,
   Floor,
   FloorId,
@@ -20,6 +22,8 @@ export type WorkspaceDocument = {
   selectedFloorId: FloorId;
   floors: Floor[];
   furniture: Furniture[];
+  drawingItems: DrawingItem[];
+  drawingPackage: DrawingPackage;
   semanticObjects: SemanticObject[];
   visualSettingsByFloor: Record<FloorId, FloorPlanVisualSettings>;
   cleanPatchesByFloor: Record<FloorId, CleanPatch[]>;
@@ -32,6 +36,8 @@ export type WorkspaceDataCategory =
   | "floors"
   | "houseStructuresByFloor"
   | "furniture"
+  | "drawingItems"
+  | "drawingPackage"
   | "semanticObjects"
   | "cameraViews"
   | "visualSettingsByFloor"

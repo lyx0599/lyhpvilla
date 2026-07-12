@@ -10,11 +10,11 @@ const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const canonical = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
 const temporaryKeys = new Set(["savedAt", "updatedAt", "saveMode", "uiState", "viewMode", "plannerMode", "drawTool", "selectedFurnitureId", "selectedSemanticObjectId", "activeObjectId", "draftSaveState", "codeSaveState", "publishState"]);
 
-function normalized(value) {
-  if (Array.isArray(value)) return value.map(normalized);
+function normalized(value, omitTemporaryKeys = true) {
+  if (Array.isArray(value)) return value.map((item) => normalized(item, false));
   if (!value || typeof value !== "object") return value;
   return Object.keys(value).sort().reduce((result, key) => {
-    if (!temporaryKeys.has(key)) result[key] = normalized(value[key]);
+    if (!omitTemporaryKeys || !temporaryKeys.has(key)) result[key] = normalized(value[key], false);
     return result;
   }, {});
 }
@@ -83,6 +83,13 @@ try {
   const changed = structuredClone(canonical);
   changed.savedAt = new Date().toISOString();
   changed.furniture[0].note = `${changed.furniture[0].note ?? ""} save-service-test`.trim();
+  changed.drawingItems.push({
+    id: "DI-SAVE-TEST", floorId: "1F", roomId: null, category: "socket", type: "power", positionMm: { x: 1000, y: 1200 },
+    hostObjectId: null, hostWallId: null, relatedFurnitureId: null, heightMm: 300, circuitId: "C-TEST", materialId: null,
+    label: "保存测试插座", notes: "需人工确认", source: "manual", status: "draft", quantity: 1,
+    createdAt: "2026-07-12T00:00:00.000Z", updatedAt: "2026-07-12T00:00:00.000Z"
+  });
+  changed.drawingPackage.drawingItemIds.push("DI-SAVE-TEST");
   const postResponse = await fetch(`${running.baseUrl}/default-workspace`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: "http://127.0.0.1:3010" },
@@ -102,6 +109,7 @@ try {
   const readback = await readbackResponse.json();
   assert.equal(readback.ok, true);
   assert.deepEqual(normalized(readback.workspace), normalized(changed));
+  assert.equal(readback.workspace.drawingItems.some((item) => item.id === "DI-SAVE-TEST"), true, "Drawing items must survive save/export readback.");
   assert.equal(readback.hash, workspaceHash(changed));
 
   const beforeInvalid = await readFile(paths.workspace, "utf8");

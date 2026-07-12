@@ -6,6 +6,9 @@ const STRUCTURE_COLLECTIONS = [
   "walls", "rooms", "partitions", "stairs", "columns", "fences", "outdoorSurfaces",
   "doors", "windows", "bayWindows", "skylights", "outdoors"
 ];
+const DRAWING_ITEM_CATEGORIES = new Set(["socket", "switch", "light", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "cabinet", "annotation", "network", "ventilation"]);
+const DRAWING_ITEM_SOURCES = new Set(["manual", "generated-from-furniture", "generated-from-room"]);
+const DRAWING_ITEM_STATUSES = new Set(["draft", "confirmed", "todo", "deprecated"]);
 
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -52,6 +55,7 @@ function collectPersistedObjects(workspace) {
   const collections = [
     [workspace.floors, "floors"],
     [workspace.furniture, "furniture"],
+    [workspace.drawingItems, "drawingItems"],
     [workspace.semanticObjects, "semanticObjects"],
     [workspace.cameraViews, "cameraViews"]
   ];
@@ -91,6 +95,8 @@ export function validateWorkspaceDocument(workspace) {
     if (!Array.isArray(workspace[key])) issues.push(issue(`workspace.${key}`, "must be an array"));
     else if (!allowEmpty && workspace[key].length === 0) issues.push(issue(`workspace.${key}`, "must not be empty"));
   }
+  if (!Array.isArray(workspace.drawingItems)) issues.push(issue("workspace.drawingItems", "must be an array"));
+  if (!isRecord(workspace.drawingPackage)) issues.push(issue("workspace.drawingPackage", "must be an object"));
 
   const seenIds = new Map();
   for (const [items, label] of collectPersistedObjects(workspace)) {
@@ -120,6 +126,14 @@ export function validateWorkspaceDocument(workspace) {
       }
       if (isRecord(item.position) && (typeof item.position.x !== "number" || !Number.isFinite(item.position.x) || typeof item.position.y !== "number" || !Number.isFinite(item.position.y))) {
         issues.push(issue(`${path}.position`, "must contain finite x and y", id || path));
+      }
+      if (label === "drawingItems") {
+        if (!DRAWING_ITEM_CATEGORIES.has(item.category)) issues.push(issue(`${path}.category`, "must be a supported drawing item category", id || path));
+        if (!DRAWING_ITEM_SOURCES.has(item.source)) issues.push(issue(`${path}.source`, "must be a supported drawing item source", id || path));
+        if (!DRAWING_ITEM_STATUSES.has(item.status)) issues.push(issue(`${path}.status`, "must be a supported drawing item status", id || path));
+        if (!isRecord(item.positionMm) || !Number.isFinite(item.positionMm.x) || !Number.isFinite(item.positionMm.y)) issues.push(issue(`${path}.positionMm`, "must contain finite millimeter x and y", id || path));
+        if (!Number.isInteger(item.quantity) || item.quantity < 1) issues.push(issue(`${path}.quantity`, "must be a positive integer", id || path));
+        for (const key of ["type", "label", "notes", "createdAt", "updatedAt"]) if (typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string", id || path));
       }
     });
   }
