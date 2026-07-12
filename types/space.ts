@@ -54,6 +54,16 @@ export type DrawingItem = {
   generatedFingerprint?: string;
   lightColorTemperature?: MepMeta["lightColorTemperature"] | null;
   needsSmartControl?: boolean;
+  drawingCode?: string | null;
+  electricalClass?: "strong" | "weak" | null;
+  waterproof?: boolean;
+  dedicatedCircuit?: boolean;
+  installationArea?: string | null;
+  relatedSwitchIds?: string[];
+  waterSupplyKind?: "cold" | "hot" | "purified" | "outdoor" | string | null;
+  drainageKind?: "floorDrain" | "basin" | "sink" | "toilet" | "washingMachine" | "yard" | string | null;
+  slopeNote?: string | null;
+  maintenanceNote?: string | null;
   switchControl?: string[];
   relatedCircuit?: string | null;
   controlledLightIds?: string[];
@@ -65,6 +75,8 @@ export type DrawingItem = {
   airVent?: boolean;
   returnAir?: boolean;
   maintenanceOpening?: boolean;
+  ceilingEdge?: string | null;
+  lightCove?: boolean;
   material?: FloorFinishMaterial | string | null;
   pattern?: string | null;
   directionDeg?: number | null;
@@ -72,6 +84,9 @@ export type DrawingItem = {
   seamWidthMm?: number | null;
   threshold?: string | null;
   transition?: string | null;
+  drainageDirection?: string | null;
+  edgeTreatment?: string | null;
+  maintenanceNotes?: string | null;
   wallId?: string | null;
   heightRange?: { minMm: number; maxMm: number } | null;
   area?: number | null;

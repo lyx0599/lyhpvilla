@@ -94,7 +94,7 @@ import type {
 } from "@/types/space";
 import { getSemanticObjectPosition, semanticCategoryLabels, semanticIdPrefixes } from "@/lib/semantic-map";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
-import { constructionPackageToCsv, constructionPackageToHtml, constructionPackageToJson, validateConstructionPackage } from "@/lib/construction-package-export";
+import { buildConstructionPackageData, constructionPackageToCsv, constructionPackageToHtml, constructionPackageToJson, validateConstructionPackage } from "@/lib/construction-package-export";
 import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
 import type { WorkspaceDocument } from "@/types/workspace";
 
@@ -3355,6 +3355,18 @@ export function PlanCanvas({
   const isProfessionalDrawingSheetMode = ["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(sheetMode);
   const activeDrawingItemCategories = getDrawingItemCategoriesForSheet(normalizeDrawingSheetType(sheetMode));
   const visibleDrawingItems = drawingItems.filter((item) => activeDrawingItemCategories.includes(item.category));
+  const drawingPackageData = useMemo(() => buildConstructionPackageData(constructionExportWorkspace), [constructionExportWorkspace]);
+  const drawingOverviewRows: Array<{ label: string; categories: DrawingItemCategory[]; sheet: DrawingSheetType }> = [
+    { label: "插座/弱电", categories: ["socket", "network"], sheet: "socketPlan" },
+    { label: "开关", categories: ["switch"], sheet: "switchPlan" },
+    { label: "灯光", categories: ["light"], sheet: "lightingPlan" },
+    { label: "给水", categories: ["waterSupply"], sheet: "waterSupplyPlan" },
+    { label: "排水", categories: ["drainage"], sheet: "drainagePlan" },
+    { label: "吊顶", categories: ["ceiling"], sheet: "ceilingPlan" },
+    { label: "地面/庭院", categories: ["floorFinish"], sheet: "floorFinishPlan" },
+    { label: "墙面", categories: ["wallFinish"], sheet: "wallFinishPlan" },
+    { label: "待确认", categories: ["annotation"], sheet: "annotationPlan" }
+  ];
   const selectedDrawingItem = drawingItems.find((item) => item.id === selectedDrawingItemId) ?? null;
   const drawingItemLayerActive = activeDrawingItemCategories.length > 0;
   const isMobileAnnotatedPlan = mobilePresentationMode && mobileDisplayLevel !== "simple";
@@ -4417,6 +4429,26 @@ export function PlanCanvas({
                 <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => exportConstructionData("json")} type="button">导出 JSON 清单</button>
                 <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => exportConstructionData("csv")} type="button">导出 CSV 清单</button>
                 <button className="rounded-xl bg-slate-100 px-3 py-2 font-semibold text-stone-600 hover:bg-stone-200" onClick={() => setIsConstructionPackageOpen(false)} type="button">收起</button>
+              </div>
+            </div>
+
+            <div className="mb-3 rounded-xl border border-stone-200 bg-slate-50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-ink">图纸包总览 / 待确认项</p>
+                <span className="text-[10px] font-semibold text-stone-500">草稿 {drawingPackageData.validation.draftItems.length} · 待确认 {drawingPackageData.validation.reviewItems.length} · Orphan {drawingPackageData.validation.orphanIssues.length}</span>
+              </div>
+              <div className="mt-2 overflow-x-auto">
+                <table className="min-w-[640px] w-full border-collapse text-[11px]">
+                  <thead><tr><th className="p-1 text-left">楼层</th>{drawingOverviewRows.map((row) => <th key={row.sheet} className="p-1 text-center">{row.label}</th>)}</tr></thead>
+                  <tbody>{floors.map((overviewFloor) => {
+                    const floorItems = constructionExportWorkspace.drawingItems.filter((item) => item.floorId === overviewFloor.id);
+                    return <tr key={overviewFloor.id} className="border-t border-stone-200"><td className="p-1 font-semibold">{overviewFloor.label}</td>{drawingOverviewRows.map((row) => {
+                      const count = floorItems.filter((item) => row.categories.includes(item.category) || (row.sheet === "annotationPlan" && (item.status === "todo" || /待复核|待确认|人工确认/.test(item.notes)))).length;
+                      const yardSurfaceCount = overviewFloor.id === "YARD" && row.sheet === "floorFinishPlan" ? (constructionExportWorkspace.houseStructuresByFloor.YARD?.outdoorSurfaces.length ?? 0) : 0;
+                      return <td key={row.sheet} className="p-1 text-center"><button className="min-w-9 rounded-md bg-white px-2 py-1 font-semibold text-blue-700 ring-1 ring-stone-200 hover:bg-blue-50" onClick={() => { onSelectFloor(overviewFloor.id); setSheetMode(row.sheet); setIsConstructionPackageOpen(false); }} type="button">{count + yardSurfaceCount}</button></td>;
+                    })}</tr>;
+                  })}</tbody>
+                </table>
               </div>
             </div>
 
@@ -5868,6 +5900,8 @@ export function PlanCanvas({
                     const wallStart = wall && "start" in wall ? wall.start : null;
                     const wallEnd = wall && "end" in wall ? wall.end : null;
                     const polygon = item.polygon?.length && item.polygon.length >= 3 ? item.polygon : null;
+                    const drawingPrefixes: Partial<Record<DrawingItemCategory, string>> = { socket: "E-S", network: "E-N", switch: "E-K", light: "L", waterSupply: "W-S", drainage: "W-D", ceiling: "C", floorFinish: "M-F", wallFinish: "M-W", annotation: "N" };
+                    const drawingCode = item.drawingCode || `${drawingPrefixes[item.category] ?? "D"}${String(index + 1).padStart(2, "0")}`;
                     const anchor = polygon
                       ? { x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length, y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length }
                       : wallStart && wallEnd ? { x: (wallStart.x + wallEnd.x) / 2, y: (wallStart.y + wallEnd.y) / 2 } : item.positionMm;
@@ -5909,7 +5943,7 @@ export function PlanCanvas({
                         <circle r={selected ? 190 : 160} fill="#ffffff" stroke={statusColor} strokeWidth={selected ? 55 : 38} />
                         <text y={58} fill={statusColor} fontSize={170} fontWeight={900} textAnchor="middle">{drawingItemCategoryLabels[item.category].slice(0, 1)}</text>
                         <text y={-235} fill="#0f172a" fontSize={150} fontWeight={800} paintOrder="stroke" stroke="#ffffff" strokeWidth={42} textAnchor="middle">
-                          {`${index + 1}. ${item.label || drawingItemCategoryLabels[item.category]}`}
+                          {`${drawingCode} ${item.label || drawingItemCategoryLabels[item.category]}`}
                         </text>
                         <text y={330} fill={statusColor} fontSize={120} fontWeight={700} paintOrder="stroke" stroke="#ffffff" strokeWidth={34} textAnchor="middle">
                           {[`x${item.quantity}`, item.heightMm ? `H${item.heightMm}` : "", drawingItemStatusLabels[item.status]].filter(Boolean).join(" · ")}
@@ -5999,6 +6033,15 @@ export function PlanCanvas({
                       <label>色温<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.lightColorTemperature ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightColorTemperature: (event.target.value || null) as DrawingItem["lightColorTemperature"] })} /></label>
                     </div>
                     <label className="mt-2 flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.needsSmartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { needsSmartControl: event.target.checked })} />需要智能控制</label>
+                    {(["socket", "network", "light", "waterSupply", "drainage"] as DrawingItemCategory[]).includes(selectedDrawingItem.category) && <div className="mt-3 rounded-lg bg-slate-50 p-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <label>图纸编号<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" placeholder="自动编号" value={selectedDrawingItem.drawingCode ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { drawingCode: event.target.value || null })} /></label>
+                        <label>安装区域<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.installationArea ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { installationArea: event.target.value || null })} /></label>
+                      </div>
+                      {(["socket", "network"] as DrawingItemCategory[]).includes(selectedDrawingItem.category) && <div className="mt-2 grid grid-cols-3 gap-1"><label className="flex items-center gap-1"><input checked={selectedDrawingItem.electricalClass === "weak"} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { electricalClass: event.target.checked ? "weak" : "strong" })} />弱电</label><label className="flex items-center gap-1"><input checked={Boolean(selectedDrawingItem.waterproof)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { waterproof: event.target.checked })} />防水</label><label className="flex items-center gap-1"><input checked={Boolean(selectedDrawingItem.dedicatedCircuit)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { dedicatedCircuit: event.target.checked })} />专用回路</label></div>}
+                      {selectedDrawingItem.category === "waterSupply" && <label className="mt-2 block">给水类别<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" placeholder="冷水/热水/净水/户外水" value={selectedDrawingItem.waterSupplyKind ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { waterSupplyKind: event.target.value || null })} /></label>}
+                      {selectedDrawingItem.category === "drainage" && <><label className="mt-2 block">排水类别<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" placeholder="地漏/台盆/水槽/马桶/洗衣机/庭院" value={selectedDrawingItem.drainageKind ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { drainageKind: event.target.value || null })} /></label><div className="mt-2 grid grid-cols-2 gap-2"><label>坡度备注<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.slopeNote ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { slopeNote: event.target.value || null })} /></label><label>检修备注<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.maintenanceNote ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { maintenanceNote: event.target.value || null })} /></label></div></>}
+                    </div>}
                     {selectedDrawingItem.category === "switch" && <div className="mt-3 rounded-lg bg-blue-50 p-2">
                       <label className="block">控制方式<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" placeholder="单控、双控、场景" value={(selectedDrawingItem.switchControl ?? []).join("、")} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { switchControl: event.target.value.split(/[、,，/]/).map((value) => value.trim()).filter(Boolean) })} /></label>
                       <label className="mt-2 block">灯组 ID<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" value={selectedDrawingItem.lightGroupId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightGroupId: event.target.value || null })} /></label>
@@ -6008,11 +6051,13 @@ export function PlanCanvas({
                     {selectedDrawingItem.category === "ceiling" && <div className="mt-3 rounded-lg bg-sky-50 p-2">
                       <div className="grid grid-cols-2 gap-2"><label>吊顶高度<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" type="number" value={selectedDrawingItem.ceilingHeightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { ceilingHeightMm: event.target.value ? Number(event.target.value) : null })} /></label><label>类型<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" value={selectedDrawingItem.type} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { type: event.target.value })} /></label></div>
                       <div className="mt-2 grid grid-cols-2 gap-1">{([['inspectionAccess','检修口'],['airVent','送风口'],['returnAir','回风口'],['maintenanceOpening','维护开口']] as const).map(([field,label]) => <label key={field} className="flex items-center gap-2"><input checked={Boolean(selectedDrawingItem[field])} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { [field]: event.target.checked })} />{label}</label>)}</div>
+                      <div className="mt-2 grid grid-cols-2 gap-2"><label>边吊<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" value={selectedDrawingItem.ceilingEdge ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { ceilingEdge: event.target.value || null })} /></label><label className="flex items-center gap-2 pt-6"><input checked={Boolean(selectedDrawingItem.lightCove)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightCove: event.target.checked })} />灯槽</label></div>
                       <p className="mt-2 font-semibold text-sky-900">关联灯点</p><div className="mt-1 grid gap-1">{drawingItems.filter((item) => item.category === "light").map((light) => <label key={light.id} className="flex items-center gap-2"><input checked={(selectedDrawingItem.relatedLightIds ?? []).includes(light.id)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { relatedLightIds: event.target.checked ? [...(selectedDrawingItem.relatedLightIds ?? []), light.id] : (selectedDrawingItem.relatedLightIds ?? []).filter((id) => id !== light.id) })} />{light.label}</label>)}</div>
                       <button className="mt-2 w-full rounded-lg bg-sky-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!selectedDrawingItem.roomId} onClick={() => applyRoomPolygonToDrawingItem(selectedDrawingItem)} type="button">采用关联房间区域</button>
                     </div>}
                     {selectedDrawingItem.category === "floorFinish" && <div className="mt-3 rounded-lg bg-amber-50 p-2">
                       <div className="grid grid-cols-2 gap-2"><label>材料<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.material ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { material: event.target.value || null })}><option value="">待定</option>{Object.entries(floorFinishMaterialLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>排版<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.pattern ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { pattern: event.target.value || null })} /></label><label>方向 °<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" type="number" value={selectedDrawingItem.directionDeg ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { directionDeg: event.target.value ? Number(event.target.value) : null })} /></label><label>缝宽 mm<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" type="number" value={selectedDrawingItem.seamWidthMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { seamWidthMm: event.target.value ? Number(event.target.value) : null })} /></label><label>门槛<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.threshold ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { threshold: event.target.value || null })} /></label><label>过渡<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.transition ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { transition: event.target.value || null })} /></label></div>
+                      <div className="mt-2 grid grid-cols-2 gap-2"><label>排水坡向<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.drainageDirection ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { drainageDirection: event.target.value || null })} /></label><label>收口<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.edgeTreatment ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { edgeTreatment: event.target.value || null })} /></label></div>
                       <button className="mt-2 w-full rounded-lg bg-amber-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!selectedDrawingItem.roomId} onClick={() => applyRoomPolygonToDrawingItem(selectedDrawingItem)} type="button">采用关联房间铺装区域</button>
                     </div>}
                     {selectedDrawingItem.category === "wallFinish" && <div className="mt-3 rounded-lg bg-emerald-50 p-2">

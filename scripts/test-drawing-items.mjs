@@ -40,7 +40,11 @@ assert.equal(generated.created, 8);
 assert.equal(new Set(generated.items.map((generatedItem) => generatedItem.generatedKey)).size, 8);
 assert.equal(generated.items.find((generatedItem) => generatedItem.category === "socket").quantity, 2);
 assert.equal(generated.items.find((generatedItem) => generatedItem.category === "socket").heightMm, 350);
+assert.equal(generated.items.find((generatedItem) => generatedItem.category === "socket").electricalClass, "strong");
+assert.equal(generated.items.find((generatedItem) => generatedItem.category === "socket").dedicatedCircuit, true);
 assert.equal(generated.items.find((generatedItem) => generatedItem.category === "light").lightColorTemperature, "3500K");
+assert.equal(generated.items.find((generatedItem) => generatedItem.category === "waterSupply").waterSupplyKind, "hotCold");
+assert.equal(generated.items.find((generatedItem) => generatedItem.category === "drainage").drainageKind, "cabinetDrain");
 assert.deepEqual(generated.items.find((generatedItem) => generatedItem.category === "switch").switchControl, ["镜前灯", "柜下灯"]);
 
 const areaItem = {

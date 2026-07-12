@@ -18,9 +18,11 @@ for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆
   assert.ok(constructionPackageSheets.some((sheet) => sheet.title === title), `missing sheet ${title}`);
 }
 
-for (const table of ["socketAndNetwork", "switchControl", "lighting", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "cabinet", "procurementAndMaterials", "annotationsAndTodos"]) {
+for (const table of ["socketAndNetwork", "switchControl", "lighting", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "yardFinish", "outdoorMep", "cabinet", "procurementAndMaterials", "annotationsAndTodos"]) {
   assert.ok(Array.isArray(data.tables[table]), `missing export table ${table}`);
 }
+assert.equal(data.tables.yardFinish.length, workspace.houseStructuresByFloor.YARD.outdoorSurfaces.length);
+assert.ok(data.tables.yardFinish.every((record) => ["YARD-SOUTH", "YARD-NORTH", "YARD-ALL"].includes(record.roomId)));
 for (const record of data.records) {
   for (const field of constructionPackageRecordFields) assert.ok(Object.hasOwn(record, field), `${record.table} record missing ${field}`);
 }

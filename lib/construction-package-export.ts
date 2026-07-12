@@ -1,5 +1,5 @@
 import { validateWorkspaceReferences } from "./workspace-reference-validator.ts";
-import type { DrawingItem, DrawingItemCategory, DrawingSheetType, Furniture, HouseStructure } from "../types/space";
+import type { DrawingItem, DrawingItemCategory, DrawingSheetType, Furniture, HouseOutdoorSurface, HouseStructure } from "../types/space";
 import type { WorkspaceDocument } from "../types/workspace";
 
 export const constructionPackageSheets: Array<{ sheetNo: string; title: string; type: DrawingSheetType | null; categories: DrawingItemCategory[] }> = [
@@ -44,8 +44,34 @@ function drawingRecord(item: DrawingItem, table: string): ExportRecord {
     maintenanceOpening: Boolean(item.maintenanceOpening), pattern: item.pattern ?? null, directionDeg: item.directionDeg ?? null,
     startPoint: item.startPoint ?? null, seamWidthMm: item.seamWidthMm ?? null, threshold: item.threshold ?? null,
     transition: item.transition ?? null, heightRange: item.heightRange ?? null, area: item.area ?? null,
-    waterproofHeightMm: item.waterproofHeightMm ?? null, specialTreatment: item.specialTreatment ?? null
+    waterproofHeightMm: item.waterproofHeightMm ?? null, specialTreatment: item.specialTreatment ?? null,
+    drawingCode: item.drawingCode ?? null, electricalClass: item.electricalClass ?? null,
+    waterproof: Boolean(item.waterproof), dedicatedCircuit: Boolean(item.dedicatedCircuit),
+    installationArea: item.installationArea ?? null, relatedSwitchIds: item.relatedSwitchIds ?? [],
+    waterSupplyKind: item.waterSupplyKind ?? null, drainageKind: item.drainageKind ?? null,
+    slopeNote: item.slopeNote ?? null, maintenanceNote: item.maintenanceNote ?? null,
+    ceilingEdge: item.ceilingEdge ?? null, lightCove: Boolean(item.lightCove),
+    drainageDirection: item.drainageDirection ?? null, edgeTreatment: item.edgeTreatment ?? null,
+    maintenanceNotes: item.maintenanceNotes ?? null
   };
+}
+
+function outdoorSurfaceRecord(item: HouseOutdoorSurface): ExportRecord {
+  return {
+    table: "yardFinish", floorId: item.floorId, roomId: inferYardArea(item), objectId: item.id,
+    category: item.category ?? item.surfaceType, type: item.surfaceType, label: item.label ?? item.name,
+    quantity: 1, heightMm: null, materialId: item.material, relatedFurnitureId: null, hostWallId: null,
+    circuitId: null, status: item.status ?? "draft", notes: item.notes ?? "", createdAt: null, updatedAt: null,
+    polygon: item.polygon, pathPoints: item.pathPoints ?? null, pathWidthMm: item.pathWidthMm ?? null,
+    area: item.area, source: item.source ?? "default-workspace"
+  };
+}
+
+function inferYardArea(item: HouseOutdoorSurface) {
+  const text = `${item.id} ${item.name} ${item.label ?? ""}`;
+  if (/南院/.test(text) || /south/i.test(text)) return "YARD-SOUTH";
+  if (/北院|入户/.test(text) || /north|entry/i.test(text)) return "YARD-NORTH";
+  return "YARD-ALL";
 }
 
 function furnitureRecord(item: Furniture, related: DrawingItem[], table: string): ExportRecord {
@@ -72,6 +98,8 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
   const byCategories = (categories: DrawingItemCategory[], table: string) => drawingItems.filter((item) => categories.includes(item.category)).map((item) => drawingRecord(item, table));
   const cabinetFurniture = workspace.furniture.filter((item) => item.cabinetDesign || item.type === "cabinet" || item.moduleType === "cabinet");
   const procurementFurniture = workspace.furniture.filter((item) => item.material || item.constructionMeta?.purchaseCategory);
+  const yardSurfaces = workspace.houseStructuresByFloor.YARD?.outdoorSurfaces ?? [];
+  const outdoorMepCategories: DrawingItemCategory[] = ["socket", "network", "light", "waterSupply", "drainage"];
   const tables = {
     socketAndNetwork: byCategories(["socket", "network"], "socketAndNetwork"),
     switchControl: byCategories(["switch"], "switchControl"),
@@ -81,6 +109,8 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
     ceiling: byCategories(["ceiling"], "ceiling"),
     floorFinish: byCategories(["floorFinish"], "floorFinish"),
     wallFinish: byCategories(["wallFinish"], "wallFinish"),
+    yardFinish: yardSurfaces.map(outdoorSurfaceRecord),
+    outdoorMep: drawingItems.filter((item) => item.floorId === "YARD" && outdoorMepCategories.includes(item.category)).map((item) => drawingRecord(item, "outdoorMep")),
     cabinet: cabinetFurniture.map((item) => furnitureRecord(item, drawingItems.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id), "cabinet")),
     procurementAndMaterials: [
       ...byCategories(["floorFinish", "wallFinish", "cabinet"], "procurementAndMaterials"),
@@ -107,8 +137,11 @@ function floorSvg(structure: HouseStructure, furniture: Furniture[], items: Draw
     return `<rect x="${x - item.dimensions.width * 5}" y="${y - item.dimensions.depth * 5}" width="${item.dimensions.width * 10}" height="${item.dimensions.depth * 10}" fill="#e2e8f0" stroke="#64748b" stroke-width="20"/><text x="${x}" y="${y}" text-anchor="middle" font-size="120">${esc(item.code)}</text>`;
   }).join("") : "";
   const itemSvg = filtered.map((item, index) => {
+    const prefix: Partial<Record<DrawingItemCategory, string>> = { socket: "E-S", network: "E-N", switch: "E-K", light: "L", waterSupply: "W-S", drainage: "W-D", ceiling: "C", floorFinish: "M-F", wallFinish: "M-W", annotation: "N" };
+    const code = item.drawingCode || `${prefix[item.category] ?? "D"}${String(index + 1).padStart(2, "0")}`;
     const area = item.polygon?.length && item.polygon.length >= 3 ? `<polygon points="${item.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" fill="rgba(37,99,235,.12)" stroke="#2563eb" stroke-width="35"/>` : "";
-    return `${area}<circle cx="${item.positionMm.x}" cy="${item.positionMm.y}" r="150" fill="#fff" stroke="#2563eb" stroke-width="38"/><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 50}" font-size="135" font-weight="700">${index + 1}. ${esc(item.label)}</text>`;
+    const detail = [item.quantity > 1 ? `x${item.quantity}` : "", item.heightMm ? `H${item.heightMm}` : "", item.status === "confirmed" ? "已确认" : "待复核"].filter(Boolean).join(" · ");
+    return `${area}<circle cx="${item.positionMm.x}" cy="${item.positionMm.y}" r="150" fill="#fff" stroke="#2563eb" stroke-width="38"/><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 15}" font-size="135" font-weight="700">${esc(code)} ${esc(item.label)}</text><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 170}" font-size="105" fill="#475569">${esc(detail)}</text>`;
   }).join("");
   return `<svg viewBox="${cs.origin.x} ${cs.origin.y} ${cs.width} ${cs.height}" role="img" aria-label="${esc(sheet.title)}"><rect x="${cs.origin.x}" y="${cs.origin.y}" width="${cs.width}" height="${cs.height}" fill="#fff"/>${rooms}${walls}${furnitureSvg}${itemSvg}</svg>`;
 }

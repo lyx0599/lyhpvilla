@@ -19,11 +19,12 @@
     "test:drawing-sheets": "node --experimental-strip-types scripts/test-drawing-sheets.mjs",
     "test:drawing-items": "node --experimental-strip-types scripts/test-drawing-items.mjs",
     "test:construction-export": "node --experimental-strip-types scripts/test-construction-package-export.mjs",
+    "test:courtyard-model": "node --experimental-strip-types scripts/test-courtyard-model.mjs",
     "test:save-service": "node --experimental-strip-types scripts/test-local-code-sync-server.mjs",
     "test:object-sync": "node --experimental-strip-types scripts/test-object-sync.mjs",
     "test:mobile": "playwright test tests/mobile-presentation.spec.ts",
     "audit:schema-coverage": "python3 scripts/schema-coverage-report.py",
-    "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:construction-export && pnpm test:save-service && pnpm test:object-sync",
+    "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:construction-export && pnpm test:courtyard-model && pnpm test:save-service && pnpm test:object-sync",
     "test:ci": "pnpm test && pnpm test:mobile && pnpm build",
     "start": "next start"
   },
