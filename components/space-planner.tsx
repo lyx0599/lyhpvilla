@@ -21,7 +21,7 @@ import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspace
 import { applyWorkspaceMigrations, CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION, reportWorkspaceDataSources } from "@/lib/workspace-migrations";
 import { compareWorkspace, getDetailedWorkspaceDifference, getWorkspaceDifferenceSummary, getWorkspaceHash, getWorkspaceStats, getWorkspaceValidationErrors, validateWorkspacePayload } from "@/lib/workspace-persistence";
 import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
-import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlannerMode, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlannerMode, Render3DAssetType, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 import type { WorkspaceDocument } from "@/types/workspace";
 
@@ -3989,6 +3989,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       serviceRequirements: { ...item.serviceRequirements },
       position: { ...position, rotation: 0 },
       color: item.color,
+      render3d: item.render3d ? { ...item.render3d, assetType: item.render3d.assetType ?? item.moduleType } : undefined,
       wardrobeDesign: item.moduleType === "wardrobe" ? createRecommendedWardrobeDesign(item.dimensions) : undefined,
       cabinetDesign: cloneCabinetDesign(item.cabinetDesign)
     });
@@ -5265,7 +5266,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                             return (
                               <div key={item.id} className="rounded-lg bg-slate-50 p-2">
                                 <div className="flex items-start gap-2">
-                                  <FurnitureTopView className="mt-0.5 h-16 w-20 shrink-0 border border-white shadow-sm" color={item.color} label={item.codePrefix} type={item.furnitureType} />
+                                  <FurnitureTopView
+                                    assetType={item.render3d?.assetType as Render3DAssetType | undefined}
+                                    className="mt-0.5 h-16 w-20 shrink-0 border border-white shadow-sm"
+                                    color={item.color}
+                                    footprint={item.dimensions}
+                                    label={item.codePrefix}
+                                    stretchToFill
+                                    type={item.furnitureType}
+                                  />
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0">

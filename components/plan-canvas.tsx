@@ -5852,6 +5852,7 @@ export function PlanCanvas({
 	                const demandMuted = demandModeActive && !demandHint;
 	                const displayPosition = getFurnitureDisplayPosition(item);
                 const displaySize = getFurnitureDisplaySize(item);
+                const renderAsset = resolve3DAsset(item);
                 return (
                   <button
                     key={item.id}
@@ -5938,7 +5939,7 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-	                      <FurnitureTopView className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
+	                      <FurnitureTopView assetType={renderAsset.assetType} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
 	                    </div>
 	                    {demandHint && (
 	                      <>

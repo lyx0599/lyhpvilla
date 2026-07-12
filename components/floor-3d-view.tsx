@@ -3240,30 +3240,36 @@ function FurnitureBlock({
   const wardrobeLike = assetType === "wardrobe" || assetType === "walkInCloset" || item.moduleType === "wardrobe";
   const cabinetLike = isCabinetLike(item) || [
     "cabinet",
+    "wallCabinet",
     "wardrobe",
     "walkInCloset",
     "kitchenCabinet",
     "snackCabinet",
     "entryCabinet",
     "sideboard",
+    "outdoorCabinet",
     "bathroomVanity",
     "bookshelf",
     "nightstand"
   ].includes(assetType);
-  const counterLike = ["island", "kitchenCabinet", "sideboard", "bathroomVanity"].includes(assetType) ||
+  const counterLike = ["island", "kitchenCabinet", "sideboard", "outdoorCabinet", "bathroomVanity"].includes(assetType) ||
     item.moduleType === "island" || item.moduleType === "kitchenCabinet" || item.moduleType === "sideboard" || item.moduleType === "vanity";
-  const tableLike = isTableLike(item) || assetType === "diningTable" || assetType === "coffeeTable" || assetType === "desk";
+  const tableLike = isTableLike(item) || assetType === "diningTable" || assetType === "coffeeTable" || assetType === "loungeCoffeeTable" || assetType === "slabTable" || assetType === "outdoorDiningSet" || assetType === "desk";
   const sofaLike = isSofaLike(item) || assetType === "sofa";
   const bedLike = isBedLike(item) || assetType === "bed";
   const chairLike = isChairLike(item) || assetType === "diningChair";
+  const outdoorDiningSetLike = assetType === "outdoorDiningSet";
   const plantLike = isPlantLike(item) || assetType === "plant" || (assetType === "yardModule" && item.type === "plant");
   const rugLike = isRugLike(item);
   const fireplaceLike = item.moduleType === "fireplace" || assetType === "fireplace";
   const masterBathFixture = isMasterBathFurniture(item);
   const bathFixture = masterBathFixture || isBathroomFurniture(item) || ["bathroomVanity", "toilet", "bathtub", "shower", "sink"].includes(assetType);
-  const diningTableLike = assetType === "diningTable" || (assetType !== "coffeeTable" && assetType !== "desk" && isDiningTableLike(item, width, depth));
-  const coffeeTableLike = assetType === "coffeeTable" || assetType === "desk" || isCoffeeTableLike(item, width, depth, height);
-  const renderMainBody = !tableLike && !chairLike && !plantLike && !rugLike && !fireplaceLike;
+  const slabTableLike = assetType === "slabTable";
+  const diningTableLike = assetType === "diningTable" || (!slabTableLike && !outdoorDiningSetLike && assetType !== "coffeeTable" && assetType !== "loungeCoffeeTable" && assetType !== "desk" && isDiningTableLike(item, width, depth));
+  const coffeeTableLike = assetType === "coffeeTable" || assetType === "loungeCoffeeTable" || assetType === "desk" || isCoffeeTableLike(item, width, depth, height);
+  const loungeCoffeeTableLike = assetType === "loungeCoffeeTable";
+  const specialtyOutdoorLike = ["dryingRack", "dogHouse", "yardGate", "yardLight", "outdoorSocket", "drainPoint"].includes(assetType);
+  const renderMainBody = !tableLike && !chairLike && !plantLike && !rugLike && !fireplaceLike && !specialtyOutdoorLike;
   const bodyHeight = sofaLike ? height * 0.36 : bedLike ? height * 0.22 : height;
   const bodyY = sofaLike ? -height * 0.22 : bedLike ? -height * 0.3 : 0;
   const panelCount = Math.min(5, Math.max(2, Math.round(width / 0.62)));
@@ -3360,7 +3366,50 @@ function FurnitureBlock({
       )}
       {tableLike && (
         <group>
-          {diningTableLike ? (
+          {outdoorDiningSetLike ? (
+            <>
+              <RoundedBoxMesh
+                args={[width * 0.42, 0.065, depth * 0.36]}
+                position={[0, topLocalY, 0]}
+                radius={0.03}
+                smoothness={4}
+                color={useSelectionTint ? "#2563eb" : renderVariant.wood}
+                map={woodTexture}
+                roughness={0.56}
+                metalness={0.02}
+              />
+              {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+                <mesh key={`${item.id}-outdoor-table-leg-${xSide}-${zSide}`} castShadow position={[xSide * width * 0.16, -height * 0.13, zSide * depth * 0.12]}>
+                  <boxGeometry args={[0.04, height * 0.56, 0.04]} />
+                  <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.5} />
+                </mesh>
+              )))}
+              {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+                <group key={`${item.id}-outdoor-chair-${xSide}-${zSide}`} position={[xSide * width * 0.34, -height * 0.08, zSide * depth * 0.28]} rotation={[0, xSide < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+                  <RoundedBoxMesh args={[0.42, 0.09, 0.42]} radius={0.035} color={renderVariant.fabric} roughness={0.86} />
+                  <RoundedBoxMesh args={[0.42, 0.48, 0.07]} position={[0, 0.26, -0.18]} radius={0.025} color={renderVariant.fabric} roughness={0.84} />
+                  {[-1, 1].flatMap((legX) => [-1, 1].map((legZ) => (
+                    <mesh key={`${legX}-${legZ}`} position={[legX * 0.15, -0.23, legZ * 0.15]}>
+                      <boxGeometry args={[0.03, 0.32, 0.03]} />
+                      <meshStandardMaterial color={renderVariant.metal} roughness={0.32} metalness={0.46} />
+                    </mesh>
+                  )))}
+                </group>
+              )))}
+              {materialPreview && (
+                <group position={[0, topLocalY + 0.052, 0]}>
+                  <mesh>
+                    <cylinderGeometry args={[0.12, 0.16, 0.045, 32]} />
+                    <meshStandardMaterial color="#e8dbc9" roughness={0.5} />
+                  </mesh>
+                  <mesh position={[0.18, 0.05, -0.04]}>
+                    <cylinderGeometry args={[0.035, 0.035, 0.09, 18]} />
+                    <meshStandardMaterial color="#f5efe6" roughness={0.35} />
+                  </mesh>
+                </group>
+              )}
+            </>
+          ) : diningTableLike ? (
             <>
               <mesh castShadow receiveShadow position={[0, topLocalY, 0]}>
                 <cylinderGeometry args={[Math.min(width, depth) * 0.22, Math.min(width, depth) * 0.22, 0.07, 64]} />
@@ -3447,24 +3496,214 @@ function FurnitureBlock({
                 </group>
               )}
             </>
+          ) : slabTableLike ? (
+            <>
+              <RoundedBoxMesh
+                args={[width * 0.96, 0.08, depth * 0.9]}
+                position={[0, topLocalY + 0.01, 0]}
+                radius={0.026}
+                smoothness={4}
+                color={useSelectionTint ? "#2563eb" : renderVariant.wood}
+                map={woodTexture}
+                roughness={0.46}
+                metalness={0.02}
+              />
+              {[-0.28, 0.28].map((xOffset) => (
+                <group key={`${item.id}-slab-base-${xOffset}`} position={[xOffset * width, -height * 0.1, 0]}>
+                  <mesh castShadow receiveShadow rotation={[0, 0, Math.PI / 12]}>
+                    <boxGeometry args={[0.06, height * 0.68, 0.06]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.62} />
+                  </mesh>
+                  <mesh castShadow receiveShadow rotation={[0, 0, -Math.PI / 12]}>
+                    <boxGeometry args={[0.06, height * 0.68, 0.06]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.62} />
+                  </mesh>
+                  <mesh castShadow receiveShadow position={[0, -height * 0.28, 0]}>
+                    <boxGeometry args={[depth * 0.52, 0.04, 0.08]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.54} />
+                  </mesh>
+                </group>
+              ))}
+              {materialPreview && (
+                <>
+                  <mesh position={[0, topLocalY + 0.028, 0]}>
+                    <boxGeometry args={[width * 0.82, 0.012, depth * 0.64]} />
+                    <meshStandardMaterial color="#ffffff" transparent opacity={0.08} roughness={0.48} />
+                  </mesh>
+                  <mesh position={[0, ceilingLocalY, 0]}>
+                    <boxGeometry args={[0.014, 0.54, 0.014]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.48} />
+                  </mesh>
+                  <mesh position={[0, ceilingLocalY - 0.31, 0]}>
+                    <cylinderGeometry args={[0.28, 0.34, 0.18, 32]} />
+                    <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.5} roughness={0.42} />
+                  </mesh>
+                </>
+              )}
+            </>
           ) : (
             <>
-              <mesh castShadow receiveShadow position={[0, topLocalY, 0]}>
-                <boxGeometry args={[width * (coffeeTableLike ? 0.92 : 0.78), 0.06, depth * (coffeeTableLike ? 0.82 : 0.78)]} />
-                <meshStandardMaterial color={useSelectionTint ? "#2563eb" : renderVariant.wood} roughness={0.48} metalness={0.02} />
-              </mesh>
-              {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
-                <mesh key={`${item.id}-leg-${xSide}-${zSide}`} castShadow position={[xSide * width * 0.32, -height * 0.08, zSide * depth * 0.28]}>
-                  <boxGeometry args={[0.04, height * 0.62, 0.04]} />
-                  <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.5} />
-                </mesh>
-              )))}
-              {coffeeTableLike && materialPreview && (
-                <mesh position={[0, topLocalY + 0.05, 0]}>
-                  <boxGeometry args={[width * 0.42, 0.024, depth * 0.24]} />
-                  <meshStandardMaterial color={renderVariant.stone} roughness={0.35} metalness={0.02} />
-                </mesh>
+              {loungeCoffeeTableLike ? (
+                <>
+                  <mesh castShadow receiveShadow position={[0, topLocalY, 0]}>
+                    <cylinderGeometry args={[Math.min(width, depth) * 0.24, Math.min(width, depth) * 0.26, 0.055, 42]} />
+                    <meshStandardMaterial color={useSelectionTint ? "#2563eb" : renderVariant.wood} map={woodTexture ?? undefined} roughness={0.5} metalness={0.02} />
+                  </mesh>
+                  <mesh castShadow receiveShadow position={[0, -height * 0.16, 0]}>
+                    <cylinderGeometry args={[Math.min(width, depth) * 0.18, Math.min(width, depth) * 0.2, 0.05, 36]} />
+                    <meshStandardMaterial color={renderVariant.stone} roughness={0.34} metalness={0.04} />
+                  </mesh>
+                  {[-0.18, 0.18].flatMap((xOffset) => [-0.18, 0.18].map((zOffset) => (
+                    <group key={`${item.id}-caster-${xOffset}-${zOffset}`} position={[xOffset * width, -height * 0.31, zOffset * depth]}>
+                      <mesh castShadow receiveShadow>
+                        <cylinderGeometry args={[0.02, 0.02, 0.028, 14]} />
+                        <meshStandardMaterial color={renderVariant.metal} roughness={0.26} metalness={0.58} />
+                      </mesh>
+                      <mesh castShadow receiveShadow position={[0, 0.04, 0]}>
+                        <boxGeometry args={[0.016, 0.08, 0.016]} />
+                        <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.62} />
+                      </mesh>
+                    </group>
+                  )))}
+                  {materialPreview && (
+                    <group position={[0, topLocalY + 0.05, 0]}>
+                      <mesh>
+                        <boxGeometry args={[width * 0.24, 0.022, depth * 0.12]} />
+                        <meshStandardMaterial color={renderVariant.stone} roughness={0.35} metalness={0.02} />
+                      </mesh>
+                      <mesh position={[0, 0.03, 0]}>
+                        <cylinderGeometry args={[0.04, 0.04, 0.08, 18]} />
+                        <meshStandardMaterial color="#f0ece4" roughness={0.3} metalness={0.02} />
+                      </mesh>
+                    </group>
+                  )}
+                </>
+              ) : (
+                <>
+                  <mesh castShadow receiveShadow position={[0, topLocalY, 0]}>
+                    <boxGeometry args={[width * (coffeeTableLike ? 0.92 : 0.78), 0.06, depth * (coffeeTableLike ? 0.82 : 0.78)]} />
+                    <meshStandardMaterial color={useSelectionTint ? "#2563eb" : renderVariant.wood} roughness={0.48} metalness={0.02} />
+                  </mesh>
+                  {[-1, 1].flatMap((xSide) => [-1, 1].map((zSide) => (
+                    <mesh key={`${item.id}-leg-${xSide}-${zSide}`} castShadow position={[xSide * width * 0.32, -height * 0.08, zSide * depth * 0.28]}>
+                      <boxGeometry args={[0.04, height * 0.62, 0.04]} />
+                      <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.5} />
+                    </mesh>
+                  )))}
+                  {coffeeTableLike && materialPreview && (
+                    <mesh position={[0, topLocalY + 0.05, 0]}>
+                      <boxGeometry args={[width * 0.42, 0.024, depth * 0.24]} />
+                      <meshStandardMaterial color={renderVariant.stone} roughness={0.35} metalness={0.02} />
+                    </mesh>
+                  )}
+                </>
               )}
+            </>
+          )}
+        </group>
+      )}
+      {specialtyOutdoorLike && (
+        <group>
+          {assetType === "dryingRack" && (
+            <>
+              {[-1, 1].map((xSide) => (
+                <group key={`${item.id}-drying-side-${xSide}`} position={[xSide * width * 0.42, 0, 0]}>
+                  <mesh position={[0, 0, -depth * 0.3]} rotation={[0, 0, 0.18 * xSide]}>
+                    <boxGeometry args={[0.035, height * 0.9, 0.035]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.3} metalness={0.58} />
+                  </mesh>
+                  <mesh position={[0, 0, depth * 0.3]} rotation={[0, 0, -0.18 * xSide]}>
+                    <boxGeometry args={[0.035, height * 0.9, 0.035]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.3} metalness={0.58} />
+                  </mesh>
+                </group>
+              ))}
+              {[-0.32, -0.16, 0, 0.16, 0.32].map((zOffset) => (
+                <mesh key={`${item.id}-drying-rail-${zOffset}`} position={[0, height * 0.36, zOffset * depth]}>
+                  <boxGeometry args={[width * 0.86, 0.026, 0.026]} />
+                  <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.55} />
+                </mesh>
+              ))}
+            </>
+          )}
+          {assetType === "dogHouse" && (
+            <>
+              <RoundedBoxMesh args={[width * 0.82, height * 0.48, depth * 0.82]} position={[0, -height * 0.14, 0]} radius={0.04} color={renderVariant.wood} map={woodTexture} roughness={0.58} />
+              <mesh position={[0, height * 0.24, 0]} rotation={[0, 0, Math.PI / 4]}>
+                <boxGeometry args={[width * 0.7, height * 0.12, depth * 0.92]} />
+                <meshStandardMaterial color={renderVariant.darkWood} roughness={0.54} />
+              </mesh>
+              <mesh position={[0, -height * 0.22, frontZ + 0.02]}>
+                <boxGeometry args={[width * 0.28, height * 0.34, 0.035]} />
+                <meshStandardMaterial color="#2d211a" roughness={0.62} />
+              </mesh>
+            </>
+          )}
+          {assetType === "yardGate" && (
+            <>
+              {[-0.48, 0.48].map((xOffset) => (
+                <mesh key={`${item.id}-gate-post-${xOffset}`} position={[xOffset * width, 0, 0]}>
+                  <boxGeometry args={[0.08, height, 0.08]} />
+                  <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.58} />
+                </mesh>
+              ))}
+              {Array.from({ length: 6 }, (_, index) => {
+                const x = -width * 0.34 + index * width * 0.136;
+                return (
+                  <mesh key={`${item.id}-gate-slat-${index}`} position={[x, 0, frontZ]}>
+                    <boxGeometry args={[0.035, height * 0.86, 0.035]} />
+                    <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.58} />
+                  </mesh>
+                );
+              })}
+              {[-0.22, 0.22].map((yOffset) => (
+                <mesh key={`${item.id}-gate-rail-${yOffset}`} position={[0, yOffset * height, frontZ + 0.01]}>
+                  <boxGeometry args={[width * 0.84, 0.035, 0.035]} />
+                  <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.58} />
+                </mesh>
+              ))}
+            </>
+          )}
+          {assetType === "yardLight" && (
+            <>
+              <mesh position={[0, -height * 0.16, 0]}>
+                <cylinderGeometry args={[0.045, 0.055, height * 0.66, 16]} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.62} />
+              </mesh>
+              <pointLight color={renderVariant.light} intensity={0.95} distance={1.9} position={[0, height * 0.24, 0]} />
+              <mesh position={[0, height * 0.24, 0]}>
+                <cylinderGeometry args={[0.16, 0.2, 0.18, 24]} />
+                <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={1.2} roughness={0.3} />
+              </mesh>
+            </>
+          )}
+          {assetType === "outdoorSocket" && (
+            <>
+              <RoundedBoxMesh args={[width * 0.72, height * 0.58, depth * 0.9]} position={[0, 0, 0]} radius={0.018} color={renderVariant.metal} roughness={0.32} metalness={0.5} />
+              <mesh position={[0, height * 0.12, frontZ + 0.02]}>
+                <boxGeometry args={[width * 0.46, height * 0.08, 0.018]} />
+                <meshStandardMaterial color="#e5e7eb" roughness={0.42} />
+              </mesh>
+              {[-0.12, 0.12].map((xOffset) => (
+                <mesh key={`${item.id}-socket-hole-${xOffset}`} position={[xOffset * width, -height * 0.06, frontZ + 0.025]}>
+                  <cylinderGeometry args={[0.018, 0.018, 0.012, 12]} />
+                  <meshStandardMaterial color="#111827" roughness={0.5} />
+                </mesh>
+              ))}
+            </>
+          )}
+          {assetType === "drainPoint" && (
+            <>
+              <mesh receiveShadow position={[0, -height * 0.1, 0]}>
+                <cylinderGeometry args={[Math.min(width, depth) * 0.42, Math.min(width, depth) * 0.42, Math.max(0.025, height * 0.42), 36]} />
+                <meshStandardMaterial color={renderVariant.metal} roughness={0.36} metalness={0.52} />
+              </mesh>
+              {[-0.18, 0, 0.18].map((xOffset) => (
+                <mesh key={`${item.id}-drain-slot-${xOffset}`} position={[xOffset * width, -height * 0.07, 0]}>
+                  <boxGeometry args={[0.018, 0.012, depth * 0.62]} />
+                  <meshStandardMaterial color="#111827" roughness={0.4} />
+                </mesh>
+              ))}
             </>
           )}
         </group>
@@ -3693,7 +3932,44 @@ function FurnitureBlock({
                   })}
                 </group>
               )}
-              {assetType === "sideboard" && (
+              {assetType === "wallCabinet" && (
+                <group>
+                  <RoundedBoxMesh
+                    args={[width * 0.94, height * 0.74, depth * 0.82]}
+                    position={[0, height * 0.06, 0]}
+                    radius={0.025}
+                    smoothness={4}
+                    color={renderVariant.wood}
+                    map={woodTexture}
+                    roughness={0.54}
+                    metalness={0.02}
+                  />
+                  {[-0.24, 0.24].map((xOffset) => (
+                    <RoundedBoxMesh
+                      key={`${item.id}-wall-cabinet-glass-${xOffset}`}
+                      args={[width * 0.34, height * 0.5, 0.034]}
+                      position={[xOffset * width, height * 0.08, frontZ + 0.03]}
+                      radius={0.018}
+                      color={renderVariant.glass}
+                      roughness={0.08}
+                      metalness={0.04}
+                      transparent
+                      opacity={0.42}
+                    />
+                  ))}
+                  {[-0.24, 0.24].map((xOffset) => (
+                    <mesh key={`${item.id}-wall-cabinet-handle-${xOffset}`} position={[xOffset * width, height * 0.08, frontZ + 0.06]}>
+                      <boxGeometry args={[0.018, height * 0.32, 0.018]} />
+                      <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.68} />
+                    </mesh>
+                  ))}
+                  <mesh position={[0, -height * 0.36, frontZ + 0.035]}>
+                    <boxGeometry args={[width * 0.82, 0.026, 0.024]} />
+                    <meshStandardMaterial color={renderVariant.light} emissive={renderVariant.light} emissiveIntensity={0.72} roughness={0.18} />
+                  </mesh>
+                </group>
+              )}
+              {(assetType === "sideboard" || assetType === "outdoorCabinet") && (
                 <group>
                   <RoundedBoxMesh
                     args={[width * 0.9, 0.05, depth * 0.88]}
@@ -3743,16 +4019,29 @@ function FurnitureBlock({
                       </mesh>
                     ))}
                   </group>
-                  <group position={[width * 0.25, height * 0.56, -depth * 0.06]}>
-                    <mesh castShadow>
-                      <cylinderGeometry args={[0.055, 0.07, 0.11, 18]} />
-                      <meshStandardMaterial color="#d7c0a6" roughness={0.62} />
-                    </mesh>
-                    <mesh position={[0, 0.11, 0]} scale={[1, 0.62, 1]}>
-                      <sphereGeometry args={[0.11, 18, 12]} />
-                      <meshStandardMaterial color={palette.plant} roughness={0.72} />
-                    </mesh>
-                  </group>
+                  {assetType === "outdoorCabinet" ? (
+                    <group position={[width * 0.22, height * 0.54, depth * 0.08]}>
+                      <mesh>
+                        <boxGeometry args={[0.22, 0.035, 0.16]} />
+                        <meshStandardMaterial color={renderVariant.stone} roughness={0.38} metalness={0.03} />
+                      </mesh>
+                      <mesh position={[0.04, 0.12, -0.02]}>
+                        <cylinderGeometry args={[0.014, 0.014, 0.18, 12]} />
+                        <meshStandardMaterial color={renderVariant.metal} roughness={0.2} metalness={0.72} />
+                      </mesh>
+                    </group>
+                  ) : (
+                    <group position={[width * 0.25, height * 0.56, -depth * 0.06]}>
+                      <mesh castShadow>
+                        <cylinderGeometry args={[0.055, 0.07, 0.11, 18]} />
+                        <meshStandardMaterial color="#d7c0a6" roughness={0.62} />
+                      </mesh>
+                      <mesh position={[0, 0.11, 0]} scale={[1, 0.62, 1]}>
+                        <sphereGeometry args={[0.11, 18, 12]} />
+                        <meshStandardMaterial color={palette.plant} roughness={0.72} />
+                      </mesh>
+                    </group>
+                  )}
                 </group>
               )}
             </group>
@@ -4464,6 +4753,7 @@ const furnitureAssetComponentMap = {
   wardrobe: Wardrobe3DGroup,
   walkInCloset: WalkInCloset3DGroup,
   cabinet: Cabinet3DGroup,
+  wallCabinet: Cabinet3DGroup,
   desk: Desk3DGroup,
   bathroomVanity: BathroomVanity3DGroup,
   toilet: Toilet3DGroup,
@@ -4471,7 +4761,9 @@ const furnitureAssetComponentMap = {
   shower: Shower3DGroup,
   sofa: Sofa3DGroup,
   coffeeTable: CoffeeTable3DGroup,
+  loungeCoffeeTable: CoffeeTable3DGroup,
   diningTable: DiningTable3DGroup,
+  slabTable: DiningTable3DGroup,
   diningChair: DiningChair3DGroup,
   kitchenCabinet: KitchenCabinet3DGroup,
   island: Island3DGroup,
@@ -4481,6 +4773,14 @@ const furnitureAssetComponentMap = {
   stair: StairAsset3DGroup,
   paving: Paving3DGroup,
   yardModule: YardModule3DGroup,
+  outdoorDiningSet: YardModule3DGroup,
+  dryingRack: YardModule3DGroup,
+  dogHouse: YardModule3DGroup,
+  yardGate: YardModule3DGroup,
+  outdoorCabinet: Sideboard3DGroup,
+  yardLight: YardModule3DGroup,
+  outdoorSocket: YardModule3DGroup,
+  drainPoint: YardModule3DGroup,
   sink: Sink3DGroup,
   cooktop: Cooktop3DGroup,
   fridge: Fridge3DGroup,

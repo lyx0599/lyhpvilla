@@ -79,6 +79,7 @@ const knownAssetTypes = new Set<Render3DAssetType>([
   "wardrobe",
   "walkInCloset",
   "cabinet",
+  "wallCabinet",
   "desk",
   "bathroomVanity",
   "toilet",
@@ -86,7 +87,9 @@ const knownAssetTypes = new Set<Render3DAssetType>([
   "shower",
   "sofa",
   "coffeeTable",
+  "loungeCoffeeTable",
   "diningTable",
+  "slabTable",
   "diningChair",
   "kitchenCabinet",
   "island",
@@ -96,6 +99,14 @@ const knownAssetTypes = new Set<Render3DAssetType>([
   "stair",
   "paving",
   "yardModule",
+  "outdoorDiningSet",
+  "dryingRack",
+  "dogHouse",
+  "yardGate",
+  "outdoorCabinet",
+  "yardLight",
+  "outdoorSocket",
+  "drainPoint",
   "sink",
   "cooktop",
   "fridge",
@@ -111,12 +122,15 @@ const groupedAssetTypes = new Set<Render3DAssetType>([
   "wardrobe",
   "walkInCloset",
   "cabinet",
+  "wallCabinet",
   "desk",
   "bathroomVanity",
   "shower",
   "sofa",
   "coffeeTable",
+  "loungeCoffeeTable",
   "diningTable",
+  "slabTable",
   "kitchenCabinet",
   "island",
   "sideboard",
@@ -124,6 +138,14 @@ const groupedAssetTypes = new Set<Render3DAssetType>([
   "fireplace",
   "stair",
   "yardModule",
+  "outdoorDiningSet",
+  "dryingRack",
+  "dogHouse",
+  "yardGate",
+  "outdoorCabinet",
+  "yardLight",
+  "outdoorSocket",
+  "drainPoint",
   "pegboard",
   "bookshelf",
   "snackCabinet"
@@ -184,9 +206,11 @@ function normalizeMaterialToken(value: string | undefined): Render3DMaterialToke
 function materialFallbackTokens(assetType: Render3DAssetType): [Render3DMaterialToken, Render3DMaterialToken, Render3DMaterialToken] {
   if (assetType === "bed") return ["creamFabric", "warmOak", "taupeFabric"];
   if (assetType === "sofa" || assetType === "diningChair") return ["creamFabric", "warmOak", "taupeFabric"];
-  if (assetType === "wardrobe" || assetType === "walkInCloset" || assetType === "cabinet" || assetType === "entryCabinet" || assetType === "snackCabinet" || assetType === "bookshelf" || assetType === "pegboard") return ["warmOak", "smokedGlass", "brushedBronze"];
+  if (assetType === "wardrobe" || assetType === "walkInCloset" || assetType === "cabinet" || assetType === "wallCabinet" || assetType === "entryCabinet" || assetType === "snackCabinet" || assetType === "bookshelf" || assetType === "pegboard") return ["warmOak", "smokedGlass", "brushedBronze"];
   if (assetType === "kitchenCabinet" || assetType === "sideboard") return ["warmOak", "warmGreyStone", "brushedBronze"];
   if (assetType === "island") return ["microCement", "travertine", "brushedBronze"];
+  if (assetType === "slabTable") return ["walnut", "blackTitanium", "brushedBronze"];
+  if (assetType === "loungeCoffeeTable") return ["warmOak", "travertine", "blackTitanium"];
   if (assetType === "diningTable" || assetType === "coffeeTable" || assetType === "desk" || assetType === "nightstand") return ["warmOak", "travertine", "brushedBronze"];
   if (assetType === "bathroomVanity") return ["travertine", "warmOak", "brushedBronze"];
   if (assetType === "shower") return ["clearGlass", "blackTitanium", "brushedBronze"];
@@ -194,6 +218,9 @@ function materialFallbackTokens(assetType: Render3DAssetType): [Render3DMaterial
   if (assetType === "sink") return ["warmGreyStone", "brushedBronze", "clearGlass"];
   if (assetType === "cooktop" || assetType === "fridge") return ["blackTitanium", "warmGreyStone", "brushedBronze"];
   if (assetType === "fireplace") return ["travertine", "microCement", "warmLightEmissive"];
+  if (assetType === "outdoorDiningSet") return ["warmOak", "microCement", "blackTitanium"];
+  if (assetType === "dryingRack" || assetType === "yardGate" || assetType === "yardLight" || assetType === "outdoorSocket" || assetType === "drainPoint") return ["blackTitanium", "microCement", "warmLightEmissive"];
+  if (assetType === "dogHouse" || assetType === "outdoorCabinet") return ["warmOak", "warmGreyStone", "blackTitanium"];
   if (assetType === "paving" || assetType === "yardModule") return ["warmGreyStone", "microCement", "blackTitanium"];
   if (assetType === "plant") return ["plantSoftGreen", "warmOak", "warmGreyStone"];
   return ["warmOak", "beigeFabric", "brushedBronze"];
@@ -262,6 +289,8 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
   if (moduleType === "shower") return "shower";
   if (moduleType === "sofa") return "sofa";
   if (moduleType === "table") {
+    if (includesAny(nameText, ["大板桌", "slab"])) return "slabTable";
+    if (includesAny(nameText, ["可移动茶几", "托盘茶几", "移动茶几"])) return "loungeCoffeeTable";
     if (includesAny(nameText, ["茶几", "边几", "coffee"])) return "coffeeTable";
     if (includesAny(nameText, ["庭院", "院子", "休闲活动", "yard"])) return "yardModule";
     return Math.max(item.dimensions.width, item.dimensions.depth) >= 165 ? "diningTable" : "coffeeTable";
@@ -269,6 +298,7 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
   if (moduleType === "kitchenCabinet") return "kitchenCabinet";
   if (moduleType === "island") return "island";
   if (moduleType === "sideboard") return "sideboard";
+  if (moduleType === "cabinet" && includesAny(nameText, ["吊柜", "wall cabinet", "upper cabinet"])) return "wallCabinet";
   if (moduleType === "entryCabinet") return "entryCabinet";
   if (moduleType === "fireplace") return "fireplace";
   if (moduleType === "sink") return "sink";
@@ -283,6 +313,7 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
 
   if (includesAny(nameText, ["梳妆台", "整理桌", "书桌", "desk", "化妆台"])) return "desk";
   if (includesAny(nameText, ["浴室柜", "台盆柜", "洗手台", "vanity"])) return "bathroomVanity";
+  if (includesAny(nameText, ["吊柜", "wall cabinet", "upper cabinet"])) return "wallCabinet";
   if (includesAny(nameText, ["餐边柜"])) return "sideboard";
   if (includesAny(nameText, ["玄关柜", "鞋柜", "入户柜"])) return "entryCabinet";
   if (includesAny(nameText, ["零食柜", "囤货柜"])) return "snackCabinet";
@@ -298,8 +329,10 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
   if (includesAny(nameText, ["沙发", "sofa"])) return "sofa";
   if (includesAny(nameText, ["电视"])) return "cabinet";
   if (includesAny(nameText, ["软垫", "地垫", "mat"])) return "paving";
+  if (includesAny(nameText, ["可移动茶几", "托盘茶几", "移动茶几"])) return "loungeCoffeeTable";
   if (includesAny(nameText, ["茶几", "边几", "coffee"])) return "coffeeTable";
-  if (includesAny(nameText, ["餐桌", "大板桌", "dining"])) return "diningTable";
+  if (includesAny(nameText, ["大板桌", "slab"])) return "slabTable";
+  if (includesAny(nameText, ["餐桌", "dining"])) return "diningTable";
   if (includesAny(nameText, ["餐椅", "chair"])) return "diningChair";
   if (includesAny(nameText, ["灶台", "灶", "cooktop"])) return "cooktop";
   if (includesAny(nameText, ["水槽", "洗菜盆", "sink"])) return "sink";
@@ -307,6 +340,14 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
   if (includesAny(nameText, ["洞洞板", "pegboard"])) return "pegboard";
   if (includesAny(nameText, ["书架", "书柜", "bookshelf"])) return "bookshelf";
   if (includesAny(nameText, ["铺装", "硬化", "平台", "小路", "paving"])) return "paving";
+  if (includesAny(nameText, ["休闲活动桌椅", "户外桌椅", "outdoor dining", "lounge set"])) return "outdoorDiningSet";
+  if (includesAny(nameText, ["晾晒架", "晾衣架", "drying rack"])) return "dryingRack";
+  if (includesAny(nameText, ["狗窝", "宠物屋", "dog house"])) return "dogHouse";
+  if (includesAny(nameText, ["庭院门", "院门", "yard gate"])) return "yardGate";
+  if (includesAny(nameText, ["户外柜", "庭院柜", "outdoor cabinet"])) return "outdoorCabinet";
+  if (includesAny(nameText, ["庭院灯", "yard light", "path light"])) return "yardLight";
+  if (includesAny(nameText, ["户外插座", "防水户外插座", "outdoor socket"])) return "outdoorSocket";
+  if (includesAny(nameText, ["排水点", "地漏", "drain point"])) return "drainPoint";
   if (includesAny(nameText, ["庭院", "院子", "南院", "北院", "户外柜", "院门", "晾晒", "宠物", "狗屋", "烧烤", "yard", "bbq"])) return "yardModule";
   if (includesAny(nameText, ["绿植", "植物", "树", "plant"])) return item.floorId === "YARD" ? "yardModule" : "plant";
 
@@ -339,19 +380,20 @@ function inferPrimaryMaterial(item: Furniture, assetType: Render3DAssetType) {
 function inferSecondaryMaterial(assetType: Render3DAssetType, primaryMaterial: string) {
   if (assetType === "bed") return "bedding-fabric";
   if (assetType === "wardrobe" || assetType === "walkInCloset") return "interior-wood";
+  if (assetType === "wallCabinet") return "glass";
   if (assetType === "kitchenCabinet" || assetType === "island" || assetType === "sideboard") return "stone-countertop";
   if (assetType === "shower") return "metal-frame";
   if (assetType === "fireplace") return "stone-surround";
-  if (assetType === "yardModule") return "outdoor-finish";
+  if (assetType === "yardModule" || assetType === "outdoorDiningSet" || assetType === "dryingRack" || assetType === "dogHouse" || assetType === "yardGate" || assetType === "outdoorCabinet" || assetType === "yardLight" || assetType === "outdoorSocket" || assetType === "drainPoint") return "outdoor-finish";
   return primaryMaterial;
 }
 
 function inferAccentMaterial(assetType: Render3DAssetType) {
   if (assetType === "bed" || assetType === "sofa") return "soft-accent-fabric";
-  if (assetType === "wardrobe" || assetType === "cabinet" || assetType === "kitchenCabinet") return "handle-metal";
+  if (assetType === "wardrobe" || assetType === "cabinet" || assetType === "wallCabinet" || assetType === "kitchenCabinet") return "handle-metal";
   if (assetType === "bathroomVanity" || assetType === "sink" || assetType === "shower") return "brushed-metal";
-  if (assetType === "fireplace") return "warm-emissive-light";
-  if (assetType === "yardModule" || assetType === "paving") return "outdoor-detail";
+  if (assetType === "fireplace" || assetType === "yardLight") return "warm-emissive-light";
+  if (assetType === "yardModule" || assetType === "paving" || assetType === "outdoorDiningSet" || assetType === "dryingRack" || assetType === "dogHouse" || assetType === "yardGate" || assetType === "outdoorCabinet" || assetType === "outdoorSocket" || assetType === "drainPoint") return "outdoor-detail";
   return "detail";
 }
 
@@ -621,7 +663,7 @@ export function enrichFurniture3DMeta(item: Furniture): Furniture {
     render3d: {
       ...defaultRender3d,
       ...item.render3d,
-      assetType: defaultRender3d.assetType
+      assetType: normalizeAssetType(item.render3d?.assetType) ?? defaultRender3d.assetType
     },
     mepMeta: {
       ...defaultMepMeta,

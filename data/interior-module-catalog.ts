@@ -1,4 +1,4 @@
-import type { CabinetDesign, Dimension, FurnitureType, InteriorModuleCategory, InteriorModuleType, ModuleServiceRequirements } from "@/types/space";
+import type { CabinetDesign, Dimension, FurnitureType, InteriorModuleCategory, InteriorModuleType, ModuleServiceRequirements, Render3DMeta } from "@/types/space";
 
 export type InteriorModuleCatalogItem = {
   id: string;
@@ -12,6 +12,7 @@ export type InteriorModuleCatalogItem = {
   material: string;
   note: string;
   serviceRequirements: ModuleServiceRequirements;
+  render3d?: Partial<Render3DMeta>;
   cabinetDesign?: CabinetDesign;
 };
 
@@ -27,10 +28,13 @@ export const interiorModuleCategoryLabels: Record<InteriorModuleCategory, string
 export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
   sofa: "沙发",
   table: "餐桌",
+  loungeCoffeeTable: "茶几",
+  slabTable: "大板桌",
   bed: "床",
   nightstand: "床头柜",
   plant: "绿植",
   cabinet: "矮柜",
+  wallCabinet: "吊柜",
   fireplace: "壁炉",
   kitchenCabinet: "橱柜",
   snackCabinet: "零食柜",
@@ -47,7 +51,15 @@ export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
   vanity: "台盆柜",
   wardrobe: "衣柜",
   entryCabinet: "玄关柜",
-  sideboard: "餐边柜"
+  sideboard: "餐边柜",
+  outdoorDiningSet: "庭院桌椅",
+  dryingRack: "晾晒架",
+  dogHouse: "狗屋",
+  yardGate: "院门",
+  outdoorCabinet: "户外柜",
+  yardLight: "庭院灯",
+  outdoorSocket: "户外插座",
+  drainPoint: "地漏/排水点"
 };
 
 export const serviceRequirementLabels: Array<{ key: keyof ModuleServiceRequirements; label: string }> = [
@@ -85,6 +97,34 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
   },
   {
+    id: "living-slab-table",
+    category: "living",
+    moduleType: "slabTable",
+    furnitureType: "table",
+    codePrefix: "DT",
+    name: "大板桌",
+    dimensions: { width: 260, depth: 95, height: 75, unit: "cm" },
+    color: "#8b6b4f",
+    material: "实木大板桌面 + 黑色金属支脚",
+    note: "适合书房、地下休闲区或多人手作台，外形按长条厚板表达，不再套用圆餐桌图形。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "slabTable", primaryMaterial: "walnut", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", childrenMode: "grouped" }
+  },
+  {
+    id: "living-lounge-coffee-table",
+    category: "living",
+    moduleType: "loungeCoffeeTable",
+    furnitureType: "table",
+    codePrefix: "CT",
+    name: "休闲茶几",
+    dimensions: { width: 140, depth: 70, height: 38, unit: "cm" },
+    color: "#c7ad8d",
+    material: "圆角木质茶几 / 石材托盘面",
+    note: "用于沙发前或地下休闲区，外形按低矮茶几表达，避免误看成餐桌。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "loungeCoffeeTable", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "blackTitanium", childrenMode: "grouped" }
+  },
+  {
     id: "living-tv-cabinet",
     category: "living",
     moduleType: "cabinet",
@@ -96,6 +136,20 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "悬浮柜 / 成品矮柜",
     note: "结合电视墙、插座和弱电点位深化。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+  },
+  {
+    id: "storage-wall-cabinet",
+    category: "storage",
+    moduleType: "wallCabinet",
+    furnitureType: "cabinet",
+    codePrefix: "UC",
+    name: "墙面吊柜",
+    dimensions: { width: 180, depth: 35, height: 70, unit: "cm" },
+    color: "#efe6d6",
+    material: "定制吊柜 + 隐形拉手",
+    note: "适合水吧、洗衣区或餐边上方，按贴墙悬挂柜表达，并提示基层和插座避让。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "wallCabinet", primaryMaterial: "warmOak", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", childrenMode: "grouped" }
   },
   {
     id: "living-fireplace",
@@ -460,6 +514,118 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
       ],
       cautionNotes: ["餐椅后退区和餐边柜开门不能冲突。", "有净饮设备时提前确认上下水或桶装水方案。"]
     }
+  },
+  {
+    id: "storage-outdoor-cabinet",
+    category: "storage",
+    moduleType: "outdoorCabinet",
+    furnitureType: "cabinet",
+    codePrefix: "OC",
+    name: "户外收纳柜",
+    dimensions: { width: 160, depth: 55, height: 95, unit: "cm" },
+    color: "#8d927f",
+    material: "防水户外柜体 + 石材台面",
+    note: "用于南北院清洁工具、园艺用品和户外小电器收纳，需复核防水、排水坡度和电源安全。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "outdoorCabinet", primaryMaterial: "microCement", secondaryMaterial: "warmGreyStone", accentMaterial: "blackTitanium", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-outdoor-dining-set",
+    category: "decor",
+    moduleType: "outdoorDiningSet",
+    furnitureType: "table",
+    codePrefix: "OD",
+    name: "庭院桌椅套组",
+    dimensions: { width: 260, depth: 220, height: 75, unit: "cm" },
+    color: "#b9aa91",
+    material: "户外餐桌 + 休闲椅",
+    note: "用于院子休闲用餐或下午茶，按桌椅组合表达，放置后校核遮阳、动线和排水坡度。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "outdoorDiningSet", primaryMaterial: "warmOak", secondaryMaterial: "creamFabric", accentMaterial: "blackTitanium", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-drying-rack",
+    category: "decor",
+    moduleType: "dryingRack",
+    furnitureType: "custom",
+    codePrefix: "DR",
+    name: "折叠晾晒架",
+    dimensions: { width: 220, depth: 70, height: 155, unit: "cm" },
+    color: "#8aa0b4",
+    material: "金属折叠晾晒架",
+    note: "用于院子或家政区临时晾晒，按细杆结构表达，避免和桌椅混淆。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "dryingRack", primaryMaterial: "metal-frame", secondaryMaterial: "fabric", accentMaterial: "blackTitanium", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-dog-house",
+    category: "decor",
+    moduleType: "dogHouse",
+    furnitureType: "custom",
+    codePrefix: "DH",
+    name: "宠物屋",
+    dimensions: { width: 110, depth: 85, height: 95, unit: "cm" },
+    color: "#b98d64",
+    material: "户外木质宠物屋",
+    note: "用于院子宠物休息点，按小屋外形表达，需避开暴晒和主要通道。",
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "dogHouse", primaryMaterial: "honeyWood", secondaryMaterial: "warmGreyStone", accentMaterial: "blackTitanium", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-yard-gate",
+    category: "decor",
+    moduleType: "yardGate",
+    furnitureType: "custom",
+    codePrefix: "YG",
+    name: "院门",
+    dimensions: { width: 180, depth: 18, height: 180, unit: "cm" },
+    color: "#5f6670",
+    material: "金属院门 / 栅格门",
+    note: "用于南北院入口表达，按门扇和门柱显示，后续和围栏、门禁、电源点联动。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "yardGate", primaryMaterial: "blackTitanium", secondaryMaterial: "brushedBronze", accentMaterial: "warmLightEmissive", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-yard-light",
+    category: "decor",
+    moduleType: "yardLight",
+    furnitureType: "custom",
+    codePrefix: "YL",
+    name: "庭院灯",
+    dimensions: { width: 35, depth: 35, height: 85, unit: "cm" },
+    color: "#f1c86a",
+    material: "低位庭院灯 / 暖光光源",
+    note: "用于花池、入口和台阶旁的低位照明，占位时同步提示回路和开关控制。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "yardLight", primaryMaterial: "warmLightEmissive", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-outdoor-socket",
+    category: "decor",
+    moduleType: "outdoorSocket",
+    furnitureType: "custom",
+    codePrefix: "OS",
+    name: "户外防水插座",
+    dimensions: { width: 22, depth: 12, height: 28, unit: "cm" },
+    color: "#4b5563",
+    material: "防水盒 + 户外插座",
+    note: "用于院子小电器、灯具和清洁设备取电，需确认防水等级和回路保护。",
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "outdoorSocket", primaryMaterial: "blackTitanium", secondaryMaterial: "warmGreyStone", accentMaterial: "warmLightEmissive", childrenMode: "grouped" }
+  },
+  {
+    id: "decor-drain-point",
+    category: "decor",
+    moduleType: "drainPoint",
+    furnitureType: "custom",
+    codePrefix: "DP",
+    name: "地漏 / 排水点",
+    dimensions: { width: 35, depth: 35, height: 6, unit: "cm" },
+    color: "#6b7280",
+    material: "不锈钢地漏 / 线性排水",
+    note: "用于院子、阳台或湿区排水占位，放置后校核坡向和检修。",
+    serviceRequirements: { water: false, drainage: true, power: false, exhaust: false },
+    render3d: { assetType: "drainPoint", primaryMaterial: "metal", secondaryMaterial: "warmGreyStone", accentMaterial: "clearGlass", childrenMode: "grouped" }
   },
   {
     id: "decor-large-plant",

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import type { FurnitureType } from "@/types/space";
+import type { FurnitureType, Render3DAssetType } from "@/types/space";
 
 type Props = {
   type: FurnitureType;
+  assetType?: Render3DAssetType;
   color: string;
   label?: string;
   className?: string;
@@ -42,10 +43,12 @@ function getFurnitureAspectRatio(footprint?: Props["footprint"]) {
   return clamp(width / depth, 0.35, 6);
 }
 
-function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: Props["footprint"]) {
+function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: Props["footprint"], assetType?: Render3DAssetType) {
   const stroke = "#334155";
   const light = "#f8fafc";
   const glass = "#dbeafe";
+  const metal = "#64748b";
+  const visualType = assetType ?? type;
   const aspectRatio = getFurnitureAspectRatio(footprint);
   const edgeX = clamp(3, 10 / aspectRatio, 8);
   const sofaArmWidth = clamp(4, 14 / aspectRatio, 9);
@@ -53,7 +56,141 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
   const cabinetDoorCount = Math.min(7, Math.max(2, Math.round(aspectRatio * 1.25)));
   const strokeProps = { vectorEffect: "non-scaling-stroke" as const };
 
-  switch (type) {
+  switch (visualType) {
+    case "slabTable":
+      return (
+        <FootprintSymbolShell>
+          <rect x="2" y="14" width="96" height="72" rx="7" fill={`${color}1f`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <rect x="5" y="23" width="90" height="54" rx="8" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} />
+          <path d="M12 33 C31 25 62 31 88 26" fill="none" stroke="#f8fafc" strokeOpacity="0.42" strokeWidth="1.4" {...strokeProps} />
+          <path d="M11 52 C37 44 60 58 89 48" fill="none" stroke={stroke} strokeOpacity="0.24" strokeWidth="1.3" {...strokeProps} />
+          <path d="M14 68 C38 61 65 66 87 60" fill="none" stroke="#f8fafc" strokeOpacity="0.32" strokeWidth="1.2" {...strokeProps} />
+          {[28, 72].map((x) => (
+            <g key={`slab-base-${x}`}>
+              <line x1={x - 7} y1="74" x2={x + 5} y2="28" stroke={metal} strokeWidth="2.2" {...strokeProps} />
+              <line x1={x + 7} y1="74" x2={x - 5} y2="28" stroke={metal} strokeWidth="2.2" {...strokeProps} />
+            </g>
+          ))}
+        </FootprintSymbolShell>
+      );
+    case "loungeCoffeeTable":
+      return (
+        <FootprintSymbolShell>
+          <circle cx="50" cy="50" r="43" fill={`${color}26`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <circle cx="50" cy="50" r="31" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} />
+          <circle cx="50" cy="50" r="18" fill="#f8fafc" fillOpacity="0.28" stroke={stroke} strokeOpacity="0.24" strokeWidth="1.4" {...strokeProps} />
+          <rect x="35" y="45" width="30" height="12" rx="4" fill="#e7d5bd" stroke={stroke} strokeOpacity="0.3" strokeWidth="1.2" {...strokeProps} />
+          {[28, 72].flatMap((x) => [28, 72].map((y) => (
+            <circle key={`coffee-caster-${x}-${y}`} cx={x} cy={y} r="3.2" fill={metal} opacity="0.72" />
+          )))}
+        </FootprintSymbolShell>
+      );
+    case "diningTable":
+      return (
+        <FootprintSymbolShell>
+          {[0, 60, 120, 180, 240, 300].map((angle) => (
+            <g key={angle} transform={`rotate(${angle} 50 50)`}>
+              <rect x="42" y="2" width="16" height="21" rx="7" fill="#d9c4a7" stroke={stroke} strokeWidth="1.5" {...strokeProps} />
+              <rect x="44" y="7" width="12" height="12" rx="5" fill="#f6efe6" opacity="0.82" />
+            </g>
+          ))}
+          <circle cx="50" cy="50" r="28" fill={color} stroke={stroke} strokeWidth="2.5" {...strokeProps} />
+          <circle cx="50" cy="50" r="17" fill="#f8fafc" opacity="0.46" />
+          {[0, 60, 120, 180, 240, 300].map((angle) => (
+            <line key={`dining-setting-${angle}`} x1="50" y1="50" x2="50" y2="35" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" transform={`rotate(${angle} 50 50)`} opacity="0.34" {...strokeProps} />
+          ))}
+        </FootprintSymbolShell>
+      );
+    case "outdoorDiningSet":
+      return (
+        <FootprintSymbolShell>
+          <rect x="4" y="10" width="92" height="80" rx="9" fill={`${color}20`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <rect x="31" y="34" width="38" height="32" rx="7" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} />
+          {[18, 82].flatMap((x) => [27, 73].map((y) => (
+            <g key={`outdoor-seat-${x}-${y}`}>
+              <rect x={x - 9} y={y - 8} width="18" height="16" rx="5" fill="#d9c4a7" stroke={stroke} strokeWidth="1.6" {...strokeProps} />
+              <line x1={x - 7} y1={y + 10} x2={x + 7} y2={y + 10} stroke={metal} strokeWidth="1.5" {...strokeProps} />
+            </g>
+          )))}
+        </FootprintSymbolShell>
+      );
+    case "wallCabinet":
+      return (
+        <FootprintSymbolShell>
+          <rect x="3" y="18" width="94" height="64" rx="5" fill={`${color}22`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <rect x={edgeX} y="21" width={100 - edgeX * 2} height="58" rx="4" fill={color} stroke={stroke} strokeWidth="2.1" {...strokeProps} />
+          <rect x="18" y="30" width="26" height="38" rx="4" fill={glass} fillOpacity="0.66" stroke={stroke} strokeWidth="1.5" {...strokeProps} />
+          <rect x="56" y="30" width="26" height="38" rx="4" fill={glass} fillOpacity="0.66" stroke={stroke} strokeWidth="1.5" {...strokeProps} />
+          <line x1="13" y1="82" x2="87" y2="82" stroke="#facc15" strokeWidth="2.4" strokeLinecap="round" opacity="0.78" {...strokeProps} />
+        </FootprintSymbolShell>
+      );
+    case "dryingRack":
+      return (
+        <FootprintSymbolShell>
+          <rect x="4" y="12" width="92" height="76" rx="7" fill={`${color}16`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          {[22, 34, 46, 58, 70].map((y) => (
+            <line key={`drying-rail-${y}`} x1="14" y1={y} x2="86" y2={y} stroke={metal} strokeWidth="2.2" strokeLinecap="round" {...strokeProps} />
+          ))}
+          <path d="M16 82 L30 16 M84 82 L70 16" fill="none" stroke={metal} strokeWidth="2.4" strokeLinecap="round" {...strokeProps} />
+        </FootprintSymbolShell>
+      );
+    case "dogHouse":
+      return (
+        <FootprintSymbolShell>
+          <rect x="18" y="38" width="64" height="44" rx="7" fill={color} stroke={stroke} strokeWidth="2.3" {...strokeProps} />
+          <path d="M14 42 L50 13 L86 42 Z" fill="#a9794b" stroke={stroke} strokeWidth="2.3" strokeLinejoin="round" {...strokeProps} />
+          <path d="M39 82 V61 C39 52 61 52 61 61 V82" fill="#2d211a" opacity="0.85" />
+        </FootprintSymbolShell>
+      );
+    case "yardGate":
+      return (
+        <FootprintSymbolShell>
+          <rect x="4" y="18" width="92" height="64" rx="5" fill={`${color}18`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          {[17, 30, 43, 56, 69, 82].map((x) => (
+            <line key={`gate-slat-${x}`} x1={x} y1="20" x2={x} y2="80" stroke={metal} strokeWidth="3" strokeLinecap="round" {...strokeProps} />
+          ))}
+          {[34, 66].map((y) => (
+            <line key={`gate-rail-${y}`} x1="9" y1={y} x2="91" y2={y} stroke={metal} strokeWidth="3" strokeLinecap="round" {...strokeProps} />
+          ))}
+        </FootprintSymbolShell>
+      );
+    case "outdoorCabinet":
+      return (
+        <FootprintSymbolShell>
+          <rect x="4" y="18" width="92" height="64" rx="6" fill={`${color}22`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.8" {...strokeProps} />
+          <rect x="10" y="24" width="80" height="52" rx="5" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} />
+          <line x1="50" y1="25" x2="50" y2="75" stroke={stroke} strokeWidth="1.5" opacity="0.42" {...strokeProps} />
+          <rect x="60" y="30" width="21" height="15" rx="4" fill={glass} fillOpacity="0.55" stroke={stroke} strokeWidth="1.4" {...strokeProps} />
+          <path d="M20 62 H40 M62 62 H80" stroke={stroke} strokeWidth="1.5" opacity="0.36" {...strokeProps} />
+        </FootprintSymbolShell>
+      );
+    case "yardLight":
+      return (
+        <FootprintSymbolShell>
+          <circle cx="50" cy="50" r="35" fill="#fef3c7" stroke="#f59e0b" strokeDasharray="5 4" strokeWidth="1.8" opacity="0.75" {...strokeProps} />
+          <circle cx="50" cy="50" r="13" fill="#fde68a" stroke={stroke} strokeWidth="2" {...strokeProps} />
+          <line x1="50" y1="64" x2="50" y2="88" stroke={metal} strokeWidth="4" strokeLinecap="round" {...strokeProps} />
+        </FootprintSymbolShell>
+      );
+    case "outdoorSocket":
+      return (
+        <FootprintSymbolShell>
+          <rect x="24" y="18" width="52" height="64" rx="8" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} />
+          <rect x="32" y="27" width="36" height="16" rx="4" fill="#e5e7eb" stroke={stroke} strokeWidth="1.5" {...strokeProps} />
+          {[42, 58].map((x) => (
+            <circle key={`socket-hole-${x}`} cx={x} cy="60" r="4" fill="#111827" opacity="0.75" />
+          ))}
+        </FootprintSymbolShell>
+      );
+    case "drainPoint":
+      return (
+        <FootprintSymbolShell>
+          <circle cx="50" cy="50" r="33" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} />
+          {[36, 44, 52, 60, 68].map((x) => (
+            <line key={`drain-slot-${x}`} x1={x} y1="31" x2={x} y2="69" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" opacity="0.72" {...strokeProps} />
+          ))}
+        </FootprintSymbolShell>
+      );
     case "shower":
       return (
         <FootprintSymbolShell>
@@ -333,7 +470,7 @@ function renderSymbol(type: FurnitureType, color: string) {
   }
 }
 
-export function FurnitureTopView({ type, color, label, className = "", showLabel = true, frameless = false, imageSrc, stretchToFill = false, footprint }: Props) {
+export function FurnitureTopView({ type, assetType, color, label, className = "", showLabel = true, frameless = false, imageSrc, stretchToFill = false, footprint }: Props) {
   return (
     <div className={`relative grid place-items-center ${frameless ? "overflow-visible bg-transparent" : "overflow-hidden bg-white"} rounded-lg ${className}`}>
       {imageSrc ? (
@@ -344,7 +481,7 @@ export function FurnitureTopView({ type, color, label, className = "", showLabel
         />
       ) : (
         <div className={frameless ? "absolute inset-0" : "absolute inset-1"}>
-          {stretchToFill ? renderFootprintSymbol(type, color, footprint) : renderSymbol(type, color)}
+          {stretchToFill ? renderFootprintSymbol(type, color, footprint, assetType) : renderSymbol(type, color)}
         </div>
       )}
       {showLabel && label && (
