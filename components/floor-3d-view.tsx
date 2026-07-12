@@ -7,7 +7,15 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
+import { tourNodeToCameraView } from "@/lib/room-tour";
 import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
+import {
+  getDoor3DDisplayHeight,
+  getHostedOpeningCuts,
+  getOpeningSillHeight,
+  getStraightHostPanels,
+  getWindow3DDisplayMetrics
+} from "@/lib/structure-3d-geometry";
 import type { Resolved3DAsset, ResolvedRender3DMaterialLayer, ResolvedRender3DMaterials } from "@/lib/render3d-assets";
 import type {
   Floor,
@@ -20,6 +28,7 @@ import type {
   HouseOutdoor,
   HouseOutdoorSurface,
   HousePartition,
+  HouseSkylight,
   HouseStair,
   HouseStructure,
   HouseWall,
@@ -27,7 +36,8 @@ import type {
   MobileQuality,
   ModuleServiceRequirements,
   MmPoint,
-  Render3DAssetType
+  Render3DAssetType,
+  RoomTourView
 } from "@/types/space";
 
 type Floor3DViewProps = {
@@ -43,6 +53,7 @@ type Floor3DViewProps = {
   onHoverObject: (objectId: string) => void;
   onClearHoverObject: (objectId: string) => void;
   cameraViews?: FixedCameraView[];
+  roomTourViews?: RoomTourView[];
   cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   mobilePresentationMode?: boolean;
@@ -64,7 +75,7 @@ type HostSegment = {
 };
 
 type CameraPreset = "overview" | "front" | "right" | "back" | "left" | "living" | "kitchen" | "stair" | "fireplace";
-type CameraMode = "orbit" | "walkthrough";
+type CameraMode = "orbit" | "walkthrough" | "tour";
 type DesignStylePreset = "naturalWood" | "softCream" | "modernStone" | "warmJapandi";
 type ServiceMarkerKey = keyof ModuleServiceRequirements;
 
@@ -122,7 +133,6 @@ const WALL_CAP_HEIGHT_MM = 86;
 const WALL_CAP_COLOR = "#2f3538";
 const WALL_CAP_SELECTED_COLOR = "#1d4ed8";
 const CUTAWAY_OBJECT_MAX_HEIGHT_M = (WALL_PREVIEW_HEIGHT_MM - 90) * MM_TO_M;
-const RAILING_COLOR = "#0891b2";
 const RAILING_SELECTED_COLOR = "#2563eb";
 const CAMERA_TARGET = new THREE.Vector3(0.12, 0.42, 0.32);
 const cameraPositions: Record<CameraPreset, [number, number, number]> = {
@@ -134,7 +144,7 @@ const cameraPositions: Record<CameraPreset, [number, number, number]> = {
   living: [5.8, 3.9, 7.2],
   kitchen: [1.6, 4.8, -7.8],
   stair: [-0.85, 4.85, 1.35],
-  fireplace: [-4.1, 2.05, 3.18]
+  fireplace: [1.15, 2.05, 0.35]
 };
 const cameraTargets: Record<CameraPreset, THREE.Vector3> = {
   overview: CAMERA_TARGET,
@@ -1558,8 +1568,10 @@ function getArcWallPoints(wall: Extract<HouseWall, { kind: "arc" }>, steps = 20)
   const startAngle = wall.startAngle * Math.PI / 180;
   const endAngle = wall.endAngle * Math.PI / 180;
   let sweep = endAngle - startAngle;
-  if (wall.direction === "clockwise" && sweep > 0) sweep -= Math.PI * 2;
-  if (wall.direction === "counterclockwise" && sweep < 0) sweep += Math.PI * 2;
+  // Floor-plan coordinates follow the SVG/screen convention: y grows downward,
+  // so clockwise arcs advance in the positive angle direction.
+  if (wall.direction === "clockwise" && sweep < 0) sweep += Math.PI * 2;
+  if (wall.direction === "counterclockwise" && sweep > 0) sweep -= Math.PI * 2;
   return Array.from({ length: steps + 1 }, (_, index) => {
     const angle = startAngle + sweep * (index / steps);
     return {
@@ -2549,6 +2561,7 @@ function RailingSegment({
   structure,
   widthMm,
   heightMm,
+  postStops,
   selected,
   onSelect,
   onHover,
@@ -2560,6 +2573,7 @@ function RailingSegment({
   structure: HouseStructure;
   widthMm: number;
   heightMm: number;
+  postStops?: number[];
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2567,16 +2581,18 @@ function RailingSegment({
 }) {
   const metrics = useMemo(() => lineMetrics(start, end, structure), [start, end, structure]);
   const lengthMm = Math.max(1, Math.hypot(end.x - start.x, end.y - start.y));
-  const postCount = Math.max(2, Math.floor(lengthMm / 620) + 1);
+  const postCount = Math.max(2, Math.ceil(lengthMm / 900) + 1);
+  const resolvedPostStops = postStops ?? Array.from({ length: postCount }, (_, index) => postCount === 1 ? 0 : index / (postCount - 1));
   const railingHeight = Math.max(0.72, heightMm * MM_TO_M);
-  const postWidth = Math.max(0.045, widthMm * MM_TO_M * 0.72);
-  const railHeightMm = 58;
-  const color = selected ? RAILING_SELECTED_COLOR : RAILING_COLOR;
-  const railOffsets = [
-    0.18,
-    Math.max(0.38, railingHeight * 0.54),
-    Math.max(0.52, railingHeight - railHeightMm * MM_TO_M)
-  ];
+  const glassBottom = 0.08;
+  const handrailHeight = 0.07;
+  const glassHeight = Math.max(0.48, railingHeight - glassBottom - handrailHeight - 0.03);
+  const handrailY = glassBottom + glassHeight + handrailHeight / 2;
+  const glassThickness = 0.018;
+  const postWidth = 0.022;
+  const woodColor = selected ? RAILING_SELECTED_COLOR : "#78411f";
+  const metalColor = selected ? RAILING_SELECTED_COLOR : "#6f675e";
+  const glassColor = selected ? "#93c5fd" : "#c4e2e3";
 
   return (
     <group
@@ -2593,32 +2609,62 @@ function RailingSegment({
         onClearHover(id);
       }}
     >
-      {railOffsets.map((offset, index) => (
-        <LineBox
-          key={`${id}-rail-${index}`}
-          id={id}
-          start={start}
-          end={end}
-          widthMm={widthMm}
-          heightMm={railHeightMm}
-          structure={structure}
-          color={color}
-          opacity={selected ? 0.9 : 0.76}
-          yOffset={offset}
-          selected={selected}
-          onSelect={onSelect}
-          onHover={onHover}
-          onClearHover={onClearHover}
+      <mesh
+        receiveShadow
+        position={[metrics.midpoint.x, glassBottom + glassHeight / 2, metrics.midpoint.z]}
+        rotation={[0, metrics.rotationY, 0]}
+        renderOrder={4}
+      >
+        <boxGeometry args={[metrics.length, glassHeight, glassThickness]} />
+        <meshStandardMaterial
+          color={glassColor}
+          transparent
+          opacity={selected ? 0.38 : 0.28}
+          roughness={0.04}
+          metalness={0.03}
+          depthWrite={false}
+          side={THREE.DoubleSide}
         />
-      ))}
-      {Array.from({ length: postCount }, (_, index) => {
-        const t = postCount === 1 ? 0 : index / (postCount - 1);
+      </mesh>
+      <LineBox
+        id={id}
+        start={start}
+        end={end}
+        widthMm={Math.max(75, widthMm * 0.84)}
+        heightMm={handrailHeight / MM_TO_M}
+        structure={structure}
+        color={woodColor}
+        yOffset={handrailY - handrailHeight / 2}
+        textureKind="wood"
+        textureAccent="#4d2b18"
+        selected={selected}
+        onSelect={onSelect}
+        onHover={onHover}
+        onClearHover={onClearHover}
+      />
+      <LineBox
+        id={id}
+        start={start}
+        end={end}
+        widthMm={32}
+        heightMm={30}
+        structure={structure}
+        color={metalColor}
+        opacity={selected ? 0.94 : 0.76}
+        yOffset={glassBottom - 0.015}
+        selected={selected}
+        onSelect={onSelect}
+        onHover={onHover}
+        onClearHover={onClearHover}
+      />
+      {resolvedPostStops.map((t, index) => {
         const x = metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t;
         const z = metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t;
+        const postHeight = glassBottom + glassHeight;
         return (
-          <mesh key={`${id}-post-${index}`} castShadow position={[x, railingHeight / 2, z]} rotation={[0, metrics.rotationY, 0]}>
-            <boxGeometry args={[postWidth, railingHeight, postWidth]} />
-            <meshStandardMaterial color={color} roughness={0.48} metalness={0.36} transparent opacity={selected ? 0.95 : 0.82} />
+          <mesh key={`${id}-post-${index}`} castShadow position={[x, postHeight / 2, z]} rotation={[0, metrics.rotationY, 0]} renderOrder={5}>
+            <boxGeometry args={[postWidth, postHeight, postWidth]} />
+            <meshStandardMaterial color={metalColor} roughness={0.28} metalness={0.56} transparent opacity={selected ? 0.95 : 0.76} />
           </mesh>
         );
       })}
@@ -2726,6 +2772,162 @@ function SolidWallSegment({
   );
 }
 
+function CutWallPanel({
+  id,
+  start,
+  end,
+  bottomMm,
+  heightMm,
+  startsAtFloor,
+  reachesTop,
+  structure,
+  widthMm,
+  color,
+  selected,
+  onSelect,
+  onHover,
+  onClearHover
+}: {
+  id: string;
+  start: MmPoint;
+  end: MmPoint;
+  bottomMm: number;
+  heightMm: number;
+  startsAtFloor: boolean;
+  reachesTop: boolean;
+  structure: HouseStructure;
+  widthMm: number;
+  color: string;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+}) {
+  const capHeightMm = reachesTop ? Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18)) : 0;
+  const bodyHeightMm = Math.max(1, heightMm - capHeightMm);
+  return (
+    <group>
+      <LineBox
+        id={id}
+        start={start}
+        end={end}
+        widthMm={widthMm}
+        heightMm={bodyHeightMm}
+        structure={structure}
+        color={selected ? "#bfdbfe" : color}
+        opacity={selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY}
+        yOffset={bottomMm * MM_TO_M}
+        textureKind="wall"
+        textureAccent={effectMaterialCatalog.wallPaint.color}
+        selected={selected}
+        onSelect={onSelect}
+        onHover={onHover}
+        onClearHover={onClearHover}
+      />
+      {reachesTop && (
+        <LineBox
+          id={id}
+          start={start}
+          end={end}
+          widthMm={widthMm + 64}
+          heightMm={capHeightMm}
+          structure={structure}
+          color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
+          yOffset={(bottomMm + bodyHeightMm) * MM_TO_M}
+          selected={selected}
+          onSelect={onSelect}
+          onHover={onHover}
+          onClearHover={onClearHover}
+        />
+      )}
+      {startsAtFloor && heightMm > 120 && (
+        <>
+          <LineBox
+            id={id}
+            start={start}
+            end={end}
+            widthMm={widthMm + 28}
+            heightMm={42}
+            structure={structure}
+            color={selected ? "#bfdbfe" : "#9b7250"}
+            opacity={selected ? 0.72 : 0.88}
+            yOffset={0.08}
+            textureKind="wood"
+            textureAccent="#5d3d26"
+            selected={selected}
+            onSelect={onSelect}
+            onHover={onHover}
+            onClearHover={onClearHover}
+          />
+          {!selected && (
+            <LineBox
+              id={id}
+              start={start}
+              end={end}
+              widthMm={widthMm + 36}
+              heightMm={72}
+              structure={structure}
+              color={effectMaterialCatalog.baseboard.color}
+              yOffset={0.018}
+              textureKind="wood"
+              textureAccent="#6f4c34"
+              onSelect={onSelect}
+              onHover={onHover}
+              onClearHover={onClearHover}
+            />
+          )}
+        </>
+      )}
+    </group>
+  );
+}
+
+function StraightWallWithOpenings({
+  wall,
+  structure,
+  wallColor,
+  selected,
+  onSelect,
+  onHover,
+  onClearHover
+}: {
+  wall: Extract<HouseWall, { kind: "straight" }>;
+  structure: HouseStructure;
+  wallColor: string;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+}) {
+  const displayHeightMm = Math.min(wall.height, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM);
+  const lengthMm = Math.max(1, Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y));
+  const cuts = getHostedOpeningCuts(structure, wall.id, "wall", lengthMm, wall.height);
+  const panels = getStraightHostPanels(wall.start, wall.end, displayHeightMm, cuts);
+  return (
+    <group>
+      {panels.map((panel, index) => (
+        <CutWallPanel
+          key={`${wall.id}-panel-${index}`}
+          id={wall.id}
+          start={panel.start}
+          end={panel.end}
+          bottomMm={panel.bottomMm}
+          heightMm={panel.heightMm}
+          startsAtFloor={panel.startsAtFloor}
+          reachesTop={panel.reachesTop}
+          structure={structure}
+          widthMm={wall.thickness}
+          color={wallColor}
+          selected={selected}
+          onSelect={onSelect}
+          onHover={onHover}
+          onClearHover={onClearHover}
+        />
+      ))}
+    </group>
+  );
+}
+
 function WallMesh({
   wall,
   structure,
@@ -2757,6 +2959,7 @@ function WallMesh({
               end={points[index + 1]}
               widthMm={wall.thickness}
               heightMm={railingHeightMm}
+              postStops={index === points.length - 2 ? [0, 1] : index % 4 === 0 ? [0] : []}
               structure={structure}
               selected={selected}
               onSelect={onSelect}
@@ -2806,6 +3009,22 @@ function WallMesh({
           />
         ))}
       </group>
+    );
+  }
+
+  const wallLengthMm = Math.max(1, Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y));
+  const hasHostedOpenings = getHostedOpeningCuts(structure, wall.id, "wall", wallLengthMm, wall.height).length > 0;
+  if (hasHostedOpenings) {
+    return (
+      <StraightWallWithOpenings
+        wall={wall}
+        structure={structure}
+        wallColor={wallColor}
+        selected={selected}
+        onSelect={onSelect}
+        onHover={onHover}
+        onClearHover={onClearHover}
+      />
     );
   }
 
@@ -2925,24 +3144,25 @@ function OpeningMesh({
   const metrics = lineMetrics(host.start, host.end, structure);
   const t = Math.min(1, Math.max(0, opening.positionOnWall));
   const center = {
-    x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t + metrics.normal.x * ((host.thickness / 2) * MM_TO_M + 0.035),
-    z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t + metrics.normal.z * ((host.thickness / 2) * MM_TO_M + 0.035)
+    x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t,
+    z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t
   };
   const isDoor = "openDirection" in opening;
   const width = Math.max(0.2, opening.width * MM_TO_M);
-  const rawHeight = Math.max(0.3, opening.height * MM_TO_M);
-  const height = isDoor
-    ? Math.min(rawHeight * 0.48, CUTAWAY_OBJECT_MAX_HEIGHT_M - 0.06)
-    : Math.min(rawHeight * 0.42, 0.58);
-  const y = isDoor ? height / 2 + 0.02 : Math.min(0.78, CUTAWAY_OBJECT_MAX_HEIGHT_M - height / 2 - 0.08);
+  const windowDisplayMetrics = isDoor ? null : getWindow3DDisplayMetrics(host.height, opening.height);
+  const displayHeightMm = isDoor ? getDoor3DDisplayHeight(opening.height) : windowDisplayMetrics!.heightMm;
+  const height = Math.max(0.3, displayHeightMm * MM_TO_M);
+  const sillHeight = isDoor ? 0 : windowDisplayMetrics!.sillHeightMm * MM_TO_M;
   const isGlassDoor = isDoor && "material" in opening && opening.material?.toLowerCase().includes("glass");
   const color = selected ? "#2563eb" : isDoor ? (isGlassDoor ? "#8fd3e8" : effectMaterialCatalog.doorWood.color) : "#b6ddeb";
   const opacity = isDoor ? (isGlassDoor ? 0.44 : 1) : 0.42;
   const woodTexture = useProceduralTexture(isDoor && !isGlassDoor ? "wood" : null, effectMaterialCatalog.doorWood.color, "#b59b7f", 1.2, 2.2);
+  const frameColor = selected ? "#2563eb" : effectMaterialCatalog.blackMetal.color;
+  const frameWidth = Math.min(0.065, Math.max(0.035, width * 0.045));
 
   return (
     <group
-      position={[center.x, y, center.z]}
+      position={[center.x, 0, center.z]}
       rotation={[0, metrics.rotationY, 0]}
       onClick={(event) => {
         event.stopPropagation();
@@ -2957,40 +3177,73 @@ function OpeningMesh({
         onClearHover(opening.id);
       }}
     >
-      <mesh castShadow={isDoor} receiveShadow>
-        <boxGeometry args={[width, height, isDoor ? 0.072 : 0.04]} />
-        <meshStandardMaterial
-          color={color}
-          map={woodTexture ?? undefined}
-          transparent={opacity < 1}
-          opacity={opacity}
-          roughness={isDoor ? 0.58 : 0.08}
-          metalness={isDoor ? 0.02 : 0.08}
-        />
-      </mesh>
-      <mesh position={[0, height * 0.02, 0.048]}>
-        <boxGeometry args={[width + 0.08, 0.035, 0.035]} />
-        <meshStandardMaterial color={isDoor ? "#2f2520" : "#25313a"} roughness={0.32} metalness={0.42} />
-      </mesh>
-      {!isDoor && (
+      {isDoor ? (
         <>
           {[-1, 1].map((xSide) => (
-            <mesh key={`${opening.id}-window-side-${xSide}`} position={[xSide * width * 0.5, 0, 0.052]}>
-              <boxGeometry args={[0.045, height * 1.02, 0.045]} />
-              <meshStandardMaterial color="#25313a" roughness={0.32} metalness={0.48} />
+            <mesh key={`${opening.id}-door-jamb-${xSide}`} castShadow position={[xSide * width * 0.5, height / 2, 0]}>
+              <boxGeometry args={[frameWidth, height, Math.max(0.06, host.thickness * MM_TO_M)]} />
+              <meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.48} />
             </mesh>
           ))}
-          <mesh position={[0, height * 0.28, 0.052]}>
-            <boxGeometry args={[width * 0.92, 0.035, 0.045]} />
-            <meshStandardMaterial color="#25313a" roughness={0.32} metalness={0.48} />
+          <mesh castShadow position={[0, height, 0]}>
+            <boxGeometry args={[width + frameWidth, frameWidth, Math.max(0.06, host.thickness * MM_TO_M)]} />
+            <meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.48} />
           </mesh>
+          {opening.operation === "sliding" ? (
+            [-1, 1].map((panelSide) => (
+              <mesh key={`${opening.id}-sliding-panel-${panelSide}`} castShadow receiveShadow position={[panelSide * width * 0.23, height / 2, panelSide * 0.038]}>
+                <boxGeometry args={[width * 0.54, height * 0.98, 0.045]} />
+                <meshStandardMaterial color={color} map={woodTexture ?? undefined} transparent={opacity < 1} opacity={opacity} roughness={isGlassDoor ? 0.08 : 0.58} metalness={isGlassDoor ? 0.08 : 0.02} />
+              </mesh>
+            ))
+          ) : (() => {
+            const opensFromStart = opening.openDirection === "leftIn" || opening.openDirection === "leftOut";
+            const opensInside = opening.openDirection === "leftIn" || opening.openDirection === "rightIn";
+            const leafDirection = opensFromStart ? 1 : -1;
+            const swingAngle = (opensFromStart ? -1 : 1) * (opensInside ? 1 : -1) * Math.PI * 0.4;
+            return (
+              <group position={[opensFromStart ? -width / 2 : width / 2, 0, 0]} rotation={[0, swingAngle, 0]}>
+                <mesh castShadow receiveShadow position={[leafDirection * width / 2, height / 2, 0]}>
+                  <boxGeometry args={[width, height * 0.985, 0.055]} />
+                  <meshStandardMaterial color={color} map={woodTexture ?? undefined} transparent={opacity < 1} opacity={opacity} roughness={isGlassDoor ? 0.08 : 0.58} metalness={isGlassDoor ? 0.08 : 0.02} side={THREE.DoubleSide} />
+                </mesh>
+                {!isGlassDoor && (
+                  <mesh position={[leafDirection * width * 0.4, Math.min(1.02, height * 0.48), 0.052]}>
+                    <sphereGeometry args={[0.04, 16, 10]} />
+                    <meshStandardMaterial color="#c9a46a" roughness={0.26} metalness={0.72} />
+                  </mesh>
+                )}
+              </group>
+            );
+          })()}
         </>
-      )}
-      {isDoor && !isGlassDoor && (
-        <mesh position={[width * 0.32, 0.02, 0.056]}>
-          <sphereGeometry args={[0.04, 16, 10]} />
-          <meshStandardMaterial color="#c9a46a" roughness={0.26} metalness={0.72} />
-        </mesh>
+      ) : (
+        <group position={[0, sillHeight + height / 2, 0]}>
+          <mesh receiveShadow>
+            <boxGeometry args={[width, height, 0.04]} />
+            <meshStandardMaterial color={color} transparent opacity={opacity} roughness={0.08} metalness={0.08} side={THREE.DoubleSide} />
+          </mesh>
+          {[-1, 1].map((xSide) => (
+            <mesh key={`${opening.id}-window-side-${xSide}`} position={[xSide * width * 0.5, 0, 0]}>
+              <boxGeometry args={[frameWidth, height + frameWidth, 0.07]} />
+              <meshStandardMaterial color={frameColor} roughness={0.32} metalness={0.48} />
+            </mesh>
+          ))}
+          {[-1, 1].map((ySide) => (
+            <mesh key={`${opening.id}-window-horizontal-${ySide}`} position={[0, ySide * height * 0.5, 0]}>
+              <boxGeometry args={[width + frameWidth, frameWidth, 0.07]} />
+              <meshStandardMaterial color={frameColor} roughness={0.32} metalness={0.48} />
+            </mesh>
+          ))}
+          <mesh position={[0, 0, 0.024]}>
+            <boxGeometry args={[frameWidth * 0.72, height * 0.96, 0.035]} />
+            <meshStandardMaterial color={frameColor} roughness={0.32} metalness={0.48} />
+          </mesh>
+          <mesh position={[0, height * 0.48 + 0.035, 0]}>
+            <boxGeometry args={[width + 0.09, 0.055, Math.max(0.1, host.thickness * MM_TO_M + 0.04)]} />
+            <meshStandardMaterial color={selected ? "#bfdbfe" : "#d8d2c7"} roughness={0.72} />
+          </mesh>
+        </group>
       )}
     </group>
   );
@@ -3019,11 +3272,13 @@ function BayWindowMesh({
     x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t + metrics.normal.x * ((host.thickness / 2 + bayWindow.depth / 2) * MM_TO_M),
     z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t + metrics.normal.z * ((host.thickness / 2 + bayWindow.depth / 2) * MM_TO_M)
   };
+  const height = Math.max(0.4, bayWindow.height * MM_TO_M);
+  const sillHeight = getOpeningSillHeight(host.height, bayWindow.height) * MM_TO_M;
   return (
     <mesh
       castShadow
       receiveShadow
-      position={[center.x, 0.55, center.z]}
+      position={[center.x, sillHeight + height / 2, center.z]}
       rotation={[0, metrics.rotationY, 0]}
       onClick={(event) => {
         event.stopPropagation();
@@ -3038,15 +3293,93 @@ function BayWindowMesh({
         onClearHover(bayWindow.id);
       }}
     >
-      <boxGeometry args={[bayWindow.width * MM_TO_M, 1.1, bayWindow.depth * MM_TO_M]} />
-      <meshStandardMaterial color={selected ? "#2563eb" : "#bfdbfe"} transparent opacity={0.55} roughness={0.28} />
+      <boxGeometry args={[bayWindow.width * MM_TO_M, height, bayWindow.depth * MM_TO_M]} />
+      <meshStandardMaterial color={selected ? "#2563eb" : "#bfdbfe"} transparent opacity={0.48} roughness={0.18} metalness={0.04} side={THREE.DoubleSide} />
     </mesh>
+  );
+}
+
+function SkylightMesh({
+  skylight,
+  structure,
+  selected,
+  onSelect,
+  onHover,
+  onClearHover
+}: {
+  skylight: HouseSkylight;
+  structure: HouseStructure;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  onHover: (id: string) => void;
+  onClearHover: (id: string) => void;
+}) {
+  const center = toScenePoint(skylight.center, structure);
+  const width = Math.max(0.2, skylight.width * MM_TO_M);
+  const depth = Math.max(0.2, skylight.depth * MM_TO_M);
+  const curbHeight = Math.max(0.06, skylight.height * MM_TO_M);
+  const frameWidth = Math.min(0.065, Math.max(0.035, Math.min(width, depth) * 0.07));
+  const openAngle = skylight.openable || skylight.operation === "electricOperable" || skylight.operation === "manualOperable" ? -0.14 : 0;
+  const frameColor = selected ? "#2563eb" : effectMaterialCatalog.blackMetal.color;
+  return (
+    <group
+      position={[center.x, WALL_PREVIEW_HEIGHT_MM * MM_TO_M + 0.04, center.z]}
+      rotation={[0, -skylight.rotation * Math.PI / 180, 0]}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect(skylight.id);
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        onHover(skylight.id);
+      }}
+      onPointerOut={(event) => {
+        event.stopPropagation();
+        onClearHover(skylight.id);
+      }}
+    >
+      {[-1, 1].map((xSide) => (
+        <mesh key={`${skylight.id}-curb-x-${xSide}`} castShadow position={[xSide * width / 2, -curbHeight / 2, 0]}>
+          <boxGeometry args={[frameWidth, curbHeight, depth + frameWidth]} />
+          <meshStandardMaterial color={frameColor} roughness={0.42} metalness={0.46} />
+        </mesh>
+      ))}
+      {[-1, 1].map((zSide) => (
+        <mesh key={`${skylight.id}-curb-z-${zSide}`} castShadow position={[0, -curbHeight / 2, zSide * depth / 2]}>
+          <boxGeometry args={[width + frameWidth, curbHeight, frameWidth]} />
+          <meshStandardMaterial color={frameColor} roughness={0.42} metalness={0.46} />
+        </mesh>
+      ))}
+      <group position={[0, 0.025, -depth / 2]} rotation={[openAngle, 0, 0]}>
+        <mesh position={[0, 0, depth / 2]} receiveShadow>
+          <boxGeometry args={[width, 0.035, depth]} />
+          <meshStandardMaterial color={selected ? "#60a5fa" : effectMaterialCatalog.windowGlass.color} transparent opacity={0.5} roughness={0.08} metalness={0.05} side={THREE.DoubleSide} />
+        </mesh>
+        {[-1, 1].map((xSide) => (
+          <mesh key={`${skylight.id}-frame-x-${xSide}`} position={[xSide * width / 2, 0.025, depth / 2]}>
+            <boxGeometry args={[frameWidth, 0.055, depth + frameWidth]} />
+            <meshStandardMaterial color={frameColor} roughness={0.3} metalness={0.58} />
+          </mesh>
+        ))}
+        {[-1, 1].map((zSide) => (
+          <mesh key={`${skylight.id}-frame-z-${zSide}`} position={[0, 0.025, depth / 2 + zSide * depth / 2]}>
+            <boxGeometry args={[width + frameWidth, 0.055, frameWidth]} />
+            <meshStandardMaterial color={frameColor} roughness={0.3} metalness={0.58} />
+          </mesh>
+        ))}
+        <mesh position={[0, 0.035, depth / 2]}>
+          <boxGeometry args={[frameWidth * 0.8, 0.045, depth * 0.94]} />
+          <meshStandardMaterial color={frameColor} roughness={0.3} metalness={0.58} />
+        </mesh>
+      </group>
+    </group>
   );
 }
 
 function StairLandingMesh({
   connection,
   structure,
+  materialPreview,
   selected,
   onSelect,
   onHover,
@@ -3054,6 +3387,7 @@ function StairLandingMesh({
 }: {
   connection: StairLandingConnection;
   structure: HouseStructure;
+  materialPreview: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -3085,7 +3419,13 @@ function StairLandingMesh({
     >
       <mesh castShadow receiveShadow position={[platform.center.x, 0.105, platform.center.z]}>
         <boxGeometry args={[platform.width, 0.13, platform.depth]} />
-        <meshStandardMaterial color={selected ? "#2563eb" : "#0f766e"} roughness={0.62} transparent opacity={selected ? 0.92 : 0.88} />
+        <meshStandardMaterial
+          color={selected ? "#2563eb" : materialPreview ? "#82502b" : "#0f766e"}
+          roughness={materialPreview ? 0.46 : 0.62}
+          metalness={materialPreview ? 0.02 : 0}
+          transparent
+          opacity={selected ? 0.92 : materialPreview ? 1 : 0.88}
+        />
       </mesh>
     </group>
   );
@@ -3095,18 +3435,20 @@ function StairDirectionCue({
   metrics,
   stairWidth,
   isDownRun,
+  isArrivalRun = false,
   selected
 }: {
   metrics: ReturnType<typeof lineMetrics>;
   stairWidth: number;
   isDownRun: boolean;
+  isArrivalRun?: boolean;
   selected: boolean;
 }) {
   const cueStart = Math.min(0.46, metrics.length * 0.18);
   const cueLength = Math.max(0.62, metrics.length - cueStart - 0.56);
   const cueWidth = Math.min(0.18, Math.max(0.1, stairWidth * 0.18));
-  const color = selected ? "#2563eb" : isDownRun ? "#dc2626" : "#0284c7";
-  const cueY = isDownRun ? 0.34 : 0.76;
+  const color = selected ? "#2563eb" : isArrivalRun ? "#a16207" : isDownRun ? "#dc2626" : "#0284c7";
+  const cueY = isArrivalRun ? 0.16 : isDownRun ? 0.34 : 0.76;
   return (
     <group position={[metrics.startPoint.x, cueY, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
       <mesh position={[cueStart + cueLength / 2, 0, 0]} renderOrder={22}>
@@ -3117,6 +3459,96 @@ function StairDirectionCue({
         <coneGeometry args={[cueWidth * 1.2, 0.36, 3]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.12} roughness={0.38} transparent opacity={0.92} depthTest={false} side={THREE.DoubleSide} />
       </mesh>
+    </group>
+  );
+}
+
+function StairGlassRailings({
+  metrics,
+  stairId,
+  stairWidth,
+  startY,
+  endY,
+  selected,
+  muted
+}: {
+  metrics: ReturnType<typeof lineMetrics>;
+  stairId: string;
+  stairWidth: number;
+  startY: number;
+  endY: number;
+  selected: boolean;
+  muted: boolean;
+}) {
+  const glassHeight = 0.78;
+  const glassBottomOffset = 0.08;
+  const handrailHeight = 0.07;
+  const glassShape = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, startY + glassBottomOffset);
+    shape.lineTo(metrics.length, endY + glassBottomOffset);
+    shape.lineTo(metrics.length, endY + glassBottomOffset + glassHeight);
+    shape.lineTo(0, startY + glassBottomOffset + glassHeight);
+    shape.closePath();
+    return shape;
+  }, [endY, metrics.length, startY]);
+  const railStartY = startY + glassBottomOffset + glassHeight + handrailHeight / 2;
+  const railEndY = endY + glassBottomOffset + glassHeight + handrailHeight / 2;
+  const railRise = railEndY - railStartY;
+  const railLength = Math.hypot(metrics.length, railRise);
+  const railAngle = Math.atan2(railRise, metrics.length);
+  const postStops = [0, 1 / 3, 2 / 3, 1];
+  const depthTest = !muted;
+  const woodColor = selected ? "#2563eb" : "#78411f";
+  const metalColor = selected ? "#2563eb" : "#6f675e";
+
+  return (
+    <group position={[metrics.startPoint.x, 0, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+      {[-1, 1].map((side) => {
+        const sideZ = side * (stairWidth / 2 + 0.018);
+        return (
+          <group key={`${stairId}-railing-${side}`}>
+            <mesh position={[0, 0, sideZ]} renderOrder={muted ? 17 : 4}>
+              <shapeGeometry args={[glassShape]} />
+              <meshStandardMaterial
+                color={selected ? "#93c5fd" : "#c4e2e3"}
+                transparent
+                opacity={muted ? 0.14 : 0.28}
+                roughness={0.04}
+                metalness={0.03}
+                depthWrite={false}
+                depthTest={depthTest}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+            {postStops.map((t, index) => {
+              const postBaseY = THREE.MathUtils.lerp(startY, endY, t) + glassBottomOffset;
+              const postTopY = THREE.MathUtils.lerp(railStartY, railEndY, t) - handrailHeight / 2;
+              const postHeight = Math.max(0.2, postTopY - postBaseY);
+              return (
+                <mesh
+                  key={`${stairId}-post-${side}-${index}`}
+                  castShadow={!muted}
+                  position={[metrics.length * t, postBaseY + postHeight / 2, sideZ]}
+                  renderOrder={muted ? 18 : 5}
+                >
+                  <boxGeometry args={[0.022, postHeight, 0.022]} />
+                  <meshStandardMaterial color={metalColor} roughness={0.28} metalness={0.56} transparent opacity={muted ? 0.38 : 0.76} depthTest={depthTest} />
+                </mesh>
+              );
+            })}
+            <mesh
+              castShadow={!muted}
+              position={[metrics.length / 2, (railStartY + railEndY) / 2, sideZ]}
+              rotation={[0, 0, railAngle]}
+              renderOrder={muted ? 19 : 6}
+            >
+              <boxGeometry args={[railLength + 0.12, handrailHeight, 0.075]} />
+              <meshStandardMaterial color={woodColor} roughness={0.4} metalness={0.02} transparent={muted} opacity={muted ? 0.62 : 1} depthTest={depthTest} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -3138,17 +3570,37 @@ function StairMesh({
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
-  const metrics = useMemo(() => lineMetrics(stair.start, stair.end, structure), [stair, structure]);
+  const isTopFloorArrivalRun = structure.floorId === "2F" && stair.id === "ST-2F-001" && stair.direction === "up";
+  const metrics = useMemo(() => {
+    if (!isTopFloorArrivalRun) return lineMetrics(stair.start, stair.end, structure);
+    const dx = stair.end.x - stair.start.x;
+    const dy = stair.end.y - stair.start.y;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    const offset = stair.width * 0.42;
+    const offsetX = (-dy / length) * offset;
+    const offsetY = (dx / length) * offset;
+    return lineMetrics(
+      { x: stair.start.x + offsetX, y: stair.start.y + offsetY },
+      { x: stair.end.x + offsetX, y: stair.end.y + offsetY },
+      structure
+    );
+  }, [isTopFloorArrivalRun, stair, structure]);
   const count = Math.max(1, stair.stepCount);
   const stepLength = metrics.length / count;
   const totalHeight = Math.max(0.4, stair.height * MM_TO_M);
-  const isTopFloorArrivalRun = structure.floorId === "2F" && stair.id === "ST-2F-001" && stair.direction === "up";
   const baseHeight = isTopFloorArrivalRun ? -totalHeight : (stair.baseHeight ?? 0) * MM_TO_M;
   const stairWidth = Math.max(0.5, stair.width * MM_TO_M);
   const isDownRun = stair.direction === "down";
+  const rendersBelowFloor = isDownRun || isTopFloorArrivalRun;
   const landingY = baseHeight + (isDownRun ? -totalHeight : totalHeight);
   const landingDepth = Math.min(1.1, Math.max(0.72, stepLength * 1.55));
-  const stepMaterialColor = selected ? "#2563eb" : isTopFloorArrivalRun ? "#d99b45" : isDownRun ? "#9b846b" : "#d6c6ae";
+  const effectStartY = isDownRun ? baseHeight : baseHeight + totalHeight / count;
+  const effectEndY = landingY;
+  const stringerRise = effectEndY - effectStartY;
+  const stringerLength = Math.hypot(metrics.length, stringerRise);
+  const stringerAngle = Math.atan2(stringerRise, metrics.length);
+  const stepMaterialColor = selected ? "#2563eb" : materialPreview ? "#8f542f" : isTopFloorArrivalRun ? "#a87842" : isDownRun ? "#9b846b" : "#d6c6ae";
+  const materialDepthTest = materialPreview ? !isTopFloorArrivalRun : !rendersBelowFloor;
   return (
     <group
       onClick={(event) => {
@@ -3164,16 +3616,65 @@ function StairMesh({
         onClearHover(stair.id);
       }}
     >
-      <mesh receiveShadow position={[metrics.midpoint.x, 0.052, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
-        <boxGeometry args={[metrics.length + 0.32, 0.032, stairWidth + 0.32]} />
-        <meshStandardMaterial color={isTopFloorArrivalRun ? "#92400e" : isDownRun ? "#1f2937" : "#6f5a41"} transparent opacity={isTopFloorArrivalRun ? 0.38 : isDownRun ? 0.76 : 0.28} roughness={0.88} />
-      </mesh>
+      {isTopFloorArrivalRun ? (
+        <group position={[metrics.midpoint.x, 0.066, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
+          <mesh renderOrder={10}>
+            <boxGeometry args={[metrics.length + 0.18, 0.024, stairWidth + 0.18]} />
+            <meshStandardMaterial color="#e7e2da" transparent opacity={0.46} roughness={0.92} depthTest={false} />
+          </mesh>
+          {[-1, 1].map((side) => (
+            <mesh key={`${stair.id}-opening-side-${side}`} position={[0, 0.025, side * (stairWidth / 2 + 0.07)]} renderOrder={11}>
+              <boxGeometry args={[metrics.length + 0.26, 0.065, 0.055]} />
+              <meshStandardMaterial color={selected ? "#2563eb" : "#8c8275"} roughness={0.78} depthTest={false} />
+            </mesh>
+          ))}
+          {[-1, 1].map((side) => (
+            <mesh key={`${stair.id}-opening-end-${side}`} position={[side * (metrics.length / 2 + 0.1), 0.025, 0]} renderOrder={11}>
+              <boxGeometry args={[0.055, 0.065, stairWidth + 0.18]} />
+              <meshStandardMaterial color={selected ? "#2563eb" : "#8c8275"} roughness={0.78} depthTest={false} />
+            </mesh>
+          ))}
+        </group>
+      ) : !materialPreview ? (
+        <mesh receiveShadow position={[metrics.midpoint.x, 0.052, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
+          <boxGeometry args={[metrics.length + 0.32, 0.032, stairWidth + 0.32]} />
+          <meshStandardMaterial color={isDownRun ? "#1f2937" : "#6f5a41"} transparent opacity={isDownRun ? 0.76 : 0.28} roughness={0.88} />
+        </mesh>
+      ) : null}
+      {materialPreview && (
+        <group position={[metrics.startPoint.x, 0, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+          {[-1, 1].map((side) => (
+            <mesh
+              key={`${stair.id}-stringer-${side}`}
+              castShadow={!isTopFloorArrivalRun}
+              position={[metrics.length / 2, (effectStartY + effectEndY) / 2 - 0.13, side * (stairWidth / 2 - 0.09)]}
+              rotation={[0, 0, stringerAngle]}
+              renderOrder={isTopFloorArrivalRun ? 13 : 1}
+            >
+              <boxGeometry args={[stringerLength, 0.14, 0.11]} />
+              <meshStandardMaterial
+                color={selected ? "#2563eb" : "#6f3d22"}
+                roughness={0.5}
+                metalness={0.01}
+                transparent={isTopFloorArrivalRun}
+                opacity={isTopFloorArrivalRun ? 0.46 : 1}
+                depthTest={!isTopFloorArrivalRun}
+              />
+            </mesh>
+          ))}
+        </group>
+      )}
       {Array.from({ length: count }, (_, index) => {
         const t = (index + 0.5) / count;
         const height = isDownRun
           ? totalHeight * ((count - index) / count)
           : totalHeight * ((index + 1) / count);
-        const centerY = isDownRun
+        const treadTopY = isDownRun ? baseHeight - totalHeight * (index / count) : baseHeight + totalHeight * ((index + 1) / count);
+        const centerY = materialPreview
+          ? treadTopY - 0.05
+          : isTopFloorArrivalRun
+          ? baseHeight + height
+          : isDownRun
           ? baseHeight - totalHeight + height / 2
           : baseHeight + height / 2;
         const center = {
@@ -3181,9 +3682,16 @@ function StairMesh({
           z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t
         };
         return (
-          <mesh key={`${stair.id}-step-${index}`} castShadow receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]}>
-            <boxGeometry args={[stepLength * 0.92, height, stairWidth]} />
-            <meshStandardMaterial color={stepMaterialColor} roughness={0.72} depthTest={!isDownRun} />
+          <mesh key={`${stair.id}-step-${index}`} castShadow={!isTopFloorArrivalRun} receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]} renderOrder={isTopFloorArrivalRun ? 14 : materialPreview ? 2 : 0}>
+            <boxGeometry args={[stepLength * (materialPreview ? 1.02 : 0.92), materialPreview ? 0.1 : isTopFloorArrivalRun ? 0.055 : height, stairWidth]} />
+            <meshStandardMaterial
+              color={stepMaterialColor}
+              roughness={materialPreview ? 0.44 : 0.72}
+              metalness={materialPreview ? 0.02 : 0}
+              transparent={isTopFloorArrivalRun}
+              opacity={isTopFloorArrivalRun ? 0.3 + 0.55 * ((index + 1) / count) : 1}
+              depthTest={materialDepthTest}
+            />
           </mesh>
         );
       })}
@@ -3195,9 +3703,27 @@ function StairMesh({
       )}
       <mesh castShadow receiveShadow position={[metrics.endPoint.x, landingY + (isDownRun ? -0.035 : 0.035), metrics.endPoint.z]} rotation={[0, metrics.rotationY, 0]}>
         <boxGeometry args={[landingDepth, 0.07, stairWidth]} />
-        <meshStandardMaterial color={selected ? "#2563eb" : isTopFloorArrivalRun ? "#fbbf24" : isDownRun ? "#4b5563" : "#c8b89f"} transparent opacity={isDownRun ? 0.92 : 1} roughness={0.76} depthTest={!isDownRun} />
+        <meshStandardMaterial
+          color={selected ? "#2563eb" : materialPreview ? "#82502b" : isTopFloorArrivalRun ? "#b68a59" : isDownRun ? "#4b5563" : "#c8b89f"}
+          transparent={rendersBelowFloor}
+          opacity={isTopFloorArrivalRun ? 0.82 : isDownRun && !materialPreview ? 0.92 : 1}
+          roughness={materialPreview ? 0.46 : 0.76}
+          metalness={materialPreview ? 0.02 : 0}
+          depthTest={materialDepthTest}
+        />
       </mesh>
-      {!materialPreview && <StairDirectionCue metrics={metrics} stairWidth={stairWidth} isDownRun={isDownRun} selected={selected} />}
+      {materialPreview && (
+        <StairGlassRailings
+          metrics={metrics}
+          stairId={stair.id}
+          stairWidth={stairWidth}
+          startY={effectStartY}
+          endY={effectEndY}
+          selected={selected}
+          muted={isTopFloorArrivalRun}
+        />
+      )}
+      {!materialPreview && <StairDirectionCue metrics={metrics} stairWidth={stairWidth} isDownRun={isDownRun} isArrivalRun={isTopFloorArrivalRun} selected={selected} />}
     </group>
   );
 }
@@ -4869,18 +5395,32 @@ function FurnitureServiceMarkers({
   );
 }
 
-function RenderToneMapping({ presentationMode }: { presentationMode: boolean }) {
+function RenderToneMapping({ presentationMode, mobilePresentationMode, mobileQuality }: { presentationMode: boolean; mobilePresentationMode: boolean; mobileQuality: MobileQuality }) {
   const { gl } = useThree();
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = presentationMode ? 1.22 : 1.14;
-    gl.shadowMap.enabled = true;
+    gl.shadowMap.enabled = !mobilePresentationMode || mobileQuality === "high";
     gl.shadowMap.type = THREE.PCFSoftShadowMap;
-  }, [gl, presentationMode]);
+  }, [gl, mobilePresentationMode, mobileQuality, presentationMode]);
   return null;
 }
 
-function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: CameraPreset; fixedView: FixedCameraView | null; requestVersion: number; mode: CameraMode }) {
+function CameraRig({
+  preset,
+  fixedView,
+  requestVersion,
+  mode,
+  tourNode,
+  mobilePresentationMode
+}: {
+  preset: CameraPreset;
+  fixedView: FixedCameraView | null;
+  requestVersion: number;
+  mode: CameraMode;
+  tourNode: RoomTourView | null;
+  mobilePresentationMode: boolean;
+}) {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
   const walkInitializedRef = useRef(false);
@@ -4897,6 +5437,8 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
     endTarget: THREE.Vector3;
     startZoom: number;
     endZoom: number;
+    startFov: number;
+    endFov: number;
   } | null>(null);
 
   useEffect(() => {
@@ -4907,6 +5449,8 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
     controls.panSpeed = 0.55;
     controls.rotateSpeed = 0.56;
     controls.zoomSpeed = 0.8;
+    controls.touches.ONE = THREE.TOUCH.ROTATE;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
     controls.minDistance = 0.75;
     controls.maxDistance = 18;
     controls.minPolarAngle = Math.PI / 8;
@@ -4914,6 +5458,7 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
     controls.target.copy(CAMERA_TARGET);
     controls.update();
     controlsRef.current = controls;
+    gl.domElement.style.touchAction = "none";
     return () => {
       controls.dispose();
       controlsRef.current = null;
@@ -4928,6 +5473,7 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
     const position = fixedView
       ? new THREE.Vector3(fixedView.cameraPosition.x, fixedView.cameraPosition.y, fixedView.cameraPosition.z)
       : new THREE.Vector3(...cameraPositions[preset]);
+    const isPerspectiveCamera = camera instanceof THREE.PerspectiveCamera;
     transitionRef.current = {
       elapsed: 0,
       duration: 0.9,
@@ -4936,22 +5482,37 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
       startTarget: controls?.target.clone() ?? CAMERA_TARGET.clone(),
       endTarget: target,
       startZoom: camera.zoom,
-      endZoom: fixedView?.zoom ?? 1
+      endZoom: isPerspectiveCamera && fixedView?.mode === "orthographic" ? 1 : fixedView?.zoom ?? 1,
+      startFov: isPerspectiveCamera ? camera.fov : 48,
+      endFov: tourNode?.fov ?? (mobilePresentationMode ? 48 : 42)
     };
-    // The Canvas camera type is chosen by viewport. Orthographic fixed views use a locked-rotation,
-    // zoomed axonometric fallback when the active Canvas is perspective.
+    // Mobile uses a perspective camera even for legacy orthographic presets, so those
+    // presets keep their position/target but not their large orthographic zoom value.
     if (controls) {
-      controls.enableRotate = fixedView?.mode !== "orthographic";
+      controls.enableRotate = mobilePresentationMode || fixedView?.mode !== "orthographic";
       controls.enablePan = true;
     }
     walkInitializedRef.current = false;
-  }, [camera, fixedView, preset, requestVersion]);
+  }, [camera, fixedView, mobilePresentationMode, preset, requestVersion, tourNode?.fov]);
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
     controls.enabled = true;
+    controls.enableZoom = true;
     pressedKeysRef.current.clear();
+    if (mode === "tour") {
+      controls.enableRotate = true;
+      controls.enablePan = false;
+      controls.minDistance = 0.38;
+      controls.maxDistance = 3.4;
+      controls.minPolarAngle = Math.PI * 0.35;
+      controls.maxPolarAngle = Math.PI * 0.65;
+      controls.rotateSpeed = 0.46;
+      controls.zoomSpeed = 0.62;
+      controls.update();
+      return;
+    }
     if (mode === "walkthrough" && !walkInitializedRef.current) {
       const stop = walkthroughStops[0];
       camera.position.copy(stop.position);
@@ -4965,14 +5526,15 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
       return;
     }
     if (mode === "orbit") {
-      controls.enableRotate = fixedView?.mode !== "orthographic";
+      controls.enableRotate = mobilePresentationMode || fixedView?.mode !== "orthographic";
+      controls.enablePan = true;
       controls.minDistance = 0.75;
       controls.maxDistance = 18;
       controls.maxPolarAngle = Math.PI / 2.08;
       walkInitializedRef.current = false;
       controls.update();
     }
-  }, [camera, fixedView?.mode, mode]);
+  }, [camera, fixedView?.mode, mobilePresentationMode, mode]);
 
   useEffect(() => {
     if (mode !== "walkthrough") return;
@@ -4998,18 +5560,34 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
 
   useFrame((_, delta) => {
     const transition = transitionRef.current;
-    if (transition && mode === "orbit") {
+    if (transition && mode !== "walkthrough") {
       transition.elapsed = Math.min(transition.duration, transition.elapsed + delta);
       const rawProgress = transition.elapsed / transition.duration;
       const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
       camera.position.lerpVectors(transition.startPosition, transition.endPosition, progress);
       const currentTarget = transition.startTarget.clone().lerp(transition.endTarget, progress);
       camera.zoom = THREE.MathUtils.lerp(transition.startZoom, transition.endZoom, progress);
+      if (camera instanceof THREE.PerspectiveCamera) camera.fov = THREE.MathUtils.lerp(transition.startFov, transition.endFov, progress);
       controlsRef.current?.target.copy(currentTarget);
       camera.lookAt(currentTarget);
       camera.updateProjectionMatrix();
       controlsRef.current?.update();
       if (rawProgress >= 1) transitionRef.current = null;
+      return;
+    }
+    if (mode === "tour" && tourNode) {
+      const controls = controlsRef.current;
+      controls?.update();
+      const origin = tourNode.cameraPosition;
+      const dx = camera.position.x - origin.x;
+      const dz = camera.position.z - origin.z;
+      const distanceFromNode = Math.hypot(dx, dz);
+      if (distanceFromNode > 2.8) {
+        const scale = 2.8 / distanceFromNode;
+        camera.position.x = origin.x + dx * scale;
+        camera.position.z = origin.z + dz * scale;
+      }
+      camera.position.y = Math.min(1.95, Math.max(0.9, camera.position.y));
       return;
     }
     if (mode === "walkthrough") {
@@ -5036,7 +5614,13 @@ function CameraRig({ preset, fixedView, requestVersion, mode }: { preset: Camera
       controls?.update();
       return;
     }
-    controlsRef.current?.update();
+    const controls = controlsRef.current;
+    controls?.update();
+    if (mobilePresentationMode && controls) {
+      controls.target.x = THREE.MathUtils.clamp(controls.target.x, -9, 9);
+      controls.target.z = THREE.MathUtils.clamp(controls.target.z, -9, 9);
+      camera.position.y = THREE.MathUtils.clamp(camera.position.y, 0.55, 18);
+    }
   });
 
   return null;
@@ -5047,6 +5631,8 @@ function Floor3DScene({
   fixedCameraView,
   cameraRequestVersion,
   cameraMode,
+  activeTourNode,
+  mobilePresentationMode,
   materialPreview,
   designStyle,
   presentationMode,
@@ -5065,6 +5651,8 @@ function Floor3DScene({
   fixedCameraView: FixedCameraView | null;
   cameraRequestVersion: number;
   cameraMode: CameraMode;
+  activeTourNode: RoomTourView | null;
+  mobilePresentationMode: boolean;
   materialPreview: boolean;
   designStyle: DesignStylePreset;
   presentationMode: boolean;
@@ -5089,13 +5677,20 @@ function Floor3DScene({
   const shadowMapSize = balancedQuality ? 1024 : presentationMode ? 4096 : 2048;
   return (
     <>
-      <RenderToneMapping presentationMode={presentationMode} />
-      <CameraRig preset={cameraPreset} fixedView={fixedCameraView} requestVersion={cameraRequestVersion} mode={cameraMode} />
+      <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} />
+      <CameraRig
+        preset={cameraPreset}
+        fixedView={fixedCameraView}
+        requestVersion={cameraRequestVersion}
+        mode={cameraMode}
+        tourNode={activeTourNode}
+        mobilePresentationMode={mobilePresentationMode}
+      />
       <color attach="background" args={[palette.background]} />
       <fog attach="fog" args={[palette.background, 12, 28]} />
       <ambientLight intensity={ambientIntensity} />
       <directionalLight
-        castShadow
+        castShadow={!mobilePresentationMode || mobileQuality === "high"}
         color="#fff1c7"
         position={[6.8, 9.2, 7.4]}
         intensity={keyLightIntensity}
@@ -5140,18 +5735,18 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.rooms.map((room, index) => (
+      {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room, index) => (
         <RoomFloorMesh key={room.id} room={room} index={index} structure={houseStructure} designStyle={designStyle} />
       ))}
-      {houseStructure.rooms.map((room) => (
+      {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room) => (
         <RoomFloorFinishOverlay key={`${room.id}-floor-finish`} room={room} structure={houseStructure} designStyle={designStyle} />
       ))}
-      {houseStructure.rooms.map((room) => (
+      {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room) => (
         <RoomAmbientOcclusion key={`${room.id}-ambient-occlusion`} room={room} structure={houseStructure} />
       ))}
       <RoomLightingPlaceholders structure={houseStructure} designStyle={designStyle} />
 
-      {houseStructure.walls.map((wall) => (
+      {houseStructure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => (
         <WallMesh
           key={wall.id}
           wall={wall}
@@ -5176,7 +5771,7 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.partitions.map((partition) => (
+      {houseStructure.partitions.filter((partition) => resolveVisibility(partition).visible3d).map((partition) => (
         <PartitionMesh
           key={partition.id}
           partition={partition}
@@ -5188,7 +5783,7 @@ function Floor3DScene({
         />
       ))}
 
-      {(houseStructure.columns ?? []).map((column) => (
+      {(houseStructure.columns ?? []).filter((column) => resolveVisibility(column).visible3d).map((column) => (
         <ColumnMesh
           key={column.id}
           column={column}
@@ -5200,7 +5795,7 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.doors.map((door) => (
+      {houseStructure.doors.filter((door) => resolveVisibility(door).visible3d).map((door) => (
         <OpeningMesh
           key={door.id}
           opening={door}
@@ -5212,7 +5807,7 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.windows.map((windowObject) => (
+      {houseStructure.windows.filter((windowObject) => resolveVisibility(windowObject).visible3d).map((windowObject) => (
         <OpeningMesh
           key={windowObject.id}
           opening={windowObject}
@@ -5224,7 +5819,7 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.bayWindows.map((bayWindow) => (
+      {houseStructure.bayWindows.filter((bayWindow) => resolveVisibility(bayWindow).visible3d).map((bayWindow) => (
         <BayWindowMesh
           key={bayWindow.id}
           bayWindow={bayWindow}
@@ -5236,11 +5831,24 @@ function Floor3DScene({
         />
       ))}
 
+      {houseStructure.skylights.filter((skylight) => resolveVisibility(skylight).visible3d).map((skylight) => (
+        <SkylightMesh
+          key={skylight.id}
+          skylight={skylight}
+          structure={houseStructure}
+          selected={selectedObjectId === skylight.id}
+          onSelect={onSelectStructure}
+          onHover={onHoverObject}
+          onClearHover={onClearHoverObject}
+        />
+      ))}
+
       {houseStructure.floorId !== "B2" && getStairLandingConnections(houseStructure.stairs).map((connection) => (
         <StairLandingMesh
           key={connection.id}
           connection={connection}
           structure={houseStructure}
+          materialPreview={materialPreview}
           selected={selectedObjectId === connection.fromId || selectedObjectId === connection.toId}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -5248,7 +5856,7 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.stairs.map((stair) => (
+      {houseStructure.stairs.filter((stair) => resolveVisibility(stair).visible3d).map((stair) => (
         <StairMesh
           key={stair.id}
           stair={stair}
@@ -5301,6 +5909,7 @@ export function Floor3DView({
   houseStructure,
   furniture,
   cameraViews = [],
+  roomTourViews = [],
   cameraViewFloorIds,
   cameraViewRequest = null,
   mobilePresentationMode = false,
@@ -5326,6 +5935,10 @@ export function Floor3DView({
   const [showServicePoints, setShowServicePoints] = useState(false);
   const [designStyle, setDesignStyle] = useState<DesignStylePreset>("warmJapandi");
   const [presentationMode, setPresentationMode] = useState(mobilePresentationMode);
+  const [tourPanelOpen, setTourPanelOpen] = useState(false);
+  const [activeTourNode, setActiveTourNode] = useState<RoomTourView | null>(null);
+  const gestureRef = useRef({ pointers: new Map<number, { x: number; y: number }>(), moved: false });
+  const suppressSelectionUntilRef = useRef(0);
   const selectedFurniture = furniture.find((item) => item.id === selectedFurnitureId || item.id === selectedObjectId);
   const selectedStructure =
     houseStructure.walls.find((item) => item.id === selectedObjectId) ??
@@ -5338,6 +5951,7 @@ export function Floor3DView({
     houseStructure.doors.find((item) => item.id === selectedObjectId) ??
     houseStructure.windows.find((item) => item.id === selectedObjectId) ??
     houseStructure.bayWindows.find((item) => item.id === selectedObjectId) ??
+    houseStructure.skylights.find((item) => item.id === selectedObjectId) ??
     null;
   const selectedName = selectedFurniture?.name ?? selectedStructure?.name ?? selectedObjectId;
   const servicePointCount = useMemo(() => countServiceMarkers(furniture), [furniture]);
@@ -5346,8 +5960,20 @@ export function Floor3DView({
     () => cameraViews.filter((view) => acceptedCameraViewFloorIds.includes(view.floor)),
     [acceptedCameraViewFloorIds, cameraViews]
   );
+  const currentFloorTourNodes = useMemo(
+    () => roomTourViews.filter((node) => node.floorId === floor.id && node.status === "active"),
+    [floor.id, roomTourViews]
+  );
+  const linkedTourNodes = useMemo(() => activeTourNode
+    ? activeTourNode.linkedNodeIds
+        .map((id) => currentFloorTourNodes.find((node) => node.id === id))
+        .filter((node): node is RoomTourView => Boolean(node))
+        .slice(0, 4)
+    : [], [activeTourNode, currentFloorTourNodes]);
   const resetMobileCamera = () => {
     setCameraMode("orbit");
+    setActiveTourNode(null);
+    setTourPanelOpen(false);
     setMaterialPreview(true);
     setShowServicePoints(false);
     setPresentationMode(true);
@@ -5365,20 +5991,61 @@ export function Floor3DView({
     const requestedView = cameraViewRequest?.view;
     if (!requestedView || !acceptedCameraViewFloorIds.includes(requestedView.floor)) return;
     setCameraMode("orbit");
+    setActiveTourNode(null);
     setCameraRequest((current) => ({ preset: current.preset, fixedView: requestedView, version: current.version + 1 }));
   }, [acceptedCameraViewFloorIds, cameraViewRequest?.nonce, cameraViewRequest?.view]);
   const requestCameraPreset = (preset: CameraPreset) => {
     setCameraMode("orbit");
+    setActiveTourNode(null);
     setCameraRequest((current) => ({ preset, fixedView: null, version: current.version + 1 }));
   };
   const rotateCameraPreset = (direction: -1 | 1) => {
     setCameraMode("orbit");
+    setActiveTourNode(null);
     setCameraRequest((current) => {
       const currentIndex = cameraRotationOrder.indexOf(current.preset);
       const fallbackIndex = direction > 0 ? -1 : 0;
       const nextIndex = ((currentIndex >= 0 ? currentIndex : fallbackIndex) + direction + cameraRotationOrder.length) % cameraRotationOrder.length;
       return { preset: cameraRotationOrder[nextIndex], fixedView: null, version: current.version + 1 };
     });
+  };
+  const goToTourNode = (node: RoomTourView) => {
+    setActiveTourNode(node);
+    setTourPanelOpen(false);
+    if (mobilePresentationMode) setPresentationMode(true);
+    setMaterialPreview(true);
+    setShowServicePoints(false);
+    setCameraMode(node.isFloorOverview ? "orbit" : "tour");
+    setCameraRequest((current) => ({
+      preset: current.preset,
+      fixedView: tourNodeToCameraView(node),
+      version: current.version + 1
+    }));
+  };
+  const exitTour = () => {
+    if (mobilePresentationMode) {
+      resetMobileCamera();
+      return;
+    }
+    setActiveTourNode(null);
+    setTourPanelOpen(false);
+    setCameraMode("orbit");
+    setCameraRequest((current) => ({ preset: "overview", fixedView: null, version: current.version + 1 }));
+  };
+  const selectionAllowed = () => performance.now() > suppressSelectionUntilRef.current;
+  const handleGesturePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    gestureRef.current.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (gestureRef.current.pointers.size > 1) gestureRef.current.moved = true;
+  };
+  const handleGesturePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = gestureRef.current.pointers.get(event.pointerId);
+    if (!start) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 7) gestureRef.current.moved = true;
+  };
+  const handleGesturePointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (gestureRef.current.moved) suppressSelectionUntilRef.current = performance.now() + 180;
+    gestureRef.current.pointers.delete(event.pointerId);
+    if (gestureRef.current.pointers.size === 0) gestureRef.current.moved = false;
   };
   const togglePresentationMode = () => {
     setPresentationMode((enabled) => {
@@ -5387,6 +6054,7 @@ export function Floor3DView({
         setMaterialPreview(true);
         setShowServicePoints(false);
         setCameraMode("orbit");
+        setActiveTourNode(null);
         setCameraRequest((current) => ({ preset: "overview", fixedView: null, version: current.version + 1 }));
       }
       return nextEnabled;
@@ -5399,12 +6067,17 @@ export function Floor3DView({
       onDoubleClick={() => {
         if (mobilePresentationMode) resetMobileCamera();
       }}
+      onPointerDownCapture={handleGesturePointerDown}
+      onPointerMoveCapture={handleGesturePointerMove}
+      onPointerUpCapture={handleGesturePointerEnd}
+      onPointerCancelCapture={handleGesturePointerEnd}
+      data-room-tour-active={activeTourNode ? "true" : "false"}
     >
       <Canvas
         key={floor.id}
-        shadows
-        orthographic={mobilePresentationMode}
-        camera={mobilePresentationMode ? { near: 0.1, far: 80, zoom: getMobileDefaultCameraView(floor, houseStructure).zoom } : { fov: 42, near: 0.1, far: 80 }}
+        shadows={!mobilePresentationMode || mobileQuality === "high"}
+        dpr={mobilePresentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : [1, 2]}
+        camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}
         gl={{ antialias: mobileQuality === "high", preserveDrawingBuffer: true, powerPreference: mobileQuality === "balanced" ? "low-power" : "high-performance" }}
       >
         <Floor3DScene
@@ -5412,6 +6085,8 @@ export function Floor3DView({
           fixedCameraView={cameraRequest.fixedView}
           cameraRequestVersion={cameraRequest.version}
           cameraMode={cameraMode}
+          activeTourNode={activeTourNode}
+          mobilePresentationMode={mobilePresentationMode}
           materialPreview={materialPreview}
           designStyle={designStyle}
           presentationMode={presentationMode}
@@ -5421,12 +6096,86 @@ export function Floor3DView({
           furniture={furniture}
           selectedObjectId={selectedObjectId}
           selectedFurnitureId={selectedFurnitureId}
-          onSelectStructure={onSelectStructure}
-          onSelectFurniture={onSelectFurniture}
+          onSelectStructure={(objectId) => {
+            if (selectionAllowed()) onSelectStructure(objectId);
+          }}
+          onSelectFurniture={(item) => {
+            if (selectionAllowed()) onSelectFurniture(item);
+          }}
           onHoverObject={onHoverObject}
           onClearHoverObject={onClearHoverObject}
         />
       </Canvas>
+
+      {mobilePresentationMode && (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-[85] flex justify-center px-3">
+          <div className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border border-white/80 bg-stone-950/78 px-2 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur">
+            {activeTourNode ? (
+              <>
+                <span className="max-w-[11rem] truncate px-2" data-testid="mobile-tour-title">{floor.id === "YARD" ? "院子" : floor.id} / {activeTourNode.name}</span>
+                <button className="rounded-full bg-white/15 px-3 py-1.5" onClick={() => setTourPanelOpen(true)} type="button">换房间</button>
+                <button className="rounded-full bg-white px-3 py-1.5 text-stone-900" onClick={exitTour} type="button">退出漫游</button>
+              </>
+            ) : (
+              <button
+                aria-label="房间漫游"
+                className="rounded-full bg-white px-4 py-2 text-stone-900"
+                onClick={() => setTourPanelOpen(true)}
+                type="button"
+              >
+                房间漫游
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTourNode && !activeTourNode.isFloorOverview && linkedTourNodes.length > 0 && (
+        <div className="pointer-events-none absolute inset-x-3 bottom-24 z-[82] flex flex-wrap justify-center gap-2" data-testid="tour-hotspots">
+          {linkedTourNodes.map((node) => (
+            <button
+              key={node.id}
+              className="pointer-events-auto min-h-11 rounded-full border border-white/80 bg-white/92 px-4 py-2 text-xs font-bold text-stone-800 shadow-[0_8px_24px_rgba(28,25,23,0.22)] backdrop-blur active:scale-95"
+              onClick={() => goToTourNode(node)}
+              type="button"
+            >
+              <span aria-hidden="true" className="mr-1 text-emerald-700">➜</span>
+              {node.isFloorOverview ? "返回楼层总览" : `去${node.name}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tourPanelOpen && (
+        <div className="absolute inset-0 z-[95] flex items-end bg-stone-950/20" data-testid="tour-room-panel" onClick={() => setTourPanelOpen(false)}>
+          <div
+            className="max-h-[64%] w-full overflow-y-auto rounded-t-[1.75rem] border-t border-white/80 bg-[#faf8f4]/98 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_60px_rgba(28,25,23,0.2)] backdrop-blur"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto h-1 w-10 rounded-full bg-stone-300" />
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-stone-500">{floor.id === "YARD" ? "院子" : floor.id} · 只读展示</div>
+                <h3 className="mt-0.5 text-lg font-bold text-stone-900">选择漫游房间</h3>
+              </div>
+              <button aria-label="关闭漫游房间列表" className="grid size-10 place-items-center rounded-full bg-stone-100 text-lg text-stone-600" onClick={() => setTourPanelOpen(false)} type="button">×</button>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {currentFloorTourNodes.map((node) => (
+                <button
+                  key={node.id}
+                  className={`min-h-16 rounded-2xl border p-3 text-left transition active:scale-[0.98] ${node.id === activeTourNode?.id ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white text-stone-800"}`}
+                  onClick={() => goToTourNode(node)}
+                  type="button"
+                >
+                  <span className="block text-sm font-bold">{node.name}</span>
+                  <span className={`mt-1 block text-[11px] ${node.id === activeTourNode?.id ? "text-stone-300" : "text-stone-500"}`}>{node.isFloorOverview ? "楼层总览" : node.type === "yard" ? "庭院视角" : node.type === "corridor" ? "通行空间" : "房间视角"}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {presentationMode && !mobilePresentationMode && (
         <div className="pointer-events-none absolute inset-0 z-[50] bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0)_42%,rgba(132,102,64,0.12)_100%)]" />
@@ -5523,6 +6272,17 @@ export function Floor3DView({
           >
             水电点
           </button>
+          <button
+            aria-pressed={Boolean(activeTourNode)}
+            className={`rounded-md px-3 py-2 text-xs font-bold transition ${activeTourNode ? "bg-emerald-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+            onClick={() => setTourPanelOpen(true)}
+            type="button"
+          >
+            漫游节点 {currentFloorTourNodes.length}
+          </button>
+          {activeTourNode && (
+            <button className="rounded-md px-3 py-2 text-xs font-bold text-stone-600 transition hover:bg-stone-100" onClick={exitTour} type="button">退出节点测试</button>
+          )}
           <button
             aria-pressed={cameraMode === "walkthrough"}
             className={`rounded-md px-3 py-2 text-xs font-bold transition ${cameraMode === "walkthrough" ? "bg-emerald-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}

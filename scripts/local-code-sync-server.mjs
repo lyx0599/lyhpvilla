@@ -221,6 +221,7 @@ function validateWorkspace(workspace) {
       if (!Array.isArray(floor.cleanPatches)) return `floors[${index}] requires cleanPatches.`;
     }
   }
+  if ((workspace.schemaVersion ?? 0) >= 8 && !Array.isArray(workspace.roomTourViews)) return "schemaVersion 8+ requires roomTourViews.";
 
   const seenIds = new Set();
   const topLevelCollections = [
@@ -228,6 +229,7 @@ function validateWorkspace(workspace) {
     [workspace.semanticObjects, "semanticObjects"]
   ];
   if (workspace.cameraViews !== undefined) topLevelCollections.push([workspace.cameraViews, "cameraViews"]);
+  if (workspace.roomTourViews !== undefined) topLevelCollections.push([workspace.roomTourViews, "roomTourViews"]);
   if (workspace.modules !== undefined) topLevelCollections.push([workspace.modules, "modules"]);
 
   for (const [items, label] of topLevelCollections) {

@@ -75,6 +75,7 @@ function collectKnownIds(workspace: JsonRecord) {
   add(asArray(workspace.drawingItems));
   add(asArray(workspace.semanticObjects));
   add(asArray(workspace.cameraViews));
+  add(asArray(workspace.roomTourViews));
   const structures = asRecord(workspace.houseStructuresByFloor) ?? {};
   Object.values(structures).forEach((value) => {
     const structure = asRecord(value);
@@ -168,6 +169,9 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
   const drawingItemRecords = asArray(workspace.drawingItems).map(asRecord).filter((item): item is JsonRecord => Boolean(item));
   const drawingItemIds = new Set(drawingItemRecords.map((item) => stringValue(item.id)).filter((id): id is string => Boolean(id)));
   const lightDrawingItemIds = new Set(drawingItemRecords.filter((item) => item.category === "light").map((item) => stringValue(item.id)).filter((id): id is string => Boolean(id)));
+  const switchDrawingItems = drawingItemRecords.filter((item) => item.category === "switch");
+  const switchDrawingItemIds = new Set(switchDrawingItems.map((item) => stringValue(item.id)).filter((id): id is string => Boolean(id)));
+  const ceilingDrawingItemIds = new Set(drawingItemRecords.filter((item) => item.category === "ceiling").map((item) => stringValue(item.id)).filter((id): id is string => Boolean(id)));
   asArray(workspace.drawingItems).forEach((item, index) => {
     const drawingItem = asRecord(item);
     if (!drawingItem) return;
@@ -189,6 +193,9 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
     const wallId = stringValue(drawingItem.wallId);
     const hostObjectId = stringValue(drawingItem.hostObjectId);
     const relatedFurnitureId = stringValue(drawingItem.relatedFurnitureId);
+    const relatedRoomId = stringValue(drawingItem.relatedRoomId);
+    const relatedSwitchId = stringValue(drawingItem.relatedSwitchId);
+    const hostCeilingAreaId = stringValue(drawingItem.hostCeilingAreaId);
     checkReference("roomId", Boolean(roomOutdoorByFloor.get(floorId)?.has(roomId ?? "")), roomId);
     checkReference("hostWallId", Boolean(hostsByFloor.get(floorId)?.has(hostWallId ?? "")), hostWallId);
     checkReference("wallId", Boolean(hostsByFloor.get(floorId)?.has(wallId ?? "")), wallId);
@@ -197,6 +204,31 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
       const record = asRecord(furniture);
       return Boolean(record && record.id === relatedFurnitureId && record.floorId === floorId);
     }), relatedFurnitureId);
+    if (relatedRoomId && !roomOutdoorByFloor.get(floorId)?.has(relatedRoomId)) pushIssue(issues, {
+      severity: "error", code: "ORPHAN_DRAWING_ITEM_RELATED_ROOM", objectId: id,
+      path: `drawingItems[${index}].relatedRoomId`, value: relatedRoomId,
+      message: `图纸点位 ${id} 的 relatedRoomId 未指向同楼层真实房间或室外区。`, suggestion: "重新绑定同楼层 ROOM-* 或 OD-* 对象。"
+    });
+    if (relatedSwitchId && !switchDrawingItemIds.has(relatedSwitchId)) pushIssue(issues, {
+      severity: "error", code: "ORPHAN_DRAWING_ITEM_SWITCH", objectId: id,
+      path: `drawingItems[${index}].relatedSwitchId`, value: relatedSwitchId,
+      message: `灯光点 ${id} 引用了不存在的开关 ${relatedSwitchId}。`, suggestion: "重新选择 E-02 中的 switch drawingItem，或清空该引用。"
+    });
+    if (hostCeilingAreaId && !ceilingDrawingItemIds.has(hostCeilingAreaId)) pushIssue(issues, {
+      severity: "error", code: "ORPHAN_DRAWING_ITEM_CEILING", objectId: id,
+      path: `drawingItems[${index}].hostCeilingAreaId`, value: hostCeilingAreaId,
+      message: `灯光点 ${id} 引用了不存在的吊顶区域 ${hostCeilingAreaId}。`, suggestion: "重新选择 C-01 中的 ceiling drawingItem，或清空该引用。"
+    });
+    if (drawingItem.category === "light" && relatedSwitchId) {
+      const relatedSwitch = switchDrawingItems.find((candidate) => candidate.id === relatedSwitchId);
+      const lightGroup = stringValue(drawingItem.controlGroupId) ?? stringValue(drawingItem.lightGroupId);
+      const switchGroup = stringValue(relatedSwitch?.controlGroupId) ?? stringValue(relatedSwitch?.lightGroupId);
+      if (relatedSwitch && lightGroup && switchGroup && lightGroup !== switchGroup) pushIssue(issues, {
+        severity: "error", code: "LIGHT_SWITCH_CONTROL_GROUP_MISMATCH", objectId: id,
+        path: `drawingItems[${index}].controlGroupId`, value: lightGroup,
+        message: `灯光点 ${id} 与关联开关 ${relatedSwitchId} 的 controlGroupId 不一致。`, suggestion: "将灯具与开关改为同一 controlGroupId。"
+      });
+    }
     [...asArray(drawingItem.controlledLightIds), ...asArray(drawingItem.relatedLightIds)].forEach((lightId, lightIndex) => {
       if (typeof lightId === "string" && !lightDrawingItemIds.has(lightId)) pushIssue(issues, {
         severity: "error", code: "ORPHAN_DRAWING_ITEM_LIGHT", objectId: id,
@@ -282,6 +314,33 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
     if (!floor || !floorIds.has(floor)) pushIssue(issues, {
       severity: "error", code: "INVALID_CAMERA_FLOOR", objectId: id, path: `cameraViews[${index}].floor`, value: floor,
       message: `相机视角 ${id} 指向不存在的楼层。`, suggestion: "改为 floors 中存在的楼层 ID。"
+    });
+  });
+
+  const tourNodeIds = new Set(asArray(workspace.roomTourViews).map((item) => stringValue(asRecord(item)?.id)).filter((id): id is string => Boolean(id)));
+  asArray(workspace.roomTourViews).forEach((item, index) => {
+    const node = asRecord(item);
+    const id = stringValue(node?.id) ?? `roomTourViews[${index}]`;
+    const floorId = stringValue(node?.floorId) ?? "";
+    if (!floorIds.has(floorId)) pushIssue(issues, {
+      severity: "error", code: "INVALID_TOUR_FLOOR", objectId: id, path: `roomTourViews[${index}].floorId`, value: floorId,
+      message: `漫游节点 ${id} 指向不存在的楼层。`, suggestion: "改为 floors 中存在的楼层 ID。"
+    });
+    const roomId = stringValue(node?.roomId);
+    const outdoorId = stringValue(node?.outdoorId);
+    if (roomId && !roomOutdoorByFloor.get(floorId)?.has(roomId)) pushIssue(issues, {
+      severity: "error", code: "INVALID_TOUR_ROOM", objectId: id, path: `roomTourViews[${index}].roomId`, value: roomId,
+      message: `漫游节点 ${id} 未绑定同楼层真实房间。`, suggestion: "绑定同楼层 ROOM-*，或清空后让派生函数自动计算。"
+    });
+    if (outdoorId && !roomOutdoorByFloor.get(floorId)?.has(outdoorId)) pushIssue(issues, {
+      severity: "error", code: "INVALID_TOUR_OUTDOOR", objectId: id, path: `roomTourViews[${index}].outdoorId`, value: outdoorId,
+      message: `漫游节点 ${id} 未绑定同楼层真实室外区。`, suggestion: "绑定同楼层 OD-*，或清空后让派生函数自动计算。"
+    });
+    asArray(node?.linkedNodeIds).forEach((linkedId, linkIndex) => {
+      if (typeof linkedId === "string" && !tourNodeIds.has(linkedId)) pushIssue(issues, {
+        severity: "warning", code: "INVALID_TOUR_LINK", objectId: id, path: `roomTourViews[${index}].linkedNodeIds[${linkIndex}]`, value: linkedId,
+        message: `漫游节点 ${id} 链接了不存在的持久化节点 ${linkedId}。`, suggestion: "删除链接，或补充目标节点；自动派生链接无需持久化。"
+      });
     });
   });
 

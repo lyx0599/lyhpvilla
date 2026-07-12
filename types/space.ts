@@ -28,6 +28,12 @@ export type DrawingItemCategory =
 
 export type DrawingItemSource = "manual" | "generated-from-furniture" | "generated-from-room";
 export type DrawingItemStatus = "draft" | "confirmed" | "todo" | "deprecated";
+export type LightingLayer = "ambient" | "task" | "accent" | "decorative" | "cabinetStrip" | "mirrorLight" | "outdoor";
+export type LightMountingType =
+  | "recessed" | "surfaceMounted" | "pendant" | "wallMounted" | "concealed"
+  | "cabinetIntegrated" | "mirrorIntegrated" | "stepMounted" | "floorMounted"
+  | "bollard" | "groundSpike";
+export type LightColorTemperature = "2700K" | "3000K" | "3500K" | "4000K";
 export type FloorFinishMaterial = "woodFloor" | "tile" | "stone" | "microcement" | "courtyardStone" | "grass" | "hardscape";
 export type OutdoorSurfaceSource = DrawingItemSource | "default-workspace" | "yard-editor" | "imported";
 export type OutdoorSurfaceStatus = DrawingItemStatus | "needs-site-check" | "design-intent";
@@ -52,6 +58,18 @@ export type DrawingItem = {
   quantity: number;
   generatedKey?: string;
   generatedFingerprint?: string;
+  /** 灯光专项 v1 标准字段；旧字段保留用于已保存工作区兼容。 */
+  lightType?: string | null;
+  lightingLayer?: LightingLayer | null;
+  colorTemperature?: LightColorTemperature | null;
+  beamAngle?: number | null;
+  mountingType?: LightMountingType | null;
+  relatedSwitchId?: string | null;
+  controlGroupId?: string | null;
+  smartControl?: boolean;
+  dimming?: boolean;
+  relatedRoomId?: string | null;
+  hostCeilingAreaId?: string | null;
   lightColorTemperature?: MepMeta["lightColorTemperature"] | null;
   needsSmartControl?: boolean;
   switchControl?: string[];
@@ -339,6 +357,33 @@ export type FixedCameraView = {
   description?: string;
   scope?: "floor" | "courtyard" | "export";
   targetArea?: "all" | "southYard" | "northYard" | "entryYard" | "southLiving" | string;
+};
+
+export type TourNodeType = "room" | "yard" | "corridor" | "stair" | "viewpoint";
+export type TourNodeStatus = "active" | "draft" | "disabled";
+
+/**
+ * Read-only presentation camera node. Coordinates use the same Three.js scene
+ * space as FixedCameraView so a node can later be reused for captures/exports.
+ */
+export type RoomTourView = {
+  id: string;
+  floorId: FloorId;
+  roomId?: string;
+  outdoorId?: string;
+  name: string;
+  type: TourNodeType;
+  cameraPosition: { x: number; y: number; z: number };
+  target: { x: number; y: number; z: number };
+  yaw: number;
+  pitch: number;
+  fov?: number;
+  zoom?: number;
+  linkedNodeIds: string[];
+  description: string;
+  status: TourNodeStatus;
+  sourceCameraViewId?: string;
+  isFloorOverview?: boolean;
 };
 
 export type WardrobeCellKind = "hanging-long" | "hanging-short" | "folded" | "drawer" | "open" | "shoe" | "blank";

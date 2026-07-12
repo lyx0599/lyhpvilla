@@ -283,6 +283,36 @@ function getRotatedRectangleFootprint(center: MmPoint, widthMm: number, depthMm:
   return { center, corners };
 }
 
+function footprintPolygonsOverlap(left: Footprint, right: Footprint) {
+  const getAxes = (footprint: Footprint) => footprint.corners.map((point, index) => {
+    const nextPoint = footprint.corners[(index + 1) % footprint.corners.length];
+    const edgeX = nextPoint.x - point.x;
+    const edgeY = nextPoint.y - point.y;
+    const length = Math.max(1, Math.hypot(edgeX, edgeY));
+    return { x: -edgeY / length, y: edgeX / length };
+  });
+  const axes = [...getAxes(left), ...getAxes(right)];
+  return axes.every((axis) => {
+    const project = (footprint: Footprint) => footprint.corners.map((point) => point.x * axis.x + point.y * axis.y);
+    const leftProjection = project(left);
+    const rightProjection = project(right);
+    const leftMin = Math.min(...leftProjection);
+    const leftMax = Math.max(...leftProjection);
+    const rightMin = Math.min(...rightProjection);
+    const rightMax = Math.max(...rightProjection);
+    return Math.min(leftMax, rightMax) - Math.max(leftMin, rightMin) > 1;
+  });
+}
+
+function isSofaFurniture(item: Furniture) {
+  return item.type === "sofa" || item.moduleType === "sofa" || item.render3d?.assetType === "sofa" || /沙发|sofa/i.test(item.name);
+}
+
+function isCoffeeTableFurniture(item: Furniture) {
+  const assetType = item.render3d?.assetType;
+  return assetType === "coffeeTable" || assetType === "loungeCoffeeTable" || /茶几|coffee\s*table/i.test(item.name);
+}
+
 function getStairFootprint(stair: { start: MmPoint; end: MmPoint; width: number }): Footprint {
   const length = Math.max(1, getLineLength(stair.start, stair.end));
   const normal = {
@@ -1438,6 +1468,31 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
         errors.push({ type: "furniture", id: item.id, message: `家具占位穿过实体墙 ${blockingWall.id}，请移动或旋转。` });
       }
     }
+  });
+
+  const sofas = furniture.filter(isSofaFurniture);
+  furniture.filter(isCoffeeTableFurniture).forEach((coffeeTable) => {
+    const coffeeTableFootprint = getRotatedRectangleFootprint(
+      mmPointFromFurniturePosition(coffeeTable.position),
+      coffeeTable.dimensions.width * 10,
+      coffeeTable.dimensions.depth * 10,
+      coffeeTable.position.rotation || 0
+    );
+    sofas.filter((sofa) => sofa.roomId === coffeeTable.roomId).forEach((sofa) => {
+      const sofaFootprint = getRotatedRectangleFootprint(
+        mmPointFromFurniturePosition(sofa.position),
+        sofa.dimensions.width * 10,
+        sofa.dimensions.depth * 10,
+        sofa.position.rotation || 0
+      );
+      if (footprintPolygonsOverlap(coffeeTableFootprint, sofaFootprint)) {
+        errors.push({
+          type: "furniture",
+          id: coffeeTable.id,
+          message: `茶几 ${coffeeTable.name} 与沙发 ${sofa.name} 占位重叠，请把茶几向沙发前方移动并保留通行净距。`
+        });
+      }
+    });
   });
 
   return {

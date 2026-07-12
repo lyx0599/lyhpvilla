@@ -1,8 +1,8 @@
-import type { Floor, FloorId, HouseStructure } from "@/types/space";
+import type { DrawingItem, Floor, FloorId, HouseStructure, LightingLayer } from "@/types/space";
 import type { WorkspaceDataCategory, WorkspaceDataSourceReport, WorkspaceDocument } from "@/types/workspace";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 7;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-12-drawing-package-finishes-v1";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 9;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-12-lighting-design-v1";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -12,6 +12,7 @@ const trackedCategories: WorkspaceDataCategory[] = [
   "drawingPackage",
   "semanticObjects",
   "cameraViews",
+  "roomTourViews",
   "visualSettingsByFloor",
   "cleanPatchesByFloor"
 ];
@@ -104,6 +105,91 @@ function migrateFloorStructure(
   return { structure: migrated, migrated: changed };
 }
 
+function migrateStairLaneConvention(workspace: Partial<WorkspaceDocument>) {
+  const structures = workspace.houseStructuresByFloor;
+  if (!structures) return false;
+  let changed = false;
+  const labels: Partial<Record<FloorId, Record<string, string>>> = {
+    "1F": {
+      "ST-1F-001": "右侧上行至 2F 梯段",
+      "ST-1F-002": "左侧下行至 B1 梯段"
+    },
+    B1: {
+      "ST-B1-001": "右侧上行至 1F 梯段",
+      "ST-B1-002": "左侧下行至 B2 梯段"
+    }
+  };
+
+  Object.entries(labels).forEach(([floorId, floorLabels]) => {
+    const structure = structures[floorId as FloorId];
+    if (!structure) return;
+    structure.stairs.forEach((stair) => {
+      const nextName = floorLabels?.[stair.id];
+      if (!nextName || stair.name === nextName) return;
+      stair.name = nextName;
+      changed = true;
+    });
+  });
+
+  const b1 = structures.B1;
+  const upRun = b1?.stairs.find((stair) => stair.id === "ST-B1-001" && stair.direction === "up");
+  const downRun = b1?.stairs.find((stair) => stair.id === "ST-B1-002" && stair.direction === "down");
+  if (upRun && downRun && upRun.start.y > downRun.start.y) {
+    const upStart = cloneJson(upRun.start);
+    const upEnd = cloneJson(upRun.end);
+    upRun.start = cloneJson(downRun.start);
+    upRun.end = cloneJson(downRun.end);
+    downRun.start = upStart;
+    downRun.end = upEnd;
+    changed = true;
+  }
+  return changed;
+}
+
+function inferLightingLayer(item: DrawingItem): LightingLayer {
+  const text = `${item.type} ${item.label}`.toLowerCase();
+  if (/cabinet|wardrobe|strip|柜|灯带/.test(text)) return "cabinetStrip";
+  if (/mirror|镜/.test(text)) return "mirrorLight";
+  if (item.floorId === "YARD" || /outdoor|yard|path|fence|plant|庭院|路径|围栏|植物/.test(text)) return "outdoor";
+  if (/accent|spot|重点|壁炉|背景/.test(text)) return "accent";
+  if (/decorative|mood|night|bedside|氛围|夜灯|床头/.test(text)) return "decorative";
+  if (/task|desk|counter|shower|功能|台面|书桌|淋浴/.test(text)) return "task";
+  return "ambient";
+}
+
+function inferMountingType(layer: LightingLayer): NonNullable<DrawingItem["mountingType"]> {
+  if (layer === "cabinetStrip") return "cabinetIntegrated";
+  if (layer === "mirrorLight") return "mirrorIntegrated";
+  if (layer === "outdoor") return "wallMounted";
+  if (layer === "decorative") return "wallMounted";
+  return "recessed";
+}
+
+function migrateLightingDrawingItemsV1(workspace: Partial<WorkspaceDocument>) {
+  const items = workspace.drawingItems;
+  if (!items) return false;
+  let changed = false;
+  const switches = items.filter((item) => item.category === "switch");
+  items.forEach((item) => {
+    if (item.relatedRoomId === undefined) { item.relatedRoomId = item.roomId; changed = true; }
+    if (item.controlGroupId === undefined) { item.controlGroupId = item.lightGroupId ?? null; changed = true; }
+    if (item.smartControl === undefined) { item.smartControl = Boolean(item.needsSmartControl); changed = true; }
+    if (item.dimming === undefined) { item.dimming = false; changed = true; }
+    if (item.category !== "light") return;
+    if (item.lightType === undefined) { item.lightType = item.type || "lighting"; changed = true; }
+    if (item.lightingLayer === undefined) { item.lightingLayer = inferLightingLayer(item); changed = true; }
+    if (item.colorTemperature === undefined) { item.colorTemperature = item.lightColorTemperature ?? "3000K"; changed = true; }
+    if (item.beamAngle === undefined) { item.beamAngle = null; changed = true; }
+    if (item.mountingType === undefined) { item.mountingType = inferMountingType(item.lightingLayer ?? inferLightingLayer(item)); changed = true; }
+    if (item.hostCeilingAreaId === undefined) { item.hostCeilingAreaId = null; changed = true; }
+    if (item.relatedSwitchId === undefined) {
+      item.relatedSwitchId = switches.find((candidate) => candidate.controlledLightIds?.includes(item.id) || (item.controlGroupId && (candidate.controlGroupId ?? candidate.lightGroupId) === item.controlGroupId))?.id ?? null;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 /**
  * Upgrades persisted workspace data without replacing any field or collection
  * that already exists. Empty arrays are intentional user data and stay empty.
@@ -138,6 +224,7 @@ export function applyWorkspaceMigrations(
   });
   migrateMissingCategory("semanticObjects", canonical?.semanticObjects ?? []);
   migrateMissingCategory("cameraViews", canonical?.cameraViews ?? []);
+  migrateMissingCategory("roomTourViews", canonical?.roomTourViews ?? []);
   migrateMissingCategory("visualSettingsByFloor", canonical?.visualSettingsByFloor ?? {} as WorkspaceDocument["visualSettingsByFloor"]);
   migrateMissingCategory("cleanPatchesByFloor", canonical?.cleanPatchesByFloor ?? {} as WorkspaceDocument["cleanPatchesByFloor"]);
 
@@ -150,6 +237,8 @@ export function applyWorkspaceMigrations(
     structureMigrated = structureMigrated || result.migrated;
     return [floor.id, result.structure];
   })) as WorkspaceDocument["houseStructuresByFloor"];
+  if (canMigrate && migrateStairLaneConvention(workspace)) structureMigrated = true;
+  if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
   if (structureMigrated) sources.houseStructuresByFloor = "migration";
 
   workspace.floors = floors.map((floor): Floor => {

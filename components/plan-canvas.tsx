@@ -58,6 +58,7 @@ import {
   planCanvasModeLabels
 } from "@/lib/drawing-sheets";
 import { createDrawingItem, drawingItemCategories, drawingItemCategoryLabels, drawingItemStatuses, drawingItemStatusLabels, floorFinishMaterialLabels, getDrawingItemCategoriesForSheet, wallFinishMaterialOptions } from "@/lib/drawing-items";
+import { lightMountingTypeLabels, lightMountingTypes, lightingLayerLabels, lightingLayers } from "@/lib/lighting-design";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
 import {
   applyPlanDelta,
@@ -89,6 +90,7 @@ import type {
   PlanCanvasMode,
   PlannerMode,
   Room,
+  RoomTourView,
   ViewMode,
   Wall
 } from "@/types/space";
@@ -131,6 +133,7 @@ type Props = {
   showFurnitureLabels?: boolean;
   activeFurnitureId?: string;
   cameraViews?: FixedCameraView[];
+  roomTourViews?: RoomTourView[];
   cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   locateObjectRequest: { id: string; nonce: number } | null;
@@ -153,6 +156,7 @@ type Props = {
   onFurnitureChange: (furniture: Furniture[]) => void;
   onDrawingItemsChange: (drawingItems: DrawingItem[]) => void;
   onGenerateDrawingItems: (scope: "floor" | "all") => void;
+  onGenerateLightingDesign: (scope: "floor" | "all") => void;
   onShowFurnitureLabelsChange?: (visible: boolean) => void;
   onOpenWardrobeDesigner?: (furnitureId: string) => void;
   onOpenStairDesigner?: (stairId: string) => void;
@@ -597,6 +601,7 @@ export function PlanCanvas({
   showFurnitureLabels,
   activeFurnitureId = "",
   cameraViews = [],
+  roomTourViews = [],
   cameraViewFloorIds,
   cameraViewRequest = null,
   locateObjectRequest,
@@ -619,6 +624,7 @@ export function PlanCanvas({
   onFurnitureChange: requestFurnitureChange,
   onDrawingItemsChange: requestDrawingItemsChange,
   onGenerateDrawingItems,
+  onGenerateLightingDesign,
   onShowFurnitureLabelsChange,
   onOpenWardrobeDesigner,
   onOpenStairDesigner,
@@ -3016,7 +3022,7 @@ export function PlanCanvas({
       <td>${escapeHtml(item.id)}</td><td>${escapeHtml(drawingItemCategoryLabels[item.category])}</td><td>${escapeHtml(item.label)}</td>
       <td>${escapeHtml(item.roomId ?? "")}</td><td>${escapeHtml(item.type)}</td><td>${escapeHtml(String(item.quantity))}</td>
       <td>${escapeHtml(String(item.heightMm ?? ""))}</td><td>${escapeHtml(item.material ?? item.materialId ?? "")}</td>
-      <td>${escapeHtml([item.switchControl?.join("/"), item.controlledLightIds?.join("/"), item.lightGroupId, item.relatedCircuit ?? item.circuitId].filter(Boolean).join("；"))}</td>
+      <td>${escapeHtml([item.lightingLayer ? lightingLayerLabels[item.lightingLayer] : "", item.colorTemperature ?? item.lightColorTemperature, item.beamAngle ? `${item.beamAngle}°` : "", item.mountingType ? lightMountingTypeLabels[item.mountingType] : "", item.controlGroupId ?? item.lightGroupId, item.smartControl ? "智能" : "", item.dimming ? "调光" : "", item.relatedSwitchId, item.switchControl?.join("/"), item.controlledLightIds?.join("/"), item.relatedCircuit ?? item.circuitId].filter(Boolean).join("；"))}</td>
       <td>${escapeHtml(item.relatedFurnitureId ?? item.wallId ?? "")}</td><td>${escapeHtml(drawingItemStatusLabels[item.status])}</td><td>${escapeHtml(item.notes)}</td>
     </tr>`).join("");
     const furnitureRows = exportData.furniture.map((item) => `
@@ -3253,7 +3259,7 @@ export function PlanCanvas({
       ["recordType", "floorId", "roomId", "objectId", "name", "type", "dimensions", "material", "render3d", "mep", "construction", "cameraMode", "description"],
       ...exportData.drawingItems.map((item) => [
         "drawingItem", item.floorId, item.roomId ?? "", item.id, item.label, item.type, `x${item.quantity}${item.heightMm ? ` / H${item.heightMm}mm` : ""}`,
-        item.material ?? item.materialId ?? "", "", [drawingItemCategoryLabels[item.category], item.relatedCircuit ?? item.circuitId ?? "", item.lightColorTemperature ?? "", item.needsSmartControl ? "智能控制" : "", item.switchControl?.join("/"), item.controlledLightIds?.join("/"), item.lightGroupId ?? "", drawingItemStatusLabels[item.status]].filter(Boolean).join("；"),
+        item.material ?? item.materialId ?? "", "", [drawingItemCategoryLabels[item.category], item.lightType ?? "", item.lightingLayer ?? "", item.colorTemperature ?? item.lightColorTemperature ?? "", item.beamAngle ? `${item.beamAngle}°` : "", item.mountingType ?? "", item.controlGroupId ?? item.lightGroupId ?? "", item.smartControl ?? item.needsSmartControl ? "智能控制" : "", ["light", "switch"].includes(item.category) ? item.dimming ? "调光" : "不调光" : "", item.relatedSwitchId ?? "", item.relatedCircuit ?? item.circuitId ?? "", item.switchControl?.join("/"), item.controlledLightIds?.join("/"), drawingItemStatusLabels[item.status]].filter(Boolean).join("；"),
         [item.relatedFurnitureId ?? "", item.wallId ?? "", item.ceilingHeightMm ? `吊顶H${item.ceilingHeightMm}` : "", item.pattern ?? "", item.directionDeg !== null && item.directionDeg !== undefined ? `方向${item.directionDeg}°` : "", item.waterproofHeightMm ? `防水H${item.waterproofHeightMm}` : "", item.specialTreatment ?? ""].filter(Boolean).join("；"), "", item.notes
       ]),
       ...exportData.furniture.map((item) => [
@@ -3381,6 +3387,43 @@ export function PlanCanvas({
     onDrawingItemsChange(drawingItems.map((item) => item.id === itemId ? { ...item, ...changes, updatedAt } : item));
   }
 
+  function updateLightSwitchRelation(lightId: string, switchId: string | null) {
+    const updatedAt = new Date().toISOString();
+    const targetSwitch = switchId ? drawingItems.find((item) => item.id === switchId && item.category === "switch") : null;
+    const controlGroupId = targetSwitch?.controlGroupId ?? targetSwitch?.lightGroupId ?? null;
+    onDrawingItemsChange(drawingItems.map((item) => {
+      if (item.id === lightId) return { ...item, relatedSwitchId: switchId, controlGroupId, lightGroupId: controlGroupId, updatedAt };
+      if (item.category !== "switch") return item;
+      const withoutLight = (item.controlledLightIds ?? []).filter((id) => id !== lightId);
+      return item.id === switchId
+        ? { ...item, controlledLightIds: [...withoutLight, lightId], relatedLightIds: [...withoutLight, lightId], updatedAt }
+        : withoutLight.length !== (item.controlledLightIds ?? []).length ? { ...item, controlledLightIds: withoutLight, relatedLightIds: withoutLight, updatedAt } : item;
+    }));
+  }
+
+  function updateSwitchControlGroup(switchItem: DrawingItem, controlGroupId: string | null) {
+    const controlled = new Set(switchItem.controlledLightIds ?? []);
+    const updatedAt = new Date().toISOString();
+    onDrawingItemsChange(drawingItems.map((item) => item.id === switchItem.id || controlled.has(item.id)
+      ? { ...item, controlGroupId, lightGroupId: controlGroupId, updatedAt }
+      : item));
+  }
+
+  function toggleSwitchControlledLight(switchItem: DrawingItem, lightId: string, checked: boolean) {
+    const nextIds = checked
+      ? Array.from(new Set([...(switchItem.controlledLightIds ?? []), lightId]))
+      : (switchItem.controlledLightIds ?? []).filter((id) => id !== lightId);
+    const group = switchItem.controlGroupId ?? switchItem.lightGroupId ?? null;
+    const updatedAt = new Date().toISOString();
+    onDrawingItemsChange(drawingItems.map((item) => {
+      if (item.id === switchItem.id) return { ...item, controlledLightIds: nextIds, relatedLightIds: nextIds, updatedAt };
+      if (item.id !== lightId) return item;
+      return checked
+        ? { ...item, relatedSwitchId: switchItem.id, controlGroupId: group, lightGroupId: group, updatedAt }
+        : { ...item, relatedSwitchId: item.relatedSwitchId === switchItem.id ? null : item.relatedSwitchId, updatedAt };
+    }));
+  }
+
   function addDrawingItem() {
     const category = activeDrawingItemCategories[0];
     if (!category) return;
@@ -3395,7 +3438,8 @@ export function PlanCanvas({
     const item: DrawingItem = category === "ceiling" ? { ...baseItem, type: "flatCeiling", ceilingHeightMm: 2800, relatedLightIds: [], inspectionAccess: false, airVent: false, returnAir: false, maintenanceOpening: false }
       : category === "floorFinish" ? { ...baseItem, type: "roomFinish", material: null, pattern: null, directionDeg: 0, startPoint: null, seamWidthMm: null, threshold: null, transition: null }
       : category === "wallFinish" ? { ...baseItem, type: "wallFinish", wallId: null, material: null, heightRange: { minMm: 0, maxMm: 2800 }, area: null, waterproofHeightMm: null, specialTreatment: null }
-      : category === "switch" ? { ...baseItem, type: "switchControl", switchControl: [], relatedCircuit: null, controlledLightIds: [], lightGroupId: null }
+      : category === "switch" ? { ...baseItem, type: "switchControl", switchControl: [], relatedCircuit: null, controlledLightIds: [], lightGroupId: null, controlGroupId: null, smartControl: false, dimming: false }
+      : category === "light" ? { ...baseItem, type: "recessedDownlight", lightType: "recessedDownlight", lightingLayer: "ambient", colorTemperature: "3000K", lightColorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", relatedSwitchId: null, controlGroupId: null, lightGroupId: null, smartControl: false, needsSmartControl: false, dimming: false, relatedRoomId: baseItem.roomId, hostCeilingAreaId: null }
       : baseItem;
     onDrawingItemsChange([...drawingItems, item]);
     setSelectedDrawingItemId(id);
@@ -5886,7 +5930,8 @@ export function PlanCanvas({
                       ? { x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length, y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length }
                       : wallStart && wallEnd ? { x: (wallStart.x + wallEnd.x) / 2, y: (wallStart.y + wallEnd.y) / 2 } : item.positionMm;
                     const detailSummary = item.category === "switch"
-                      ? `控制 ${(item.controlledLightIds?.length ?? 0)} 灯${item.lightGroupId ? ` / ${item.lightGroupId}` : ""}`
+                      ? `控制 ${(item.controlledLightIds?.length ?? 0)} 灯${item.controlGroupId ?? item.lightGroupId ? ` / ${item.controlGroupId ?? item.lightGroupId}` : ""}`
+                      : item.category === "light" ? `${item.lightType ?? item.type} · ${item.colorTemperature ?? item.lightColorTemperature ?? "色温待定"} · ${item.controlGroupId ?? item.lightGroupId ?? "未分组"}`
                       : item.category === "ceiling" ? `${item.ceilingHeightMm ?? "待定"}mm · ${[item.inspectionAccess ? "检修" : "", item.airVent ? "送风" : "", item.returnAir ? "回风" : ""].filter(Boolean).join("/") || "普通区域"}`
                       : item.category === "floorFinish" ? `${floorFinishMaterialLabels[item.material ?? ""] ?? item.material ?? "材料待定"} · ${item.pattern ?? "排版待定"}`
                       : item.category === "wallFinish" ? `${item.material ?? "材料待定"}${item.waterproofHeightMm ? ` · 防水H${item.waterproofHeightMm}` : ""}`
@@ -5932,7 +5977,7 @@ export function PlanCanvas({
                           {detailSummary}
                         </text>
                         <text y={610} fill="#64748b" fontSize={92} fontWeight={600} paintOrder="stroke" stroke="#ffffff" strokeWidth={28} textAnchor="middle">
-                          {(item.notes || "无备注").slice(0, 26)}
+                          {(item.category === "light" ? `${item.smartControl ? "智能" : "常规"} · ${item.dimming ? "调光" : "不调光"} · ${item.relatedSwitchId ?? "未关联开关"}` : item.notes || "无备注").slice(0, 44)}
                         </text>
                       </g>
                     );
@@ -5999,25 +6044,41 @@ export function PlanCanvas({
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <button className="rounded-lg bg-emerald-50 px-2 py-2 font-semibold text-emerald-800 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("floor")} type="button">从家具生成 · 本层</button>
                   <button className="rounded-lg bg-emerald-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("all")} type="button">从家具生成 · 全屋</button>
+                  {(sheetMode === "lightingPlan" || sheetMode === "switchPlan") && <>
+                    <button className="rounded-lg bg-amber-50 px-2 py-2 font-semibold text-amber-900 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateLightingDesign("floor")} type="button">灯光专项 v1 · 本层</button>
+                    <button className="rounded-lg bg-amber-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateLightingDesign("all")} type="button">灯光专项 v1 · 全屋</button>
+                  </>}
                 </div>
                 {selectedDrawingItem && (
                   <div className="mt-3 border-t border-stone-200 pt-3">
                     <div className="grid grid-cols-2 gap-2">
                       <label>类别<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.category} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { category: event.target.value as DrawingItemCategory })}>{drawingItemCategories.map((category) => <option key={category} value={category}>{drawingItemCategoryLabels[category]}</option>)}</select></label>
-                      <label>类型<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.type} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { type: event.target.value })} /></label>
+                      <label>类型<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.type} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { type: event.target.value, lightType: selectedDrawingItem.category === "light" ? event.target.value : selectedDrawingItem.lightType })} /></label>
                       <label>高度 mm<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" type="number" value={selectedDrawingItem.heightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { heightMm: event.target.value ? Number(event.target.value) : null })} /></label>
                       <label>数量<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" min="1" type="number" value={selectedDrawingItem.quantity} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { quantity: Math.max(1, Number(event.target.value) || 1) })} /></label>
                       <label>状态<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.status} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { status: event.target.value as DrawingItem["status"] })}>{drawingItemStatuses.map((status) => <option key={status} value={status}>{drawingItemStatusLabels[status]}</option>)}</select></label>
                       <label>标签<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.label} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { label: event.target.value })} /></label>
                       <label>回路<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedCircuit ?? selectedDrawingItem.circuitId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { circuitId: event.target.value || null, relatedCircuit: event.target.value || null })} /></label>
-                      <label>色温<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.lightColorTemperature ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightColorTemperature: (event.target.value || null) as DrawingItem["lightColorTemperature"] })} /></label>
+                      <label>色温<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.colorTemperature ?? selectedDrawingItem.lightColorTemperature ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { colorTemperature: (event.target.value || null) as DrawingItem["colorTemperature"], lightColorTemperature: (event.target.value || null) as DrawingItem["lightColorTemperature"] })} /></label>
                     </div>
-                    <label className="mt-2 flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.needsSmartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { needsSmartControl: event.target.checked })} />需要智能控制</label>
+                    <label className="mt-2 flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.smartControl ?? selectedDrawingItem.needsSmartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { smartControl: event.target.checked, needsSmartControl: event.target.checked })} />需要智能控制</label>
+                    {selectedDrawingItem.category === "light" && <div className="mt-3 rounded-lg bg-amber-50 p-2">
+                      <p className="font-semibold text-amber-950">灯光专项 v1</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <label>灯光分层<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.lightingLayer ?? "ambient"} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightingLayer: event.target.value as DrawingItem["lightingLayer"] })}>{lightingLayers.map((layer) => <option key={layer} value={layer}>{lightingLayerLabels[layer]}</option>)}</select></label>
+                        <label>安装方式<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.mountingType ?? "recessed"} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { mountingType: event.target.value as DrawingItem["mountingType"] })}>{lightMountingTypes.map((type) => <option key={type} value={type}>{lightMountingTypeLabels[type]}</option>)}</select></label>
+                        <label>光束角 °<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" min="1" max="180" type="number" value={selectedDrawingItem.beamAngle ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { beamAngle: event.target.value ? Number(event.target.value) : null })} /></label>
+                        <label>控制组 ID<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.controlGroupId ?? selectedDrawingItem.lightGroupId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { controlGroupId: event.target.value || null, lightGroupId: event.target.value || null })} /></label>
+                      </div>
+                      <label className="mt-2 block">关联开关<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.relatedSwitchId ?? ""} onChange={(event) => updateLightSwitchRelation(selectedDrawingItem.id, event.target.value || null)}><option value="">未关联</option>{drawingItems.filter((item) => item.category === "switch").map((item) => <option key={item.id} value={item.id}>{item.label} · {item.controlGroupId ?? item.lightGroupId ?? "未分组"}</option>)}</select></label>
+                      <label className="mt-2 block">承载吊顶区域<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.hostCeilingAreaId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostCeilingAreaId: event.target.value || null })}><option value="">吊顶深化后绑定</option>{drawingItems.filter((item) => item.category === "ceiling").map((item) => <option key={item.id} value={item.id}>{item.label} · {item.id}</option>)}</select></label>
+                      <div className="mt-2 grid grid-cols-2 gap-2"><label className="flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.smartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { smartControl: event.target.checked, needsSmartControl: event.target.checked })} />智能控制</label><label className="flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.dimming)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { dimming: event.target.checked })} />可调光</label></div>
+                    </div>}
                     {selectedDrawingItem.category === "switch" && <div className="mt-3 rounded-lg bg-blue-50 p-2">
                       <label className="block">控制方式<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" placeholder="单控、双控、场景" value={(selectedDrawingItem.switchControl ?? []).join("、")} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { switchControl: event.target.value.split(/[、,，/]/).map((value) => value.trim()).filter(Boolean) })} /></label>
-                      <label className="mt-2 block">灯组 ID<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" value={selectedDrawingItem.lightGroupId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightGroupId: event.target.value || null })} /></label>
+                      <label className="mt-2 block">控制组 ID<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" value={selectedDrawingItem.controlGroupId ?? selectedDrawingItem.lightGroupId ?? ""} onChange={(event) => updateSwitchControlGroup(selectedDrawingItem, event.target.value || null)} /></label>
                       <p className="mt-2 font-semibold text-blue-900">控制灯点</p>
-                      <div className="mt-1 grid gap-1">{drawingItems.filter((item) => item.category === "light").map((light) => <label key={light.id} className="flex items-center gap-2"><input checked={(selectedDrawingItem.controlledLightIds ?? []).includes(light.id)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { controlledLightIds: event.target.checked ? [...(selectedDrawingItem.controlledLightIds ?? []), light.id] : (selectedDrawingItem.controlledLightIds ?? []).filter((id) => id !== light.id) })} />{light.label} · {light.id}</label>)}</div>
+                      <div className="mt-1 grid gap-1">{drawingItems.filter((item) => item.category === "light").map((light) => <label key={light.id} className="flex items-center gap-2"><input checked={(selectedDrawingItem.controlledLightIds ?? []).includes(light.id)} type="checkbox" onChange={(event) => toggleSwitchControlledLight(selectedDrawingItem, light.id, event.target.checked)} />{light.label} · {light.id}</label>)}</div>
                     </div>}
                     {selectedDrawingItem.category === "ceiling" && <div className="mt-3 rounded-lg bg-sky-50 p-2">
                       <div className="grid grid-cols-2 gap-2"><label>吊顶高度<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" type="number" value={selectedDrawingItem.ceilingHeightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { ceilingHeightMm: event.target.value ? Number(event.target.value) : null })} /></label><label>类型<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" value={selectedDrawingItem.type} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { type: event.target.value })} /></label></div>
@@ -6034,7 +6095,7 @@ export function PlanCanvas({
                       <div className="mt-2 grid grid-cols-2 gap-2"><label>起始高度<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.heightRange?.minMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { heightRange: { minMm: Number(event.target.value) || 0, maxMm: selectedDrawingItem.heightRange?.maxMm ?? 2800 } })} /></label><label>结束高度<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.heightRange?.maxMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { heightRange: { minMm: selectedDrawingItem.heightRange?.minMm ?? 0, maxMm: Number(event.target.value) || 2800 } })} /></label><label>面积 ㎡<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.area ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { area: event.target.value ? Number(event.target.value) : null })} /></label><label>防水高度<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.waterproofHeightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { waterproofHeightMm: event.target.value ? Number(event.target.value) : null })} /></label></div>
                       <label className="mt-2 block">特殊处理<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" value={selectedDrawingItem.specialTreatment ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { specialTreatment: event.target.value || null })} /></label>
                     </div>}
-                    <label className="mt-2 block">关联房间<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.roomId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { roomId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.rooms, ...houseStructure.outdoors].map((room) => <option key={room.id} value={room.id}>{room.name} · {room.id}</option>)}</select></label>
+                    <label className="mt-2 block">关联房间<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedRoomId ?? selectedDrawingItem.roomId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { roomId: event.target.value || null, relatedRoomId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.rooms, ...houseStructure.outdoors].map((room) => <option key={room.id} value={room.id}>{room.name} · {room.id}</option>)}</select></label>
                     <label className="mt-2 block">关联墙体<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.wallId ?? selectedDrawingItem.hostWallId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostWallId: event.target.value || null, wallId: selectedDrawingItem.category === "wallFinish" ? event.target.value || null : selectedDrawingItem.wallId })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions].map((wall) => <option key={wall.id} value={wall.id}>{wall.name} · {wall.id}</option>)}</select></label>
                     <label className="mt-2 block">承载对象<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.hostObjectId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostObjectId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions, ...houseStructure.columns].map((object) => <option key={object.id} value={object.id}>{object.name} · {object.id}</option>)}</select></label>
                     <label className="mt-2 block">关联家具<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedFurnitureId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { relatedFurnitureId: event.target.value || null })}><option value="">未关联</option>{furniture.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.id}</option>)}</select></label>
@@ -6539,6 +6600,7 @@ export function PlanCanvas({
           mobileQuality={mobileQuality}
           resetViewRequest={resetViewRequest}
           cameraViews={cameraViews}
+          roomTourViews={roomTourViews}
           cameraViewFloorIds={cameraViewFloorIds}
           cameraViewRequest={cameraViewRequest}
           selectedObjectId={selectedInteractionObjectId}

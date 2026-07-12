@@ -22,7 +22,8 @@ export const constructionPackageSheets: Array<{ sheetNo: string; title: string; 
 
 export const constructionPackageRecordFields = [
   "floorId", "roomId", "roomName", "objectId", "category", "type", "label", "quantity", "heightMm", "materialId",
-  "relatedFurnitureId", "relatedFurnitureName", "hostWallId", "circuitId", "status", "notes", "createdAt", "updatedAt"
+  "lightType", "lightingLayer", "colorTemperature", "beamAngle", "mountingType", "controlGroupId", "smartControl", "dimming",
+  "relatedSwitchId", "relatedRoomId", "hostCeilingAreaId", "relatedFurnitureId", "relatedFurnitureName", "hostWallId", "circuitId", "status", "notes", "createdAt", "updatedAt"
 ] as const;
 
 export const requiredConstructionCameraViewIds = [
@@ -34,7 +35,8 @@ type ExportRecord = Record<string, unknown> & Record<(typeof constructionPackage
 
 export type ConstructionPackageWarningCounts = {
   draft: number; todo: number; orphan: number; socketMissingHeight: number; switchMissingLights: number;
-  lightMissingColorTemperature: number; drainageMissingType: number; finishMissingMaterial: number; yardNeedsReview: number;
+  lightMissingColorTemperature: number; lightIncompleteSystemFields: number; controlGroupMismatch: number;
+  drainageMissingType: number; finishMissingMaterial: number; yardNeedsReview: number;
 };
 
 function esc(value: unknown) {
@@ -64,6 +66,12 @@ function drawingRecord(item: DrawingItem, table: string, rooms: Map<string, stri
     table, floorId: item.floorId, roomId: item.roomId ?? yardArea?.id ?? null,
     roomName: (item.roomId ? rooms.get(item.roomId) : yardArea?.name) ?? "未关联区域", objectId: item.id,
     category: item.category, type: item.type, label: item.label, quantity: item.quantity, heightMm: item.heightMm,
+    lightType: item.lightType ?? (item.category === "light" ? item.type : null), lightingLayer: item.lightingLayer ?? null,
+    colorTemperature: item.colorTemperature ?? item.lightColorTemperature ?? null, beamAngle: item.beamAngle ?? null,
+    mountingType: item.mountingType ?? null, controlGroupId: item.controlGroupId ?? item.lightGroupId ?? null,
+    smartControl: item.smartControl ?? item.needsSmartControl ?? false, dimming: item.dimming ?? false,
+    relatedSwitchId: item.relatedSwitchId ?? null, relatedRoomId: item.relatedRoomId ?? item.roomId ?? null,
+    hostCeilingAreaId: item.hostCeilingAreaId ?? null,
     materialId: item.materialId ?? item.material ?? null, relatedFurnitureId: item.relatedFurnitureId,
     relatedFurnitureName: relatedFurniture?.name ?? null, hostWallId: item.hostWallId ?? item.wallId ?? null,
     circuitId: item.circuitId ?? item.relatedCircuit ?? null, status: item.status, notes: item.notes,
@@ -90,6 +98,9 @@ function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<strin
     table: "cabinet", floorId: item.floorId, roomId: item.roomId, roomName: rooms.get(item.roomId) ?? "未关联区域",
     objectId: item.id, category: "cabinet", type: item.moduleType ?? item.type, label: item.name, quantity: 1,
     heightMm: item.dimensions.height * 10, materialId: item.material, relatedFurnitureId: item.id,
+    lightType: null, lightingLayer: null, colorTemperature: null, beamAngle: null, mountingType: null,
+    controlGroupId: null, smartControl: false, dimming: false, relatedSwitchId: null,
+    relatedRoomId: item.roomId, hostCeilingAreaId: null,
     relatedFurnitureName: item.name, hostWallId: construction.wallDependency ?? null, circuitId: mep.relatedCircuit ?? null,
     status: "draft", notes: construction.notes ?? item.constructionNote ?? item.note, createdAt: null, updatedAt: null,
     dimensions: item.dimensions, customMade: Boolean(construction.customMade), installType: construction.installType ?? null,
@@ -104,6 +115,9 @@ function outdoorSurfaceRecord(item: HouseOutdoorSurface): ExportRecord {
     table: "yardFinish", floorId: "YARD", roomId: area.id, roomName: area.name, objectId: item.id,
     category: item.category ?? item.surfaceType, type: item.surfaceType, label: item.label ?? item.name, quantity: 1,
     heightMm: null, materialId: item.material, relatedFurnitureId: null, relatedFurnitureName: null, hostWallId: null,
+    lightType: null, lightingLayer: null, colorTemperature: null, beamAngle: null, mountingType: null,
+    controlGroupId: null, smartControl: false, dimming: false, relatedSwitchId: null,
+    relatedRoomId: area.id, hostCeilingAreaId: null,
     circuitId: null, status: item.status ?? "draft", notes: item.notes ?? "", createdAt: null, updatedAt: null,
     polygon: item.polygon, pathPoints: item.pathPoints ?? null, pathWidthMm: item.pathWidthMm ?? null, area: item.area
   };
@@ -120,8 +134,14 @@ export function validateConstructionPackage(workspace: WorkspaceDocument) {
   const warningCounts: ConstructionPackageWarningCounts = {
     draft: draftItems.length, todo: todoItems.length, orphan: orphanIssues.length,
     socketMissingHeight: workspace.drawingItems.filter((item) => ["socket", "network"].includes(item.category) && !item.heightMm).length,
-    switchMissingLights: workspace.drawingItems.filter((item) => item.category === "switch" && !(item.controlledLightIds?.length || item.lightGroupId)).length,
-    lightMissingColorTemperature: workspace.drawingItems.filter((item) => item.category === "light" && !item.lightColorTemperature).length,
+    switchMissingLights: workspace.drawingItems.filter((item) => item.category === "switch" && !(item.controlledLightIds?.length || item.controlGroupId || item.lightGroupId)).length,
+    lightMissingColorTemperature: workspace.drawingItems.filter((item) => item.category === "light" && !(item.colorTemperature || item.lightColorTemperature)).length,
+    lightIncompleteSystemFields: workspace.drawingItems.filter((item) => item.category === "light" && !(item.lightType && item.lightingLayer && item.mountingType && (item.relatedRoomId || item.roomId) && (item.controlGroupId || item.lightGroupId))).length,
+    controlGroupMismatch: workspace.drawingItems.filter((item) => {
+      if (item.category !== "light" || !item.relatedSwitchId) return false;
+      const relatedSwitch = workspace.drawingItems.find((candidate) => candidate.id === item.relatedSwitchId && candidate.category === "switch");
+      return !relatedSwitch || (item.controlGroupId ?? item.lightGroupId) !== (relatedSwitch.controlGroupId ?? relatedSwitch.lightGroupId);
+    }).length,
     drainageMissingType: workspace.drawingItems.filter((item) => item.category === "drainage" && (!item.type || item.type === "drainage")).length,
     finishMissingMaterial: workspace.drawingItems.filter((item) => ["floorFinish", "wallFinish"].includes(item.category) && !(item.materialId || item.material)).length,
     yardNeedsReview: yardItems.filter((item) => item.status !== "confirmed").length + yardSurfaces.filter((item) => item.status !== "confirmed").length
@@ -140,9 +160,25 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
   const cabinets = workspace.furniture.filter(isCabinet).map((item) => cabinetRecord(item, workspace.drawingItems.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id), rooms));
   const yardSurfaces = workspace.houseStructuresByFloor.YARD?.outdoorSurfaces ?? [];
   const outdoorCategories: DrawingItemCategory[] = ["socket", "network", "light", "waterSupply", "drainage"];
+  const lightingRecords = byCategories(["light"], "lighting");
+  const luminaireGroups = new Map<string, ExportRecord[]>();
+  lightingRecords.forEach((record) => {
+    const key = [record.lightType, record.lightingLayer, record.colorTemperature, record.beamAngle, record.mountingType].join("|");
+    luminaireGroups.set(key, [...(luminaireGroups.get(key) ?? []), record]);
+  });
+  const luminaireSchedule = Array.from(luminaireGroups.values()).map((records, index): ExportRecord => ({
+    ...records[0], table: "luminaireSchedule", objectId: `FIXTURE-${String(index + 1).padStart(2, "0")}`,
+    label: `${records[0].lightType ?? records[0].type} · ${records[0].colorTemperature ?? "色温待定"}`,
+    quantity: records.reduce((sum, record) => sum + Number(record.quantity ?? 1), 0),
+    roomId: null, roomName: "多空间汇总", relatedSwitchId: null, controlGroupId: null,
+    notes: `点位：${records.map((record) => record.objectId).join("、")}`
+  }));
+  const smartControlNotes = workspace.drawingItems
+    .filter((item) => ["light", "switch"].includes(item.category) && Boolean(item.smartControl ?? item.needsSmartControl))
+    .map((item) => drawingRecord(item, "smartControlNotes", rooms, furniture));
   const tables = {
     socketAndNetwork: byCategories(["socket", "network"], "socketAndNetwork"), switchControl: byCategories(["switch"], "switchControl"),
-    lighting: byCategories(["light"], "lighting"), waterSupply: byCategories(["waterSupply"], "waterSupply"),
+    lighting: lightingRecords, luminaireSchedule, smartControlNotes, waterSupply: byCategories(["waterSupply"], "waterSupply"),
     drainage: byCategories(["drainage"], "drainage"), ceiling: byCategories(["ceiling"], "ceiling"),
     floorFinish: byCategories(["floorFinish"], "floorFinish"), wallFinish: byCategories(["wallFinish"], "wallFinish"),
     yardFinish: yardSurfaces.map(outdoorSurfaceRecord),
@@ -177,11 +213,28 @@ function floorSvg(structure: HouseStructure, furniture: Furniture[], items: Draw
   const rooms = [...structure.rooms.map((room) => ({ name: room.name, points: room.boundary })), ...structure.outdoors.map((room) => ({ name: room.name, points: room.polygon }))].map((room) => room.points.length > 2 ? `<polygon points="${room.points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="#94a3b8" stroke-width="24"/><text x="${room.points[0].x + 120}" y="${room.points[0].y + 220}" font-size="150" fill="#475569">${esc(room.name)}</text>` : "").join("");
   const surfaces = sheet.type === "sitePlan" || sheet.type === "floorFinishPlan" ? structure.outdoorSurfaces.map((surface) => `<polygon points="${surface.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" fill="${surface.surfaceType === "planting" ? "#dcfce7" : "#f1f5f9"}" stroke="#64748b" stroke-width="24"/><text x="${surface.polygon[0]?.x ?? 0}" y="${(surface.polygon[0]?.y ?? 0) + 150}" font-size="120">${esc(surface.label ?? surface.name)}</text>`).join("") : "";
   const furnitureSvg = ["furniturePlan", "sitePlan", "socketPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan"].includes(sheet.type ?? "") ? furniture.map((item) => { const x = cs.origin.x + item.position.x / 100 * cs.width; const y = cs.origin.y + item.position.y / 100 * cs.height; return `<rect x="${x - item.dimensions.width * 5}" y="${y - item.dimensions.depth * 5}" width="${item.dimensions.width * 10}" height="${item.dimensions.depth * 10}" fill="#e2e8f0" stroke="#64748b" stroke-width="20"/><text x="${x}" y="${y}" text-anchor="middle" font-size="110">${esc(item.code)}</text>`; }).join("") : "";
-  const itemSvg = filtered.map((item, index) => `${item.polygon?.length ? `<polygon points="${item.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" fill="#dbeafe" fill-opacity=".5" stroke="#2563eb" stroke-width="35"/>` : ""}<circle cx="${item.positionMm.x}" cy="${item.positionMm.y}" r="150" fill="#fff" stroke="#2563eb" stroke-width="38"/><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 20}" font-size="130" font-weight="700">${String(index + 1).padStart(2, "0")} ${esc(item.label)}</text><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 160}" font-size="105" fill="#475569">x${item.quantity}${item.heightMm ? ` · H${item.heightMm}` : ""}</text>`).join("");
-  return `<svg viewBox="${cs.origin.x} ${cs.origin.y} ${cs.width} ${cs.height}" role="img" aria-label="${esc(sheet.title)}"><rect x="${cs.origin.x}" y="${cs.origin.y}" width="${cs.width}" height="${cs.height}" fill="#fff"/>${surfaces}${rooms}${walls}${furnitureSvg}${itemSvg}</svg>`;
+  const controlLines = sheet.type === "switchPlan" ? filtered.flatMap((item) => (item.controlledLightIds ?? []).map((lightId) => {
+    const light = items.find((candidate) => candidate.id === lightId && candidate.category === "light");
+    return light ? `<line x1="${item.positionMm.x}" y1="${item.positionMm.y}" x2="${light.positionMm.x}" y2="${light.positionMm.y}" stroke="#2563eb" stroke-width="24" stroke-dasharray="90 60" opacity=".7"/>` : "";
+  })).join("") : "";
+  const itemSvg = filtered.map((item, index) => {
+    const number = item.id || String(index + 1).padStart(2, "0");
+    const main = item.category === "light" ? `${number} · ${item.lightType ?? item.type}` : `${number} · ${item.label}`;
+    const detail = item.category === "light"
+      ? `${item.colorTemperature ?? item.lightColorTemperature ?? "色温待定"} · ${item.controlGroupId ?? item.lightGroupId ?? "未分组"} · ${item.smartControl ? "智能" : "常规"}/${item.dimming ? "调光" : "不调光"} · ${item.relatedSwitchId ?? "未关联开关"}`
+      : item.category === "switch" ? `${item.controlGroupId ?? item.lightGroupId ?? "未分组"} · 控制 ${(item.controlledLightIds ?? []).join("、") || "待关联"}`
+      : `x${item.quantity}${item.heightMm ? ` · H${item.heightMm}` : ""}`;
+    return `${item.polygon?.length ? `<polygon points="${item.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" fill="#dbeafe" fill-opacity=".5" stroke="#2563eb" stroke-width="35"/>` : ""}<circle cx="${item.positionMm.x}" cy="${item.positionMm.y}" r="150" fill="#fff" stroke="#2563eb" stroke-width="38"/><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 20}" font-size="130" font-weight="700">${esc(main)}</text><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 160}" font-size="105" fill="#475569">${esc(detail)}</text>`;
+  }).join("");
+  return `<svg viewBox="${cs.origin.x} ${cs.origin.y} ${cs.width} ${cs.height}" role="img" aria-label="${esc(sheet.title)}"><rect x="${cs.origin.x}" y="${cs.origin.y}" width="${cs.width}" height="${cs.height}" fill="#fff"/>${surfaces}${rooms}${walls}${furnitureSvg}${controlLines}${itemSvg}</svg>`;
 }
 
 function recordsTable(title: string, records: ExportRecord[]) {
+  const isLightingTable = records.some((record) => ["lighting", "luminaireSchedule", "switchControl", "smartControlNotes"].includes(String(record.table)));
+  if (isLightingTable) {
+    const rows = records.map((record) => `<tr><td>${esc(record.floorId)}</td><td>${esc(record.roomName)}</td><td>${esc(record.objectId)}</td><td>${esc(record.lightType ?? record.type)}</td><td>${esc(record.lightingLayer)}</td><td>${esc(record.colorTemperature)}</td><td>${esc(record.beamAngle)}</td><td>${esc(record.mountingType)}</td><td>${esc(record.heightMm)}</td><td>${esc(record.controlGroupId)}</td><td>${esc(record.smartControl ? "是" : "否")}</td><td>${esc(record.dimming ? "是" : "否")}</td><td>${esc(record.relatedSwitchId)}</td><td>${esc(record.status)}</td><td>${esc(record.notes)}</td></tr>`).join("");
+    return `<section><h2>${esc(title)}</h2><table><thead><tr><th>楼层</th><th>区域</th><th>编号</th><th>灯具/控制类型</th><th>分层</th><th>色温</th><th>光束角</th><th>安装</th><th>高度</th><th>控制组</th><th>智能</th><th>调光</th><th>关联开关</th><th>状态</th><th>备注</th></tr></thead><tbody>${rows || "<tr><td colspan='15'>暂无记录</td></tr>"}</tbody></table></section>`;
+  }
   const rows = records.map((record) => `<tr><td>${esc(record.floorId)}</td><td>${esc(record.roomName)}</td><td>${esc(record.label)}</td><td>${esc(record.type)}</td><td>${esc(record.quantity)}</td><td>${esc(record.heightMm)}</td><td>${esc(record.materialId)}</td><td>${esc(record.relatedFurnitureName)}</td><td>${esc(record.status)}</td><td>${esc(record.notes)}</td></tr>`).join("");
   return `<section><h2>${esc(title)}</h2><table><thead><tr><th>楼层</th><th>区域</th><th>名称</th><th>类型</th><th>数量</th><th>高度</th><th>材料</th><th>关联家具</th><th>状态</th><th>备注</th></tr></thead><tbody>${rows || "<tr><td colspan='10'>暂无记录</td></tr>"}</tbody></table></section>`;
 }
@@ -197,10 +250,11 @@ export function constructionPackageToHtml(workspace: WorkspaceDocument) {
     const drawings = constructionPackageSheets.filter((sheet) => sheet.type).map((sheet) => `<article><header><div><strong>${sheet.sheetNo} ${esc(sheet.title)}</strong><small>${esc(floor.label)} · ${esc(floor.subtitle)} · ${sheet.scale}</small></div><span>${sheetStatus(items, sheet.categories)}</span></header>${floorSvg(structure, furniture, items, sheet)}<footer>版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</footer></article>`).join("");
     return `<section class="floor"><h2>${esc(floor.label)} · ${esc(floor.subtitle)}</h2>${drawings}</section>`;
   }).join("");
-  const warningRows = Object.entries({ "草稿项": warning.draft, "待确认项": warning.todo, "孤立引用": warning.orphan, "插座缺少高度": warning.socketMissingHeight, "开关缺少关联灯具": warning.switchMissingLights, "灯具缺少色温": warning.lightMissingColorTemperature, "排水点缺少类型": warning.drainageMissingType, "铺装/墙面缺少材质": warning.finishMissingMaterial, "庭院待复核": warning.yardNeedsReview }).map(([label, count]) => `<tr><td>${label}</td><td>${count}</td><td>${count ? "导出后继续复核" : "通过"}</td></tr>`).join("");
+  const warningRows = Object.entries({ "草稿项": warning.draft, "待确认项": warning.todo, "孤立引用": warning.orphan, "插座缺少高度": warning.socketMissingHeight, "开关缺少关联灯具": warning.switchMissingLights, "灯具缺少色温": warning.lightMissingColorTemperature, "灯具系统字段不完整": warning.lightIncompleteSystemFields, "灯具/开关控制组不一致": warning.controlGroupMismatch, "排水点缺少类型": warning.drainageMissingType, "铺装/墙面缺少材质": warning.finishMissingMaterial, "庭院待复核": warning.yardNeedsReview }).map(([label, count]) => `<tr><td>${label}</td><td>${count}</td><td>${count ? "导出后继续复核" : "通过"}</td></tr>`).join("");
   const cameraRows = data.cameraViews.map((view) => `<tr><td>${esc(view.floor)}</td><td>${esc(view.name)}</td><td>${esc(view.description ?? "")}</td><td><button type="button" data-camera-view="${esc(view.id)}">在应用中打开固定视角并手动截图</button></td></tr>`).join("");
   const tableSections = [
     ["插座/弱电点位表", data.tables.socketAndNetwork], ["开关控制表", data.tables.switchControl], ["灯光点位表", data.tables.lighting],
+    ["灯具清单", data.tables.luminaireSchedule], ["智能控制备注", data.tables.smartControlNotes],
     ["给水点位表", data.tables.waterSupply], ["排水点位表", data.tables.drainage], ["吊顶区域表", data.tables.ceiling],
     ["地面铺装表", data.tables.floorFinish], ["墙面材料表", data.tables.wallFinish], ["庭院铺装/绿化表", data.tables.yardFinish],
     ["户外水电点位表", data.tables.outdoorMep], ["柜体深化表", data.tables.cabinet], ["材料/采购清单", data.tables.procurementAndMaterials],
