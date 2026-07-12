@@ -20,7 +20,8 @@ export type WorkspaceReferenceReport = {
 type JsonRecord = Record<string, unknown>;
 
 const LEGACY_ROOM_ID_MIGRATIONS: Record<string, string> = {
-  "room-yard": "OD-YARD-001"
+  "room-yard": "OD-YARD-NORTH-001",
+  "OD-YARD-001": "OD-YARD-NORTH-001"
 };
 
 const SEMANTIC_ROOM_BINDINGS: Record<string, string> = {
@@ -164,14 +165,15 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
     collectNoteReferences(furniture, `furniture[${index}]`, id, knownIds, issues);
   });
 
-  const drawingItemIds = new Set<string>();
+  const drawingItemRecords = asArray(workspace.drawingItems).map(asRecord).filter((item): item is JsonRecord => Boolean(item));
+  const drawingItemIds = new Set(drawingItemRecords.map((item) => stringValue(item.id)).filter((id): id is string => Boolean(id)));
+  const lightDrawingItemIds = new Set(drawingItemRecords.filter((item) => item.category === "light").map((item) => stringValue(item.id)).filter((id): id is string => Boolean(id)));
   asArray(workspace.drawingItems).forEach((item, index) => {
     const drawingItem = asRecord(item);
     if (!drawingItem) return;
     const id = stringValue(drawingItem.id) ?? `drawingItems[${index}]`;
     const floorId = stringValue(drawingItem.floorId) ?? "";
-    drawingItemIds.add(id);
-    const checkReference = (field: "roomId" | "hostWallId" | "hostObjectId" | "relatedFurnitureId", valid: boolean, value?: string) => {
+    const checkReference = (field: "roomId" | "hostWallId" | "wallId" | "hostObjectId" | "relatedFurnitureId", valid: boolean, value?: string) => {
       if (value && !valid) pushIssue(issues, {
         severity: "error", code: `ORPHAN_DRAWING_ITEM_${field.toUpperCase()}`, objectId: id,
         path: `drawingItems[${index}].${field}`, value,
@@ -184,15 +186,24 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
     });
     const roomId = stringValue(drawingItem.roomId);
     const hostWallId = stringValue(drawingItem.hostWallId);
+    const wallId = stringValue(drawingItem.wallId);
     const hostObjectId = stringValue(drawingItem.hostObjectId);
     const relatedFurnitureId = stringValue(drawingItem.relatedFurnitureId);
     checkReference("roomId", Boolean(roomOutdoorByFloor.get(floorId)?.has(roomId ?? "")), roomId);
     checkReference("hostWallId", Boolean(hostsByFloor.get(floorId)?.has(hostWallId ?? "")), hostWallId);
+    checkReference("wallId", Boolean(hostsByFloor.get(floorId)?.has(wallId ?? "")), wallId);
     checkReference("hostObjectId", knownIds.has(hostObjectId ?? ""), hostObjectId);
     checkReference("relatedFurnitureId", asArray(workspace.furniture).some((furniture) => {
       const record = asRecord(furniture);
       return Boolean(record && record.id === relatedFurnitureId && record.floorId === floorId);
     }), relatedFurnitureId);
+    [...asArray(drawingItem.controlledLightIds), ...asArray(drawingItem.relatedLightIds)].forEach((lightId, lightIndex) => {
+      if (typeof lightId === "string" && !lightDrawingItemIds.has(lightId)) pushIssue(issues, {
+        severity: "error", code: "ORPHAN_DRAWING_ITEM_LIGHT", objectId: id,
+        path: `drawingItems[${index}].relatedLightIds[${lightIndex}]`, value: lightId,
+        message: `图纸对象 ${id} 引用了不存在的灯光点 ${lightId}。`, suggestion: "重新选择同一图纸包中的 light drawingItem，或移除失效引用。"
+      });
+    });
     collectNoteReferences(drawingItem, `drawingItems[${index}]`, id, knownIds, issues);
   });
 
@@ -344,7 +355,7 @@ export function renameWorkspaceObjectId<T>(value: T, oldId: string, newId: strin
   const workspace = cloneWorkspace(value);
   const updatedPaths: string[] = [];
   const referenceKeys = new Set(["roomId", "structureRoomId", "hostId", "wallId", "stairId", "furnitureId", "hostObjectId", "hostWallId", "relatedFurnitureId"]);
-  const referenceArrayKeys = new Set(["sourceWallIds", "structureRoomIds", "roomIds", "relatedWallIds", "relatedObjectIds", "controlledObjectIds", "drawingItemIds"]);
+  const referenceArrayKeys = new Set(["sourceWallIds", "structureRoomIds", "roomIds", "relatedWallIds", "relatedObjectIds", "controlledObjectIds", "drawingItemIds", "controlledLightIds", "relatedLightIds"]);
 
   const visit = (current: unknown, path: string) => {
     if (Array.isArray(current)) {

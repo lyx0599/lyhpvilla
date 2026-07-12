@@ -28,6 +28,9 @@ export type DrawingItemCategory =
 
 export type DrawingItemSource = "manual" | "generated-from-furniture" | "generated-from-room";
 export type DrawingItemStatus = "draft" | "confirmed" | "todo" | "deprecated";
+export type FloorFinishMaterial = "woodFloor" | "tile" | "stone" | "microcement" | "courtyardStone" | "grass" | "hardscape";
+export type OutdoorSurfaceSource = DrawingItemSource | "default-workspace" | "yard-editor" | "imported";
+export type OutdoorSurfaceStatus = DrawingItemStatus | "needs-site-check" | "design-intent";
 
 export type DrawingItem = {
   id: string;
@@ -51,6 +54,29 @@ export type DrawingItem = {
   generatedFingerprint?: string;
   lightColorTemperature?: MepMeta["lightColorTemperature"] | null;
   needsSmartControl?: boolean;
+  switchControl?: string[];
+  relatedCircuit?: string | null;
+  controlledLightIds?: string[];
+  lightGroupId?: string | null;
+  polygon?: MmPoint[];
+  ceilingHeightMm?: number | null;
+  relatedLightIds?: string[];
+  inspectionAccess?: boolean;
+  airVent?: boolean;
+  returnAir?: boolean;
+  maintenanceOpening?: boolean;
+  material?: FloorFinishMaterial | string | null;
+  pattern?: string | null;
+  directionDeg?: number | null;
+  startPoint?: MmPoint | null;
+  seamWidthMm?: number | null;
+  threshold?: string | null;
+  transition?: string | null;
+  wallId?: string | null;
+  heightRange?: { minMm: number; maxMm: number } | null;
+  area?: number | null;
+  waterproofHeightMm?: number | null;
+  specialTreatment?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -311,6 +337,8 @@ export type FixedCameraView = {
   zoom?: number;
   mode?: "orthographic" | "perspective";
   description?: string;
+  scope?: "floor" | "courtyard" | "export";
+  targetArea?: "all" | "southYard" | "northYard" | "entryYard" | "southLiving" | string;
 };
 
 export type WardrobeCellKind = "hanging-long" | "hanging-short" | "folded" | "drawer" | "open" | "shoe" | "blank";
@@ -549,11 +577,18 @@ export type HouseOutdoorSurface = SyncObjectState & {
   id: string;
   floorId: FloorId;
   name: string;
+  label?: string;
+  category?: "outdoorSurface" | "path" | "planting" | "hardscape";
   geometryType: "polygon";
   surfaceType: "hardscape" | "path" | "planting";
   polygon: MmPoint[];
+  pathPoints?: MmPoint[];
+  pathWidthMm?: number | null;
   area: number;
   material: "stone" | "slate" | "pebble" | "wood" | "concrete" | "tile" | "gravel" | "grass" | "shrub" | "soil";
+  notes?: string;
+  status?: OutdoorSurfaceStatus;
+  source?: OutdoorSurfaceSource;
   editable: true;
   removable: true;
 };

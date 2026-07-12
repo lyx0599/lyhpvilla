@@ -57,7 +57,7 @@ import {
   planCanvasModeFootnotes,
   planCanvasModeLabels
 } from "@/lib/drawing-sheets";
-import { createDrawingItem, drawingItemCategories, drawingItemCategoryLabels, drawingItemStatuses, drawingItemStatusLabels, getDrawingItemCategoriesForSheet } from "@/lib/drawing-items";
+import { createDrawingItem, drawingItemCategories, drawingItemCategoryLabels, drawingItemStatuses, drawingItemStatusLabels, floorFinishMaterialLabels, getDrawingItemCategoriesForSheet, wallFinishMaterialOptions } from "@/lib/drawing-items";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
 import {
   applyPlanDelta,
@@ -94,7 +94,9 @@ import type {
 } from "@/types/space";
 import { getSemanticObjectPosition, semanticCategoryLabels, semanticIdPrefixes } from "@/lib/semantic-map";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
+import { constructionPackageToCsv, constructionPackageToHtml, constructionPackageToJson, validateConstructionPackage } from "@/lib/construction-package-export";
 import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
+import type { WorkspaceDocument } from "@/types/workspace";
 
 type Props = {
   floor: Floor;
@@ -105,6 +107,7 @@ type Props = {
   legacyWalls?: Wall[];
   furniture: Furniture[];
   drawingItems: DrawingItem[];
+  constructionExportWorkspace: WorkspaceDocument;
   semanticObjects: SemanticObject[];
   selectedFurnitureId: string;
   selectedSemanticObjectId: string;
@@ -128,6 +131,7 @@ type Props = {
   showFurnitureLabels?: boolean;
   activeFurnitureId?: string;
   cameraViews?: FixedCameraView[];
+  cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   locateObjectRequest: { id: string; nonce: number } | null;
   canUndo: boolean;
@@ -224,7 +228,7 @@ const outdoorSurfaceMaterialOptions: Array<{ material: OutdoorSurfaceMaterial; l
   { material: "grass", label: "草坪", tool: "planting", swatch: "#86c37a" },
   { material: "shrub", label: "花境", tool: "planting", swatch: "#5fb069" }
 ];
-const protectedBaseYardOutdoorIds = new Set(["OD-1F-NORTH-001", "OD-1F-SOUTH-001"]);
+const protectedBaseYardOutdoorIds = new Set(["OD-1F-NORTH-001", "OD-1F-SOUTH-001", "OD-YARD-NORTH-001", "OD-YARD-SOUTH-001"]);
 const MASTER_BATH_ROOM_ID = "ROOM-2F-003";
 const masterBathFurnitureIds = new Set([
   "furn-2f-master-shower-001",
@@ -364,7 +368,7 @@ const defaultConstructionSheets: ConstructionSheet[] = [
   { id: "site-plan", drawingType: "sitePlan", viewType: "sitePlan", sheetNo: "A-01", title: "总平面图", audience: "施工队 / 家人", scale: "1:100", status: "待复核", note: "表达北院入户、南院生活庭院、建筑主体与室外硬地关系。" },
   { id: "structure-plan", drawingType: "structurePlan", viewType: "structurePlan", sheetNo: "A-02", title: "结构图", audience: "施工队", scale: "1:50", status: "待复核", note: "只看墙、门窗、楼梯、院子边界，所有尺寸现场复尺。" },
   { id: "demolition-build-plan", drawingType: "demolitionAndBuildPlan", viewType: "demolitionAndBuildPlan", sheetNo: "A-03", title: "拆改施工图", audience: "施工队", scale: "1:50", status: "施工沟通", note: "标注净尺寸、洞口、隔断、楼梯和关键通道尺寸。" },
-  { id: "furniture-plan", drawingType: "furniturePlan", viewType: "furniturePlan", sheetNo: "F-01", title: "家具定位图", audience: "施工队 / 家人", scale: "1:50", status: "方案中", note: "用于确认沙发、餐桌、中岛、柜体、床和收纳的真实占位。" },
+  { id: "furniture-plan", drawingType: "furniturePlan", viewType: "furniturePlan", sheetNo: "F-01", title: "家具定位图", audience: "施工队 / 家人", scale: "1:50", status: "方案中", note: "用于确认沙发、餐桌、中岛、柜体、床和收纳的真实落位。" },
   { id: "socket-plan", drawingType: "socketPlan", viewType: "socketPlan", sheetNo: "E-01", title: "插座点位图", audience: "水电工", scale: "1:50", status: "示意", note: "点位编号、离地高度、专用回路和防水要求后续逐项校正。" },
   { id: "switch-plan", drawingType: "switchPlan", viewType: "switchPlan", sheetNo: "E-02", title: "开关控制图", audience: "水电工", scale: "1:50", status: "示意", note: "表达入户、楼梯、客餐厅、庭院、卧室的双控与灯组控制。" },
   { id: "lighting-plan", drawingType: "lightingPlan", viewType: "lightingPlan", sheetNo: "L-01", title: "灯光点位图", audience: "电工 / 吊顶", scale: "1:50", status: "示意", note: "筒灯、射灯、灯带、吊灯、庭院灯按生活场景分组。" },
@@ -398,7 +402,7 @@ const syncPaintTools: Array<{ id: SyncPaintRuleId; label: string; color: string 
 ];
 
 function getPlanBounds(floorId: Floor["id"]): PlanBounds {
-  if (floorId !== "1F") return defaultPlanBounds;
+  if (floorId !== "1F" && floorId !== "YARD") return defaultPlanBounds;
   return {
     x: 0,
     y: SITE_PLAN_MIN_Y_MM,
@@ -569,6 +573,7 @@ export function PlanCanvas({
   legacyWalls = [],
   furniture,
   drawingItems,
+  constructionExportWorkspace,
   semanticObjects = [],
   selectedFurnitureId,
   selectedSemanticObjectId = "",
@@ -592,6 +597,7 @@ export function PlanCanvas({
   showFurnitureLabels,
   activeFurnitureId = "",
   cameraViews = [],
+  cameraViewFloorIds,
   cameraViewRequest = null,
   locateObjectRequest,
   canUndo,
@@ -1067,8 +1073,9 @@ export function PlanCanvas({
   function getFurniturePosition(event: PointerEvent<Element>) {
     const point = getMmPosition(event);
     if (!point) return null;
-    const minY = floor.id === "1F" ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
-    const maxY = floor.id === "1F" ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
+    const usesSiteBounds = floor.id === "1F" || floor.id === "YARD";
+    const minY = usesSiteBounds ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
+    const maxY = usesSiteBounds ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
     return {
       x: Math.min(100, Math.max(0, (point.x / STRUCTURE_WIDTH_MM) * 100)),
       y: Math.min(maxY, Math.max(minY, (point.y / STRUCTURE_HEIGHT_MM) * 100))
@@ -1201,6 +1208,10 @@ export function PlanCanvas({
   }
 
   function objectIsLocked(objectId: string) {
+    const structureObject = getStructureObjectById(objectId);
+    if (structureObject) return resolveLock(structureObject, interactionState).locked2d;
+    const furnitureObject = furniture.find((item) => item.id === objectId);
+    if (furnitureObject) return resolveLock(furnitureObject, interactionState).locked2d;
     return isLocked(interactionState, objectId);
   }
 
@@ -1226,22 +1237,26 @@ export function PlanCanvas({
     return `${prefix}-${floor.id}-${String(maxSuffix + 1).padStart(3, "0")}`;
   }
 
-  function getSelectedStructureObject(): HouseStructureObject | null {
+  function getStructureObjectById(objectId: string): HouseStructureObject | null {
     return (
-      houseStructure.walls.find((object) => object.id === selectedStructureId) ??
-      houseStructure.partitions.find((object) => object.id === selectedStructureId) ??
-      houseStructure.stairs.find((object) => object.id === selectedStructureId) ??
-      (houseStructure.columns ?? []).find((object) => object.id === selectedStructureId) ??
-      houseStructure.fences.find((object) => object.id === selectedStructureId) ??
-      houseStructure.outdoorSurfaces.find((object) => object.id === selectedStructureId) ??
-      houseStructure.rooms.find((object) => object.id === selectedStructureId) ??
-      houseStructure.doors.find((object) => object.id === selectedStructureId) ??
-      houseStructure.windows.find((object) => object.id === selectedStructureId) ??
-      houseStructure.bayWindows.find((object) => object.id === selectedStructureId) ??
-      houseStructure.skylights.find((object) => object.id === selectedStructureId) ??
-      houseStructure.outdoors.find((object) => object.id === selectedStructureId) ??
+      houseStructure.walls.find((object) => object.id === objectId) ??
+      houseStructure.partitions.find((object) => object.id === objectId) ??
+      houseStructure.stairs.find((object) => object.id === objectId) ??
+      (houseStructure.columns ?? []).find((object) => object.id === objectId) ??
+      houseStructure.fences.find((object) => object.id === objectId) ??
+      houseStructure.outdoorSurfaces.find((object) => object.id === objectId) ??
+      houseStructure.rooms.find((object) => object.id === objectId) ??
+      houseStructure.doors.find((object) => object.id === objectId) ??
+      houseStructure.windows.find((object) => object.id === objectId) ??
+      houseStructure.bayWindows.find((object) => object.id === objectId) ??
+      houseStructure.skylights.find((object) => object.id === objectId) ??
+      houseStructure.outdoors.find((object) => object.id === objectId) ??
       null
     );
+  }
+
+  function getSelectedStructureObject(): HouseStructureObject | null {
+    return getStructureObjectById(selectedStructureId);
   }
 
   function getStructureObjectKind(objectId: string): StructureInteractionKind | null {
@@ -1274,10 +1289,12 @@ export function PlanCanvas({
   }
 
   function canSelectFurnitureLayer() {
+    if (yardImmersiveMode) return true;
     return sheetMode === "sitePlan" || sheetMode === "furniturePlan" || sheetMode === "presentationView" || sheetMode === "annotationPlan" || ["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan"].includes(sheetMode);
   }
 
   function canSelectStructureLayer(kind: StructureInteractionKind) {
+    if (yardImmersiveMode) return kind === "outdoor" || kind === "outdoorSurface" || kind === "fence";
     if (mobilePresentationMode) return true;
     if (sheetMode === "sitePlan") return true;
     if (sheetMode === "structureSyncCheck") return kind === "wall";
@@ -1286,6 +1303,7 @@ export function PlanCanvas({
   }
 
   function canMutateStructureLayer(kind: StructureInteractionKind) {
+    if (yardImmersiveMode) return kind === "outdoor" || kind === "outdoorSurface" || kind === "fence";
     if (kind === "room" || sheetMode === "structureSyncCheck") return false;
     if (kind === "wall") return wallEditableSheetTypes.has(sheetMode as DrawingSheetType);
     return sheetMode === "structurePlan" || sheetMode === "demolitionAndBuildPlan";
@@ -1643,9 +1661,22 @@ export function PlanCanvas({
       }
       const material = getOutdoorMaterialForTool("hardscape");
       const polygon = createRectPolygon(outdoorRectDraft.start, point);
-      const surface = createOutdoorSurface(getNextStructureId("HS", houseStructure.outdoorSurfaces.length), floor.id, "hardscape", polygon);
       const yardPrefix = yardImmersiveMode ? `${yardFocus === "north" ? "北院" : "南院"} · ` : "";
-      onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, { ...surface, material, name: `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}矩形平台` }] });
+      const label = `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}矩形平台`;
+      const surface = createOutdoorSurface(
+        getNextStructureId("HS", houseStructure.outdoorSurfaces.length),
+        floor.id,
+        "hardscape",
+        polygon,
+        {
+          label,
+          notes: yardImmersiveMode ? "庭院绘制模式创建，可用于地面铺装图、材料清单和 3D 展示。" : "",
+          status: "draft",
+          source: yardImmersiveMode ? "yard-editor" : "manual",
+          category: "hardscape"
+        }
+      );
+      onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, { ...surface, material, name: label }] });
       setSelectedStructureId(surface.id);
       selectObject(surface.id);
       onActiveObjectChange(surface.id);
@@ -1845,10 +1876,20 @@ export function PlanCanvas({
       getNextStructureId(prefixByTool[outdoorSurfaceDraft.tool], houseStructure.outdoorSurfaces.length),
       floor.id,
       outdoorSurfaceDraft.tool,
-      polygon
+      polygon,
+      {
+        label: outdoorSurfaceDraft.tool === "path" ? `${yardImmersiveMode ? `${yardFocus === "north" ? "北院" : "南院"} · ` : ""}${outdoorSurfaceMaterialLabels[material]}小路 · ${outdoorPathWidth}mm` : `${yardImmersiveMode ? `${yardFocus === "north" ? "北院" : "南院"} · ` : ""}${outdoorSurfaceMaterialLabels[material]}铺装`,
+        notes: yardImmersiveMode ? "庭院绘制模式创建，可复用于 2D、3D、铺装/绿化图和施工包。" : "",
+        status: "draft",
+        source: yardImmersiveMode ? "yard-editor" : "manual",
+        category: outdoorSurfaceDraft.tool === "hardscape" ? "hardscape" : outdoorSurfaceDraft.tool,
+        pathPoints: outdoorSurfaceDraft.tool === "path" ? outdoorSurfaceDraft.points : undefined,
+        pathWidthMm: outdoorSurfaceDraft.tool === "path" ? outdoorPathWidth : null
+      }
     );
     const yardPrefix = yardImmersiveMode ? `${yardFocus === "north" ? "北院" : "南院"} · ` : "";
-    onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, { ...surface, material, name: outdoorSurfaceDraft.tool === "path" ? `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}小路 · ${outdoorPathWidth}mm` : `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}铺装` }] });
+    const surfaceName = outdoorSurfaceDraft.tool === "path" ? `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}小路 · ${outdoorPathWidth}mm` : `${yardPrefix}${outdoorSurfaceMaterialLabels[material]}铺装`;
+    onHouseStructureChange({ ...houseStructure, outdoorSurfaces: [...houseStructure.outdoorSurfaces, { ...surface, material, name: surfaceName, label: surfaceName }] });
     setSelectedStructureId(surface.id);
     selectObject(surface.id);
     onActiveObjectChange(surface.id);
@@ -2889,6 +2930,7 @@ export function PlanCanvas({
     const renderMaterials = resolveRender3DMaterials(item, renderAsset.assetType);
     const mep = item.mepMeta ?? {};
     const construction = item.constructionMeta ?? {};
+    const relatedDrawingItems = drawingItems.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id);
     return {
       floorId: item.floorId,
       roomId: item.roomId,
@@ -2931,7 +2973,11 @@ export function PlanCanvas({
       inspectionAccessRequired: Boolean(construction.inspectionAccessRequired),
       purchaseCategory: construction.purchaseCategory ?? "",
       supplierType: construction.supplierType ?? "",
-      constructionNotes: getConstructionNote(item)
+      constructionNotes: getConstructionNote(item),
+      relatedDrawingItems: relatedDrawingItems.map((drawingItem) => ({
+        id: drawingItem.id, category: drawingItem.category, type: drawingItem.type, label: drawingItem.label,
+        quantity: drawingItem.quantity, heightMm: drawingItem.heightMm, status: drawingItem.status, notes: drawingItem.notes
+      }))
     };
   }
 
@@ -2965,6 +3011,13 @@ export function PlanCanvas({
     const currentDrawingMarkup = planRef.current?.querySelector("svg")?.outerHTML ?? "";
     const exportData = getConstructionExportData();
     const activeCameraView = cameraViewRequest?.view;
+    const drawingItemRows = exportData.drawingItems.map((item) => `<tr>
+      <td>${escapeHtml(item.id)}</td><td>${escapeHtml(drawingItemCategoryLabels[item.category])}</td><td>${escapeHtml(item.label)}</td>
+      <td>${escapeHtml(item.roomId ?? "")}</td><td>${escapeHtml(item.type)}</td><td>${escapeHtml(String(item.quantity))}</td>
+      <td>${escapeHtml(String(item.heightMm ?? ""))}</td><td>${escapeHtml(item.material ?? item.materialId ?? "")}</td>
+      <td>${escapeHtml([item.switchControl?.join("/"), item.controlledLightIds?.join("/"), item.lightGroupId, item.relatedCircuit ?? item.circuitId].filter(Boolean).join("；"))}</td>
+      <td>${escapeHtml(item.relatedFurnitureId ?? item.wallId ?? "")}</td><td>${escapeHtml(drawingItemStatusLabels[item.status])}</td><td>${escapeHtml(item.notes)}</td>
+    </tr>`).join("");
     const furnitureRows = exportData.furniture.map((item) => `
       <tr>
         <td>${escapeHtml(item.code)}</td>
@@ -2977,6 +3030,7 @@ export function PlanCanvas({
         <td>${escapeHtml(yesNo(item.customMade))}</td>
         <td>${escapeHtml(item.installType || "待定")}</td>
         <td>${escapeHtml(item.supplierType || "待定")}</td>
+        <td>${escapeHtml(item.relatedDrawingItems.map((drawingItem) => `${drawingItem.label} x${drawingItem.quantity}${drawingItem.heightMm ? ` H${drawingItem.heightMm}` : ""}`).join("；") || "无")}</td>
         <td>${escapeHtml(item.constructionNotes || "现场复核")}</td>
       </tr>
     `).join("");
@@ -3120,8 +3174,15 @@ export function PlanCanvas({
     <section>
       <h2>家具 / 硬装定位清单</h2>
       <table>
-        <thead><tr><th>编号</th><th>名称</th><th>区域</th><th>尺寸</th><th>材质</th><th>3D 表现</th><th>采购品类</th><th>定制</th><th>安装</th><th>供应商</th><th>施工备注</th></tr></thead>
-        <tbody>${furnitureRows || "<tr><td colspan='11'>当前楼层暂无家具对象。</td></tr>"}</tbody>
+        <thead><tr><th>编号</th><th>名称</th><th>区域</th><th>尺寸</th><th>材质</th><th>3D 表现</th><th>采购品类</th><th>定制</th><th>安装</th><th>供应商</th><th>关联点位</th><th>施工备注</th></tr></thead>
+        <tbody>${furnitureRows || "<tr><td colspan='12'>当前楼层暂无家具对象。</td></tr>"}</tbody>
+      </table>
+    </section>
+    <section>
+      <h2>图纸对象清单</h2>
+      <table>
+        <thead><tr><th>ID</th><th>类别</th><th>标签</th><th>房间</th><th>类型</th><th>数量</th><th>高度</th><th>材料</th><th>控制/回路</th><th>关联对象</th><th>状态</th><th>备注</th></tr></thead>
+        <tbody>${drawingItemRows || "<tr><td colspan='12'>当前图纸暂无 drawingItems。</td></tr>"}</tbody>
       </table>
     </section>
     <section>
@@ -3151,10 +3212,11 @@ export function PlanCanvas({
   }
 
   async function exportConstructionPackage() {
-    const blob = new Blob([getConstructionPackageHtml()], { type: "text/html;charset=utf-8" });
+    if (!confirmConstructionPackageExport()) return;
+    const blob = new Blob([constructionPackageToHtml(constructionExportWorkspace)], { type: "text/html;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${floor.id}-construction-package.html`;
+    link.download = `construction-communication-package.html`;
     link.click();
     URL.revokeObjectURL(link.href);
   }
@@ -3168,6 +3230,12 @@ export function PlanCanvas({
     URL.revokeObjectURL(link.href);
   }
 
+  function confirmConstructionPackageExport() {
+    const validation = validateConstructionPackage(constructionExportWorkspace);
+    if (validation.valid && validation.draftItems.length === 0 && validation.reviewItems.length === 0) return true;
+    return window.confirm(`导出校验：引用错误 ${validation.errors.length}，孤立点位 ${validation.orphanIssues.length}，草稿 ${validation.draftItems.length}，待复核 ${validation.reviewItems.length}。是否继续导出并在总说明中列出？`);
+  }
+
   function escapeCsv(value: unknown) {
     const text = String(value ?? "");
     return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
@@ -3179,8 +3247,8 @@ export function PlanCanvas({
       ["recordType", "floorId", "roomId", "objectId", "name", "type", "dimensions", "material", "render3d", "mep", "construction", "cameraMode", "description"],
       ...exportData.drawingItems.map((item) => [
         "drawingItem", item.floorId, item.roomId ?? "", item.id, item.label, item.type, `x${item.quantity}${item.heightMm ? ` / H${item.heightMm}mm` : ""}`,
-        item.materialId ?? "", "", [drawingItemCategoryLabels[item.category], item.circuitId ?? "", item.lightColorTemperature ?? "", item.needsSmartControl ? "智能控制" : "", drawingItemStatusLabels[item.status]].filter(Boolean).join("；"),
-        item.relatedFurnitureId ?? "", "", item.notes
+        item.material ?? item.materialId ?? "", "", [drawingItemCategoryLabels[item.category], item.relatedCircuit ?? item.circuitId ?? "", item.lightColorTemperature ?? "", item.needsSmartControl ? "智能控制" : "", item.switchControl?.join("/"), item.controlledLightIds?.join("/"), item.lightGroupId ?? "", drawingItemStatusLabels[item.status]].filter(Boolean).join("；"),
+        [item.relatedFurnitureId ?? "", item.wallId ?? "", item.ceilingHeightMm ? `吊顶H${item.ceilingHeightMm}` : "", item.pattern ?? "", item.directionDeg !== null && item.directionDeg !== undefined ? `方向${item.directionDeg}°` : "", item.waterproofHeightMm ? `防水H${item.waterproofHeightMm}` : "", item.specialTreatment ?? ""].filter(Boolean).join("；"), "", item.notes
       ]),
       ...exportData.furniture.map((item) => [
         "furniture",
@@ -3193,7 +3261,7 @@ export function PlanCanvas({
         item.material,
         `${item.renderAssetType} / ${item.renderStyle} / ${item.renderMaterials}`,
         "",
-        "",
+        item.relatedDrawingItems.map((drawingItem) => `${drawingItem.category}:${drawingItem.label}`).join("；"),
         "",
         ""
       ]),
@@ -3268,11 +3336,12 @@ export function PlanCanvas({
   }
 
   function exportConstructionData(format: "json" | "csv") {
+    if (!confirmConstructionPackageExport()) return;
     if (format === "json") {
-      downloadTextFile(`${floor.id}-construction-metadata.json`, JSON.stringify(getConstructionExportData(), null, 2), "application/json;charset=utf-8");
+      downloadTextFile(`construction-communication-package.json`, constructionPackageToJson(constructionExportWorkspace), "application/json;charset=utf-8");
       return;
     }
-    downloadTextFile(`${floor.id}-construction-metadata.csv`, getConstructionExportCsv(), "text/csv;charset=utf-8");
+    downloadTextFile(`construction-communication-package.csv`, constructionPackageToCsv(constructionExportWorkspace), "text/csv;charset=utf-8");
   }
 
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
@@ -3292,7 +3361,7 @@ export function PlanCanvas({
   const visibleBaseFloorPlan = false;
   const visibleCleanupPatch = false;
   const visibleStructureProjection = isProfessionalDrawingSheetMode;
-  const visibleFurnitureOverlay = !yardImmersiveMode && (isSiteSheetMode || isDemolitionBuildSheetMode || isAnnotationSheetMode || isFurnitureSheetMode || sheetMode === "presentationView" || isProfessionalDrawingSheetMode) && layerVisibility.furnitureOverlay;
+  const visibleFurnitureOverlay = (yardImmersiveMode || isSiteSheetMode || isDemolitionBuildSheetMode || isAnnotationSheetMode || isFurnitureSheetMode || sheetMode === "presentationView" || isProfessionalDrawingSheetMode) && layerVisibility.furnitureOverlay;
   const visibleSemanticOverlay = (sheetMode === "presentationView" || isMobileAnnotatedPlan) && layerVisibility.semanticOverlay;
   const visibleDebugLayer = !mobilePresentationMode && isSyncSheetMode && layerVisibility.debug;
   const visibleStructureLabels = !furnitureImmersiveMode && (!mobilePresentationMode || mobileDisplayLevel === "professional");
@@ -3310,13 +3379,18 @@ export function PlanCanvas({
     const category = activeDrawingItemCategories[0];
     if (!category) return;
     const id = `DI-${floor.id}-${Date.now().toString(36).toUpperCase()}`;
-    const item = createDrawingItem({
+    const baseItem = createDrawingItem({
       id,
       floorId: floor.id,
       category,
       positionMm: { x: Math.round(planBounds.x + planBounds.width / 2), y: Math.round(planBounds.y + planBounds.height / 2) },
       roomId: houseStructure.rooms[0]?.id ?? houseStructure.outdoors[0]?.id ?? null
     });
+    const item: DrawingItem = category === "ceiling" ? { ...baseItem, type: "flatCeiling", ceilingHeightMm: 2800, relatedLightIds: [], inspectionAccess: false, airVent: false, returnAir: false, maintenanceOpening: false }
+      : category === "floorFinish" ? { ...baseItem, type: "roomFinish", material: null, pattern: null, directionDeg: 0, startPoint: null, seamWidthMm: null, threshold: null, transition: null }
+      : category === "wallFinish" ? { ...baseItem, type: "wallFinish", wallId: null, material: null, heightRange: { minMm: 0, maxMm: 2800 }, area: null, waterproofHeightMm: null, specialTreatment: null }
+      : category === "switch" ? { ...baseItem, type: "switchControl", switchControl: [], relatedCircuit: null, controlledLightIds: [], lightGroupId: null }
+      : baseItem;
     onDrawingItemsChange([...drawingItems, item]);
     setSelectedDrawingItemId(id);
     onActiveObjectChange(id);
@@ -3327,12 +3401,30 @@ export function PlanCanvas({
     setSelectedDrawingItemId("");
     onActiveObjectChange("");
   }
+
+  function applyRoomPolygonToDrawingItem(item: DrawingItem) {
+    const room = [...houseStructure.rooms, ...houseStructure.outdoors].find((candidate) => candidate.id === item.roomId);
+    if (!room || !("boundary" in room || "polygon" in room)) return;
+    const polygon = "boundary" in room ? room.boundary : room.polygon;
+    if (!polygon || polygon.length < 3) return;
+    const area = Math.abs(polygon.reduce((sum, point, index) => {
+      const next = polygon[(index + 1) % polygon.length];
+      return sum + point.x * next.y - next.x * point.y;
+    }, 0)) / 2 / 1_000_000;
+    updateDrawingItem(item.id, { polygon, area: Number(area.toFixed(2)), startPoint: polygon[0] });
+  }
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
   const showStructureDrawingPanel = !mobilePresentationMode && plannerMode === "edit" && !isFurnitureSheetMode;
   const yardObjectMatchesFocus = (id: string, name = "") => !yardImmersiveMode || id.includes(`-${yardToken}-`) || name.includes(yardFocus === "north" ? "北院" : "南院");
-  const visibleOutdoors = yardImmersiveMode ? houseStructure.outdoors.filter((outdoor) => yardObjectMatchesFocus(outdoor.id, outdoor.name)) : houseStructure.outdoors;
-  const visibleOutdoorSurfaces = yardImmersiveMode ? houseStructure.outdoorSurfaces.filter((surface) => yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds)) : houseStructure.outdoorSurfaces;
-  const visibleFences = yardImmersiveMode ? houseStructure.fences.filter((fence) => yardObjectMatchesFocus(fence.id, fence.name) || pointInBounds(fence.start, planBounds) || pointInBounds(fence.end, planBounds)) : houseStructure.fences;
+  const visibleOutdoors = houseStructure.outdoors
+    .filter((outdoor) => resolveVisibility(outdoor).visible2d)
+    .filter((outdoor) => !yardImmersiveMode || yardObjectMatchesFocus(outdoor.id, outdoor.name));
+  const visibleOutdoorSurfaces = houseStructure.outdoorSurfaces
+    .filter((surface) => resolveVisibility(surface).visible2d)
+    .filter((surface) => !yardImmersiveMode || yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds));
+  const visibleFences = houseStructure.fences
+    .filter((fence) => resolveVisibility(fence).visible2d)
+    .filter((fence) => !yardImmersiveMode || yardObjectMatchesFocus(fence.id, fence.name) || pointInBounds(fence.start, planBounds) || pointInBounds(fence.end, planBounds));
   const masterBathRoom = floor.id === "2F" ? houseStructure.rooms.find((room) => room.id === MASTER_BATH_ROOM_ID) ?? null : null;
   const showMasterBathStyleLayer = Boolean(masterBathRoom && !yardImmersiveMode && ["furniturePlan", "presentationView", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan"].includes(sheetMode));
 
@@ -5772,16 +5864,29 @@ export function PlanCanvas({
                     const selected = item.id === selectedDrawingItemId;
                     const relatedFurniture = furniture.find((candidate) => candidate.id === item.relatedFurnitureId);
                     const statusColor = item.status === "confirmed" ? "#047857" : item.status === "todo" ? "#b45309" : item.status === "deprecated" ? "#78716c" : "#2563eb";
+                    const wall = item.category === "wallFinish" ? [...houseStructure.walls, ...houseStructure.partitions].find((candidate) => candidate.id === (item.wallId ?? item.hostWallId)) : null;
+                    const wallStart = wall && "start" in wall ? wall.start : null;
+                    const wallEnd = wall && "end" in wall ? wall.end : null;
+                    const polygon = item.polygon?.length && item.polygon.length >= 3 ? item.polygon : null;
+                    const anchor = polygon
+                      ? { x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length, y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length }
+                      : wallStart && wallEnd ? { x: (wallStart.x + wallEnd.x) / 2, y: (wallStart.y + wallEnd.y) / 2 } : item.positionMm;
+                    const detailSummary = item.category === "switch"
+                      ? `控制 ${(item.controlledLightIds?.length ?? 0)} 灯${item.lightGroupId ? ` / ${item.lightGroupId}` : ""}`
+                      : item.category === "ceiling" ? `${item.ceilingHeightMm ?? "待定"}mm · ${[item.inspectionAccess ? "检修" : "", item.airVent ? "送风" : "", item.returnAir ? "回风" : ""].filter(Boolean).join("/") || "普通区域"}`
+                      : item.category === "floorFinish" ? `${floorFinishMaterialLabels[item.material ?? ""] ?? item.material ?? "材料待定"} · ${item.pattern ?? "排版待定"}`
+                      : item.category === "wallFinish" ? `${item.material ?? "材料待定"}${item.waterproofHeightMm ? ` · 防水H${item.waterproofHeightMm}` : ""}`
+                      : relatedFurniture?.name ?? (item.relatedFurnitureId ? "关联家具缺失" : "未关联家具");
                     return (
                       <g
                         key={item.id}
-                        className={workspaceMutationAllowed && plannerMode === "edit" ? "cursor-move" : "cursor-pointer"}
-                        transform={`translate(${item.positionMm.x} ${item.positionMm.y})`}
+                        className={workspaceMutationAllowed && plannerMode === "edit" && !polygon && !wall ? "cursor-move" : "cursor-pointer"}
+                        transform={`translate(${anchor.x} ${anchor.y})`}
                         onPointerDown={(event) => {
                           event.stopPropagation();
                           setSelectedDrawingItemId(item.id);
                           onActiveObjectChange(item.id);
-                          if (workspaceMutationAllowed && plannerMode === "edit") {
+                          if (workspaceMutationAllowed && plannerMode === "edit" && !polygon && !wall) {
                             drawingItemDragRef.current = { pointerId: event.pointerId, objectId: item.id };
                             event.currentTarget.setPointerCapture(event.pointerId);
                           }
@@ -5795,6 +5900,12 @@ export function PlanCanvas({
                           if (drawingItemDragRef.current?.pointerId === event.pointerId) drawingItemDragRef.current = null;
                         }}
                       >
+                        {item.category === "switch" && (item.controlledLightIds ?? []).map((lightId) => {
+                          const light = drawingItems.find((candidate) => candidate.id === lightId && candidate.category === "light");
+                          return light ? <line key={lightId} x1={0} y1={0} x2={light.positionMm.x - anchor.x} y2={light.positionMm.y - anchor.y} stroke="#2563eb" strokeDasharray="90 65" strokeWidth={28} opacity={0.7} /> : null;
+                        })}
+                        {polygon && <polygon points={polygon.map((point) => `${point.x - anchor.x},${point.y - anchor.y}`).join(" ")} fill={item.category === "ceiling" ? "rgba(14,165,233,0.12)" : "rgba(180,83,9,0.12)"} stroke={statusColor} strokeDasharray={item.category === "ceiling" ? "100 70" : undefined} strokeWidth={selected ? 58 : 34} />}
+                        {wallStart && wallEnd && <line x1={wallStart.x - anchor.x} y1={wallStart.y - anchor.y} x2={wallEnd.x - anchor.x} y2={wallEnd.y - anchor.y} stroke={statusColor} strokeWidth={selected ? 150 : 105} opacity={0.65} />}
                         <circle r={selected ? 190 : 160} fill="#ffffff" stroke={statusColor} strokeWidth={selected ? 55 : 38} />
                         <text y={58} fill={statusColor} fontSize={170} fontWeight={900} textAnchor="middle">{drawingItemCategoryLabels[item.category].slice(0, 1)}</text>
                         <text y={-235} fill="#0f172a" fontSize={150} fontWeight={800} paintOrder="stroke" stroke="#ffffff" strokeWidth={42} textAnchor="middle">
@@ -5804,7 +5915,7 @@ export function PlanCanvas({
                           {[`x${item.quantity}`, item.heightMm ? `H${item.heightMm}` : "", drawingItemStatusLabels[item.status]].filter(Boolean).join(" · ")}
                         </text>
                         <text y={475} fill="#475569" fontSize={105} fontWeight={650} paintOrder="stroke" stroke="#ffffff" strokeWidth={30} textAnchor="middle">
-                          {relatedFurniture?.name ?? (item.relatedFurnitureId ? "关联家具缺失" : "未关联家具")}
+                          {detailSummary}
                         </text>
                         <text y={610} fill="#64748b" fontSize={92} fontWeight={600} paintOrder="stroke" stroke="#ffffff" strokeWidth={28} textAnchor="middle">
                           {(item.notes || "无备注").slice(0, 26)}
@@ -5884,12 +5995,33 @@ export function PlanCanvas({
                       <label>数量<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" min="1" type="number" value={selectedDrawingItem.quantity} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { quantity: Math.max(1, Number(event.target.value) || 1) })} /></label>
                       <label>状态<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.status} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { status: event.target.value as DrawingItem["status"] })}>{drawingItemStatuses.map((status) => <option key={status} value={status}>{drawingItemStatusLabels[status]}</option>)}</select></label>
                       <label>标签<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.label} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { label: event.target.value })} /></label>
-                      <label>回路<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.circuitId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { circuitId: event.target.value || null })} /></label>
+                      <label>回路<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedCircuit ?? selectedDrawingItem.circuitId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { circuitId: event.target.value || null, relatedCircuit: event.target.value || null })} /></label>
                       <label>色温<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.lightColorTemperature ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightColorTemperature: (event.target.value || null) as DrawingItem["lightColorTemperature"] })} /></label>
                     </div>
                     <label className="mt-2 flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.needsSmartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { needsSmartControl: event.target.checked })} />需要智能控制</label>
+                    {selectedDrawingItem.category === "switch" && <div className="mt-3 rounded-lg bg-blue-50 p-2">
+                      <label className="block">控制方式<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" placeholder="单控、双控、场景" value={(selectedDrawingItem.switchControl ?? []).join("、")} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { switchControl: event.target.value.split(/[、,，/]/).map((value) => value.trim()).filter(Boolean) })} /></label>
+                      <label className="mt-2 block">灯组 ID<input className="mt-1 w-full rounded-lg border border-blue-100 p-2" value={selectedDrawingItem.lightGroupId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightGroupId: event.target.value || null })} /></label>
+                      <p className="mt-2 font-semibold text-blue-900">控制灯点</p>
+                      <div className="mt-1 grid gap-1">{drawingItems.filter((item) => item.category === "light").map((light) => <label key={light.id} className="flex items-center gap-2"><input checked={(selectedDrawingItem.controlledLightIds ?? []).includes(light.id)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { controlledLightIds: event.target.checked ? [...(selectedDrawingItem.controlledLightIds ?? []), light.id] : (selectedDrawingItem.controlledLightIds ?? []).filter((id) => id !== light.id) })} />{light.label} · {light.id}</label>)}</div>
+                    </div>}
+                    {selectedDrawingItem.category === "ceiling" && <div className="mt-3 rounded-lg bg-sky-50 p-2">
+                      <div className="grid grid-cols-2 gap-2"><label>吊顶高度<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" type="number" value={selectedDrawingItem.ceilingHeightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { ceilingHeightMm: event.target.value ? Number(event.target.value) : null })} /></label><label>类型<input className="mt-1 w-full rounded-lg border border-sky-100 p-2" value={selectedDrawingItem.type} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { type: event.target.value })} /></label></div>
+                      <div className="mt-2 grid grid-cols-2 gap-1">{([['inspectionAccess','检修口'],['airVent','送风口'],['returnAir','回风口'],['maintenanceOpening','维护开口']] as const).map(([field,label]) => <label key={field} className="flex items-center gap-2"><input checked={Boolean(selectedDrawingItem[field])} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { [field]: event.target.checked })} />{label}</label>)}</div>
+                      <p className="mt-2 font-semibold text-sky-900">关联灯点</p><div className="mt-1 grid gap-1">{drawingItems.filter((item) => item.category === "light").map((light) => <label key={light.id} className="flex items-center gap-2"><input checked={(selectedDrawingItem.relatedLightIds ?? []).includes(light.id)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { relatedLightIds: event.target.checked ? [...(selectedDrawingItem.relatedLightIds ?? []), light.id] : (selectedDrawingItem.relatedLightIds ?? []).filter((id) => id !== light.id) })} />{light.label}</label>)}</div>
+                      <button className="mt-2 w-full rounded-lg bg-sky-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!selectedDrawingItem.roomId} onClick={() => applyRoomPolygonToDrawingItem(selectedDrawingItem)} type="button">采用关联房间区域</button>
+                    </div>}
+                    {selectedDrawingItem.category === "floorFinish" && <div className="mt-3 rounded-lg bg-amber-50 p-2">
+                      <div className="grid grid-cols-2 gap-2"><label>材料<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.material ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { material: event.target.value || null })}><option value="">待定</option>{Object.entries(floorFinishMaterialLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>排版<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.pattern ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { pattern: event.target.value || null })} /></label><label>方向 °<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" type="number" value={selectedDrawingItem.directionDeg ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { directionDeg: event.target.value ? Number(event.target.value) : null })} /></label><label>缝宽 mm<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" type="number" value={selectedDrawingItem.seamWidthMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { seamWidthMm: event.target.value ? Number(event.target.value) : null })} /></label><label>门槛<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.threshold ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { threshold: event.target.value || null })} /></label><label>过渡<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.transition ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { transition: event.target.value || null })} /></label></div>
+                      <button className="mt-2 w-full rounded-lg bg-amber-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!selectedDrawingItem.roomId} onClick={() => applyRoomPolygonToDrawingItem(selectedDrawingItem)} type="button">采用关联房间铺装区域</button>
+                    </div>}
+                    {selectedDrawingItem.category === "wallFinish" && <div className="mt-3 rounded-lg bg-emerald-50 p-2">
+                      <label>墙面材料<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" list="wall-finish-materials" value={selectedDrawingItem.material ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { material: event.target.value || null })} /><datalist id="wall-finish-materials">{wallFinishMaterialOptions.map((material) => <option key={material} value={material} />)}</datalist></label>
+                      <div className="mt-2 grid grid-cols-2 gap-2"><label>起始高度<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.heightRange?.minMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { heightRange: { minMm: Number(event.target.value) || 0, maxMm: selectedDrawingItem.heightRange?.maxMm ?? 2800 } })} /></label><label>结束高度<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.heightRange?.maxMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { heightRange: { minMm: selectedDrawingItem.heightRange?.minMm ?? 0, maxMm: Number(event.target.value) || 2800 } })} /></label><label>面积 ㎡<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.area ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { area: event.target.value ? Number(event.target.value) : null })} /></label><label>防水高度<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" type="number" value={selectedDrawingItem.waterproofHeightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { waterproofHeightMm: event.target.value ? Number(event.target.value) : null })} /></label></div>
+                      <label className="mt-2 block">特殊处理<input className="mt-1 w-full rounded-lg border border-emerald-100 p-2" value={selectedDrawingItem.specialTreatment ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { specialTreatment: event.target.value || null })} /></label>
+                    </div>}
                     <label className="mt-2 block">关联房间<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.roomId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { roomId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.rooms, ...houseStructure.outdoors].map((room) => <option key={room.id} value={room.id}>{room.name} · {room.id}</option>)}</select></label>
-                    <label className="mt-2 block">关联墙体<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.hostWallId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostWallId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions].map((wall) => <option key={wall.id} value={wall.id}>{wall.name} · {wall.id}</option>)}</select></label>
+                    <label className="mt-2 block">关联墙体<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.wallId ?? selectedDrawingItem.hostWallId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostWallId: event.target.value || null, wallId: selectedDrawingItem.category === "wallFinish" ? event.target.value || null : selectedDrawingItem.wallId })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions].map((wall) => <option key={wall.id} value={wall.id}>{wall.name} · {wall.id}</option>)}</select></label>
                     <label className="mt-2 block">承载对象<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.hostObjectId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostObjectId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions, ...houseStructure.columns].map((object) => <option key={object.id} value={object.id}>{object.name} · {object.id}</option>)}</select></label>
                     <label className="mt-2 block">关联家具<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedFurnitureId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { relatedFurnitureId: event.target.value || null })}><option value="">未关联</option>{furniture.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.id}</option>)}</select></label>
                     <label className="mt-2 block">备注<textarea className="mt-1 min-h-16 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.notes} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { notes: event.target.value })} /></label>
@@ -6109,8 +6241,9 @@ export function PlanCanvas({
                       const position = getMmPosition(event);
                       if (!position) return;
                       const delta = { x: position.x - drag.lastPosition.x, y: position.y - drag.lastPosition.y };
-                      const minY = floor.id === "1F" ? SITE_PLAN_MIN_Y_MM / houseStructure.coordinateSystem.height * 100 : 0;
-                      const maxY = floor.id === "1F" ? SITE_PLAN_MAX_Y_MM / houseStructure.coordinateSystem.height * 100 : 100;
+                      const usesSiteBounds = floor.id === "1F" || floor.id === "YARD";
+                      const minY = usesSiteBounds ? SITE_PLAN_MIN_Y_MM / houseStructure.coordinateSystem.height * 100 : 0;
+                      const maxY = usesSiteBounds ? SITE_PLAN_MAX_Y_MM / houseStructure.coordinateSystem.height * 100 : 100;
                       onFurnitureChange(furniture.map((candidate) => candidate.id === item.id
                         ? applyPlanDelta(candidate, delta, houseStructure.coordinateSystem, { minX: 0, maxX: 100, minY, maxY })
                         : candidate));
@@ -6164,7 +6297,7 @@ export function PlanCanvas({
 
             {visibleFurnitureOverlay && (
               <div className="pointer-events-none absolute inset-0 z-[46]" data-layer="ObjectLabelLayer-Furniture" data-coordinate-system="percent-of-floor-plan">
-                {furniture.map((item) => {
+                {furniture.filter((item) => resolveVisibility(item).visible2d).map((item) => {
                   const selected = selectedInteractionObjectId === item.id;
                   const hovered = isObjectHovered(item.id);
                   const displayPosition = getFurnitureDisplayPosition(item);
@@ -6392,6 +6525,7 @@ export function PlanCanvas({
           mobileQuality={mobileQuality}
           resetViewRequest={resetViewRequest}
           cameraViews={cameraViews}
+          cameraViewFloorIds={cameraViewFloorIds}
           cameraViewRequest={cameraViewRequest}
           selectedObjectId={selectedInteractionObjectId}
           selectedFurnitureId={selectedFurnitureId}

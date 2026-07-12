@@ -1,8 +1,8 @@
 import type { Floor, FloorId, HouseStructure } from "@/types/space";
 import type { WorkspaceDataCategory, WorkspaceDataSourceReport, WorkspaceDocument } from "@/types/workspace";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 6;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-12-drawing-package-system-v1";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 7;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-12-drawing-package-finishes-v1";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",

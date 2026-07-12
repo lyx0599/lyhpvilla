@@ -12,6 +12,7 @@ broken.drawingItems.push({
   id: "DI-TEST-001", floorId: "1F", roomId: "ROOM-MISSING", category: "socket", type: "five-hole",
   positionMm: { x: 1000, y: 1000 }, hostObjectId: null, hostWallId: "W-MISSING", relatedFurnitureId: "furn-missing",
   heightMm: 300, circuitId: null, materialId: null, label: "测试插座", notes: "", source: "manual", status: "draft",
+  controlledLightIds: ["DI-MISSING-LIGHT"],
   quantity: 1, createdAt: "2026-07-12T00:00:00.000Z", updatedAt: "2026-07-12T00:00:00.000Z"
 });
 broken.drawingPackage.drawingItemIds.push("DI-MISSING");
@@ -25,10 +26,11 @@ assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_SEMANTIC_RO
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_ROOMID"));
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_HOSTWALLID"));
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_RELATEDFURNITUREID"));
+assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_ITEM_LIGHT"));
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_DRAWING_PACKAGE_ITEM"));
 
 const repaired = repairWorkspaceReferences(broken);
-assert.equal(repaired.workspace.furniture.find((item) => item.id === "furn-plant-001").roomId, "OD-YARD-001");
+assert.equal(repaired.workspace.furniture.find((item) => item.id === "furn-plant-001").roomId, "OD-YARD-NORTH-001");
 assert.equal(repairWorkspaceReferences(repaired.workspace).repairs.length, 0, "repair must be idempotent");
 
 const renamed = renameWorkspaceObjectId(workspace, "W-B2-009", "W-B2-009-RENAMED");
