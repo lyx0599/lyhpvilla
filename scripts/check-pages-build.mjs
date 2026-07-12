@@ -61,6 +61,12 @@ if (await fileExists(indexPath)) {
   if (indexHtml.includes('"/floor-plans/') || indexHtml.includes('\\"/floor-plans/')) {
     errors.push("index.html contains a root-relative /floor-plans/ resource");
   }
+  if (indexHtml.includes("浏览器草稿待保存") || indexHtml.includes("检测到浏览器中有未写入代码文件的草稿")) {
+    errors.push("index.html contains browser-draft UI that must not be published");
+  }
+  if (!indexHtml.includes("发布代码版本")) {
+    errors.push("index.html does not identify the published code version");
+  }
 }
 
 if (!(await fileExists(path.join(OUT_DIR, ".nojekyll")))) {

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "NEXT_DIST_DIR=.next-build next build",
-    "build:pages": "NEXT_PUBLIC_BASE_PATH=/lyhpvilla NEXT_DIST_DIR=.next-pages next build && touch out/.nojekyll && node scripts/check-pages-build.mjs",
+    "build:pages": "rm -rf out .next-pages && NEXT_PUBLIC_BASE_PATH=/lyhpvilla NEXT_DIST_DIR=.next-pages next build && touch out/.nojekyll && node scripts/check-pages-build.mjs",
     "check:pages": "node scripts/check-pages-build.mjs",
     "check:pages-build": "node scripts/check-pages-build.mjs",
     "typecheck": "tsc --noEmit",
