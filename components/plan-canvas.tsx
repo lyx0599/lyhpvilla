@@ -671,6 +671,7 @@ export function PlanCanvas({
     setNormalizedSheetMode(normalizePlanCanvasMode(nextMode));
   };
   const [isConstructionPackageOpen, setIsConstructionPackageOpen] = useState(false);
+  const [pendingConstructionExport, setPendingConstructionExport] = useState<"html" | "json" | "csv" | null>(null);
   const [constructionSheets, setConstructionSheets] = useState<ConstructionSheet[]>(defaultConstructionSheets);
   const [constructionSpecs, setConstructionSpecs] = useState<ConstructionSpecRow[]>(defaultConstructionSpecs);
   const [isPlanZoomSelected, setIsPlanZoomSelected] = useState(false);
@@ -3212,7 +3213,6 @@ export function PlanCanvas({
   }
 
   async function exportConstructionPackage() {
-    if (!confirmConstructionPackageExport()) return;
     const blob = new Blob([constructionPackageToHtml(constructionExportWorkspace)], { type: "text/html;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -3230,10 +3230,16 @@ export function PlanCanvas({
     URL.revokeObjectURL(link.href);
   }
 
-  function confirmConstructionPackageExport() {
-    const validation = validateConstructionPackage(constructionExportWorkspace);
-    if (validation.valid && validation.draftItems.length === 0 && validation.reviewItems.length === 0) return true;
-    return window.confirm(`导出校验：引用错误 ${validation.errors.length}，孤立点位 ${validation.orphanIssues.length}，草稿 ${validation.draftItems.length}，待复核 ${validation.reviewItems.length}。是否继续导出并在总说明中列出？`);
+  function requestConstructionExport(format: "html" | "json" | "csv") {
+    setPendingConstructionExport(format);
+    setIsConstructionPackageOpen(true);
+  }
+
+  function continueConstructionExport() {
+    const format = pendingConstructionExport;
+    setPendingConstructionExport(null);
+    if (format === "html") void exportConstructionPackage();
+    if (format === "json" || format === "csv") exportConstructionData(format);
   }
 
   function escapeCsv(value: unknown) {
@@ -3336,7 +3342,6 @@ export function PlanCanvas({
   }
 
   function exportConstructionData(format: "json" | "csv") {
-    if (!confirmConstructionPackageExport()) return;
     if (format === "json") {
       downloadTextFile(`construction-communication-package.json`, constructionPackageToJson(constructionExportWorkspace), "application/json;charset=utf-8");
       return;
@@ -3345,6 +3350,7 @@ export function PlanCanvas({
   }
 
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
+  const constructionPackageValidation = validateConstructionPackage(constructionExportWorkspace);
   const layerVisibility = floorPlanVisualSettings.layerVisibility;
   const isSiteSheetMode = sheetMode === "sitePlan";
   const isStructureSheetMode = sheetMode === "structurePlan";
@@ -4413,12 +4419,20 @@ export function PlanCanvas({
                 <p className="mt-1 leading-5 text-stone-500">顶部“当前图纸”下拉用来查看正式图纸和结构联动检查；切到结构图/拆改施工图时可编辑墙体门窗，切到家具定位图时编辑家具，给排水、灯光、吊顶和材料图先作为施工表达层查看。</p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <button className="rounded-xl bg-ink px-3 py-2 font-semibold text-white hover:bg-clay" onClick={exportConstructionPackage} type="button">导出 HTML</button>
-                <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => exportConstructionData("json")} type="button">导出 JSON 清单</button>
-                <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => exportConstructionData("csv")} type="button">导出 CSV 清单</button>
+                <button className="rounded-xl bg-ink px-3 py-2 font-semibold text-white hover:bg-clay" onClick={() => requestConstructionExport("html")} type="button">导出 HTML</button>
+                <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => requestConstructionExport("json")} type="button">导出 JSON 清单</button>
+                <button className="rounded-xl bg-blue-50 px-3 py-2 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100" onClick={() => requestConstructionExport("csv")} type="button">导出 CSV 清单</button>
                 <button className="rounded-xl bg-slate-100 px-3 py-2 font-semibold text-stone-600 hover:bg-stone-200" onClick={() => setIsConstructionPackageOpen(false)} type="button">收起</button>
               </div>
             </div>
+
+            {pendingConstructionExport && <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-950">
+              <div className="flex items-start justify-between gap-3"><div><p className="font-semibold">施工包检查</p><p className="mt-1 text-[11px] leading-5">以下项目不会阻止导出，并会同步写入 HTML 总说明。建议在交付施工前逐项关闭。</p></div><span className="rounded-md bg-white px-2 py-1 text-[10px] font-semibold uppercase">{pendingConstructionExport}</span></div>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {([['草稿项',constructionPackageValidation.warningCounts.draft],['待确认项',constructionPackageValidation.warningCounts.todo],['孤立引用',constructionPackageValidation.warningCounts.orphan],['插座缺少高度',constructionPackageValidation.warningCounts.socketMissingHeight],['开关缺少灯具',constructionPackageValidation.warningCounts.switchMissingLights],['灯具缺少色温',constructionPackageValidation.warningCounts.lightMissingColorTemperature],['排水缺少类型',constructionPackageValidation.warningCounts.drainageMissingType],['铺装/墙面缺材质',constructionPackageValidation.warningCounts.finishMissingMaterial],['庭院待复核',constructionPackageValidation.warningCounts.yardNeedsReview]] as const).map(([label,count]) => <div key={label} className="rounded-lg bg-white p-2 ring-1 ring-amber-100"><p className="text-[10px] text-amber-700">{label}</p><p className="mt-1 text-lg font-bold">{count}</p></div>)}
+              </div>
+              <div className="mt-3 flex justify-end gap-2"><button className="rounded-lg bg-white px-3 py-2 font-semibold ring-1 ring-amber-200" onClick={() => setPendingConstructionExport(null)} type="button">返回检查</button><button className="rounded-lg bg-amber-800 px-3 py-2 font-semibold text-white" onClick={continueConstructionExport} type="button">继续导出</button></div>
+            </div>}
 
             <div className="grid gap-3 lg:grid-cols-[1.35fr_1fr]">
               <div className="space-y-2">

@@ -36,7 +36,7 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(page.locator('main[data-access-mode="view-only"]')).toBeVisible();
   await expect(page.locator('[data-mobile-presentation="true"]')).toBeVisible();
 
-  for (const name of ["进入编辑模式", "保存到代码文件", "绑定代码文件", "自动写代码", "GitHub", "保存自检", "开发工具"]) {
+  for (const name of ["进入编辑模式", "保存到代码文件", "绑定代码文件", "自动写代码", "GitHub", "保存自检", "开发工具", "图纸包", "导出 HTML", "导出 JSON 清单", "导出 CSV 清单"]) {
     await expect(page.getByText(name, { exact: false })).toHaveCount(0);
   }
 
