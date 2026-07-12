@@ -16,18 +16,20 @@ import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmpt
 import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
+import { generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
 import { createSyncSelfCheckReport, resolveSelection } from "@/lib/object-sync-adapter";
 import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspaceAccessCapabilities } from "@/lib/workspace-access";
 import { applyWorkspaceMigrations, CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION, reportWorkspaceDataSources } from "@/lib/workspace-migrations";
 import { compareWorkspace, getDetailedWorkspaceDifference, getWorkspaceDifferenceSummary, getWorkspaceHash, getWorkspaceStats, getWorkspaceValidationErrors, validateWorkspacePayload } from "@/lib/workspace-persistence";
 import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
-import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlannerMode, Render3DAssetType, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlannerMode, Render3DAssetType, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 import type { WorkspaceDocument } from "@/types/workspace";
 
 type ModelSnapshot = {
   structure: HouseStructure;
   furniture: Furniture[];
+  drawingItems: DrawingItem[];
 };
 
 type DesignPageRequest = {
@@ -54,7 +56,7 @@ type FloorHistory = {
 };
 
 type RightPanelKey = "floors" | "status" | "modules" | "object" | "semantic";
-type MobileProfessionalSheetMode = "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "flooring";
+type MobileProfessionalSheetMode = Extract<DrawingSheetType, "socketPlan" | "switchPlan" | "lightingPlan" | "waterSupplyPlan" | "drainagePlan" | "ceilingPlan" | "floorFinishPlan" | "wallFinishPlan" | "materialPlan" | "annotationPlan">;
 type MobileSheetTarget =
   | { kind: "project" }
   | { kind: "furniture" | "semantic" | "structure"; id: string };
@@ -104,7 +106,7 @@ type LocalFilePickerWindow = Window & {
 };
 
 const WEB_WORKSPACE_SCHEMA_VERSION = CURRENT_WORKSPACE_SCHEMA_VERSION;
-const DEFAULT_WORKSPACE_REVISION = "2026-07-10-five-level-presentation-v1";
+const DEFAULT_WORKSPACE_REVISION = "2026-07-12-drawing-package-system-v1";
 const WEB_WORKSPACE_STORAGE_KEY = "villa-space-web-workspace-v3-courtyard-fence";
 const WEB_WORKSPACE_STABLE_KEY = "villa-space-web-workspace-stable";
 const WEB_WORKSPACE_DRAFT_KEY = "villa-space-web-workspace-draft";
@@ -2256,6 +2258,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [floors, setFloors] = useState(data.floors);
   const [selectedFloorId, setSelectedFloorId] = useState<FloorId>(initialSelectedFloorId);
   const [furniture, setFurniture] = useState<Furniture[]>(() => enrichMissingFurnitureMetadata(data.workspace.furniture));
+  const [drawingItems, setDrawingItems] = useState<DrawingItem[]>(() => data.workspace.drawingItems);
+  const [drawingPackage, setDrawingPackage] = useState<DrawingPackage>(() => data.workspace.drawingPackage);
   const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.workspace.furniture.find((item) => item.floorId === initialSelectedFloorId)?.id ?? data.workspace.furniture[0]?.id ?? "");
   const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => data.workspace.semanticObjects);
   const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState("");
@@ -2264,7 +2268,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
   const [mobileDisplayLevel, setMobileDisplayLevel] = useState<MobileDisplayLevel>("simple");
   const [mobileQuality, setMobileQuality] = useState<MobileQuality>("balanced");
-  const [mobileProfessionalSheetMode, setMobileProfessionalSheetMode] = useState<MobileProfessionalSheetMode>("socket");
+  const [mobileProfessionalSheetMode, setMobileProfessionalSheetMode] = useState<MobileProfessionalSheetMode>("socketPlan");
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [mobileSheetTarget, setMobileSheetTarget] = useState<MobileSheetTarget | null>(null);
   const [mobileResetViewRequest, setMobileResetViewRequest] = useState(0);
@@ -2334,7 +2338,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       floor.id,
       {
         structure: data.workspace.houseStructuresByFloor[floor.id] ?? createEmptyStructure(floor.id),
-        furniture: initialFurnitureWith3DMeta.filter((item) => item.floorId === floor.id)
+        furniture: initialFurnitureWith3DMeta.filter((item) => item.floorId === floor.id),
+        drawingItems: data.workspace.drawingItems.filter((item) => item.floorId === floor.id)
       }
     ])) as Partial<Record<FloorId, ModelSnapshot>>
   );
@@ -2392,6 +2397,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     () => furniture.filter((item) => item.floorId === selectedFloorId),
     [furniture, selectedFloorId]
   );
+  const floorDrawingItems = useMemo(() => drawingItems.filter((item) => item.floorId === selectedFloorId), [drawingItems, selectedFloorId]);
   const oneFloorHouseStructure = houseStructuresByFloor["1F"] ?? createEmptyStructure("1F");
   const oneFloorFurniture = useMemo(
     () => furniture.filter((item) => item.floorId === "1F"),
@@ -2412,10 +2418,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const referenceReport = useMemo(() => validateWorkspaceReferences({
     floors,
     furniture,
+    drawingItems,
+    drawingPackage,
     semanticObjects,
     houseStructuresByFloor,
     cameraViews
-  }), [floors, furniture, semanticObjects, houseStructuresByFloor, cameraViews]);
+  }), [floors, furniture, drawingItems, drawingPackage, semanticObjects, houseStructuresByFloor, cameraViews]);
   const floorHistory = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
   const activeStructureObject = useMemo(() => (
     floorHouseStructure.walls.find((item) => item.id === activeObjectId) ??
@@ -2516,11 +2524,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ? migratedWorkspace.selectedFloorId
       : initialSelectedFloorId;
     const nextFurniture = enrichMissingFurnitureMetadata(migratedWorkspace.furniture);
+    const nextDrawingItems = migratedWorkspace.drawingItems;
     const nextSemanticObjects = migratedWorkspace.semanticObjects;
 
     setSelectedFloorId(nextSelectedFloorId);
     setFloors(nextFloors);
     setFurniture(nextFurniture);
+    setDrawingItems(nextDrawingItems);
+    setDrawingPackage(migratedWorkspace.drawingPackage);
     setSemanticObjects(nextSemanticObjects);
     setVisualSettingsByFloor(migratedWorkspace.visualSettingsByFloor);
     setCleanPatchesByFloor(migratedWorkspace.cleanPatchesByFloor);
@@ -2531,7 +2542,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       floor.id,
       {
         structure: nextStructures[floor.id],
-        furniture: nextFurniture.filter((item) => item.floorId === floor.id)
+        furniture: nextFurniture.filter((item) => item.floorId === floor.id),
+        drawingItems: nextDrawingItems.filter((item) => item.floorId === floor.id)
       }
     ])) as Partial<Record<FloorId, ModelSnapshot>>;
     setSelectedFurnitureId(nextFurniture.find((item) => item.floorId === nextSelectedFloorId)?.id ?? "");
@@ -2699,6 +2711,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     floors,
     selectedFloorId,
     furniture,
+    drawingItems,
+    drawingPackage,
     semanticObjects,
     visualSettingsByFloor,
     cleanPatchesByFloor,
@@ -2729,6 +2743,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     floors,
     selectedFloorId,
     furniture,
+    drawingItems,
+    drawingPackage,
     semanticObjects,
     visualSettingsByFloor,
     cleanPatchesByFloor,
@@ -2766,6 +2782,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     floors,
     selectedFloorId,
     furniture,
+    drawingItems,
+    drawingPackage,
     semanticObjects,
     visualSettingsByFloor,
     cleanPatchesByFloor,
@@ -2790,7 +2808,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   useEffect(() => {
     const floorId = selectedFloorId;
-    const current: ModelSnapshot = { structure: floorHouseStructure, furniture: floorFurniture };
+    const current: ModelSnapshot = { structure: floorHouseStructure, furniture: floorFurniture, drawingItems: floorDrawingItems };
     if (suppressHistoryRef.current) {
       suppressHistoryRef.current = false;
       committedModelRef.current[floorId] = current;
@@ -2821,7 +2839,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return () => {
       if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
     };
-  }, [selectedFloorId, floorHouseStructure, floorFurniture]);
+  }, [selectedFloorId, floorHouseStructure, floorFurniture, floorDrawingItems]);
 
   function handleFloorChange(floorId: FloorId) {
     setSelectedFloorId(floorId);
@@ -2944,7 +2962,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     }
 
     addModuleFromCatalog(catalogItem);
-    setValidatorRepairLog([`已添加 ${catalogItem.name}。可以在“家具布置”图里拖动位置，右侧“当前对象”里改尺寸材质。`]);
+    setValidatorRepairLog([`已添加 ${catalogItem.name}。可以在“家具定位图”里拖动位置，右侧“当前对象”里改尺寸材质。`]);
   }
 
   function getCurrentWorkspace(saveMode: PersistedWebWorkspace["saveMode"] = "manual"): PersistedWebWorkspace {
@@ -2964,6 +2982,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         cleanPatches: cleanPatchesByFloor[floor.id] ?? []
       })),
       furniture: enrichMissingFurnitureMetadata(furniture),
+      drawingItems,
+      drawingPackage: { ...drawingPackage, drawingItemIds: drawingItems.map((item) => item.id) },
       semanticObjects,
       visualSettingsByFloor,
       cleanPatchesByFloor,
@@ -3894,6 +3914,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...currentFurniture.filter((item) => item.floorId !== selectedFloorId),
       ...snapshotFurniture
     ]);
+    setDrawingItems((currentItems) => [
+      ...currentItems.filter((item) => item.floorId !== selectedFloorId),
+      ...snapshot.drawingItems
+    ]);
+    setDrawingPackage((currentPackage) => {
+      const otherIds = drawingItems.filter((item) => item.floorId !== selectedFloorId).map((item) => item.id);
+      return { ...currentPackage, drawingItemIds: [...otherIds, ...snapshot.drawingItems.map((item) => item.id)], updatedAt: new Date().toISOString() };
+    });
     setActiveObjectId("");
   }
 
@@ -3902,7 +3930,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
     const pendingBase = pendingHistoryBaseRef.current[selectedFloorId];
     const history = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
-    const current = { structure: floorHouseStructure, furniture: floorFurniture };
+    const current = { structure: floorHouseStructure, furniture: floorFurniture, drawingItems: floorDrawingItems };
     const target = pendingBase ?? history.past.at(-1);
     if (!target) return;
     delete pendingHistoryBaseRef.current[selectedFloorId];
@@ -3921,7 +3949,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     const history = historyByFloor[selectedFloorId] ?? { past: [], future: [] };
     const target = history.future[0];
     if (!target) return;
-    const current = { structure: floorHouseStructure, furniture: floorFurniture };
+    const current = { structure: floorHouseStructure, furniture: floorFurniture, drawingItems: floorDrawingItems };
     setHistoryByFloor((currentHistory) => ({
       ...currentHistory,
       [selectedFloorId]: {
@@ -4471,12 +4499,61 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     });
   }
 
+  function handleFloorDrawingItemsChange(nextFloorItems: DrawingItem[]) {
+    if (!canMutateWorkspace) return;
+    const nextAllItems = [
+      ...drawingItems.filter((item) => item.floorId !== selectedFloorId),
+      ...nextFloorItems
+    ];
+    setDrawingItems(nextAllItems);
+    setDrawingPackage((currentPackage) => ({
+      ...currentPackage,
+      drawingItemIds: nextAllItems.map((item) => item.id),
+      updatedAt: new Date().toISOString()
+    }));
+  }
+
+  function handleGenerateDrawingItems(scope: "floor" | "all") {
+    if (!canMutateWorkspace) return;
+    const floorIds = scope === "floor" ? [selectedFloorId] : floors.map((floor) => floor.id);
+    let result = generateDrawingItemsFromFurniture({ furniture, structuresByFloor: houseStructuresByFloor, existingItems: drawingItems, floorIds });
+    if (result.conflicts.length > 0) {
+      const confirmed = window.confirm(`已有 ${result.conflicts.length} 个点位经过人工调整，是否重新生成并覆盖这些调整？`);
+      if (confirmed) result = generateDrawingItemsFromFurniture({ furniture, structuresByFloor: houseStructuresByFloor, existingItems: drawingItems, floorIds, overwriteConflicts: true });
+    }
+    const changedFloorIds = floorIds.filter((floorId) => {
+      const before = drawingItems.filter((item) => item.floorId === floorId);
+      const after = result.items.filter((item) => item.floorId === floorId);
+      return JSON.stringify(before) !== JSON.stringify(after);
+    });
+    if (changedFloorIds.length > 0) {
+      setHistoryByFloor((currentHistory) => {
+        const nextHistory = { ...currentHistory };
+        changedFloorIds.forEach((floorId) => {
+          const history = nextHistory[floorId] ?? { past: [], future: [] };
+          const structure = houseStructuresByFloor[floorId] ?? createEmptyStructure(floorId);
+          const snapshot = { structure, furniture: furniture.filter((item) => item.floorId === floorId), drawingItems: drawingItems.filter((item) => item.floorId === floorId) };
+          nextHistory[floorId] = { past: [...history.past.slice(-39), snapshot], future: [] };
+          committedModelRef.current[floorId] = { structure, furniture: snapshot.furniture, drawingItems: result.items.filter((item) => item.floorId === floorId) };
+        });
+        return nextHistory;
+      });
+      suppressHistoryRef.current = changedFloorIds.includes(selectedFloorId);
+      setDrawingItems(result.items);
+      setDrawingPackage((currentPackage) => ({ ...currentPackage, drawingItemIds: result.items.map((item) => item.id), updatedAt: new Date().toISOString() }));
+    }
+    const conflictMessage = result.conflicts.length ? `；${result.conflicts.length} 项已有人工调整，未覆盖` : "";
+    setValidatorRepairLog([`从家具生成需求点：新增 ${result.created}，更新 ${result.updated}，跳过 ${result.skipped}${conflictMessage}。`]);
+  }
+
   function handleDeleteFurniture(furnitureId: string) {
     if (!canMutateWorkspace) return;
     const targetFurniture = floorFurniture.find((item) => item.id === furnitureId);
     if (!targetFurniture || targetFurniture.locked) return;
     const nextFloorFurniture = floorFurniture.filter((item) => item.id !== furnitureId);
     handleFloorFurnitureChange(nextFloorFurniture);
+    const orphanCount = drawingItems.filter((item) => item.relatedFurnitureId === furnitureId || item.hostObjectId === furnitureId).length;
+    if (orphanCount > 0) setValidatorRepairLog([`已删除家具；${orphanCount} 个图纸点位成为孤立引用，请删除点位或重新绑定家具。`]);
     if (selectedFurnitureId === furnitureId) {
       setSelectedFurnitureId(nextFloorFurniture[0]?.id ?? "");
     }
@@ -4536,13 +4613,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     : null;
   const mobileDisplayLabel = mobileDisplayLevel === "simple" ? "简洁" : mobileDisplayLevel === "annotated" ? "标注" : "专业";
   const professionalModeLabels: Record<MobileProfessionalSheetMode, string> = {
-    socket: "插座",
-    switch: "开关",
-    lighting: "灯光",
-    water: "水路",
-    drainage: "排水",
-    ceiling: "吊顶",
-    flooring: "铺装"
+    socketPlan: "插座",
+    switchPlan: "开关",
+    lightingPlan: "灯光",
+    waterSupplyPlan: "给水",
+    drainagePlan: "排水",
+    ceilingPlan: "吊顶",
+    floorFinishPlan: "地面",
+    wallFinishPlan: "墙面",
+    materialPlan: "材料",
+    annotationPlan: "标注"
   };
 
   if (mobileShellActive) {
@@ -4643,6 +4723,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               legacyRooms={floorLegacyRooms}
               legacyWalls={floorLegacyWalls}
               furniture={floorFurniture}
+              drawingItems={floorDrawingItems}
               semanticObjects={floorSemanticObjects}
               selectedFurnitureId={activeFurniture?.id ?? selectedFurniture?.id ?? ""}
               selectedSemanticObjectId={selectedSemanticObjectId}
@@ -4687,6 +4768,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onCleanPatchesChange={handleCleanPatchesChange}
               onSelectFurniture={handleMobileFurnitureSelect}
               onFurnitureChange={handleFloorFurnitureChange}
+              onDrawingItemsChange={handleFloorDrawingItemsChange}
+              onGenerateDrawingItems={handleGenerateDrawingItems}
               onShowFurnitureLabelsChange={setShowFurnitureLabels}
               onOpenWardrobeDesigner={openWardrobeDesigner}
               onOpenStairDesigner={openStairDesignPage}
@@ -4939,6 +5022,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               legacyRooms={floorLegacyRooms}
               legacyWalls={floorLegacyWalls}
               furniture={floorFurniture}
+              drawingItems={floorDrawingItems}
               semanticObjects={floorSemanticObjects}
               selectedFurnitureId={selectedFurniture?.id ?? ""}
               selectedSemanticObjectId={selectedSemanticObjectId}
@@ -4974,6 +5058,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onCleanPatchesChange={handleCleanPatchesChange}
               onSelectFurniture={handleFurnitureSelect}
               onFurnitureChange={handleFloorFurnitureChange}
+              onDrawingItemsChange={handleFloorDrawingItemsChange}
+              onGenerateDrawingItems={handleGenerateDrawingItems}
               onShowFurnitureLabelsChange={setShowFurnitureLabels}
               onOpenWardrobeDesigner={openWardrobeDesigner}
               onOpenStairDesigner={openStairDesignPage}

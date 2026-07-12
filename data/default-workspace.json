@@ -1,10 +1,18 @@
 {
-  "schemaVersion": 5,
-  "dataRevision": "2026-07-11-data-source-convergence-v1",
-  "defaultWorkspaceRevision": "2026-07-10-five-level-presentation-v1",
+  "schemaVersion": 6,
+  "dataRevision": "2026-07-12-drawing-package-system-v1",
+  "defaultWorkspaceRevision": "2026-07-12-drawing-package-system-v1",
   "savedAt": "2026-07-12T05:48:23.775Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
+  "drawingItems": [],
+  "drawingPackage": {
+    "id": "drawing-package-main",
+    "name": "施工图纸包",
+    "drawingItemIds": [],
+    "createdAt": "2026-07-12T00:00:00.000Z",
+    "updatedAt": "2026-07-12T00:00:00.000Z"
+  },
   "floors": [
     {
       "id": "B2",

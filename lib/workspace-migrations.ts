@@ -1,13 +1,15 @@
 import type { Floor, FloorId, HouseStructure } from "@/types/space";
 import type { WorkspaceDataCategory, WorkspaceDataSourceReport, WorkspaceDocument } from "@/types/workspace";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 5;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-11-data-source-convergence-v1";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 6;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-12-drawing-package-system-v1";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
   "houseStructuresByFloor",
   "furniture",
+  "drawingItems",
+  "drawingPackage",
   "semanticObjects",
   "cameraViews",
   "visualSettingsByFloor",
@@ -126,6 +128,14 @@ export function applyWorkspaceMigrations(
 
   migrateMissingCategory("floors", canonical?.floors ?? []);
   migrateMissingCategory("furniture", canonical?.furniture ?? []);
+  migrateMissingCategory("drawingItems", []);
+  migrateMissingCategory("drawingPackage", canonical?.drawingPackage ?? {
+    id: "drawing-package-main",
+    name: "施工图纸包",
+    drawingItemIds: [],
+    createdAt: "2026-07-12T00:00:00.000Z",
+    updatedAt: "2026-07-12T00:00:00.000Z"
+  });
   migrateMissingCategory("semanticObjects", canonical?.semanticObjects ?? []);
   migrateMissingCategory("cameraViews", canonical?.cameraViews ?? []);
   migrateMissingCategory("visualSettingsByFloor", canonical?.visualSettingsByFloor ?? {} as WorkspaceDocument["visualSettingsByFloor"]);

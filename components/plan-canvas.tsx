@@ -48,6 +48,16 @@ import {
   getFloorPlanFilter,
   getRepairOverlayStyles
 } from "@/lib/floor-plan-cleanup";
+import {
+  drawingSheetTypeLabels,
+  normalizeDrawingSheetType,
+  normalizePlanCanvasMode,
+  officialDrawingSheetTypes,
+  planCanvasModeDescriptions,
+  planCanvasModeFootnotes,
+  planCanvasModeLabels
+} from "@/lib/drawing-sheets";
+import { createDrawingItem, drawingItemCategories, drawingItemCategoryLabels, drawingItemStatuses, drawingItemStatusLabels, getDrawingItemCategoriesForSheet } from "@/lib/drawing-items";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
 import {
   applyPlanDelta,
@@ -62,6 +72,9 @@ import { Floor3DView } from "@/components/floor-3d-view";
 import type {
   CleanPatch,
   DrawTool,
+  DrawingSheetType,
+  DrawingItem,
+  DrawingItemCategory,
   FixedCameraView,
   Floor,
   FloorPlanPreset,
@@ -73,6 +86,7 @@ import type {
   MobileDisplayLevel,
   MobileQuality,
   MmPoint,
+  PlanCanvasMode,
   PlannerMode,
   Room,
   ViewMode,
@@ -90,6 +104,7 @@ type Props = {
   /** @deprecated Debug-only fallback for workspaces without structural walls. */
   legacyWalls?: Wall[];
   furniture: Furniture[];
+  drawingItems: DrawingItem[];
   semanticObjects: SemanticObject[];
   selectedFurnitureId: string;
   selectedSemanticObjectId: string;
@@ -107,7 +122,7 @@ type Props = {
   mobilePresentationMode?: boolean;
   workspaceMutationAllowed?: boolean;
   mobileDisplayLevel?: MobileDisplayLevel;
-  mobileProfessionalSheetMode?: PlanSheetMode;
+  mobileProfessionalSheetMode?: DrawingSheetType | PlanCanvasMode | string;
   mobileQuality?: MobileQuality;
   resetViewRequest?: number;
   showFurnitureLabels?: boolean;
@@ -132,6 +147,8 @@ type Props = {
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
   onSelectFurniture: (furniture: Furniture) => void;
   onFurnitureChange: (furniture: Furniture[]) => void;
+  onDrawingItemsChange: (drawingItems: DrawingItem[]) => void;
+  onGenerateDrawingItems: (scope: "floor" | "all") => void;
   onShowFurnitureLabelsChange?: (visible: boolean) => void;
   onOpenWardrobeDesigner?: (furnitureId: string) => void;
   onOpenStairDesigner?: (stairId: string) => void;
@@ -154,7 +171,6 @@ type ObjectLabel = {
 };
 
 type LabelFilter = "all" | "walls" | "openings" | "rooms" | "outdoor" | "furniture";
-type PlanSheetMode = "site" | "structure" | "sync" | "construction" | "furnishing" | "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "flooring" | "preview";
 type PlanBounds = { x: number; y: number; width: number; height: number };
 type SyncPaintRuleId = WallSyncRuleId | "default";
 type ClickDrawTool = "wall-straight" | "wall-arc" | "partition" | "stair" | "fence";
@@ -171,7 +187,10 @@ type StructureObjectRow = {
 };
 type ConstructionSheet = {
   id: string;
-  mode: PlanSheetMode;
+  drawingType: DrawingSheetType | null;
+  viewType: DrawingSheetType;
+  /** @deprecated Old PlanSheetMode value kept so imported/customized sheets still resolve. */
+  mode?: PlanCanvasMode | string;
   sheetNo: string;
   title: string;
   audience: string;
@@ -188,7 +207,7 @@ type ConstructionSpecRow = {
 };
 
 type FurnitureDemandHint = {
-  key: "socket" | "switch" | "lighting" | "water" | "drainage" | "ceiling" | "construction";
+  key: "socketPlan" | "switchPlan" | "lightingPlan" | "waterSupplyPlan" | "drainagePlan" | "ceilingPlan" | "annotationPlan";
   label: string;
   details: string[];
   color: string;
@@ -219,57 +238,11 @@ const outdoorSurfaceMaterialLabels = outdoorSurfaceMaterialOptions.reduce((label
   return labels;
 }, {} as Record<OutdoorSurfaceMaterial, string>);
 
-const planSheetModeLabels: Record<PlanSheetMode, string> = {
-  site: "总平面",
-  structure: "空白结构",
-  sync: "联动规则",
-  construction: "施工标注",
-  furnishing: "家具布置",
-  socket: "插座点位",
-  switch: "开关控制",
-  lighting: "灯光布置",
-  water: "给水路线",
-  drainage: "排水路线",
-  ceiling: "吊顶机电",
-  flooring: "地面铺装",
-  preview: "效果预览"
-};
-
-const planSheetModeDescriptions: Record<PlanSheetMode, string> = {
-  site: "1F 建筑与南北庭院合并展示，作为所有图纸的总底盘。",
-  structure: "只看墙、门窗、楼梯、院子等固定骨架。",
-  sync: "用颜色标出四层、双层、地下室和独立墙体的联动范围。",
-  construction: "在结构模型上叠加尺寸，后续承载拆改和施工备注。",
-  furnishing: "从同一模型显示家具对象，未来可导出采购清单。",
-  socket: "基于同一结构与家具模型布置强弱电插座点位。",
-  switch: "表达开关位置和灯具控制关系。",
-  lighting: "表达筒灯、射灯、灯带、吊灯和庭院灯的初步方案。",
-  water: "表达厨房、岛台、卫生间等给水点和管线方向。",
-  drainage: "表达水槽、地漏、马桶、台盆等排水点和主管方向。",
-  ceiling: "表达吊顶边界、灯槽、风口和检修口。",
-  flooring: "表达地面材质、铺装区域和庭院硬地/草坪关系。",
-  preview: "未来承接 3D 白模、材质灯光和家人沟通效果。"
-};
-
-const planSheetModeFootnotes: Record<PlanSheetMode, string> = {
-  site: "同一 1F 模型：建筑 / 北院 / 南院",
-  structure: "结构对象：墙 / 门窗 / 楼梯 / 院子",
-  sync: "蓝=四层，绿=1F/2F，橙=B1/B2，灰=独立，紫=楼梯四层",
-  construction: "施工表达：尺寸 / 洞口 / 后续备注",
-  furnishing: "家具对象：尺寸 / 位置 / 朝向",
-  socket: "强弱电：插座 / 专用回路 / 防水点位",
-  switch: "控制关系：开关 / 双控 / 灯组",
-  lighting: "灯光：主灯 / 筒射灯 / 灯带 / 庭院灯",
-  water: "给水：冷水 / 热水 / 净水 / 预留点",
-  drainage: "排水：地漏 / 台盆 / 水槽 / 主管方向",
-  ceiling: "吊顶：边界 / 灯槽 / 风口 / 检修口",
-  flooring: "地面：室内铺装 / 庭院硬地 / 绿化",
-  preview: "展示表达：家具 / 语义 / 白模"
-};
-
-const wallEditableSheetModes = new Set<PlanSheetMode>(["structure", "construction"]);
-const wallEditableSheetModeLabel = "空白结构、施工标注";
-const furnitureDemandSheetModes = new Set<PlanSheetMode>(["socket", "switch", "lighting", "water", "drainage", "ceiling", "construction"]);
+const wallEditableSheetTypes = new Set<DrawingSheetType>(["structurePlan", "demolitionAndBuildPlan"]);
+const wallEditableSheetTypeLabel = "结构图、拆改施工图";
+const furnitureDemandSheetTypes = new Set<DrawingSheetType>(["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "annotationPlan"]);
+const drawingSheetSelectTypes = officialDrawingSheetTypes;
+const drawingCheckModes: PlanCanvasMode[] = ["structureSyncCheck"];
 
 const lightingTypeLabels: Record<string, string> = {
   ambient: "环境光",
@@ -309,11 +282,11 @@ function getConstructionNote(item: Furniture) {
   return item.constructionMeta?.notes || item.constructionNote || item.note || "";
 }
 
-function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): FurnitureDemandHint | null {
+function getFurnitureDemandHint(item: Furniture, mode: DrawingSheetType): FurnitureDemandHint | null {
   const mep = item.mepMeta ?? {};
   const construction = item.constructionMeta ?? {};
-  if (mode === "socket" && (mep.needsSocket || mep.needsNetwork)) return {
-    key: "socket",
+  if (mode === "socketPlan" && (mep.needsSocket || mep.needsNetwork)) return {
+    key: "socketPlan",
     label: mep.needsNetwork && !mep.needsSocket ? "弱电" : `插${mep.socketCount ? ` ${mep.socketCount}` : ""}`,
     details: compactList([
       mep.needsSocket ? `${mep.socketHeight ?? 300}mm` : null,
@@ -323,8 +296,8 @@ function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): Furniture
     color: "#2563eb",
     background: "#dbeafe"
   };
-  if (mode === "switch" && (mep.needsSwitch || mep.needsSmartControl)) return {
-    key: "switch",
+  if (mode === "switchPlan" && (mep.needsSwitch || mep.needsSmartControl)) return {
+    key: "switchPlan",
     label: mep.needsSmartControl && !mep.needsSwitch ? "智" : "控",
     details: compactList([
       ...(mep.switchControl ?? []),
@@ -334,8 +307,8 @@ function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): Furniture
     color: "#7c3aed",
     background: "#ede9fe"
   };
-  if (mode === "lighting" && (mep.needsLighting || mep.needsSmartControl)) return {
-    key: "lighting",
+  if (mode === "lightingPlan" && (mep.needsLighting || mep.needsSmartControl)) return {
+    key: "lightingPlan",
     label: mep.needsSmartControl && !mep.needsLighting ? "智" : "灯",
     details: compactList([
       mep.lightingType ? lightingTypeLabels[mep.lightingType] ?? mep.lightingType : null,
@@ -345,22 +318,22 @@ function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): Furniture
     color: "#ca8a04",
     background: "#fef9c3"
   };
-  if (mode === "water" && mep.needsWaterSupply) return {
-    key: "water",
+  if (mode === "waterSupplyPlan" && mep.needsWaterSupply) return {
+    key: "waterSupplyPlan",
     label: "水",
     details: compactList([mep.waterSupplyType ? waterSupplyTypeLabels[mep.waterSupplyType] ?? mep.waterSupplyType : null, mep.notes]),
     color: "#0284c7",
     background: "#e0f2fe"
   };
-  if (mode === "drainage" && mep.needsDrainage) return {
-    key: "drainage",
+  if (mode === "drainagePlan" && mep.needsDrainage) return {
+    key: "drainagePlan",
     label: "排",
     details: compactList([mep.drainageType ? drainageTypeLabels[mep.drainageType] ?? mep.drainageType : null, mep.notes]),
     color: "#15803d",
     background: "#dcfce7"
   };
-  if (mode === "ceiling" && (construction.ceilingDependency || construction.inspectionAccessRequired || mep.needsVentilation)) return {
-    key: "ceiling",
+  if (mode === "ceilingPlan" && (construction.ceilingDependency || construction.inspectionAccessRequired || mep.needsVentilation)) return {
+    key: "ceilingPlan",
     label: mep.needsVentilation && !construction.ceilingDependency ? "风" : "顶",
     details: compactList([
       construction.ceilingDependency,
@@ -370,8 +343,8 @@ function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): Furniture
     color: "#0f766e",
     background: "#ccfbf1"
   };
-  if (mode === "construction" && (getConstructionNote(item).trim() || construction.customMade || construction.waterproofRequired || construction.inspectionAccessRequired || construction.ceilingDependency)) return {
-    key: "construction",
+  if (mode === "annotationPlan" && (getConstructionNote(item).trim() || construction.customMade || construction.waterproofRequired || construction.inspectionAccessRequired || construction.ceilingDependency)) return {
+    key: "annotationPlan",
     label: construction.waterproofRequired ? "防" : construction.customMade ? "定" : "施",
     details: compactList([
       construction.customMade ? "定制" : null,
@@ -387,18 +360,21 @@ function getFurnitureDemandHint(item: Furniture, mode: PlanSheetMode): Furniture
 }
 
 const defaultConstructionSheets: ConstructionSheet[] = [
-  { id: "cover", mode: "site", sheetNo: "A-00", title: "图纸目录 / 总说明", audience: "施工队 / 家人确认", scale: "NTS", status: "概念版", note: "列明版本、楼层、图纸范围和现场复核要求。" },
-  { id: "site", mode: "site", sheetNo: "A-01", title: "总平面与庭院关系", audience: "施工队 / 家人", scale: "1:100", status: "待复核", note: "表达北院入户、南院生活庭院、建筑主体与室外硬地关系。" },
-  { id: "structure", mode: "structure", sheetNo: "A-02", title: "原始结构 / 墙体门窗", audience: "施工队", scale: "1:50", status: "待复核", note: "只看墙、门窗、楼梯、院子边界，所有尺寸现场复尺。" },
-  { id: "construction", mode: "construction", sheetNo: "A-03", title: "施工尺寸 / 拆改标注", audience: "施工队", scale: "1:50", status: "施工沟通", note: "标注净尺寸、洞口、隔断、楼梯和关键通道尺寸。" },
-  { id: "furnishing", mode: "furnishing", sheetNo: "F-01", title: "家具与硬装定位", audience: "施工队 / 家人", scale: "1:50", status: "方案中", note: "用于确认沙发、餐桌、中岛、柜体、床和收纳的真实占位。" },
-  { id: "socket", mode: "socket", sheetNo: "E-01", title: "强弱电插座点位", audience: "水电工", scale: "1:50", status: "示意", note: "点位编号、离地高度、专用回路和防水要求后续逐项校正。" },
-  { id: "switch", mode: "switch", sheetNo: "E-02", title: "开关与控制关系", audience: "水电工", scale: "1:50", status: "示意", note: "表达入户、楼梯、客餐厅、庭院、卧室的双控与灯组控制。" },
-  { id: "lighting", mode: "lighting", sheetNo: "L-01", title: "灯光布置", audience: "电工 / 吊顶", scale: "1:50", status: "示意", note: "筒灯、射灯、灯带、吊灯、庭院灯按生活场景分组。" },
-  { id: "water", mode: "water", sheetNo: "W-01", title: "给水与净水预留", audience: "水电工", scale: "1:50", status: "示意", note: "厨房、岛台、卫浴、庭院龙头的冷水、热水、净水路径。" },
-  { id: "drainage", mode: "drainage", sheetNo: "W-02", title: "排水与地漏", audience: "水电工 / 泥工", scale: "1:50", status: "示意", note: "水槽、台盆、地漏、庭院排水和地下层排水需结合现场管位。" },
-  { id: "ceiling", mode: "ceiling", sheetNo: "C-01", title: "吊顶 / 风口 / 检修", audience: "木工 / 空调", scale: "1:50", status: "示意", note: "表达局部吊顶、灯槽、风口、检修口和设备预留。" },
-  { id: "flooring", mode: "flooring", sheetNo: "M-01", title: "地面材质与铺装", audience: "泥工 / 家人", scale: "1:50", status: "示意", note: "室内木地板、防滑砖、庭院石材、绿化和收口关系。" }
+  { id: "cover", drawingType: null, viewType: "sitePlan", sheetNo: "A-00", title: "图纸目录/总说明", audience: "施工队 / 家人确认", scale: "NTS", status: "概念版", note: "列明版本、楼层、图纸范围、现场复核要求和出图口径。" },
+  { id: "site-plan", drawingType: "sitePlan", viewType: "sitePlan", sheetNo: "A-01", title: "总平面图", audience: "施工队 / 家人", scale: "1:100", status: "待复核", note: "表达北院入户、南院生活庭院、建筑主体与室外硬地关系。" },
+  { id: "structure-plan", drawingType: "structurePlan", viewType: "structurePlan", sheetNo: "A-02", title: "结构图", audience: "施工队", scale: "1:50", status: "待复核", note: "只看墙、门窗、楼梯、院子边界，所有尺寸现场复尺。" },
+  { id: "demolition-build-plan", drawingType: "demolitionAndBuildPlan", viewType: "demolitionAndBuildPlan", sheetNo: "A-03", title: "拆改施工图", audience: "施工队", scale: "1:50", status: "施工沟通", note: "标注净尺寸、洞口、隔断、楼梯和关键通道尺寸。" },
+  { id: "furniture-plan", drawingType: "furniturePlan", viewType: "furniturePlan", sheetNo: "F-01", title: "家具定位图", audience: "施工队 / 家人", scale: "1:50", status: "方案中", note: "用于确认沙发、餐桌、中岛、柜体、床和收纳的真实占位。" },
+  { id: "socket-plan", drawingType: "socketPlan", viewType: "socketPlan", sheetNo: "E-01", title: "插座点位图", audience: "水电工", scale: "1:50", status: "示意", note: "点位编号、离地高度、专用回路和防水要求后续逐项校正。" },
+  { id: "switch-plan", drawingType: "switchPlan", viewType: "switchPlan", sheetNo: "E-02", title: "开关控制图", audience: "水电工", scale: "1:50", status: "示意", note: "表达入户、楼梯、客餐厅、庭院、卧室的双控与灯组控制。" },
+  { id: "lighting-plan", drawingType: "lightingPlan", viewType: "lightingPlan", sheetNo: "L-01", title: "灯光点位图", audience: "电工 / 吊顶", scale: "1:50", status: "示意", note: "筒灯、射灯、灯带、吊灯、庭院灯按生活场景分组。" },
+  { id: "water-supply-plan", drawingType: "waterSupplyPlan", viewType: "waterSupplyPlan", sheetNo: "W-01", title: "给水点位图", audience: "水电工", scale: "1:50", status: "示意", note: "厨房、岛台、卫浴、庭院龙头的冷水、热水、净水预留点；不表达专业管线路径。" },
+  { id: "drainage-plan", drawingType: "drainagePlan", viewType: "drainagePlan", sheetNo: "W-02", title: "排水点位图", audience: "水电工 / 泥工", scale: "1:50", status: "示意", note: "水槽、台盆、地漏、马桶和庭院排水需求点；管位需结合现场复核。" },
+  { id: "ceiling-plan", drawingType: "ceilingPlan", viewType: "ceilingPlan", sheetNo: "C-01", title: "吊顶图", audience: "木工 / 空调", scale: "1:50", status: "示意", note: "表达局部吊顶、灯槽、风口、检修口和设备预留。" },
+  { id: "floor-finish-plan", drawingType: "floorFinishPlan", viewType: "floorFinishPlan", sheetNo: "M-01", title: "地面铺装图", audience: "泥工 / 家人", scale: "1:50", status: "示意", note: "室内木地板、防滑砖、庭院石材、绿化和收口关系。" },
+  { id: "wall-finish-plan", drawingType: "wallFinishPlan", viewType: "wallFinishPlan", sheetNo: "M-02", title: "墙面材料图", audience: "泥工 / 油工 / 家人", scale: "1:50", status: "示意", note: "表达湿区、重点墙、涂料、石材和护墙材料方向。" },
+  { id: "material-plan", drawingType: "materialPlan", viewType: "materialPlan", sheetNo: "M-03", title: "材料索引图", audience: "家人 / 采购 / 施工队", scale: "NTS", status: "示意", note: "汇总地面、墙面、柜体、灯具、设备和庭院材料索引。" },
+  { id: "annotation-plan", drawingType: "annotationPlan", viewType: "annotationPlan", sheetNo: "N-01", title: "施工标注/待确认项", audience: "施工队 / 家人确认", scale: "1:50", status: "待确认", note: "集中列出现场复核、厂家图纸、检修、防水和待确认事项。" }
 ];
 
 const defaultConstructionSpecs: ConstructionSpecRow[] = [
@@ -592,6 +568,7 @@ export function PlanCanvas({
   legacyRooms = [],
   legacyWalls = [],
   furniture,
+  drawingItems,
   semanticObjects = [],
   selectedFurnitureId,
   selectedSemanticObjectId = "",
@@ -609,7 +586,7 @@ export function PlanCanvas({
   mobilePresentationMode = false,
   workspaceMutationAllowed = true,
   mobileDisplayLevel = "simple",
-  mobileProfessionalSheetMode = "socket",
+  mobileProfessionalSheetMode = "socketPlan",
   mobileQuality = "balanced",
   resetViewRequest = 0,
   showFurnitureLabels,
@@ -634,6 +611,8 @@ export function PlanCanvas({
   onCleanPatchesChange: requestCleanPatchesChange,
   onSelectFurniture,
   onFurnitureChange: requestFurnitureChange,
+  onDrawingItemsChange: requestDrawingItemsChange,
+  onGenerateDrawingItems,
   onShowFurnitureLabelsChange,
   onOpenWardrobeDesigner,
   onOpenStairDesigner,
@@ -669,6 +648,9 @@ export function PlanCanvas({
   const onFurnitureChange = (nextFurniture: Furniture[]) => {
     if (workspaceMutationAllowed) requestFurnitureChange(nextFurniture);
   };
+  const onDrawingItemsChange = (nextItems: DrawingItem[]) => {
+    if (workspaceMutationAllowed) requestDrawingItemsChange(nextItems);
+  };
   const onMoveSemanticObject = (objectId: string, position: { x: number; y: number }) => {
     if (workspaceMutationAllowed) requestMoveSemanticObject(objectId, position);
   };
@@ -678,7 +660,10 @@ export function PlanCanvas({
   const [isCleanupPanelOpen, setIsCleanupPanelOpen] = useState(false);
   const [cleanupSelection, setCleanupSelection] = useState<CleanPatch["rect"] | null>(null);
   const [exportOptions, setExportOptions] = useState({ overlay: false, roomNames: false, furniture: false });
-  const [sheetMode, setSheetMode] = useState<PlanSheetMode>("site");
+  const [sheetMode, setNormalizedSheetMode] = useState<PlanCanvasMode>("sitePlan");
+  const setSheetMode = (nextMode: PlanCanvasMode | DrawingSheetType | string | null | undefined) => {
+    setNormalizedSheetMode(normalizePlanCanvasMode(nextMode));
+  };
   const [isConstructionPackageOpen, setIsConstructionPackageOpen] = useState(false);
   const [constructionSheets, setConstructionSheets] = useState<ConstructionSheet[]>(defaultConstructionSheets);
   const [constructionSpecs, setConstructionSpecs] = useState<ConstructionSpecRow[]>(defaultConstructionSpecs);
@@ -693,6 +678,7 @@ export function PlanCanvas({
   const [outdoorSurfaceMaterial, setOutdoorSurfaceMaterial] = useState<OutdoorSurfaceMaterial>("pebble");
   const [outdoorPathWidth, setOutdoorPathWidth] = useState(800);
   const [selectedStructureId, setSelectedStructureId] = useState("");
+  const [selectedDrawingItemId, setSelectedDrawingItemId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
   const [internalShowFurnitureLabels, setInternalShowFurnitureLabels] = useState(true);
@@ -706,6 +692,7 @@ export function PlanCanvas({
   const drawDragRef = useRef<{ pointerId: number; start: MmPoint } | null>(null);
   const openingDragRef = useRef<{ pointerId: number; objectId: string; objectType: "door" | "window"; moved: boolean } | null>(null);
   const furnitureDragRef = useRef<{ pointerId: number; objectId: string; lastPosition: MmPoint; moved: boolean } | null>(null);
+  const drawingItemDragRef = useRef<{ pointerId: number; objectId: string } | null>(null);
   const cleanupDragRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const planRef = useRef<HTMLDivElement | null>(null);
   const objectDragRef = useRef<{ pointerId: number; objectId: string; moved: boolean } | null>(null);
@@ -791,14 +778,14 @@ export function PlanCanvas({
 
   useEffect(() => {
     if (!furnitureImmersiveMode) return;
-    setSheetMode("furnishing");
+    setSheetMode("furniturePlan");
     onPlannerModeChange("edit");
     onDrawToolChange("select");
   }, [furnitureImmersiveMode, onDrawToolChange, onPlannerModeChange]);
 
   useEffect(() => {
     if (!yardImmersiveMode) return;
-    setSheetMode("structure");
+    setSheetMode("structurePlan");
     onPlannerModeChange("edit");
     onDrawToolChange("select");
     setLabelFilter("outdoor");
@@ -807,14 +794,14 @@ export function PlanCanvas({
 
   useEffect(() => {
     if (!focusMode) return;
-    setSheetMode("structure");
+    setSheetMode("structurePlan");
     onPlannerModeChange("edit");
     onDrawToolChange("select");
     setLabelFilter("all");
   }, [focusMode, onDrawToolChange, onPlannerModeChange]);
 
   useEffect(() => {
-    if (sheetMode !== "sync") return;
+    if (sheetMode !== "structureSyncCheck") return;
     if (houseStructure.walls.some((wall) => wall.id === selectedStructureId)) {
       setSelectedSyncWallId(selectedStructureId);
     }
@@ -987,7 +974,7 @@ export function PlanCanvas({
 
   useEffect(() => {
     if (!mobilePresentationMode) return;
-    const nextSheetMode = mobileDisplayLevel === "professional" ? mobileProfessionalSheetMode : "furnishing";
+    const nextSheetMode = mobileDisplayLevel === "professional" ? mobileProfessionalSheetMode : "furniturePlan";
     setSheetMode(nextSheetMode);
     setShowObjectIds(false);
     setLabelFilter("all");
@@ -1158,7 +1145,7 @@ export function PlanCanvas({
   }
 
   function applyWallSyncOverride(wallId: string, ruleId: SyncPaintRuleId) {
-    if (sheetMode !== "sync") return;
+    if (sheetMode !== "structureSyncCheck") return;
     const nextOverrides = { ...wallSyncOverrides };
     if (ruleId === "default") {
       delete nextOverrides[wallId];
@@ -1287,21 +1274,21 @@ export function PlanCanvas({
   }
 
   function canSelectFurnitureLayer() {
-    return sheetMode === "site" || sheetMode === "furnishing" || sheetMode === "preview" || sheetMode === "construction" || ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
+    return sheetMode === "sitePlan" || sheetMode === "furniturePlan" || sheetMode === "presentationView" || sheetMode === "annotationPlan" || ["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan"].includes(sheetMode);
   }
 
   function canSelectStructureLayer(kind: StructureInteractionKind) {
     if (mobilePresentationMode) return true;
-    if (sheetMode === "site") return true;
-    if (sheetMode === "sync") return kind === "wall";
-    if (sheetMode === "structure" || sheetMode === "construction") return true;
+    if (sheetMode === "sitePlan") return true;
+    if (sheetMode === "structureSyncCheck") return kind === "wall";
+    if (sheetMode === "structurePlan" || sheetMode === "demolitionAndBuildPlan") return true;
     return false;
   }
 
   function canMutateStructureLayer(kind: StructureInteractionKind) {
-    if (kind === "room" || sheetMode === "sync") return false;
-    if (kind === "wall") return wallEditableSheetModes.has(sheetMode);
-    return sheetMode === "structure" || sheetMode === "construction";
+    if (kind === "room" || sheetMode === "structureSyncCheck") return false;
+    if (kind === "wall") return wallEditableSheetTypes.has(sheetMode as DrawingSheetType);
+    return sheetMode === "structurePlan" || sheetMode === "demolitionAndBuildPlan";
   }
 
   function canDrawStructureTool(tool: DrawTool) {
@@ -1310,25 +1297,26 @@ export function PlanCanvas({
   }
 
   function getLayerInteractionLabel() {
-    if (sheetMode === "site") return "总平面：可选择全部对象，墙体只读";
-    if (sheetMode === "furnishing") return "家具布置：只响应家具/硬装";
-    if (sheetMode === "sync") return "联动规则：只响应墙体";
-    if (sheetMode === "structure" || sheetMode === "construction") return "结构图：可选择、绘制和调整结构对象";
-    if (sheetMode === "preview") return "效果预览：只响应展示对象";
-    return "点位图：墙体保护，响应家具/硬装";
+    if (sheetMode === "sitePlan") return "总平面图：可选择全部对象，墙体只读";
+    if (sheetMode === "furniturePlan") return "家具定位图：只响应家具/硬装";
+    if (sheetMode === "structureSyncCheck") return "结构联动检查：只响应墙体";
+    if (sheetMode === "structurePlan" || sheetMode === "demolitionAndBuildPlan") return "结构/拆改图：可选择、绘制和调整结构对象";
+    if (sheetMode === "presentationView") return "展示视图：只响应展示对象";
+    if (sheetMode === "annotationPlan") return "施工标注/待确认项：墙体保护，响应家具/硬装";
+    return "专业图纸：墙体保护，响应家具/硬装";
   }
 
   function blockProtectedStructureEdit(kind: StructureInteractionKind, action = "结构调整") {
     if (canMutateStructureLayer(kind)) return false;
     if (!canSelectStructureLayer(kind)) {
-      setStructureMessage(`${planSheetModeLabels[sheetMode]}不编辑此对象。`);
+      setStructureMessage(`${planCanvasModeLabels[sheetMode]}不编辑此对象。`);
       return true;
     }
     if (kind === "wall") {
-      setStructureMessage(`${action}已保护。只有${wallEditableSheetModeLabel}可以动墙。`);
+      setStructureMessage(`${action}已保护。只有${wallEditableSheetTypeLabel}可以动墙。`);
       return true;
     }
-    setStructureMessage(`${action}已保护。请切到空白结构或施工标注图再修改结构对象。`);
+    setStructureMessage(`${action}已保护。请切到结构图或拆改施工图再修改结构对象。`);
     return true;
   }
 
@@ -1879,7 +1867,7 @@ export function PlanCanvas({
     const selectedFurnitureObject = furniture.find((item) => item.id === interactionState.selectedObjectId);
     if (!selectedStructureId && selectedFurnitureObject) {
       if (!canSelectFurnitureLayer()) {
-        setStructureMessage(`${planSheetModeLabels[sheetMode]}不编辑家具对象。`);
+        setStructureMessage(`${planCanvasModeLabels[sheetMode]}不编辑家具对象。`);
         return;
       }
       if (objectIsLocked(selectedFurnitureObject.id) || selectedFurnitureObject.locked) {
@@ -2130,13 +2118,13 @@ export function PlanCanvas({
   function selectStructureObject(objectId: string, message?: string) {
     const kind = getStructureObjectKind(objectId);
     if (!kind || !canSelectStructureLayer(kind)) {
-      setStructureMessage(`${planSheetModeLabels[sheetMode]}不选择此对象。`);
+      setStructureMessage(`${planCanvasModeLabels[sheetMode]}不选择此对象。`);
       return;
     }
     setSelectedStructureId(objectId);
     selectObject(objectId);
     onActiveObjectChange(objectId);
-    if (sheetMode === "sync" && houseStructure.walls.some((wall) => wall.id === objectId)) {
+    if (sheetMode === "structureSyncCheck" && houseStructure.walls.some((wall) => wall.id === objectId)) {
       setSelectedSyncWallId(objectId);
       if (syncPaintRuleId) {
         applyWallSyncOverride(objectId, syncPaintRuleId);
@@ -2246,7 +2234,7 @@ export function PlanCanvas({
   function rotateSelectedFurniture() {
     const objectId = interactionState.selectedObjectId || selectedFurnitureId;
     if (!canSelectFurnitureLayer()) {
-      setStructureMessage(`${planSheetModeLabels[sheetMode]}不编辑家具对象。`);
+      setStructureMessage(`${planCanvasModeLabels[sheetMode]}不编辑家具对象。`);
       return;
     }
     if (!furniture.some((item) => item.id === objectId)) return;
@@ -2256,7 +2244,7 @@ export function PlanCanvas({
   function selectRegistryObject(row: StructureObjectRow) {
     if (row.kind === "furniture") {
       if (!canSelectFurnitureLayer()) {
-        setStructureMessage(`${planSheetModeLabels[sheetMode]}不选择家具对象。`);
+        setStructureMessage(`${planCanvasModeLabels[sheetMode]}不选择家具对象。`);
         return;
       }
       const item = furniture.find((furnitureObject) => furnitureObject.id === row.id);
@@ -2649,10 +2637,10 @@ export function PlanCanvas({
     const kind = getDrawToolStructureKind(tool);
     if (kind && !canMutateStructureLayer(kind)) {
       if (kind === "wall") {
-        setStructureMessage(`${drawToolLabels[tool]}已保护。只有${wallEditableSheetModeLabel}可以动墙。`);
+        setStructureMessage(`${drawToolLabels[tool]}已保护。只有${wallEditableSheetTypeLabel}可以动墙。`);
         return;
       }
-      setStructureMessage(`${drawToolLabels[tool]}已保护。请切到空白结构或施工标注图再使用。`);
+      setStructureMessage(`${drawToolLabels[tool]}已保护。请切到结构图或拆改施工图再使用。`);
       return;
     }
     setStructureMessage(getDrawToolMessage(tool));
@@ -2863,6 +2851,15 @@ export function PlanCanvas({
     setConstructionSheets((currentSheets) => currentSheets.map((sheet) => sheet.id === sheetId ? { ...sheet, ...patch } : sheet));
   }
 
+  function getConstructionSheetViewType(sheet: ConstructionSheet): DrawingSheetType {
+    return normalizeDrawingSheetType(sheet.viewType ?? sheet.mode ?? sheet.drawingType) ?? "sitePlan";
+  }
+
+  function getConstructionSheetTypeLabel(sheet: ConstructionSheet) {
+    const drawingType = sheet.drawingType ?? normalizeDrawingSheetType(sheet.mode);
+    return drawingType ? drawingSheetTypeLabels[drawingType] : "图纸目录/总说明";
+  }
+
   function updateConstructionSpec(specId: string, patch: Partial<ConstructionSpecRow>) {
     setConstructionSpecs((currentSpecs) => currentSpecs.map((spec) => spec.id === specId ? { ...spec, ...patch } : spec));
   }
@@ -2943,8 +2940,11 @@ export function PlanCanvas({
     return {
       floorId: floor.id,
       floorLabel: floor.label,
+      canvasMode: sheetMode,
+      drawingSheetType: normalizeDrawingSheetType(sheetMode),
       sheetMode,
       exportedAt: new Date().toISOString(),
+      drawingItems: visibleDrawingItems,
       furniture: furnitureRecords,
       mep: furnitureRecords.filter((record) => record.needsSocket || record.needsSwitch || record.needsLighting || record.needsWaterSupply || record.needsDrainage || record.needsNetwork || record.needsVentilation || record.needsSmartControl),
       construction: furnitureRecords.filter((record) => record.customMade || record.installType || record.waterproofRequired || record.inspectionAccessRequired || record.wallDependency || record.floorDependency || record.ceilingDependency || record.constructionNotes),
@@ -3029,7 +3029,7 @@ export function PlanCanvas({
       <tr>
         <td>${escapeHtml(sheet.sheetNo)}</td>
         <td>${escapeHtml(sheet.title)}</td>
-        <td>${escapeHtml(planSheetModeLabels[sheet.mode])}</td>
+        <td>${escapeHtml(getConstructionSheetTypeLabel(sheet))}</td>
         <td>${escapeHtml(sheet.scale)}</td>
         <td>${escapeHtml(sheet.status)}</td>
         <td>${escapeHtml(sheet.note)}</td>
@@ -3092,7 +3092,7 @@ export function PlanCanvas({
       </div>
     </section>
     <section>
-      <h2>当前图纸画面 · ${escapeHtml(planSheetModeLabels[sheetMode])}</h2>
+      <h2>当前图纸画面 · ${escapeHtml(planCanvasModeLabels[sheetMode])}</h2>
       ${currentDrawingMarkup ? `<div class="drawing">${currentDrawingMarkup}</div>` : "<p>当前没有可导出的绘制图纸，请先回到画布查看图纸后再导出。</p>"}
       ${activeCameraView ? `<p class="meta">当前固定视角：${escapeHtml(activeCameraView.name)} · ${escapeHtml(activeCameraView.mode === "orthographic" ? "正交轴测" : "透视视角")} · ${escapeHtml(activeCameraView.description || "无说明")}</p>` : ""}
       <p class="meta">这张图来自当前画布的绘制结构，不包含原始底图。要导出其他专业图，请先在网页顶部“当前图纸”切换到对应图纸后再导出。</p>
@@ -3107,7 +3107,7 @@ export function PlanCanvas({
     <section class="note">
       <h2>施工总说明</h2>
       <p>1. 所有墙体、洞口、楼梯、院子边界以现场复核为准；模型用于沟通图纸逻辑和施工范围。</p>
-      <p>2. 水电、吊顶、灯具、柜体、设备需和实物规格、厂家图纸、现场管井位置共同校核。</p>
+      <p>2. 给水、排水、灯光、吊顶、柜体、设备需和实物规格、厂家图纸、现场管井位置共同校核；当前给排水图表达预留点和需求点，不表达专业管线路径。</p>
       <p>3. 每次开工前以最新版本图纸为准，施工变更应记录图号、日期、责任人和确认结果。</p>
     </section>
     <section>
@@ -3177,6 +3177,11 @@ export function PlanCanvas({
     const exportData = getConstructionExportData();
     const rows = [
       ["recordType", "floorId", "roomId", "objectId", "name", "type", "dimensions", "material", "render3d", "mep", "construction", "cameraMode", "description"],
+      ...exportData.drawingItems.map((item) => [
+        "drawingItem", item.floorId, item.roomId ?? "", item.id, item.label, item.type, `x${item.quantity}${item.heightMm ? ` / H${item.heightMm}mm` : ""}`,
+        item.materialId ?? "", "", [drawingItemCategoryLabels[item.category], item.circuitId ?? "", item.lightColorTemperature ?? "", item.needsSmartControl ? "智能控制" : "", drawingItemStatusLabels[item.status]].filter(Boolean).join("；"),
+        item.relatedFurnitureId ?? "", "", item.notes
+      ]),
       ...exportData.furniture.map((item) => [
         "furniture",
         item.floorId,
@@ -3272,24 +3277,56 @@ export function PlanCanvas({
 
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
   const layerVisibility = floorPlanVisualSettings.layerVisibility;
-  const isSiteSheetMode = sheetMode === "site";
-  const isStructureSheetMode = sheetMode === "structure";
-  const isSyncSheetMode = sheetMode === "sync";
-  const isConstructionSheetMode = sheetMode === "construction";
-  const isFurnitureSheetMode = sheetMode === "furnishing";
-  const isSystemSheetMode = ["socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode);
+  const isSiteSheetMode = sheetMode === "sitePlan";
+  const isStructureSheetMode = sheetMode === "structurePlan";
+  const isSyncSheetMode = sheetMode === "structureSyncCheck";
+  const isDemolitionBuildSheetMode = sheetMode === "demolitionAndBuildPlan";
+  const isAnnotationSheetMode = sheetMode === "annotationPlan";
+  const isFurnitureSheetMode = sheetMode === "furniturePlan";
+  const isProfessionalDrawingSheetMode = ["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(sheetMode);
+  const activeDrawingItemCategories = getDrawingItemCategoriesForSheet(normalizeDrawingSheetType(sheetMode));
+  const visibleDrawingItems = drawingItems.filter((item) => activeDrawingItemCategories.includes(item.category));
+  const selectedDrawingItem = drawingItems.find((item) => item.id === selectedDrawingItemId) ?? null;
+  const drawingItemLayerActive = activeDrawingItemCategories.length > 0;
   const isMobileAnnotatedPlan = mobilePresentationMode && mobileDisplayLevel !== "simple";
   const visibleBaseFloorPlan = false;
   const visibleCleanupPatch = false;
-  const visibleStructureProjection = isSystemSheetMode;
-  const visibleFurnitureOverlay = !yardImmersiveMode && (isSiteSheetMode || isConstructionSheetMode || sheetMode === "furnishing" || sheetMode === "preview" || isSystemSheetMode) && layerVisibility.furnitureOverlay;
-  const visibleSemanticOverlay = (sheetMode === "preview" || isMobileAnnotatedPlan) && layerVisibility.semanticOverlay;
-  const visibleDebugLayer = !mobilePresentationMode && sheetMode === "preview" && layerVisibility.debug;
+  const visibleStructureProjection = isProfessionalDrawingSheetMode;
+  const visibleFurnitureOverlay = !yardImmersiveMode && (isSiteSheetMode || isDemolitionBuildSheetMode || isAnnotationSheetMode || isFurnitureSheetMode || sheetMode === "presentationView" || isProfessionalDrawingSheetMode) && layerVisibility.furnitureOverlay;
+  const visibleSemanticOverlay = (sheetMode === "presentationView" || isMobileAnnotatedPlan) && layerVisibility.semanticOverlay;
+  const visibleDebugLayer = !mobilePresentationMode && isSyncSheetMode && layerVisibility.debug;
   const visibleStructureLabels = !furnitureImmersiveMode && (!mobilePresentationMode || mobileDisplayLevel === "professional");
-  const showDimensionLayer = !yardImmersiveMode && (mobilePresentationMode ? mobileDisplayLevel !== "simple" : (isStructureSheetMode || isConstructionSheetMode || isSiteSheetMode));
-  const structurePointerEventsEnabled = isSiteSheetMode || isStructureSheetMode || isSyncSheetMode || isConstructionSheetMode || (plannerMode === "edit" && Boolean(getDrawToolStructureKind(drawTool)) && canDrawStructureTool(drawTool));
+  const showDimensionLayer = !yardImmersiveMode && (mobilePresentationMode ? mobileDisplayLevel !== "simple" : (isStructureSheetMode || isDemolitionBuildSheetMode || isSiteSheetMode));
+  const structurePointerEventsEnabled = drawingItemLayerActive || isSiteSheetMode || isStructureSheetMode || isSyncSheetMode || isDemolitionBuildSheetMode || (plannerMode === "edit" && Boolean(getDrawToolStructureKind(drawTool)) && canDrawStructureTool(drawTool));
   const furniturePointerEventsEnabled = canSelectFurnitureLayer();
   const cleanFillColor = getCleanupFillColor(floorPlanVisualSettings);
+
+  function updateDrawingItem(itemId: string, changes: Partial<DrawingItem>) {
+    const updatedAt = new Date().toISOString();
+    onDrawingItemsChange(drawingItems.map((item) => item.id === itemId ? { ...item, ...changes, updatedAt } : item));
+  }
+
+  function addDrawingItem() {
+    const category = activeDrawingItemCategories[0];
+    if (!category) return;
+    const id = `DI-${floor.id}-${Date.now().toString(36).toUpperCase()}`;
+    const item = createDrawingItem({
+      id,
+      floorId: floor.id,
+      category,
+      positionMm: { x: Math.round(planBounds.x + planBounds.width / 2), y: Math.round(planBounds.y + planBounds.height / 2) },
+      roomId: houseStructure.rooms[0]?.id ?? houseStructure.outdoors[0]?.id ?? null
+    });
+    onDrawingItemsChange([...drawingItems, item]);
+    setSelectedDrawingItemId(id);
+    onActiveObjectChange(id);
+  }
+
+  function deleteDrawingItem(itemId: string) {
+    onDrawingItemsChange(drawingItems.filter((item) => item.id !== itemId));
+    setSelectedDrawingItemId("");
+    onActiveObjectChange("");
+  }
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
   const showStructureDrawingPanel = !mobilePresentationMode && plannerMode === "edit" && !isFurnitureSheetMode;
   const yardObjectMatchesFocus = (id: string, name = "") => !yardImmersiveMode || id.includes(`-${yardToken}-`) || name.includes(yardFocus === "north" ? "北院" : "南院");
@@ -3297,7 +3334,7 @@ export function PlanCanvas({
   const visibleOutdoorSurfaces = yardImmersiveMode ? houseStructure.outdoorSurfaces.filter((surface) => yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds)) : houseStructure.outdoorSurfaces;
   const visibleFences = yardImmersiveMode ? houseStructure.fences.filter((fence) => yardObjectMatchesFocus(fence.id, fence.name) || pointInBounds(fence.start, planBounds) || pointInBounds(fence.end, planBounds)) : houseStructure.fences;
   const masterBathRoom = floor.id === "2F" ? houseStructure.rooms.find((room) => room.id === MASTER_BATH_ROOM_ID) ?? null : null;
-  const showMasterBathStyleLayer = Boolean(masterBathRoom && !yardImmersiveMode && ["furnishing", "preview", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode));
+  const showMasterBathStyleLayer = Boolean(masterBathRoom && !yardImmersiveMode && ["furniturePlan", "presentationView", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan"].includes(sheetMode));
 
   function renderSheetPoint(id: string, x: number, y: number, label: string, color: string, shape: "circle" | "square" = "circle") {
     return (
@@ -3338,10 +3375,10 @@ export function PlanCanvas({
         <polygon
           points={masterBathRoom.boundary.map((point) => `${point.x},${point.y}`).join(" ")}
           fill="url(#masterBathStonePattern)"
-          opacity={sheetMode === "flooring" ? 0.92 : 0.78}
+          opacity={sheetMode === "floorFinishPlan" ? 0.92 : 0.78}
           stroke="#9b8f80"
-          strokeDasharray={sheetMode === "flooring" ? undefined : "120 90"}
-          strokeWidth={sheetMode === "flooring" ? 44 : 28}
+          strokeDasharray={sheetMode === "floorFinishPlan" ? undefined : "120 90"}
+          strokeWidth={sheetMode === "floorFinishPlan" ? 44 : 28}
         />
         {vanityLight && (
           <line
@@ -3575,9 +3612,9 @@ export function PlanCanvas({
   }
 
   function renderPlanSheetOverlay() {
-    if (!["site", "socket", "switch", "lighting", "water", "drainage", "ceiling", "flooring"].includes(sheetMode)) return null;
+    if (!["sitePlan", "socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(sheetMode)) return null;
 
-    if (sheetMode === "site") {
+    if (sheetMode === "sitePlan") {
       if (floor.id !== "1F") {
         return (
           <g data-layer="SitePlanOverlay" pointerEvents="none">
@@ -3596,7 +3633,7 @@ export function PlanCanvas({
       );
     }
 
-    if (sheetMode === "socket") {
+    if (sheetMode === "socketPlan") {
       if (floor.id === "2F") {
         return (
           <g data-layer="SocketPlanOverlay" pointerEvents="none">
@@ -3634,7 +3671,7 @@ export function PlanCanvas({
       );
     }
 
-    if (sheetMode === "switch") {
+    if (sheetMode === "switchPlan") {
       if (floor.id === "2F") {
         return (
           <g data-layer="SwitchPlanOverlay" pointerEvents="none">
@@ -3667,7 +3704,7 @@ export function PlanCanvas({
       );
     }
 
-    if (sheetMode === "lighting") {
+    if (sheetMode === "lightingPlan") {
       if (floor.id === "2F") {
         const bedroomLightPoints = [
           { id: "lt-2f-master-1", x: 2400, y: 6100, label: "筒" },
@@ -3719,7 +3756,7 @@ export function PlanCanvas({
       );
     }
 
-    if (sheetMode === "water") {
+    if (sheetMode === "waterSupplyPlan") {
       if (floor.id === "2F") {
         return (
           <g data-layer="WaterPlanOverlay" pointerEvents="none">
@@ -3755,7 +3792,7 @@ export function PlanCanvas({
       );
     }
 
-    if (sheetMode === "drainage") {
+    if (sheetMode === "drainagePlan") {
       if (floor.id === "2F") {
         return (
           <g data-layer="DrainagePlanOverlay" pointerEvents="none">
@@ -3789,7 +3826,7 @@ export function PlanCanvas({
       );
     }
 
-    if (sheetMode === "ceiling") {
+    if (sheetMode === "ceilingPlan") {
       if (floor.id === "2F") {
         return (
           <g data-layer="CeilingPlanOverlay" pointerEvents="none">
@@ -3826,6 +3863,67 @@ export function PlanCanvas({
           <text x={7900} y={1130} fill="#0284c7" fontSize={150} fontWeight={800}>风口</text>
           <rect x={5950} y={2480} width={620} height={420} rx={80} fill="#fff" stroke="#0284c7" strokeWidth={32} />
           <text x={5890} y={2400} fill="#0284c7" fontSize={150} fontWeight={800}>检修</text>
+        </g>
+      );
+    }
+
+    if (sheetMode === "wallFinishPlan") {
+      if (floor.id === "2F") {
+        return (
+          <g data-layer="WallFinishPlanOverlay" pointerEvents="none">
+            <rect x={7681} y={350} width={1814} height={2700} rx={120} fill="none" stroke="#7c5f42" strokeDasharray="120 90" strokeWidth={40} />
+            <text x={7860} y={780} fill="#7c5f42" fontSize={158} fontWeight={900}>主卫墙面暖灰大砖</text>
+            <line x1={1150} y1={5320} x2={3897} y2={5320} stroke="#a16207" strokeLinecap="round" strokeDasharray="120 90" strokeWidth={36} />
+            <text x={1280} y={5200} fill="#a16207" fontSize={150} fontWeight={900}>卧室乳胶漆 / 局部木饰面</text>
+            <line x1={6542} y1={3500} x2={9495} y2={3500} stroke="#64748b" strokeLinecap="round" strokeDasharray="120 90" strokeWidth={36} />
+            <text x={6800} y={3380} fill="#475569" fontSize={150} fontWeight={900}>卫浴墙砖 / 防水基层</text>
+          </g>
+        );
+      }
+      return (
+        <g data-layer="WallFinishPlanOverlay" pointerEvents="none">
+          <line x1={950} y1={5150} x2={3897} y2={5150} stroke="#a16207" strokeLinecap="round" strokeDasharray="120 90" strokeWidth={36} />
+          <text x={1280} y={5020} fill="#a16207" fontSize={150} fontWeight={900}>{floor.id === "1F" ? "客厅重点墙 / 乳胶漆" : "地下层耐擦墙面"}</text>
+          <line x1={5383} y1={350} x2={9495} y2={350} stroke="#64748b" strokeLinecap="round" strokeDasharray="120 90" strokeWidth={36} />
+          <text x={5800} y={720} fill="#475569" fontSize={150} fontWeight={900}>{floor.id === "1F" ? "餐厨墙砖 / 防油污" : "设备区防潮墙面"}</text>
+        </g>
+      );
+    }
+
+    if (sheetMode === "materialPlan") {
+      const legendX = planBounds.x + 720;
+      const legendY = planBounds.y + 720;
+      const materialRows = [
+        ["M-01", "地面", "木地板 / 防滑砖 / 户外石材"],
+        ["M-02", "墙面", "乳胶漆 / 墙砖 / 石材 / 木饰面"],
+        ["C-01", "吊顶", "局部吊顶 / 灯槽 / 风口 / 检修口"],
+        ["E/L/W", "机电", "插座 / 开关 / 灯光 / 给排水点位"]
+      ];
+      return (
+        <g data-layer="MaterialPlanOverlay" pointerEvents="none">
+          <rect x={legendX - 180} y={legendY - 300} width={5200} height={materialRows.length * 390 + 520} rx={180} fill="rgba(255,255,255,0.92)" stroke="rgba(148,163,184,0.45)" strokeWidth={24} />
+          <text x={legendX} y={legendY - 60} fill="#0f172a" fontSize={210} fontWeight={900}>材料索引</text>
+          {materialRows.map(([code, title, detail], index) => {
+            const y = legendY + 310 + index * 390;
+            return (
+              <g key={code}>
+                <text x={legendX} y={y} fill="#334155" fontSize={155} fontWeight={900}>{code}</text>
+                <text x={legendX + 760} y={y} fill="#0f172a" fontSize={155} fontWeight={900}>{title}</text>
+                <text x={legendX + 1500} y={y} fill="#64748b" fontSize={130} fontWeight={700}>{detail}</text>
+              </g>
+            );
+          })}
+        </g>
+      );
+    }
+
+    if (sheetMode === "annotationPlan") {
+      return (
+        <g data-layer="AnnotationPlanOverlay" pointerEvents="none">
+          {renderSheetPoint("annotation-site-measure", 1120, floor.id === "1F" ? 8200 : 7200, "现场复尺", "#c2410c", "square")}
+          {renderSheetPoint("annotation-vendor", 5200, 4300, "厂家图纸", "#c2410c", "square")}
+          {renderSheetPoint("annotation-waterproof", floor.id === "2F" ? 8360 : 8400, floor.id === "2F" ? 850 : 2400, "防水/检修", "#c2410c", "square")}
+          <text x={1120} y={floor.id === "1F" ? -720 : 980} fill="#c2410c" fontSize={190} fontWeight={900}>待确认项集中标注，正式施工前逐项关闭。</text>
         </g>
       );
     }
@@ -4117,7 +4215,7 @@ export function PlanCanvas({
       data-mobile-presentation={mobilePresentationMode ? "true" : "false"}
     >
       <div className={`${furnitureImmersiveMode || yardImmersiveMode || mobilePresentationMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
-        {viewMode === "2d" ? `当前图纸 · ${planSheetModeLabels[sheetMode]}` : `${floor.label} · 楼层 3D`}
+        {viewMode === "2d" ? `当前图纸 · ${planCanvasModeLabels[sheetMode]}` : `${floor.label} · 楼层 3D`}
       </div>
 
       {viewMode === "2d" ? (
@@ -4156,12 +4254,19 @@ export function PlanCanvas({
               className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs outline-none"
               aria-label="当前图纸"
               value={sheetMode}
-              onChange={(event) => setSheetMode(event.target.value as PlanSheetMode)}
-              title={planSheetModeDescriptions[sheetMode]}
+              onChange={(event) => setSheetMode(event.target.value)}
+              title={planCanvasModeDescriptions[sheetMode]}
             >
-              {Object.entries(planSheetModeLabels).map(([mode, label]) => (
-                <option key={mode} value={mode}>{label}</option>
-              ))}
+              <optgroup label="正式图纸">
+                {drawingSheetSelectTypes.map((mode) => (
+                  <option key={mode} value={mode}>{drawingSheetTypeLabels[mode]}</option>
+                ))}
+              </optgroup>
+              <optgroup label="检查/调试">
+                {drawingCheckModes.map((mode) => (
+                  <option key={mode} value={mode}>{planCanvasModeLabels[mode]}</option>
+                ))}
+              </optgroup>
             </select>
             <button className="rounded-xl bg-stone-900 px-3 py-2 text-xs text-white hover:bg-clay" onClick={() => setIsConstructionPackageOpen(true)} type="button">图纸包</button>
             <label className="hidden cursor-pointer items-center gap-2 rounded-xl px-2 py-2 hover:bg-stone-100 sm:flex">
@@ -4213,7 +4318,7 @@ export function PlanCanvas({
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-clay">Construction Package</p>
                 <h3 className="mt-1 text-base font-semibold text-ink">施工图纸包</h3>
-                <p className="mt-1 leading-5 text-stone-500">顶部“当前图纸”下拉用来查看具体图纸；切到空白结构/施工标注时可编辑墙体门窗，切到家具布置时编辑家具，水电灯光等图纸先作为施工表达层查看。</p>
+                <p className="mt-1 leading-5 text-stone-500">顶部“当前图纸”下拉用来查看正式图纸和结构联动检查；切到结构图/拆改施工图时可编辑墙体门窗，切到家具定位图时编辑家具，给排水、灯光、吊顶和材料图先作为施工表达层查看。</p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <button className="rounded-xl bg-ink px-3 py-2 font-semibold text-white hover:bg-clay" onClick={exportConstructionPackage} type="button">导出 HTML</button>
@@ -4235,7 +4340,7 @@ export function PlanCanvas({
                       <div className="grid grid-cols-[72px_1fr_78px] gap-2">
                         <input className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 font-semibold text-ink outline-none" value={sheet.sheetNo} onChange={(event) => updateConstructionSheet(sheet.id, { sheetNo: event.target.value })} />
                         <input className="min-w-0 rounded-lg border border-stone-200 bg-white px-2 py-1.5 font-semibold text-ink outline-none" value={sheet.title} onChange={(event) => updateConstructionSheet(sheet.id, { title: event.target.value })} />
-                        <button className="rounded-lg bg-white px-2 py-1.5 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-50" onClick={() => setSheetMode(sheet.mode)} type="button">查看</button>
+                        <button className="rounded-lg bg-white px-2 py-1.5 font-semibold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-50" onClick={() => setSheetMode(getConstructionSheetViewType(sheet))} type="button">查看</button>
                       </div>
                       <div className="mt-2 grid grid-cols-3 gap-2">
                         <input className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 outline-none" value={sheet.scale} onChange={(event) => updateConstructionSheet(sheet.id, { scale: event.target.value })} />
@@ -4251,11 +4356,11 @@ export function PlanCanvas({
               <div className="space-y-3">
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 leading-5 text-amber-900">
                   <p className="font-semibold">怎么查看和编辑</p>
-                  <p className="mt-1">点目录里的“查看”会切换到对应图纸；真正编辑仍在画布上完成：结构对象用左侧绘制工具，家具对象用家具布置图拖动和右侧当前对象改尺寸材质。</p>
+                  <p className="mt-1">点目录里的“查看”会切换到对应图纸；真正编辑仍在画布上完成：结构对象用左侧绘制工具，家具对象用家具定位图拖动和右侧当前对象改尺寸材质。</p>
                 </div>
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 leading-5 text-amber-900">
                   <p className="font-semibold">施工队看图顺序</p>
-                  <p className="mt-1">先看 A-00/A-01 确认范围，再看 A-02/A-03 定结构，最后按 E/L/W/C/M 分专业施工。</p>
+                  <p className="mt-1">先看 A-00/A-01 确认范围，再看 A-02/A-03 定结构，最后按 F/E/L/W/C/M/N 分专业施工和确认。</p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
@@ -4360,7 +4465,7 @@ export function PlanCanvas({
               </div>
 
               <div className="rounded-xl bg-slate-50 p-2 leading-5 text-slate-500">
-                当前核心是一套可校验结构模型。底图只作参考，施工标注、家具布置和未来效果预览都从这套模型派生，避免多张图互相不同步。
+                当前核心是一套可校验结构模型。底图只作参考，正式图纸、家具定位和 2D/3D 展示视图都从这套模型派生，避免多张图互相不同步。
               </div>
 
               <div className="space-y-2 border-t border-stone-200 pt-2">
@@ -4433,7 +4538,7 @@ export function PlanCanvas({
               )}
 
               <div className="space-y-3">
-                {sheetMode === "sync" && (
+                {sheetMode === "structureSyncCheck" && (
                   <div className="rounded-xl border border-stone-200 bg-white p-2">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="font-semibold text-ink">联动颜色</p>
@@ -4460,12 +4565,12 @@ export function PlanCanvas({
                 <div className="rounded-xl border border-stone-200 bg-white p-2 leading-5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-ink">图层隔离</span>
-                    <span className={`rounded-lg px-2 py-1 font-semibold ${wallEditableSheetModes.has(sheetMode) ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-stone-500"}`}>
-                      {wallEditableSheetModes.has(sheetMode) ? "墙体可编辑" : "墙体只读"}
+                    <span className={`rounded-lg px-2 py-1 font-semibold ${wallEditableSheetTypes.has(sheetMode as DrawingSheetType) ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-stone-500"}`}>
+                      {wallEditableSheetTypes.has(sheetMode as DrawingSheetType) ? "墙体可编辑" : "墙体只读"}
                     </span>
                   </div>
                   <p className="mt-1 text-stone-500">{yardImmersiveMode ? "庭院模式：默认绿地，按区域叠加小路、硬地和花境。" : getLayerInteractionLabel()}</p>
-                  <p className="mt-1 text-[11px] font-semibold text-stone-400">{yardImmersiveMode ? "普通滚轮滚动面板，按 Ctrl/⌘ 滚轮缩放画布。" : `可动墙图纸：${wallEditableSheetModeLabel}`}</p>
+                  <p className="mt-1 text-[11px] font-semibold text-stone-400">{yardImmersiveMode ? "普通滚轮滚动面板，按 Ctrl/⌘ 滚轮缩放画布。" : `可动墙图纸：${wallEditableSheetTypeLabel}`}</p>
                 </div>
 
                 <div className="rounded-xl bg-slate-50 p-2 leading-5">
@@ -5661,6 +5766,55 @@ export function PlanCanvas({
 
               {renderPlanSheetOverlay()}
 
+              {drawingItemLayerActive && (
+                <g data-layer="DrawingItemsLayer" data-sheet-type={sheetMode}>
+                  {visibleDrawingItems.map((item, index) => {
+                    const selected = item.id === selectedDrawingItemId;
+                    const relatedFurniture = furniture.find((candidate) => candidate.id === item.relatedFurnitureId);
+                    const statusColor = item.status === "confirmed" ? "#047857" : item.status === "todo" ? "#b45309" : item.status === "deprecated" ? "#78716c" : "#2563eb";
+                    return (
+                      <g
+                        key={item.id}
+                        className={workspaceMutationAllowed && plannerMode === "edit" ? "cursor-move" : "cursor-pointer"}
+                        transform={`translate(${item.positionMm.x} ${item.positionMm.y})`}
+                        onPointerDown={(event) => {
+                          event.stopPropagation();
+                          setSelectedDrawingItemId(item.id);
+                          onActiveObjectChange(item.id);
+                          if (workspaceMutationAllowed && plannerMode === "edit") {
+                            drawingItemDragRef.current = { pointerId: event.pointerId, objectId: item.id };
+                            event.currentTarget.setPointerCapture(event.pointerId);
+                          }
+                        }}
+                        onPointerMove={(event) => {
+                          if (drawingItemDragRef.current?.pointerId !== event.pointerId || drawingItemDragRef.current.objectId !== item.id) return;
+                          const positionMm = getMmPosition(event);
+                          if (positionMm) updateDrawingItem(item.id, { positionMm });
+                        }}
+                        onPointerUp={(event) => {
+                          if (drawingItemDragRef.current?.pointerId === event.pointerId) drawingItemDragRef.current = null;
+                        }}
+                      >
+                        <circle r={selected ? 190 : 160} fill="#ffffff" stroke={statusColor} strokeWidth={selected ? 55 : 38} />
+                        <text y={58} fill={statusColor} fontSize={170} fontWeight={900} textAnchor="middle">{drawingItemCategoryLabels[item.category].slice(0, 1)}</text>
+                        <text y={-235} fill="#0f172a" fontSize={150} fontWeight={800} paintOrder="stroke" stroke="#ffffff" strokeWidth={42} textAnchor="middle">
+                          {`${index + 1}. ${item.label || drawingItemCategoryLabels[item.category]}`}
+                        </text>
+                        <text y={330} fill={statusColor} fontSize={120} fontWeight={700} paintOrder="stroke" stroke="#ffffff" strokeWidth={34} textAnchor="middle">
+                          {[`x${item.quantity}`, item.heightMm ? `H${item.heightMm}` : "", drawingItemStatusLabels[item.status]].filter(Boolean).join(" · ")}
+                        </text>
+                        <text y={475} fill="#475569" fontSize={105} fontWeight={650} paintOrder="stroke" stroke="#ffffff" strokeWidth={30} textAnchor="middle">
+                          {relatedFurniture?.name ?? (item.relatedFurnitureId ? "关联家具缺失" : "未关联家具")}
+                        </text>
+                        <text y={610} fill="#64748b" fontSize={92} fontWeight={600} paintOrder="stroke" stroke="#ffffff" strokeWidth={28} textAnchor="middle">
+                          {(item.notes || "无备注").slice(0, 26)}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              )}
+
               {renderDimensionLayer()}
 
               {drawPreview && (
@@ -5708,11 +5862,48 @@ export function PlanCanvas({
               )}
             </svg>
 
+            {drawingItemLayerActive && !mobilePresentationMode && (
+              <div className="absolute right-5 top-16 z-[58] max-h-[calc(100%-5rem)] w-[min(360px,calc(100%-2.5rem))] overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-3 text-xs text-stone-600 shadow-lg backdrop-blur" onPointerDown={(event) => event.stopPropagation()}>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-ink">图纸点位</p>
+                    <p className="mt-0.5 text-stone-400">当前图纸 {visibleDrawingItems.length} 项</p>
+                  </div>
+                  <button className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={addDrawingItem} type="button">新增点位</button>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button className="rounded-lg bg-emerald-50 px-2 py-2 font-semibold text-emerald-800 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("floor")} type="button">从家具生成 · 本层</button>
+                  <button className="rounded-lg bg-emerald-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("all")} type="button">从家具生成 · 全屋</button>
+                </div>
+                {selectedDrawingItem && (
+                  <div className="mt-3 border-t border-stone-200 pt-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <label>类别<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.category} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { category: event.target.value as DrawingItemCategory })}>{drawingItemCategories.map((category) => <option key={category} value={category}>{drawingItemCategoryLabels[category]}</option>)}</select></label>
+                      <label>类型<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.type} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { type: event.target.value })} /></label>
+                      <label>高度 mm<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" type="number" value={selectedDrawingItem.heightMm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { heightMm: event.target.value ? Number(event.target.value) : null })} /></label>
+                      <label>数量<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" min="1" type="number" value={selectedDrawingItem.quantity} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { quantity: Math.max(1, Number(event.target.value) || 1) })} /></label>
+                      <label>状态<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.status} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { status: event.target.value as DrawingItem["status"] })}>{drawingItemStatuses.map((status) => <option key={status} value={status}>{drawingItemStatusLabels[status]}</option>)}</select></label>
+                      <label>标签<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.label} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { label: event.target.value })} /></label>
+                      <label>回路<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.circuitId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { circuitId: event.target.value || null })} /></label>
+                      <label>色温<input className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.lightColorTemperature ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightColorTemperature: (event.target.value || null) as DrawingItem["lightColorTemperature"] })} /></label>
+                    </div>
+                    <label className="mt-2 flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.needsSmartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { needsSmartControl: event.target.checked })} />需要智能控制</label>
+                    <label className="mt-2 block">关联房间<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.roomId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { roomId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.rooms, ...houseStructure.outdoors].map((room) => <option key={room.id} value={room.id}>{room.name} · {room.id}</option>)}</select></label>
+                    <label className="mt-2 block">关联墙体<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.hostWallId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostWallId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions].map((wall) => <option key={wall.id} value={wall.id}>{wall.name} · {wall.id}</option>)}</select></label>
+                    <label className="mt-2 block">承载对象<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.hostObjectId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostObjectId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions, ...houseStructure.columns].map((object) => <option key={object.id} value={object.id}>{object.name} · {object.id}</option>)}</select></label>
+                    <label className="mt-2 block">关联家具<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedFurnitureId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { relatedFurnitureId: event.target.value || null })}><option value="">未关联</option>{furniture.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.id}</option>)}</select></label>
+                    <label className="mt-2 block">备注<textarea className="mt-1 min-h-16 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.notes} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { notes: event.target.value })} /></label>
+                    <div className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-stone-400">{selectedDrawingItem.id} · {selectedDrawingItem.source}</span><button className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700" onClick={() => deleteDrawingItem(selectedDrawingItem.id)} type="button">删除</button></div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {!mobilePresentationMode && <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
-              {planSheetModeLabels[sheetMode]}：{planSheetModeDescriptions[sheetMode]}
+              {planCanvasModeLabels[sheetMode]}：{planCanvasModeDescriptions[sheetMode]}
             </div>}
             {!mobilePresentationMode && <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-              {planSheetModeFootnotes[sheetMode]}
+              {planCanvasModeFootnotes[sheetMode]}
             </div>}
             {isFurnitureSheetMode && plannerMode === "edit" && (
               <div className="pointer-events-none absolute left-5 bottom-5 z-40 max-w-sm rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
@@ -5847,8 +6038,9 @@ export function PlanCanvas({
 	                const isSelected = isObjectSelected(item.id);
 	                const isHovered = isObjectHovered(item.id);
 	                const locked = resolveLock(item, interactionState).locked2d;
-	                const demandModeActive = furnitureDemandSheetModes.has(sheetMode);
-	                const demandHint = demandModeActive ? getFurnitureDemandHint(item, sheetMode) : null;
+	                const activeDrawingType = normalizeDrawingSheetType(sheetMode);
+	                const demandModeActive = Boolean(activeDrawingType && furnitureDemandSheetTypes.has(activeDrawingType));
+	                const demandHint = activeDrawingType && demandModeActive ? getFurnitureDemandHint(item, activeDrawingType) : null;
 	                const demandMuted = demandModeActive && !demandHint;
 	                const displayPosition = getFurnitureDisplayPosition(item);
                 const displaySize = getFurnitureDisplaySize(item);
@@ -5939,7 +6131,7 @@ export function PlanCanvas({
                       className="h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-	                      <FurnitureTopView assetType={renderAsset.assetType} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furnishing")} stretchToFill type={item.type} />
+	                      <FurnitureTopView assetType={renderAsset.assetType} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furniturePlan")} stretchToFill type={item.type} />
 	                    </div>
 	                    {demandHint && (
 	                      <>

@@ -17,13 +17,19 @@ GitHub 仓库的 `Settings -> Pages` 已设置为 GitHub Actions 后，推送到
 工作流会完成这些步骤：
 
 - 安装仓库锁定的 pnpm 与依赖
-- 执行 typecheck、workspace schema、migration、引用、access、保存服务和 2D/3D 同步测试
+- 执行 typecheck、workspace schema、migration、引用、access、图纸命名、保存服务和 2D/3D 同步测试
 - 执行 `pnpm build:pages`，使用 `/lyhpvilla` 子路径重新生成 `out`
 - 执行 Pages 产物检查，阻止根路径、缺失静态资源或开发产物进入发布包
 - 上传本次构建生成的 `out` 作为 GitHub Pages 发布包
 - 部署到 GitHub Pages
 
 Pull Request 和推送到 `main` 还会通过 `.github/workflows/ci.yml` 运行独立 CI，其中移动端 job 使用 Playwright 覆盖 iPhone 竖屏、横屏和 Android Chrome 尺寸。
+
+图纸包命名已经收口到 `DrawingSheetType`。正式图纸目录只包含总平面、结构、拆改、家具、插座/开关、灯光点位、给排水点位、吊顶、地面/墙面材料、材料索引和施工标注/待确认项；旧 `sync` 只作为 `structureSyncCheck` 检查层，旧 `preview` 只作为展示视图兼容，不进入正式图纸包。
+
+施工点位统一保存在 `default-workspace.json` 的 `drawingItems` 中，并由 `drawingPackage.drawingItemIds` 收口。发布前校验会检查其楼层、房间、墙体、家具和图纸包引用；任何专业图纸都不得另建独立点位数据源。
+
+家具 MEP 自动生成必须保持 generatedKey 幂等和人工调整保护。删除家具后允许保留点位作为待处理孤立引用，但发布前引用校验必须明确报告并要求删除或重新绑定；系统不生成给排水、电气或通风的真实管线路径。
 
 ## 本地构建
 

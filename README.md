@@ -30,17 +30,31 @@ http://127.0.0.1:3010/
 - 直接改方案：墙体、房间、门窗、楼梯、家具、柜体、庭院模块都能作为对象被选择、拖动、改尺寸、改材质和备注。
 - 让数据可发布、可回滚、可继续维护：默认方案保存在 `data/default-workspace.json`，发布前必须通过 schema、引用、权限、构建和 Pages 路径检查。
 
-目前不要把它理解成“最终施工图系统”。Drawing Package、水电、灯光、吊顶、铺装这些专业图纸可以在现有底盘上继续扩展，但它们不应该破坏当前的基础设施、默认工作区和手机只读模式。
+目前不要把它理解成“最终施工图系统”。Drawing Package 已先收口为 `DrawingSheetType` 命名体系，给排水、灯光、吊顶、铺装、墙面和材料索引这些专业图纸可以在现有底盘上继续扩展，但它们不应该破坏当前的基础设施、默认工作区和手机只读模式。
+
+Drawing Package System 使用统一的 `drawingItems` / `drawingPackage` 数据模型。点位与家具、房间、墙体共享 `default-workspace.json`、楼层 ID 和毫米坐标系；插座、灯光、给排水、吊顶及材料图只负责按 `DrawingSheetType` 过滤 category，不维护各自的私有数据副本。点位修改与结构、家具共用撤销/重做、浏览器草稿、代码文件保存、导入导出和引用校验链路。
+
+编辑模式可按当前楼层或全屋从 `furniture.mepMeta` / `constructionMeta` 生成插座、灯光、给水、排水、网络、通风和检修提示点。生成以 `relatedFurnitureId + category + type` 为幂等键；自动点位若经过人工移动或编辑，后续生成会先提示冲突，不会静默覆盖。这里表达的是预留需求点和施工沟通草图，不包含专业管线路径。
 
 ## 使用入口
 
 进入页面后，常用入口是：
 
 - 楼层切换：查看 B2 / B1 / 1F / 2F / 庭院。
-- 图纸模式：查看总平面、结构、家具布置、点位、施工标注和效果预览。
+- 正式图纸：查看总平面图、结构图、拆改施工图、家具定位图、机电点位、吊顶、地面、墙面、材料索引和施工标注/待确认项。
 - 物品模块库：新增家具、柜体和庭院模块。
 - 当前对象：编辑选中对象的尺寸、位置、材料、备注、机电和施工信息。
-- 3D / 效果预览：查看对象在空间里的体块表达。
+- 2D / 3D 展示：查看对象在空间里的体块表达；展示视图不进入正式施工图纸目录。
+
+正式图纸类型使用这些 key：
+
+```text
+sitePlan, structurePlan, demolitionAndBuildPlan, furniturePlan,
+socketPlan, switchPlan, lightingPlan, waterSupplyPlan, drainagePlan,
+ceilingPlan, floorFinishPlan, wallFinishPlan, materialPlan, annotationPlan
+```
+
+旧的 `site`、`structure`、`construction`、`furnishing`、`socket`、`switch`、`lighting`、`water`、`drainage`、`ceiling`、`flooring` 会通过 alias 兼容到新 key。旧 `preview` 归到展示视图 `presentationView`，旧 `sync` 归到检查/调试层 `structureSyncCheck`。当前给水、排水图表达“给水点位图 / 排水点位图”，主要记录预留点和需求点，不表达专业管线路径。
 
 近期物品模块库已经扩展到更细的表达，不再把所有桌子都画成六人餐桌。比如：
 
@@ -180,6 +194,7 @@ pnpm validate:workspace
 pnpm test:workspace-migrations
 pnpm test:workspace-references
 pnpm test:workspace-access
+pnpm test:drawing-sheets
 pnpm test:save-service
 pnpm test:object-sync
 ```
@@ -211,6 +226,7 @@ pnpm check:pages-build
 - 手机 presentation 仍为只读。
 - Pages 产物路径包含 `/lyhpvilla/_next/`。
 - Pages 产物里的底图路径包含 `/lyhpvilla/floor-plans/`。
+- 图纸命名 alias 通过 `pnpm test:drawing-sheets`。
 - `out/.nojekyll` 存在。
 - `out/404.html` 存在。
 
@@ -261,7 +277,7 @@ public/floor-plans/          楼层底图资源
 
 ## 维护原则
 
-- 先稳住基础设施，再加图纸包、水电、灯光、吊顶、铺装等专业功能。
+- 先稳住基础设施，再加图纸包、给排水、灯光、吊顶、铺装、墙面和材料索引等专业功能。
 - 默认数据只维护一份，避免 mock、浏览器草稿和代码文件互相覆盖。
 - 增加物品时，模块库、2D 顶视、3D 体块和类型定义要一起更新。
 - 发布前跑校验和 Pages 构建，别只依赖本地页面看起来能打开。
