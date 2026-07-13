@@ -81,7 +81,8 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#e8ded0",
     material: "布艺 / 皮革沙发",
     note: "用于客厅主座位，后续可按实际采购款式调整长度和材质。",
-    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "sofa", variantId: "lowModular", stylePreset: "modernNatural", primaryMaterial: "beigeFabric", secondaryMaterial: "creamFabric", accentMaterial: "camelFabric", detailLevel: "standard", childrenMode: "grouped" }
   },
   {
     id: "living-dining-table",
@@ -94,7 +95,8 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#d6d9d7",
     material: "圆餐桌 + 6 把餐椅",
     note: "按整套餐桌椅占地估算，放置后再校核餐椅后退和通道宽度。",
-    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "diningTable", variantId: "roundPedestal", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", detailLevel: "presentation", childrenMode: "grouped" }
   },
   {
     id: "living-slab-table",
@@ -108,7 +110,7 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "实木大板桌面 + 黑色金属支脚",
     note: "适合书房、地下休闲区或多人手作台，外形按长条厚板表达，不再套用圆餐桌图形。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    render3d: { assetType: "slabTable", primaryMaterial: "walnut", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", childrenMode: "grouped" }
+    render3d: { assetType: "slabTable", variantId: "ovalSlab", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", detailLevel: "standard", childrenMode: "grouped" }
   },
   {
     id: "living-lounge-coffee-table",
@@ -122,7 +124,7 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "圆角木质茶几 / 石材托盘面",
     note: "用于沙发前或地下休闲区，外形按低矮茶几表达，避免误看成餐桌。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
-    render3d: { assetType: "loungeCoffeeTable", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "blackTitanium", childrenMode: "grouped" }
+    render3d: { assetType: "loungeCoffeeTable", variantId: "nestedDouble", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "blackTitanium", detailLevel: "standard", childrenMode: "grouped" }
   },
   {
     id: "living-tv-cabinet",
@@ -135,7 +137,8 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#eadfcd",
     material: "悬浮柜 / 成品矮柜",
     note: "结合电视墙、插座和弱电点位深化。",
-    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "cabinet", variantId: "floating", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "warmWhiteCeramic", accentMaterial: "brushedBronze", detailLevel: "presentation", childrenMode: "grouped" }
   },
   {
     id: "storage-wall-cabinet",
@@ -149,7 +152,7 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "定制吊柜 + 隐形拉手",
     note: "适合水吧、洗衣区或餐边上方，按贴墙悬挂柜表达，并提示基层和插座避让。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    render3d: { assetType: "wallCabinet", primaryMaterial: "warmOak", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", childrenMode: "grouped" }
+    render3d: { assetType: "wallCabinet", variantId: "wallMounted", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", detailLevel: "standard", childrenMode: "grouped" }
   },
   {
     id: "living-fireplace",
@@ -188,7 +191,8 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     color: "#c8a887",
     material: "木质床架 + 软包床头",
     note: "放置后校核床侧通道、床头插座和衣柜开门空间。",
-    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false }
+    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
+    render3d: { assetType: "bed", variantId: "lowUpholstered", stylePreset: "modernNatural", primaryMaterial: "beigeFabric", secondaryMaterial: "creamFabric", accentMaterial: "taupeFabric", detailLevel: "standard", childrenMode: "grouped" }
   },
   {
     id: "bedroom-nightstand",

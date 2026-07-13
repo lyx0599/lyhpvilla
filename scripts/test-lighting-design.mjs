@@ -18,6 +18,10 @@ lights.forEach((light) => {
   assert.ok(relatedSwitch, `${light.id} must reference a real switch.`);
   assert.equal(relatedSwitch.controlGroupId, light.controlGroupId, `${light.id} and ${relatedSwitch.id} must share controlGroupId.`);
   assert.ok(relatedSwitch.controlledLightIds.includes(light.id), `${relatedSwitch.id} must control ${light.id}.`);
+  assert.ok(light.lightSpec?.fixtureFamily, `${light.id} must use a fixture family.`);
+  assert.ok(light.lightSpec?.cri >= 90, `${light.id} must target CRI 90 or better.`);
+  assert.ok(["draft", "todo"].includes(light.status), `${light.id} must remain editable as draft/todo.`);
+  assert.ok(["generated-from-room", "generated-from-furniture"].includes(light.source), `${light.id} must record its generation source.`);
 });
 
 for (const phrase of ["餐桌吊灯", "中岛功能照明", "厨房台面功能灯", "餐边柜灯带", "壁炉/背景墙", "床头氛围灯", "衣柜灯带", "镜前灯", "淋浴区防潮灯", "马桶夜灯", "书桌功能灯", "活动区氛围灯", "楼梯灯带", "路径灯", "围栏灯", "植物上照灯", "户外柜照明", "庭院壁灯"]) {
@@ -31,6 +35,17 @@ assert.equal(packageData.tables.lighting.length, lights.length);
 assert.ok(packageData.tables.luminaireSchedule.length > 0, "Luminaire schedule must be exported.");
 assert.ok(packageData.tables.switchControl.length > 0, "Switch control table must be exported.");
 assert.ok(packageData.tables.smartControlNotes.length > 0, "Smart control notes must be exported.");
+assert.ok(packageData.tables.lightingScenes.length > 0, "Lighting scene control table must be exported.");
+
+assert.equal(workspace.lightingDesign.fixtureFamilies.length, 18, "Modern warm v1 must provide the restrained fixture family library.");
+for (const name of ["全开清洁", "日常", "会客", "用餐", "烹饪", "观影", "阅读", "睡前", "起夜", "迎宾", "庭院休闲", "离家"]) {
+  assert.ok(workspace.lightingDesign.scenes.some((scene) => scene.name === name), `Lighting scenes must include ${name}.`);
+}
+for (const name of ["1F 客厅会客", "1F 客厅观影", "1F 餐厅用餐", "1F 厨房烹饪", "主卧睡前", "主卫夜间", "地下室休闲", "楼梯起夜", "南院休闲", "北院迎宾"]) {
+  const view = workspace.roomTourViews.find((candidate) => candidate.name === name);
+  assert.ok(view, `Lighting experience views must include ${name}.`);
+  assert.ok(view.recommendedLightingSceneId, `${name} must bind a recommended lighting scene.`);
+}
 
 const repeated = generateLightingDesignV1({ structuresByFloor: workspace.houseStructuresByFloor, furniture: workspace.furniture, existingItems: workspace.drawingItems, floorIds: workspace.floors.map((floor) => floor.id), now: "2026-07-12T09:00:00.000Z" });
 assert.equal(repeated.created, 0, "Repeated generation must not create duplicates.");

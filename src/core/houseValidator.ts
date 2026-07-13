@@ -1,4 +1,5 @@
 import { createFloorCoordinateSystem, generateRoomsFromWalls, getArcWallEndpoints, getDistance, getLineLength, getPolygonArea, projectPointToSegment, SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, STRUCTURE_WIDTH_MM } from "@/lib/house-geometry";
+import { createManualVerificationMeta } from "../../lib/dimension-verification.ts";
 import type { FloorId, Furniture, HousePartition, HouseRoom, HouseStair, HouseStructure, HouseWall, MmPoint, StraightHouseWall } from "@/types/space";
 
 export type HouseValidationIssueType = "wall" | "door" | "window" | "room" | "stair" | "column" | "outdoor" | "furniture" | "coordinate";
@@ -246,7 +247,8 @@ function getStairStackRoom(floorId: FloorId, previousRooms: HouseRoom[]): HouseR
     geometryType: "polygon",
     boundary: STAIR_STACK_ROOM_BOUNDARY.map((point) => ({ ...point })),
     area: getPolygonArea(STAIR_STACK_ROOM_BOUNDARY),
-    sourceWallIds: [...sourceWallIds]
+    sourceWallIds: [...sourceWallIds],
+    verificationMeta: previousRoom?.verificationMeta ?? createManualVerificationMeta()
   };
 }
 
@@ -841,7 +843,8 @@ function getAlignedStair(floorId: FloorId, config: StairStackConfig, existing: H
     stepCount: config.stepCount,
     direction: config.direction,
     editable: true,
-    removable: true
+    removable: true,
+    verificationMeta: existing?.verificationMeta ?? createManualVerificationMeta()
   };
 }
 

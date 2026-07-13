@@ -34,6 +34,17 @@ export type LightMountingType =
   | "cabinetIntegrated" | "mirrorIntegrated" | "stepMounted" | "floorMounted"
   | "bollard" | "groundSpike";
 export type LightColorTemperature = "2700K" | "3000K" | "3500K" | "4000K";
+export type LightSpec = {
+  powerW?: number;
+  luminousFluxLm?: number;
+  cri?: number;
+  glareRating?: string;
+  waterproofRating?: string;
+  fixtureFamily?: string;
+  trimColor?: string;
+  iesProfileUrl?: string;
+  photometricProfileId?: string;
+};
 export type FloorFinishMaterial = "woodFloor" | "tile" | "stone" | "microcement" | "courtyardStone" | "grass" | "hardscape";
 export type OutdoorSurfaceSource = DrawingItemSource | "default-workspace" | "yard-editor" | "imported";
 export type OutdoorSurfaceStatus = DrawingItemStatus | "needs-site-check" | "design-intent";
@@ -58,6 +69,8 @@ export type DrawingItem = {
   quantity: number;
   generatedKey?: string;
   generatedFingerprint?: string;
+  /** Furniture center when this point was last positioned or reviewed. */
+  relatedFurniturePositionMm?: MmPoint;
   /** 灯光专项 v1 标准字段；旧字段保留用于已保存工作区兼容。 */
   lightType?: string | null;
   lightingLayer?: LightingLayer | null;
@@ -70,6 +83,7 @@ export type DrawingItem = {
   dimming?: boolean;
   relatedRoomId?: string | null;
   hostCeilingAreaId?: string | null;
+  lightSpec?: LightSpec | null;
   lightColorTemperature?: MepMeta["lightColorTemperature"] | null;
   needsSmartControl?: boolean;
   switchControl?: string[];
@@ -141,6 +155,23 @@ export type SyncObjectState = {
   visible?: boolean;
   hidden?: boolean;
   locked?: boolean;
+};
+
+export type VerificationStatus = "unverified" | "estimated" | "drawing-derived" | "site-measured" | "confirmed";
+export type VerificationSource = "developer-plan" | "visual-estimate" | "manual-input" | "site-measurement" | "other";
+
+export type VerificationMeta = {
+  status: VerificationStatus;
+  source: VerificationSource;
+  sourceNote?: string;
+  toleranceMm?: number;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  notes?: string;
+};
+
+export type VerificationState = {
+  verificationMeta?: VerificationMeta;
 };
 
 export type ObjectInteractionState = {
@@ -287,11 +318,17 @@ export type Render3DAssetType =
 
 export type Render3DMeta = {
   assetType: string;
+  variantId?: string;
+  variationSeed?: number;
   detailLevel?: "draft" | "standard" | "presentation";
   stylePreset?: string;
+  styleSource?: "generated" | "manual";
+  styleLocked?: boolean;
   primaryMaterial?: string;
   secondaryMaterial?: string;
   accentMaterial?: string;
+  modelAssetId?: string;
+  assetUrl?: string;
   visibleIn3d?: boolean;
   selectableIn3d?: boolean;
   childrenMode?: "merged" | "grouped";
@@ -346,6 +383,25 @@ export type Position2D = {
   flipY?: boolean;
 };
 
+export type FurnitureWallAnchor = {
+  positionOnWall: number;
+  offsetMm: number;
+  side: "left" | "right" | "center";
+  followWall: boolean;
+  needsRebind?: boolean;
+  suggestedWallId?: string;
+};
+
+export type FurnitureClearanceMeta = {
+  frontMm?: number;
+  leftMm?: number;
+  rightMm?: number;
+  rearMm?: number;
+  serviceMm?: number;
+  doorSwingMm?: number;
+  notes?: string;
+};
+
 export type FixedCameraView = {
   id: string;
   name: string;
@@ -384,6 +440,8 @@ export type RoomTourView = {
   status: TourNodeStatus;
   sourceCameraViewId?: string;
   isFloorOverview?: boolean;
+  supportedSheetTypes?: DrawingSheetType[];
+  recommendedLightingSceneId?: string;
 };
 
 export type WardrobeCellKind = "hanging-long" | "hanging-short" | "folded" | "drawer" | "open" | "shoe" | "blank";
@@ -465,7 +523,7 @@ export type WallKind = "straight" | "arc";
 export type HouseWallBarrierType = "wall" | "railing";
 export type HouseWallMaterial = "masonry" | "metal" | "glass" | "wood";
 
-export type StraightHouseWall = SyncObjectState & {
+export type StraightHouseWall = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -481,7 +539,7 @@ export type StraightHouseWall = SyncObjectState & {
   openness?: number;
 };
 
-export type ArcHouseWall = SyncObjectState & {
+export type ArcHouseWall = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -502,7 +560,7 @@ export type ArcHouseWall = SyncObjectState & {
 
 export type HouseWall = StraightHouseWall | ArcHouseWall;
 
-export type HouseRoom = SyncObjectState & {
+export type HouseRoom = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   roomNumber: string;
@@ -514,7 +572,7 @@ export type HouseRoom = SyncObjectState & {
   sourceWallIds: string[];
 };
 
-export type HousePartition = SyncObjectState & {
+export type HousePartition = SyncObjectState & VerificationState & {
   id: string;
   name: string;
   floorId: FloorId;
@@ -532,7 +590,7 @@ export type HousePartition = SyncObjectState & {
   removable: true;
 };
 
-export type HouseDoor = SyncObjectState & {
+export type HouseDoor = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -548,7 +606,7 @@ export type HouseDoor = SyncObjectState & {
   transparency?: number;
 };
 
-export type HouseWindow = SyncObjectState & {
+export type HouseWindow = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -560,7 +618,7 @@ export type HouseWindow = SyncObjectState & {
   height: number;
 };
 
-export type HouseBayWindow = SyncObjectState & {
+export type HouseBayWindow = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -572,7 +630,7 @@ export type HouseBayWindow = SyncObjectState & {
   height: number;
 };
 
-export type HouseSkylight = SyncObjectState & {
+export type HouseSkylight = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -593,7 +651,7 @@ export type HouseSkylight = SyncObjectState & {
   removable: true;
 };
 
-export type HouseOutdoor = SyncObjectState & {
+export type HouseOutdoor = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -638,7 +696,7 @@ export type HouseOutdoorSurface = SyncObjectState & {
   removable: true;
 };
 
-export type HouseStair = SyncObjectState & {
+export type HouseStair = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -654,7 +712,7 @@ export type HouseStair = SyncObjectState & {
   removable: true;
 };
 
-export type HouseColumn = SyncObjectState & {
+export type HouseColumn = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
   name: string;
@@ -732,6 +790,11 @@ export type Furniture = {
   catalogId?: string;
   floorId: FloorId;
   roomId: string;
+  outdoorId?: string;
+  roomAssignmentLocked?: boolean;
+  hostWallId?: string;
+  wallAnchor?: FurnitureWallAnchor;
+  clearanceMeta?: FurnitureClearanceMeta;
   dimensions: Dimension;
   material: string;
   note: string;

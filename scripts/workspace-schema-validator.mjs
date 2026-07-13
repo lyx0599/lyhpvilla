@@ -1,5 +1,6 @@
 import { CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION } from "../lib/workspace-migrations.ts";
 import { validateWorkspaceReferences } from "../lib/workspace-reference-validator.ts";
+import { getVerificationMetaIssues, verificationTargetCollections } from "../lib/dimension-verification.ts";
 
 export const REQUIRED_FLOOR_IDS = ["B2", "B1", "1F", "2F", "YARD"];
 const STRUCTURE_COLLECTIONS = [
@@ -9,6 +10,7 @@ const STRUCTURE_COLLECTIONS = [
 const DRAWING_ITEM_CATEGORIES = new Set(["socket", "switch", "light", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "cabinet", "annotation", "network", "ventilation"]);
 const DRAWING_ITEM_SOURCES = new Set(["manual", "generated-from-furniture", "generated-from-room"]);
 const DRAWING_ITEM_STATUSES = new Set(["draft", "confirmed", "todo", "deprecated"]);
+const DRAWING_SHEET_TYPES = new Set(["sitePlan", "structurePlan", "demolitionAndBuildPlan", "furniturePlan", "socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"]);
 const TOUR_NODE_TYPES = new Set(["room", "yard", "corridor", "stair", "viewpoint"]);
 const TOUR_NODE_STATUSES = new Set(["active", "draft", "disabled"]);
 const LIGHTING_LAYERS = new Set(["ambient", "task", "accent", "decorative", "cabinetStrip", "mirrorLight", "outdoor"]);
@@ -86,6 +88,12 @@ export function validateWorkspaceDocument(workspace) {
   }
 
   if (!Array.isArray(workspace.floors)) issues.push(issue("workspace.floors", "must be an array"));
+  if (!isRecord(workspace.lightingDesign)) issues.push(issue("workspace.lightingDesign", "must be an object"));
+  else {
+    if (workspace.lightingDesign.version !== "modern-warm-v1") issues.push(issue("workspace.lightingDesign.version", "must equal modern-warm-v1"));
+    if (!Array.isArray(workspace.lightingDesign.fixtureFamilies) || workspace.lightingDesign.fixtureFamilies.length === 0) issues.push(issue("workspace.lightingDesign.fixtureFamilies", "must be a non-empty array"));
+    if (!Array.isArray(workspace.lightingDesign.scenes) || workspace.lightingDesign.scenes.length === 0) issues.push(issue("workspace.lightingDesign.scenes", "must be a non-empty array"));
+  }
   const floorIds = new Set(Array.isArray(workspace.floors) ? workspace.floors.map((floor) => floor?.id) : []);
   REQUIRED_FLOOR_IDS.forEach((floorId) => {
     if (!floorIds.has(floorId)) issues.push(issue("workspace.floors", `missing floor ${floorId}`, floorId));
@@ -102,6 +110,7 @@ export function validateWorkspaceDocument(workspace) {
     else if (!allowEmpty && workspace[key].length === 0) issues.push(issue(`workspace.${key}`, "must not be empty"));
   }
   if (!Array.isArray(workspace.roomTourViews)) issues.push(issue("workspace.roomTourViews", "must be an array"));
+  if (workspace.schemaVersion >= 11 && !DRAWING_SHEET_TYPES.has(workspace.selectedDrawingSheetType)) issues.push(issue("workspace.selectedDrawingSheetType", "must be a supported DrawingSheetType"));
   if (!Array.isArray(workspace.drawingItems)) issues.push(issue("workspace.drawingItems", "must be an array"));
   if (!isRecord(workspace.drawingPackage)) issues.push(issue("workspace.drawingPackage", "must be an object"));
 
@@ -125,6 +134,12 @@ export function validateWorkspaceDocument(workspace) {
       if (label !== "floors" && !REQUIRED_FLOOR_IDS.includes(floorId)) {
         issues.push(issue(`${path}.${floorField}`, floorId ? `unknown floor ${floorId}` : "must be a valid floor id", id || path));
       }
+      const structureCollection = label.split(".").at(-1);
+      if (workspace.schemaVersion >= 10 && verificationTargetCollections.includes(structureCollection)) {
+        getVerificationMetaIssues(item.verificationMeta).forEach((message) => {
+          issues.push(issue(`${path}.verificationMeta`, message, id || path));
+        });
+      }
       for (const key of ["position", "dimensions", "size", "geometry"]) {
         if (key in item) validateGeometry(item[key], `${path}.${key}`, issues, id || path);
       }
@@ -145,6 +160,7 @@ export function validateWorkspaceDocument(workspace) {
         for (const key of ["controlledLightIds", "relatedLightIds", "switchControl"]) if (item[key] !== undefined && (!Array.isArray(item[key]) || item[key].some((value) => typeof value !== "string"))) issues.push(issue(`${path}.${key}`, "must be a string array", id || path));
         for (const key of ["smartControl", "dimming"]) if (item[key] !== undefined && typeof item[key] !== "boolean") issues.push(issue(`${path}.${key}`, "must be a boolean", id || path));
         for (const key of ["relatedSwitchId", "controlGroupId", "relatedRoomId", "hostCeilingAreaId", "hostWallId", "relatedFurnitureId"]) if (item[key] !== undefined && item[key] !== null && typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string or null", id || path));
+        if (item.relatedFurniturePositionMm !== undefined && (!isRecord(item.relatedFurniturePositionMm) || !Number.isFinite(item.relatedFurniturePositionMm.x) || !Number.isFinite(item.relatedFurniturePositionMm.y))) issues.push(issue(`${path}.relatedFurniturePositionMm`, "must contain finite millimeter x and y", id || path));
         if (item.category === "light") {
           if (typeof item.lightType !== "string" || !item.lightType) issues.push(issue(`${path}.lightType`, "must be a non-empty string for light items", id || path));
           if (!LIGHTING_LAYERS.has(item.lightingLayer)) issues.push(issue(`${path}.lightingLayer`, "must be a supported lighting layer", id || path));
@@ -152,8 +168,41 @@ export function validateWorkspaceDocument(workspace) {
           if (item.beamAngle !== null && (!Number.isFinite(item.beamAngle) || item.beamAngle <= 0 || item.beamAngle > 180)) issues.push(issue(`${path}.beamAngle`, "must be null or an angle between 0 and 180", id || path));
           if (!LIGHT_MOUNTING_TYPES.has(item.mountingType)) issues.push(issue(`${path}.mountingType`, "must be a supported mounting type", id || path));
           for (const key of ["smartControl", "dimming"]) if (typeof item[key] !== "boolean") issues.push(issue(`${path}.${key}`, "must be present for light items", id || path));
+          if (!isRecord(item.lightSpec)) issues.push(issue(`${path}.lightSpec`, "must be an object for light items", id || path));
+          else {
+            if (!Number.isFinite(item.lightSpec.cri) || item.lightSpec.cri < 90) issues.push(issue(`${path}.lightSpec.cri`, "must be at least 90", id || path));
+            if (typeof item.lightSpec.fixtureFamily !== "string" || !item.lightSpec.fixtureFamily) issues.push(issue(`${path}.lightSpec.fixtureFamily`, "must identify a fixture family", id || path));
+          }
         }
         if (item.heightRange !== undefined && item.heightRange !== null && (!isRecord(item.heightRange) || !Number.isFinite(item.heightRange.minMm) || !Number.isFinite(item.heightRange.maxMm))) issues.push(issue(`${path}.heightRange`, "must contain finite minMm and maxMm", id || path));
+      }
+      if (label === "furniture" && workspace.schemaVersion >= 13) {
+        for (const key of ["outdoorId", "hostWallId"]) if (item[key] !== undefined && typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string", id || path));
+        if (item.roomAssignmentLocked !== undefined && typeof item.roomAssignmentLocked !== "boolean") issues.push(issue(`${path}.roomAssignmentLocked`, "must be a boolean", id || path));
+        if (item.wallAnchor !== undefined) {
+          if (!isRecord(item.wallAnchor)) issues.push(issue(`${path}.wallAnchor`, "must be an object", id || path));
+          else {
+            if (!Number.isFinite(item.wallAnchor.positionOnWall) || item.wallAnchor.positionOnWall < 0 || item.wallAnchor.positionOnWall > 1) issues.push(issue(`${path}.wallAnchor.positionOnWall`, "must be between 0 and 1", id || path));
+            if (!Number.isFinite(item.wallAnchor.offsetMm) || item.wallAnchor.offsetMm < 0) issues.push(issue(`${path}.wallAnchor.offsetMm`, "must be a non-negative finite number", id || path));
+            if (!["left", "right", "center"].includes(item.wallAnchor.side)) issues.push(issue(`${path}.wallAnchor.side`, "must be left, right or center", id || path));
+            if (typeof item.wallAnchor.followWall !== "boolean") issues.push(issue(`${path}.wallAnchor.followWall`, "must be a boolean", id || path));
+          }
+        }
+        if (item.clearanceMeta !== undefined) {
+          if (!isRecord(item.clearanceMeta)) issues.push(issue(`${path}.clearanceMeta`, "must be an object", id || path));
+          else for (const key of ["frontMm", "leftMm", "rightMm", "rearMm", "serviceMm", "doorSwingMm"]) if (item.clearanceMeta[key] !== undefined && (!Number.isFinite(item.clearanceMeta[key]) || item.clearanceMeta[key] < 0)) issues.push(issue(`${path}.clearanceMeta.${key}`, "must be a non-negative finite number", id || path));
+        }
+        if (workspace.schemaVersion >= 15) {
+          if (!isRecord(item.render3d)) issues.push(issue(`${path}.render3d`, "must be an object", id || path));
+          else {
+            if (typeof item.render3d.variantId !== "string" || !item.render3d.variantId) issues.push(issue(`${path}.render3d.variantId`, "must be a non-empty string", id || path));
+            if (!Number.isInteger(item.render3d.variationSeed) || item.render3d.variationSeed < 0) issues.push(issue(`${path}.render3d.variationSeed`, "must be a non-negative integer", id || path));
+            if (item.render3d.styleSource !== undefined && !["generated", "manual"].includes(item.render3d.styleSource)) issues.push(issue(`${path}.render3d.styleSource`, "must be generated or manual", id || path));
+            if (item.render3d.styleLocked !== undefined && typeof item.render3d.styleLocked !== "boolean") issues.push(issue(`${path}.render3d.styleLocked`, "must be a boolean", id || path));
+            if (item.render3d.detailLevel !== undefined && !["draft", "standard", "presentation"].includes(item.render3d.detailLevel)) issues.push(issue(`${path}.render3d.detailLevel`, "must be draft, standard or presentation", id || path));
+            for (const key of ["modelAssetId", "assetUrl"]) if (item.render3d[key] !== undefined && typeof item.render3d[key] !== "string") issues.push(issue(`${path}.render3d.${key}`, "must be a string", id || path));
+          }
+        }
       }
       if (label === "roomTourViews") {
         if (!TOUR_NODE_TYPES.has(item.type)) issues.push(issue(`${path}.type`, "must be a supported tour node type", id || path));

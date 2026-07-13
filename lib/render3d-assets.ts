@@ -6,10 +6,20 @@ import type {
   Render3DAssetType,
   Render3DMeta
 } from "@/types/space";
+import {
+  getFurnitureFamily,
+  getRecommendedFurnitureVariantId,
+  MODERN_NATURAL_STYLE_PRESET,
+  stableFurnitureSeed
+} from "./furniture-variants.ts";
+import type { FurnitureFamily } from "./furniture-variants.ts";
 
 export type Resolved3DAsset = {
   assetType: Render3DAssetType;
   componentKey: Render3DAssetType;
+  family: FurnitureFamily;
+  variantId: string;
+  variationSeed: number;
   detailLevel: NonNullable<Render3DMeta["detailLevel"]>;
   stylePreset: string;
   primaryMaterial: string;
@@ -175,6 +185,7 @@ const materialAliases: Record<string, Render3DMaterialToken> = {
 };
 
 const render3DStyleLabels: Record<string, string> = {
+  modernNatural: "现代自然",
   "tuscan-sunlight": "托斯卡纳阳光",
   elevatedTuscanSun: "托斯卡纳阳光",
   warmJapandi: "托斯卡纳阳光",
@@ -189,7 +200,7 @@ function normalizeAssetType(value: string | undefined): Render3DAssetType | null
 }
 
 function normalizeStylePreset(value: string | undefined) {
-  if (!value) return "tuscan-sunlight";
+  if (!value) return MODERN_NATURAL_STYLE_PRESET;
   if (value === "elevatedTuscanSun" || value === "warmJapandi") return "tuscan-sunlight";
   return value;
 }
@@ -595,10 +606,18 @@ function inferConstructionMeta(item: Furniture, assetType: Render3DAssetType): C
 export function getDefaultRender3DMeta(item: Furniture): Render3DMeta {
   const assetType = infer3DAssetType(item);
   const primaryMaterial = inferPrimaryMaterial(item, assetType);
+  const variationSeed = item.render3d?.variationSeed ?? stableFurnitureSeed(item.id);
+  const family = getFurnitureFamily(item, assetType);
   return {
     assetType,
+    variantId: item.render3d?.variantId ?? getRecommendedFurnitureVariantId({
+      ...item,
+      render3d: { ...(item.render3d ?? { assetType }), variationSeed }
+    }, family),
+    variationSeed,
     detailLevel: item.render3d?.detailLevel ?? "standard",
-    stylePreset: item.render3d?.stylePreset ?? "warmJapandi",
+    stylePreset: item.render3d?.stylePreset ?? MODERN_NATURAL_STYLE_PRESET,
+    styleSource: item.render3d?.styleSource ?? "generated",
     primaryMaterial,
     secondaryMaterial: item.render3d?.secondaryMaterial ?? inferSecondaryMaterial(assetType, primaryMaterial),
     accentMaterial: item.render3d?.accentMaterial ?? inferAccentMaterial(assetType),
@@ -686,6 +705,9 @@ export function resolve3DAsset(item: Furniture): Resolved3DAsset {
   return {
     assetType,
     componentKey: assetType,
+    family: getFurnitureFamily(item, assetType),
+    variantId: item.render3d?.variantId ?? render3d.variantId ?? "proceduralDefault",
+    variationSeed: item.render3d?.variationSeed ?? render3d.variationSeed ?? stableFurnitureSeed(item.id),
     detailLevel: item.render3d?.detailLevel ?? render3d.detailLevel ?? "standard",
     stylePreset: materials.stylePreset,
     primaryMaterial: materials.primary.token,

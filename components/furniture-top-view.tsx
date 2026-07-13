@@ -4,6 +4,7 @@ import type { FurnitureType, Render3DAssetType } from "@/types/space";
 type Props = {
   type: FurnitureType;
   assetType?: Render3DAssetType;
+  variantId?: string;
   color: string;
   label?: string;
   className?: string;
@@ -43,7 +44,7 @@ function getFurnitureAspectRatio(footprint?: Props["footprint"]) {
   return clamp(width / depth, 0.35, 6);
 }
 
-function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: Props["footprint"], assetType?: Render3DAssetType) {
+function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: Props["footprint"], assetType?: Render3DAssetType, variantId?: string) {
   const stroke = "#334155";
   const light = "#f8fafc";
   const glass = "#dbeafe";
@@ -55,6 +56,48 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
   const sofaSeatCount = Math.min(4, Math.max(2, Math.round(aspectRatio * 1.15)));
   const cabinetDoorCount = Math.min(7, Math.max(2, Math.round(aspectRatio * 1.25)));
   const strokeProps = { vectorEffect: "non-scaling-stroke" as const };
+
+  if (visualType === "bed") {
+    const noHeadboard = variantId === "minimalNoHeadboard";
+    const timber = variantId === "timberFrame" || variantId === "guestBed" || variantId === "childBed";
+    const floating = variantId === "floatingPlatform";
+    return (
+      <FootprintSymbolShell>
+        {floating && <rect x="7" y="8" width="86" height="86" rx="8" fill="none" stroke={stroke} strokeDasharray="5 4" strokeWidth="1.5" opacity="0.45" {...strokeProps} />}
+        <rect x="13" y={noHeadboard ? 10 : 16} width="74" height={noHeadboard ? 82 : 76} rx={timber ? 3 : 8} fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} />
+        {!noHeadboard && <rect x="10" y="7" width="80" height={variantId === "tallPanelHeadboard" ? 17 : timber ? 9 : 13} rx={timber ? 2 : 6} fill={timber ? "#c8ad8b" : color} stroke={stroke} strokeWidth="2" {...strokeProps} />}
+        {variantId === "tallPanelHeadboard" && [26, 38, 50, 62, 74].map((x) => <line key={x} x1={x} y1="8" x2={x} y2="23" stroke={light} strokeWidth="1.1" opacity="0.65" {...strokeProps} />)}
+        <rect x="22" y="27" width="56" height="21" rx="6" fill={light} stroke={stroke} strokeWidth="1.5" {...strokeProps} />
+        <line x1="16" y1="55" x2="84" y2="55" stroke={stroke} strokeWidth="1.4" opacity="0.35" {...strokeProps} />
+        {variantId === "childBed" && <line x1="83" y1="30" x2="83" y2="76" stroke="#a17f5b" strokeWidth="4" strokeLinecap="round" {...strokeProps} />}
+      </FootprintSymbolShell>
+    );
+  }
+
+  if (visualType === "sofa" && variantId === "sectionalLShape") {
+    return <FootprintSymbolShell><path d="M7 16 H93 V55 H59 V89 H7 Z" fill={color} stroke={stroke} strokeWidth="2.4" strokeLinejoin="round" {...strokeProps} /><path d="M14 25 H85 V46 H51 V80 H14 Z" fill={light} fillOpacity="0.34" stroke={stroke} strokeWidth="1.3" {...strokeProps} /><line x1="35" y1="25" x2="35" y2="80" stroke={stroke} opacity="0.28" {...strokeProps} /><line x1="59" y1="25" x2="59" y2="48" stroke={stroke} opacity="0.28" {...strokeProps} /></FootprintSymbolShell>;
+  }
+  if (visualType === "sofa" && variantId === "curvedSofa") {
+    return <FootprintSymbolShell><path d="M8 65 C20 12 80 12 92 65 L78 80 C68 46 32 46 22 80 Z" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} /><path d="M22 62 C34 34 66 34 78 62" fill="none" stroke={light} strokeWidth="7" opacity="0.5" {...strokeProps} /></FootprintSymbolShell>;
+  }
+
+  if ((visualType === "diningTable" || visualType === "slabTable") && variantId && !["roundPedestal", "roundFourLeg"].includes(variantId)) {
+    const oval = variantId === "ovalSlab" || variantId === "stoneTop";
+    return <FootprintSymbolShell><rect x="4" y="5" width="92" height="90" rx="10" fill={`${color}16`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.4" {...strokeProps} />{[15, 85].flatMap((x) => [25, 50, 75].map((y) => <rect key={`${x}-${y}`} x={x - 7} y={y - 7} width="14" height="14" rx="5" fill="#d9c4a7" stroke={stroke} strokeWidth="1.2" {...strokeProps} />))}<rect x="25" y="18" width="50" height="64" rx={oval ? 24 : 5} fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} />{variantId === "lightMetalFrame" && <path d="M31 25 L69 75 M69 25 L31 75" stroke={metal} strokeWidth="2" {...strokeProps} />}</FootprintSymbolShell>;
+  }
+
+  if ((visualType === "coffeeTable" || visualType === "loungeCoffeeTable") && variantId) {
+    if (variantId === "nestedDouble") return <FootprintSymbolShell><circle cx="38" cy="55" r="30" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} /><circle cx="64" cy="39" r="23" fill="#ded2bd" stroke={stroke} strokeWidth="2" {...strokeProps} /></FootprintSymbolShell>;
+    if (variantId === "softOrganic") return <FootprintSymbolShell><path d="M13 58 C7 31 29 13 52 19 C73 4 94 28 84 49 C98 71 74 91 52 80 C31 94 14 80 13 58Z" fill={color} stroke={stroke} strokeWidth="2.3" {...strokeProps} /></FootprintSymbolShell>;
+    if (variantId === "lowRound") return <FootprintSymbolShell><circle cx="50" cy="50" r="40" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} /><circle cx="50" cy="50" r="18" fill={light} opacity="0.32" /></FootprintSymbolShell>;
+  }
+
+  if (["wardrobe", "walkInCloset", "entryCabinet", "sideboard", "cabinet", "snackCabinet", "kitchenCabinet", "wallCabinet", "bathroomVanity", "island", "outdoorCabinet"].includes(visualType) && variantId) {
+    const glassVariant = variantId === "glassDisplay" || variantId === "slimGlassFrame";
+    const openVariant = variantId === "openClosedMix" || variantId === "woodWarmWhite";
+    const floatingVariant = variantId === "floating" || variantId === "wallMounted";
+    return <FootprintSymbolShell><rect x="4" y="18" width="92" height="64" rx="5" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} />{[27, 50, 73].map((x, index) => <rect key={x} x={x - 10} y="24" width="20" height="52" rx="2" fill={openVariant && index === 1 ? "#806f5e" : glassVariant ? glass : index % 2 ? "#fbf8f1" : color} fillOpacity={glassVariant ? 0.58 : 1} stroke={stroke} strokeWidth="1.2" {...strokeProps} />)}{openVariant && [34, 50, 66].map((y) => <line key={y} x1="41" y1={y} x2="59" y2={y} stroke={light} strokeWidth="1.2" {...strokeProps} />)}{floatingVariant && <line x1="14" y1="84" x2="86" y2="84" stroke="#facc15" strokeWidth="2.5" opacity="0.8" {...strokeProps} />}</FootprintSymbolShell>;
+  }
 
   switch (visualType) {
     case "slabTable":
@@ -470,7 +513,7 @@ function renderSymbol(type: FurnitureType, color: string) {
   }
 }
 
-export function FurnitureTopView({ type, assetType, color, label, className = "", showLabel = true, frameless = false, imageSrc, stretchToFill = false, footprint }: Props) {
+export function FurnitureTopView({ type, assetType, variantId, color, label, className = "", showLabel = true, frameless = false, imageSrc, stretchToFill = false, footprint }: Props) {
   return (
     <div className={`relative grid place-items-center ${frameless ? "overflow-visible bg-transparent" : "overflow-hidden bg-white"} rounded-lg ${className}`}>
       {imageSrc ? (
@@ -481,7 +524,7 @@ export function FurnitureTopView({ type, assetType, color, label, className = ""
         />
       ) : (
         <div className={frameless ? "absolute inset-0" : "absolute inset-1"}>
-          {stretchToFill ? renderFootprintSymbol(type, color, footprint, assetType) : renderSymbol(type, color)}
+          {stretchToFill ? renderFootprintSymbol(type, color, footprint, assetType, variantId) : renderSymbol(type, color)}
         </div>
       )}
       {showLabel && label && (
