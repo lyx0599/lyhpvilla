@@ -37,5 +37,10 @@ assert.ok(verificationObjects.every((object) => object.verificationMeta));
 assert.ok(verificationObjects.every((object) => object.verificationMeta.status !== "confirmed"), "Estimated default geometry must not be auto-confirmed.");
 assert.ok(workspace.furniture.filter((item) => item.roomId.startsWith("OD-")).every((item) => item.outdoorId === item.roomId), "Outdoor furniture must explicitly retain outdoorId.");
 assert.ok(workspace.drawingItems.filter((item) => item.relatedFurnitureId).every((item) => item.relatedFurniturePositionMm), "Linked drawing items must retain their furniture-position baseline.");
+assert.equal(workspace.stairSystems.length, 3, "Every adjacent floor pair must have one stair system.");
+assert.equal(workspace.stairLandings.length, 3, "Every stair system must have one explicit landing.");
+assert.equal(workspace.stairOpenings.length, 3, "Every stair system must have one explicit opening.");
+assert.ok(Object.values(workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs).every((stair) => stair.stepCount === 10 && stair.height === 1400 && stair.stairSystemId && stair.landingId), "Every persisted stair flight must retain its 10-step system binding.");
+assert.equal(workspace.cameraViews.filter((view) => view.id.startsWith("stair-view-")).length, 15, "Dedicated stair inspection views must remain available.");
 
 console.log("default-workspace schema validation passed");

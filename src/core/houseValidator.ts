@@ -753,8 +753,8 @@ function getStairStackConfigs(floorId: FloorId): StairStackConfig[] {
       name: "B2 上行至 B1 楼梯",
       lane: "upper",
       direction: "up",
-      height: 2800,
-      stepCount: 14
+      height: 1400,
+      stepCount: 10
     }];
   }
   if (floorId === "B1") {
@@ -762,7 +762,7 @@ function getStairStackConfigs(floorId: FloorId): StairStackConfig[] {
       {
         id: "ST-B1-001",
         name: "B1 上行至 1F 梯段",
-        lane: "lower",
+        lane: "upper",
         direction: "up",
         height: 1400,
         stepCount: 10
@@ -770,7 +770,7 @@ function getStairStackConfigs(floorId: FloorId): StairStackConfig[] {
       {
         id: "ST-B1-002",
         name: "B1 下行至 B2 梯段",
-        lane: "upper",
+        lane: "lower",
         direction: "down",
         height: 1400,
         stepCount: 10
@@ -800,11 +800,11 @@ function getStairStackConfigs(floorId: FloorId): StairStackConfig[] {
   if (floorId === "2F") {
     return [{
       id: "ST-2F-001",
-      name: "W-2F-012 1F→2F 到达梯段",
-      lane: "upper",
-      direction: "up",
-      height: 2800,
-      stepCount: 14
+      name: "2F 下行至 1F 梯段",
+      lane: "lower",
+      direction: "down",
+      height: 1400,
+      stepCount: 10
     }];
   }
   return [];
@@ -1259,7 +1259,10 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       const footprint = getStairFootprint(stair);
       const centerGround = findGroundContainingPoint(footprint.center, groundPolygons);
       const containingGround = findGroundContainingFootprint(footprint, groundPolygons);
-      const blockingWall = footprintIntersectsSolidWall(footprint, structure.walls);
+      const stairRoomId = (STAIR_STACK_ROOM_IDS as Partial<Record<FloorId, string>>)[floorId];
+      const stairRoom = structure.rooms.find((room) => room.id === stairRoomId || /楼梯/.test(room.name));
+      const stairRoomBoundaryWallIds = new Set(stairRoom?.sourceWallIds ?? []);
+      const blockingWall = footprintIntersectsSolidWall(footprint, structure.walls.filter((wall) => !stairRoomBoundaryWallIds.has(wall.id)));
       if (!centerGround) {
         errors.push({ type: "stair", id: stair.id, message: "楼梯中心没有落在任何房间地面内，可能漂浮在结构外。" });
       } else if (!containingGround) {

@@ -33,6 +33,9 @@ assert.match(floor3dSource, /data-drawing-sheet-type=/);
 assert.match(floor3dSource, /DrawingItems3DLayer/);
 assert.match(floor3dSource, /lightingSceneModeLabels/);
 assert.match(floor3dSource, /onDrawingSheetTypeChange/);
+assert.match(floor3dSource, /data-testid="lighting-free-browse-minimap"/, "Lighting free browse must expose the draggable floor-plan minimap.");
+assert.match(floor3dSource, /cameraMode === "orbit" && !activeCameraViewId/, "The lighting minimap must only appear in free browse.");
+assert.match(floor3dSource, /navigationRequest\.targetX - controls\.target\.x/, "Dragging the minimap must translate the camera focus without changing its relative view.");
 assert.doesNotMatch(floor3dSource, /threeDDrawingItems|drawingItems3D\s*=/, "3D must not create a separate drawing item store.");
 
 console.log("Shared drawing 3D profile checks passed.");

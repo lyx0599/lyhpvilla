@@ -9,6 +9,9 @@ import type {
   FloorId,
   FloorPlanVisualSettings,
   Furniture,
+  StairLanding,
+  StairOpening,
+  StairSystem,
   HouseStructure
 } from "@/types/space";
 import type { RoomTourView } from "@/types/space";
@@ -71,6 +74,9 @@ export type WorkspaceDocument = {
   visualSettingsByFloor: Record<FloorId, FloorPlanVisualSettings>;
   cleanPatchesByFloor: Record<FloorId, CleanPatch[]>;
   houseStructuresByFloor: Record<FloorId, HouseStructure>;
+  stairSystems: StairSystem[];
+  stairLandings: StairLanding[];
+  stairOpenings: StairOpening[];
   wallSyncOverrides: WallSyncOverrides;
   cameraViews: FixedCameraView[];
   roomTourViews: RoomTourView[];
@@ -80,6 +86,9 @@ export type WorkspaceDocument = {
 export type WorkspaceDataCategory =
   | "floors"
   | "houseStructuresByFloor"
+  | "stairSystems"
+  | "stairLandings"
+  | "stairOpenings"
   | "furniture"
   | "drawingItems"
   | "drawingPackage"

@@ -88,8 +88,10 @@ function createSpaceNode(source: SpaceSource, structure: HouseStructure, semanti
   const direction = { x: preferredDirection.x / directionLength, z: preferredDirection.z / directionLength };
   const eyeHeight = source.kind === "outdoor" ? 1.55 : 1.42;
   const lookDistance = Math.min(2.8, Math.max(1.5, Math.min(center.spanX, center.spanZ) * 0.6));
-  const cameraPosition = { x: center.x - direction.x * 0.32, y: eyeHeight, z: center.z - direction.z * 0.32 };
-  const target = { x: cameraPosition.x + direction.x * lookDistance, y: eyeHeight - 0.08, z: cameraPosition.z + direction.z * lookDistance };
+  // Saved camera views are authored compositions. Re-centering them inside the
+  // room loses the subject and raises furniture to the bottom edge of the frame.
+  const cameraPosition = cameraView?.cameraPosition ?? { x: center.x - direction.x * 0.32, y: eyeHeight, z: center.z - direction.z * 0.32 };
+  const target = cameraView?.target ?? { x: cameraPosition.x + direction.x * lookDistance, y: eyeHeight - 0.08, z: cameraPosition.z + direction.z * lookDistance };
   const rotation = angles(cameraPosition, target);
   return {
     id: `tour-${source.floorId}-${source.id}`,
@@ -137,12 +139,9 @@ function createOverviewNode(floor: Floor, structure: HouseStructure, cameraViews
 }
 
 function createCameraViewpoint(view: FixedCameraView, structure: HouseStructure, sources: SpaceSource[]): RoomTourView {
-  const eyeHeight = 1.55;
-  const dx = view.target.x - view.cameraPosition.x;
-  const dz = view.target.z - view.cameraPosition.z;
-  const length = Math.max(0.001, Math.hypot(dx, dz));
-  const cameraPosition = { x: view.target.x - (dx / length) * 1.8, y: eyeHeight, z: view.target.z - (dz / length) * 1.8 };
-  const target = { x: view.target.x, y: eyeHeight - 0.08, z: view.target.z };
+  const isStairInspection = view.id.startsWith("stair-view-");
+  const cameraPosition = view.cameraPosition;
+  const target = view.target;
   const rotation = angles(cameraPosition, target);
   const nearestSource = sources
     .map((source) => ({ source, center: getSpaceCenter(source.points, structure) }))
@@ -158,12 +157,13 @@ function createCameraViewpoint(view: FixedCameraView, structure: HouseStructure,
     target,
     yaw: rotation.yaw,
     pitch: rotation.pitch,
-    fov: 58,
+    fov: isStairInspection ? 46 : 58,
     zoom: view.zoom,
     linkedNodeIds: [],
     description: view.description || view.name,
     status: "active",
-    sourceCameraViewId: view.id
+    sourceCameraViewId: view.id,
+    targetArea: view.targetArea
   };
 }
 
@@ -213,6 +213,7 @@ export function tourNodeToCameraView(node: RoomTourView): FixedCameraView {
     zoom: node.zoom,
     mode: "perspective",
     description: node.description,
-    scope: node.type === "yard" ? "courtyard" : "floor"
+    scope: node.type === "yard" ? "courtyard" : "floor",
+    targetArea: node.targetArea
   };
 }

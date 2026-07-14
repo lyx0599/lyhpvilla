@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, SetStateAction } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { FurnitureFamily3D } from "@/components/furniture-family-3d";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
+import { getFurnitureFamily } from "@/lib/furniture-variants";
 import { tourNodeToCameraView } from "@/lib/room-tour";
 import { buildFloorCameraViews, splitFloorCameraViews } from "@/lib/floor-camera-views";
 import type { FloorCameraView } from "@/lib/floor-camera-views";
@@ -18,6 +19,12 @@ import {
   getDrawing3DPresentationProfile
 } from "@/lib/drawing-3d-profiles";
 import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
+import {
+  buildStairRenderSystemGeometry,
+  formatStairRenderDebug,
+  getStairRenderContinuity,
+  type StairRenderSystemGeometry
+} from "@/lib/stair-render-geometry";
 import {
   getDoor3DDisplayHeight,
   getHostedOpeningCuts,
@@ -48,7 +55,10 @@ import type {
   ModuleServiceRequirements,
   MmPoint,
   Render3DAssetType,
-  RoomTourView
+  RoomTourView,
+  StairLanding,
+  StairOpening,
+  StairSystem
 } from "@/types/space";
 import type { Drawing3DViewPreset, Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
 import type { LightingDesign } from "@/types/workspace";
@@ -56,6 +66,10 @@ import type { LightingDesign } from "@/types/workspace";
 type Floor3DViewProps = {
   floor: Floor;
   houseStructure: HouseStructure;
+  houseStructuresByFloor?: Partial<Record<Floor["id"], HouseStructure>>;
+  stairSystems?: StairSystem[];
+  stairLandings?: StairLanding[];
+  stairOpenings?: StairOpening[];
   furniture: Furniture[];
   drawingItems: DrawingItem[];
   drawingSheetType: DrawingSheetType;
@@ -83,6 +97,19 @@ type Floor3DViewProps = {
 type ScenePoint = {
   x: number;
   z: number;
+};
+
+type CameraPlanPose = {
+  cameraX: number;
+  cameraZ: number;
+  targetX: number;
+  targetZ: number;
+};
+
+type CameraPlanNavigationRequest = {
+  targetX: number;
+  targetZ: number;
+  version: number;
 };
 
 type HostSegment = {
@@ -493,7 +520,9 @@ function useFineAssetMetrics({ item, structure, designStyle, resolvedAsset }: Fu
   const position = getFurnitureScenePosition(item, structure);
   const width = Math.max(0.12, item.dimensions.width / 100);
   const depth = Math.max(0.08, item.dimensions.depth / 100);
-  const height = getFurnitureHeight(item);
+  const height = resolvedAsset.detailLevel === "draft"
+    ? getFurnitureHeight(item)
+    : Math.max(0.024, Math.min(item.dimensions.height / 100, 2.6));
   const rotation = -(item.position.rotation || 0) * Math.PI / 180;
   const groupY = height / 2 + 0.035;
   const palette = designStylePalettes[designStyle];
@@ -1533,38 +1562,6 @@ function isRailingWall(wall: HouseWall) {
   return wall.barrierType === "railing";
 }
 
-type StairLandingConnection = {
-  id: string;
-  fromId: string;
-  toId: string;
-  start: MmPoint;
-  end: MmPoint;
-  width: number;
-  bounds: { x: number; y: number; width: number; height: number };
-};
-
-function getStairLandingConnections(stairs: HouseStair[]): StairLandingConnection[] {
-  const firstRun = stairs.find((stair) => stair.id.endsWith("-001"));
-  const secondRun = stairs.find((stair) => stair.id.endsWith("-002") && stair.direction === "down");
-  if (!firstRun || !secondRun) return [];
-  const length = Math.hypot(firstRun.start.x - secondRun.start.x, firstRun.start.y - secondRun.start.y);
-  if (length <= 0 || length > 3400) return [];
-  const width = Math.min(firstRun.width, secondRun.width);
-  const minX = Math.min(firstRun.start.x, secondRun.start.x) - width / 2;
-  const maxX = Math.max(firstRun.start.x, secondRun.start.x) + width / 2;
-  const minY = Math.min(firstRun.start.y, secondRun.start.y) - width / 2;
-  const maxY = Math.max(firstRun.start.y, secondRun.start.y) + width / 2;
-  return [{
-    id: `${firstRun.id}-${secondRun.id}-landing`,
-    fromId: firstRun.id,
-    toId: secondRun.id,
-    start: firstRun.start,
-    end: secondRun.start,
-    width,
-    bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
-  }];
-}
-
 function getArcWallPoints(wall: Extract<HouseWall, { kind: "arc" }>, steps = 20) {
   const startAngle = wall.startAngle * Math.PI / 180;
   const endAngle = wall.endAngle * Math.PI / 180;
@@ -1893,14 +1890,16 @@ function RoomFloorMesh({
   room,
   index,
   structure,
-  designStyle
+  designStyle,
+  openings = []
 }: {
   room: HouseStructure["rooms"][number];
   index: number;
   structure: HouseStructure;
   designStyle: DesignStylePreset;
+  openings?: StairOpening[];
 }) {
-  const key = room.boundary.map((point) => `${point.x},${point.y}`).join(" ");
+  const key = `${room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}|${openings.map((opening) => opening.polygon.map((point) => `${point.x},${point.y}`).join(" ")).join("|")}`;
   const geometry = useMemo(() => {
     const shape = new THREE.Shape();
     room.boundary.forEach((point, pointIndex) => {
@@ -1909,8 +1908,18 @@ function RoomFloorMesh({
       else shape.lineTo(nextPoint.x, nextPoint.y);
     });
     shape.closePath();
+    openings.forEach((opening) => {
+      const hole = new THREE.Path();
+      opening.polygon.forEach((point, pointIndex) => {
+        const nextPoint = toShapePoint(point, structure);
+        if (pointIndex === 0) hole.moveTo(nextPoint.x, nextPoint.y);
+        else hole.lineTo(nextPoint.x, nextPoint.y);
+      });
+      hole.closePath();
+      shape.holes.push(hole);
+    });
     return new THREE.ShapeGeometry(shape);
-  }, [key, structure]);
+  }, [key, openings, structure]);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
@@ -2680,6 +2689,7 @@ function SolidWallSegment({
   widthMm,
   heightMm,
   color,
+  wallOpacity,
   selected,
   onSelect,
   onHover,
@@ -2692,6 +2702,7 @@ function SolidWallSegment({
   widthMm: number;
   heightMm: number;
   color: string;
+  wallOpacity?: number;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2709,7 +2720,7 @@ function SolidWallSegment({
         heightMm={bodyHeightMm}
         structure={structure}
         color={selected ? "#bfdbfe" : color}
-        opacity={selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY}
+        opacity={selected ? WALL_SELECTED_OPACITY : wallOpacity ?? WALL_PREVIEW_OPACITY}
         textureKind="wall"
         textureAccent={effectMaterialCatalog.wallPaint.color}
         selected={selected}
@@ -2725,7 +2736,7 @@ function SolidWallSegment({
         heightMm={42}
         structure={structure}
         color={selected ? "#bfdbfe" : "#9b7250"}
-        opacity={selected ? 0.72 : 0.88}
+        opacity={selected ? 0.72 : wallOpacity == null ? 0.88 : Math.min(0.62, wallOpacity + 0.12)}
         yOffset={0.08}
         textureKind="wood"
         textureAccent="#5d3d26"
@@ -2742,7 +2753,7 @@ function SolidWallSegment({
         heightMm={capHeightMm}
         structure={structure}
         color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
-        opacity={1}
+        opacity={selected ? 1 : wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
         yOffset={bodyHeightMm * MM_TO_M}
         selected={selected}
         onSelect={onSelect}
@@ -2758,7 +2769,7 @@ function SolidWallSegment({
           heightMm={72}
           structure={structure}
           color={effectMaterialCatalog.baseboard.color}
-          opacity={1}
+          opacity={wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
           yOffset={0.018}
           textureKind="wood"
           textureAccent="#6f4c34"
@@ -2783,6 +2794,7 @@ function CutWallPanel({
   structure,
   widthMm,
   color,
+  wallOpacity,
   selected,
   onSelect,
   onHover,
@@ -2798,6 +2810,7 @@ function CutWallPanel({
   structure: HouseStructure;
   widthMm: number;
   color: string;
+  wallOpacity?: number;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2815,7 +2828,7 @@ function CutWallPanel({
         heightMm={bodyHeightMm}
         structure={structure}
         color={selected ? "#bfdbfe" : color}
-        opacity={selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY}
+        opacity={selected ? WALL_SELECTED_OPACITY : wallOpacity ?? WALL_PREVIEW_OPACITY}
         yOffset={bottomMm * MM_TO_M}
         textureKind="wall"
         textureAccent={effectMaterialCatalog.wallPaint.color}
@@ -2833,6 +2846,7 @@ function CutWallPanel({
           heightMm={capHeightMm}
           structure={structure}
           color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
+          opacity={selected ? 1 : wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
           yOffset={(bottomMm + bodyHeightMm) * MM_TO_M}
           selected={selected}
           onSelect={onSelect}
@@ -2850,7 +2864,7 @@ function CutWallPanel({
             heightMm={42}
             structure={structure}
             color={selected ? "#bfdbfe" : "#9b7250"}
-            opacity={selected ? 0.72 : 0.88}
+            opacity={selected ? 0.72 : wallOpacity == null ? 0.88 : Math.min(0.62, wallOpacity + 0.12)}
             yOffset={0.08}
             textureKind="wood"
             textureAccent="#5d3d26"
@@ -2893,6 +2907,7 @@ function StraightWallWithOpenings({
   structure,
   wallColor,
   wallMode,
+  wallOpacity,
   selected,
   onSelect,
   onHover,
@@ -2902,6 +2917,7 @@ function StraightWallWithOpenings({
   structure: HouseStructure;
   wallColor: string;
   wallMode: Drawing3DWallMode;
+  wallOpacity?: number;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2927,6 +2943,7 @@ function StraightWallWithOpenings({
           widthMm={wall.thickness}
           color={wallColor}
           selected={selected}
+          wallOpacity={wallOpacity}
           onSelect={onSelect}
           onHover={onHover}
           onClearHover={onClearHover}
@@ -2941,6 +2958,7 @@ function WallMesh({
   structure,
   wallColor,
   wallMode,
+  wallOpacity,
   selected,
   onSelect,
   onHover,
@@ -2950,6 +2968,7 @@ function WallMesh({
   structure: HouseStructure;
   wallColor: string;
   wallMode: Drawing3DWallMode;
+  wallOpacity?: number;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -3013,6 +3032,7 @@ function WallMesh({
             structure={structure}
             color={wallColor}
             selected={selected}
+            wallOpacity={wallOpacity}
             onSelect={onSelect}
             onHover={onHover}
             onClearHover={onClearHover}
@@ -3031,6 +3051,7 @@ function WallMesh({
         structure={structure}
         wallColor={wallColor}
         wallMode={wallMode}
+        wallOpacity={wallOpacity}
         selected={selected}
         onSelect={onSelect}
         onHover={onHover}
@@ -3049,6 +3070,7 @@ function WallMesh({
       structure={structure}
       color={wallColor}
       selected={selected}
+      wallOpacity={wallOpacity}
       onSelect={onSelect}
       onHover={onHover}
       onClearHover={onClearHover}
@@ -3392,47 +3414,49 @@ function SkylightMesh({
 }
 
 function StairLandingMesh({
-  connection,
+  landing,
+  elevationMm,
   structure,
   materialPreview,
+  showLight,
   selected,
   onSelect,
   onHover,
   onClearHover
 }: {
-  connection: StairLandingConnection;
+  landing: StairLanding;
+  elevationMm: number;
   structure: HouseStructure;
   materialPreview: boolean;
+  showLight: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
-  const platform = useMemo(() => {
-    const min = toScenePoint({ x: connection.bounds.x, y: connection.bounds.y }, structure);
-    const max = toScenePoint({ x: connection.bounds.x + connection.bounds.width, y: connection.bounds.y + connection.bounds.height }, structure);
-    return {
-      center: { x: (min.x + max.x) / 2, z: (min.z + max.z) / 2 },
-      width: Math.max(0.5, connection.bounds.width * MM_TO_M),
-      depth: Math.max(0.5, connection.bounds.height * MM_TO_M)
-    };
-  }, [connection, structure]);
+  const bounds = useMemo(() => getSceneBounds(landing.polygon, structure), [landing.polygon, structure]);
+  const platform = {
+    center: { x: (bounds.minX + bounds.maxX) / 2, z: (bounds.minZ + bounds.maxZ) / 2 },
+    width: Math.max(0.5, bounds.maxX - bounds.minX),
+    depth: Math.max(0.5, bounds.maxZ - bounds.minZ)
+  };
+  const elevation = elevationMm * MM_TO_M;
   return (
     <group
       onClick={(event) => {
         event.stopPropagation();
-        onSelect(connection.toId);
+        onSelect(landing.id);
       }}
       onPointerOver={(event) => {
         event.stopPropagation();
-        onHover(connection.toId);
+        onHover(landing.id);
       }}
       onPointerOut={(event) => {
         event.stopPropagation();
-        onClearHover(connection.toId);
+        onClearHover(landing.id);
       }}
     >
-      <mesh castShadow receiveShadow position={[platform.center.x, 0.105, platform.center.z]}>
+      <mesh castShadow receiveShadow position={[platform.center.x, elevation - 0.065, platform.center.z]}>
         <boxGeometry args={[platform.width, 0.13, platform.depth]} />
         <meshStandardMaterial
           color={selected ? "#2563eb" : materialPreview ? "#82502b" : "#0f766e"}
@@ -3442,6 +3466,76 @@ function StairLandingMesh({
           opacity={selected ? 0.92 : materialPreview ? 1 : 0.88}
         />
       </mesh>
+      <mesh castShadow position={[platform.center.x, elevation - 0.12, platform.center.z]}>
+        <boxGeometry args={[platform.width * 0.92, 0.16, 0.18]} />
+        <meshStandardMaterial color={selected ? "#2563eb" : "#5f4a39"} roughness={0.74} />
+      </mesh>
+      {showLight && (
+        <pointLight color="#ffd48a" intensity={0.42} distance={2.4} position={[platform.center.x, elevation + 0.55, platform.center.z]} />
+      )}
+    </group>
+  );
+}
+
+function StairOpeningMesh({ opening, elevationMm, structure, selected, showSlabFrame }: { opening: StairOpening; elevationMm: number; structure: HouseStructure; selected: boolean; showSlabFrame: boolean }) {
+  const elevation = elevationMm * MM_TO_M;
+  const points = opening.polygon.map((point) => toScenePoint(point, structure));
+  const openingBounds = getSceneBounds(opening.polygon, structure);
+  const stairRoom = structure.rooms.find((room) => /楼梯/.test(room.name));
+  const roomBounds = stairRoom ? getSceneBounds(stairRoom.boundary, structure) : null;
+  const slabPieces = roomBounds ? [
+    { id: "entry", minX: roomBounds.minX, maxX: openingBounds.minX, minZ: roomBounds.minZ, maxZ: roomBounds.maxZ },
+    { id: "landing", minX: openingBounds.maxX, maxX: roomBounds.maxX, minZ: roomBounds.minZ, maxZ: roomBounds.maxZ },
+    { id: "edge-a", minX: openingBounds.minX, maxX: openingBounds.maxX, minZ: roomBounds.minZ, maxZ: openingBounds.minZ },
+    { id: "edge-b", minX: openingBounds.minX, maxX: openingBounds.maxX, minZ: openingBounds.maxZ, maxZ: roomBounds.maxZ }
+  ].filter((piece) => piece.maxX - piece.minX > 0.01 && piece.maxZ - piece.minZ > 0.01) : [];
+  return (
+    <group>
+      {showSlabFrame && slabPieces.map((piece) => (
+        <mesh
+          key={`${opening.id}-slab-${piece.id}`}
+          castShadow
+          receiveShadow
+          position={[(piece.minX + piece.maxX) / 2, elevation - 0.09, (piece.minZ + piece.maxZ) / 2]}
+        >
+          <boxGeometry args={[piece.maxX - piece.minX, 0.18, piece.maxZ - piece.minZ]} />
+          <meshStandardMaterial color={selected ? "#93c5fd" : "#d8d0c4"} roughness={0.82} />
+        </mesh>
+      ))}
+      {points.map((point, index) => {
+        const next = points[(index + 1) % points.length];
+        const dx = next.x - point.x;
+        const dz = next.z - point.z;
+        const length = Math.hypot(dx, dz);
+        return (
+          <mesh key={`${opening.id}-reveal-${index}`} position={[(point.x + next.x) / 2, elevation - 0.08, (point.z + next.z) / 2]} rotation={[0, Math.atan2(-dz, dx), 0]}>
+            <boxGeometry args={[length, 0.18, 0.24]} />
+            <meshStandardMaterial color={selected ? "#2563eb" : "#766b60"} roughness={0.8} />
+          </mesh>
+        );
+      })}
+      {opening.guardEdges.map((edge) => {
+        const metrics = lineMetrics(edge.start, edge.end, structure);
+        const railingHeight = 0.92;
+        return (
+          <group key={edge.id} position={[metrics.startPoint.x, elevation, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+            <mesh position={[metrics.length / 2, railingHeight / 2, 0]}>
+              <boxGeometry args={[metrics.length, railingHeight, 0.018]} />
+              <meshStandardMaterial color="#bfe0e3" transparent opacity={0.24} roughness={0.05} metalness={0.04} depthWrite={false} side={THREE.DoubleSide} />
+            </mesh>
+            {[0, 0.5, 1].map((t) => (
+              <mesh key={`${edge.id}-post-${t}`} castShadow position={[metrics.length * t, railingHeight / 2, 0]}>
+                <boxGeometry args={[0.026, railingHeight, 0.026]} />
+                <meshStandardMaterial color="#665f57" roughness={0.32} metalness={0.5} />
+              </mesh>
+            ))}
+            <mesh castShadow position={[metrics.length / 2, railingHeight + 0.035, 0]}>
+              <boxGeometry args={[metrics.length + 0.08, 0.07, 0.075]} />
+              <meshStandardMaterial color={selected ? "#2563eb" : "#78411f"} roughness={0.4} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -3449,31 +3543,69 @@ function StairLandingMesh({
 function StairDirectionCue({
   metrics,
   stairWidth,
+  startHeight,
+  endHeight,
+  reverse,
+  label,
   isDownRun,
-  isArrivalRun = false,
   selected
 }: {
   metrics: ReturnType<typeof lineMetrics>;
   stairWidth: number;
+  startHeight: number;
+  endHeight: number;
+  reverse: boolean;
+  label: string;
   isDownRun: boolean;
-  isArrivalRun?: boolean;
   selected: boolean;
 }) {
-  const cueStart = Math.min(0.46, metrics.length * 0.18);
-  const cueLength = Math.max(0.62, metrics.length - cueStart - 0.56);
-  const cueWidth = Math.min(0.18, Math.max(0.1, stairWidth * 0.18));
-  const color = selected ? "#2563eb" : isArrivalRun ? "#a16207" : isDownRun ? "#dc2626" : "#0284c7";
-  const cueY = isArrivalRun ? 0.16 : isDownRun ? 0.34 : 0.76;
+  const color = selected ? "#2563eb" : isDownRun ? "#dc2626" : "#0284c7";
+  const fromT = reverse ? 0.68 : 0.32;
+  const toT = reverse ? 0.32 : 0.68;
+  const pointAt = (t: number) => new THREE.Vector3(
+    THREE.MathUtils.lerp(metrics.startPoint.x, metrics.endPoint.x, t),
+    THREE.MathUtils.lerp(startHeight, endHeight, t) + 0.24,
+    THREE.MathUtils.lerp(metrics.startPoint.z, metrics.endPoint.z, t)
+  );
+  const from = pointAt(fromT);
+  const to = pointAt(toT);
+  const direction = to.clone().sub(from);
+  const length = direction.length();
+  const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+  const labelTexture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.fillStyle = "rgba(255,255,255,0.92)";
+      context.roundRect(8, 8, 496, 112, 28);
+      context.fill();
+      context.fillStyle = color;
+      context.font = "700 52px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(label, 256, 67);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }, [color, label]);
+  useEffect(() => () => labelTexture.dispose(), [labelTexture]);
+  const labelPoint = pointAt(0.5).add(new THREE.Vector3(metrics.normal.x * stairWidth * 0.68, 0.3, metrics.normal.z * stairWidth * 0.68));
   return (
-    <group position={[metrics.startPoint.x, cueY, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
-      <mesh position={[cueStart + cueLength / 2, 0, 0]} renderOrder={22}>
-        <boxGeometry args={[cueLength, 0.045, cueWidth]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.1} roughness={0.42} transparent opacity={0.86} depthTest={false} />
+    <group>
+      <mesh position={from.clone().add(to).multiplyScalar(0.5)} quaternion={quaternion}>
+        <cylinderGeometry args={[0.025, 0.025, Math.max(0.1, length - 0.16), 12]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.14} roughness={0.42} />
       </mesh>
-      <mesh position={[cueStart + cueLength + 0.16, 0, 0]} rotation={[0, 0, -Math.PI / 2]} renderOrder={23}>
-        <coneGeometry args={[cueWidth * 1.2, 0.36, 3]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.12} roughness={0.38} transparent opacity={0.92} depthTest={false} side={THREE.DoubleSide} />
+      <mesh position={to} quaternion={quaternion}>
+        <coneGeometry args={[0.085, 0.2, 12]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.16} roughness={0.38} />
       </mesh>
+      <sprite position={labelPoint} scale={[0.95, 0.24, 1]}>
+        <spriteMaterial map={labelTexture} transparent depthTest depthWrite={false} />
+      </sprite>
     </group>
   );
 }
@@ -3513,7 +3645,7 @@ function StairGlassRailings({
   const railLength = Math.hypot(metrics.length, railRise);
   const railAngle = Math.atan2(railRise, metrics.length);
   const postStops = [0, 1 / 3, 2 / 3, 1];
-  const depthTest = !muted;
+  const depthTest = true;
   const woodColor = selected ? "#2563eb" : "#78411f";
   const metalColor = selected ? "#2563eb" : "#6f675e";
 
@@ -3571,7 +3703,15 @@ function StairGlassRailings({
 function StairMesh({
   stair,
   structure,
+  startHeightMm,
+  endHeightMm,
   materialPreview,
+  showDirectionCue,
+  showStepLights,
+  stepLightHeightAboveTreadMm,
+  landingDepthMm,
+  directionLabel,
+  muted,
   selected,
   onSelect,
   onHover,
@@ -3579,43 +3719,40 @@ function StairMesh({
 }: {
   stair: HouseStair;
   structure: HouseStructure;
+  startHeightMm: number;
+  endHeightMm: number;
   materialPreview: boolean;
+  showDirectionCue: boolean;
+  showStepLights: boolean;
+  stepLightHeightAboveTreadMm: number;
+  landingDepthMm: number;
+  directionLabel: string;
+  muted: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
-  const isTopFloorArrivalRun = structure.floorId === "2F" && stair.id === "ST-2F-001" && stair.direction === "up";
-  const metrics = useMemo(() => {
-    if (!isTopFloorArrivalRun) return lineMetrics(stair.start, stair.end, structure);
-    const dx = stair.end.x - stair.start.x;
-    const dy = stair.end.y - stair.start.y;
-    const length = Math.max(1, Math.hypot(dx, dy));
-    const offset = stair.width * 0.42;
-    const offsetX = (-dy / length) * offset;
-    const offsetY = (dx / length) * offset;
-    return lineMetrics(
-      { x: stair.start.x + offsetX, y: stair.start.y + offsetY },
-      { x: stair.end.x + offsetX, y: stair.end.y + offsetY },
-      structure
-    );
-  }, [isTopFloorArrivalRun, stair, structure]);
+  const renderStart = useMemo(() => {
+    const fullLength = Math.max(1, Math.hypot(stair.end.x - stair.start.x, stair.end.y - stair.start.y));
+    const inset = Math.min(Math.max(0, landingDepthMm), fullLength * 0.42);
+    return {
+      x: stair.start.x + (stair.end.x - stair.start.x) / fullLength * inset,
+      y: stair.start.y + (stair.end.y - stair.start.y) / fullLength * inset
+    };
+  }, [landingDepthMm, stair.end.x, stair.end.y, stair.start.x, stair.start.y]);
+  const metrics = useMemo(() => lineMetrics(renderStart, stair.end, structure), [renderStart, stair.end, structure]);
   const count = Math.max(1, stair.stepCount);
   const stepLength = metrics.length / count;
-  const totalHeight = Math.max(0.4, stair.height * MM_TO_M);
-  const baseHeight = isTopFloorArrivalRun ? -totalHeight : (stair.baseHeight ?? 0) * MM_TO_M;
+  const startHeight = startHeightMm * MM_TO_M;
+  const endHeight = endHeightMm * MM_TO_M;
   const stairWidth = Math.max(0.5, stair.width * MM_TO_M);
   const isDownRun = stair.direction === "down";
-  const rendersBelowFloor = isDownRun || isTopFloorArrivalRun;
-  const landingY = baseHeight + (isDownRun ? -totalHeight : totalHeight);
-  const landingDepth = Math.min(1.1, Math.max(0.72, stepLength * 1.55));
-  const effectStartY = isDownRun ? baseHeight : baseHeight + totalHeight / count;
-  const effectEndY = landingY;
-  const stringerRise = effectEndY - effectStartY;
+  const stringerRise = endHeight - startHeight;
   const stringerLength = Math.hypot(metrics.length, stringerRise);
   const stringerAngle = Math.atan2(stringerRise, metrics.length);
-  const stepMaterialColor = selected ? "#2563eb" : materialPreview ? "#8f542f" : isTopFloorArrivalRun ? "#a87842" : isDownRun ? "#9b846b" : "#d6c6ae";
-  const materialDepthTest = materialPreview ? !isTopFloorArrivalRun : !rendersBelowFloor;
+  const stepMaterialColor = selected ? "#2563eb" : materialPreview ? "#8f542f" : isDownRun ? "#9b846b" : "#d6c6ae";
+  const treadTops = Array.from({ length: count }, (_, index) => THREE.MathUtils.lerp(startHeight, endHeight, (index + 1) / count));
   return (
     <group
       onClick={(event) => {
@@ -3631,49 +3768,22 @@ function StairMesh({
         onClearHover(stair.id);
       }}
     >
-      {isTopFloorArrivalRun ? (
-        <group position={[metrics.midpoint.x, 0.066, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
-          <mesh renderOrder={10}>
-            <boxGeometry args={[metrics.length + 0.18, 0.024, stairWidth + 0.18]} />
-            <meshStandardMaterial color="#e7e2da" transparent opacity={0.46} roughness={0.92} depthTest={false} />
-          </mesh>
-          {[-1, 1].map((side) => (
-            <mesh key={`${stair.id}-opening-side-${side}`} position={[0, 0.025, side * (stairWidth / 2 + 0.07)]} renderOrder={11}>
-              <boxGeometry args={[metrics.length + 0.26, 0.065, 0.055]} />
-              <meshStandardMaterial color={selected ? "#2563eb" : "#8c8275"} roughness={0.78} depthTest={false} />
-            </mesh>
-          ))}
-          {[-1, 1].map((side) => (
-            <mesh key={`${stair.id}-opening-end-${side}`} position={[side * (metrics.length / 2 + 0.1), 0.025, 0]} renderOrder={11}>
-              <boxGeometry args={[0.055, 0.065, stairWidth + 0.18]} />
-              <meshStandardMaterial color={selected ? "#2563eb" : "#8c8275"} roughness={0.78} depthTest={false} />
-            </mesh>
-          ))}
-        </group>
-      ) : !materialPreview ? (
-        <mesh receiveShadow position={[metrics.midpoint.x, 0.052, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
-          <boxGeometry args={[metrics.length + 0.32, 0.032, stairWidth + 0.32]} />
-          <meshStandardMaterial color={isDownRun ? "#1f2937" : "#6f5a41"} transparent opacity={isDownRun ? 0.76 : 0.28} roughness={0.88} />
-        </mesh>
-      ) : null}
       {materialPreview && (
         <group position={[metrics.startPoint.x, 0, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
           {[-1, 1].map((side) => (
             <mesh
               key={`${stair.id}-stringer-${side}`}
-              castShadow={!isTopFloorArrivalRun}
-              position={[metrics.length / 2, (effectStartY + effectEndY) / 2 - 0.13, side * (stairWidth / 2 - 0.09)]}
+              castShadow={!muted}
+              position={[metrics.length / 2, (startHeight + endHeight) / 2 - 0.12, side * (stairWidth / 2 - 0.09)]}
               rotation={[0, 0, stringerAngle]}
-              renderOrder={isTopFloorArrivalRun ? 13 : 1}
             >
               <boxGeometry args={[stringerLength, 0.14, 0.11]} />
               <meshStandardMaterial
                 color={selected ? "#2563eb" : "#6f3d22"}
                 roughness={0.5}
                 metalness={0.01}
-                transparent={isTopFloorArrivalRun}
-                opacity={isTopFloorArrivalRun ? 0.46 : 1}
-                depthTest={!isTopFloorArrivalRun}
+                transparent={muted}
+                opacity={muted ? 0.62 : 1}
               />
             </mesh>
           ))}
@@ -3681,64 +3791,104 @@ function StairMesh({
       )}
       {Array.from({ length: count }, (_, index) => {
         const t = (index + 0.5) / count;
-        const height = isDownRun
-          ? totalHeight * ((count - index) / count)
-          : totalHeight * ((index + 1) / count);
-        const treadTopY = isDownRun ? baseHeight - totalHeight * (index / count) : baseHeight + totalHeight * ((index + 1) / count);
-        const centerY = materialPreview
-          ? treadTopY - 0.05
-          : isTopFloorArrivalRun
-          ? baseHeight + height
-          : isDownRun
-          ? baseHeight - totalHeight + height / 2
-          : baseHeight + height / 2;
+        const treadTopY = treadTops[index];
+        const centerY = treadTopY - 0.05;
         const center = {
           x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t,
           z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t
         };
         return (
-          <mesh key={`${stair.id}-step-${index}`} castShadow={!isTopFloorArrivalRun} receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]} renderOrder={isTopFloorArrivalRun ? 14 : materialPreview ? 2 : 0}>
-            <boxGeometry args={[stepLength * (materialPreview ? 1.02 : 0.92), materialPreview ? 0.1 : isTopFloorArrivalRun ? 0.055 : height, stairWidth]} />
+          <mesh key={`${stair.id}-step-${index}`} castShadow={!muted} receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]}>
+            <boxGeometry args={[stepLength * 1.02, 0.1, stairWidth]} />
             <meshStandardMaterial
               color={stepMaterialColor}
               roughness={materialPreview ? 0.44 : 0.72}
               metalness={materialPreview ? 0.02 : 0}
-              transparent={isTopFloorArrivalRun}
-              opacity={isTopFloorArrivalRun ? 0.3 + 0.55 * ((index + 1) / count) : 1}
-              depthTest={materialDepthTest}
+              transparent={muted}
+              opacity={muted ? 0.72 : 1}
             />
           </mesh>
         );
       })}
-      {isDownRun && (
-        <mesh castShadow receiveShadow position={[metrics.startPoint.x, baseHeight + 0.045, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
-          <boxGeometry args={[landingDepth, 0.09, stairWidth]} />
-          <meshStandardMaterial color={selected ? "#2563eb" : "#7b6652"} roughness={0.72} />
-        </mesh>
-      )}
-      <mesh castShadow receiveShadow position={[metrics.endPoint.x, landingY + (isDownRun ? -0.035 : 0.035), metrics.endPoint.z]} rotation={[0, metrics.rotationY, 0]}>
-        <boxGeometry args={[landingDepth, 0.07, stairWidth]} />
-        <meshStandardMaterial
-          color={selected ? "#2563eb" : materialPreview ? "#82502b" : isTopFloorArrivalRun ? "#b68a59" : isDownRun ? "#4b5563" : "#c8b89f"}
-          transparent={rendersBelowFloor}
-          opacity={isTopFloorArrivalRun ? 0.82 : isDownRun && !materialPreview ? 0.92 : 1}
-          roughness={materialPreview ? 0.46 : 0.76}
-          metalness={materialPreview ? 0.02 : 0}
-          depthTest={materialDepthTest}
-        />
-      </mesh>
       {materialPreview && (
         <StairGlassRailings
           metrics={metrics}
           stairId={stair.id}
           stairWidth={stairWidth}
-          startY={effectStartY}
-          endY={effectEndY}
+          startY={startHeight}
+          endY={endHeight}
           selected={selected}
-          muted={isTopFloorArrivalRun}
+          muted={muted}
         />
       )}
-      {!materialPreview && <StairDirectionCue metrics={metrics} stairWidth={stairWidth} isDownRun={isDownRun} isArrivalRun={isTopFloorArrivalRun} selected={selected} />}
+      {showStepLights && treadTops.map((treadTopY, index) => {
+        const t = (index + 0.5) / count;
+        return (
+          <mesh
+            key={`${stair.id}-step-light-${index}`}
+            position={[
+              THREE.MathUtils.lerp(metrics.startPoint.x, metrics.endPoint.x, t) + metrics.normal.x * stairWidth * 0.42,
+              treadTopY + stepLightHeightAboveTreadMm * MM_TO_M,
+              THREE.MathUtils.lerp(metrics.startPoint.z, metrics.endPoint.z, t) + metrics.normal.z * stairWidth * 0.42
+            ]}
+            rotation={[0, metrics.rotationY, 0]}
+          >
+            <boxGeometry args={[Math.min(0.18, stepLength * 0.56), 0.08, 0.035]} />
+            <meshStandardMaterial color="#ffe0a0" emissive="#ffb84d" emissiveIntensity={0.85} roughness={0.3} />
+          </mesh>
+        );
+      })}
+      {showDirectionCue && <StairDirectionCue metrics={metrics} stairWidth={stairWidth} startHeight={startHeight} endHeight={endHeight} reverse label={directionLabel} isDownRun={isDownRun} selected={selected} />}
+    </group>
+  );
+}
+
+function StairDebugGeometryLayer({
+  systems,
+  structure
+}: {
+  systems: StairRenderSystemGeometry[];
+  structure: HouseStructure;
+}) {
+  return (
+    <group>
+      {systems.map((system) => {
+        const bounds = system.finalBounds;
+        const hasFiniteBounds = Number.isFinite(bounds.minX) && Number.isFinite(bounds.minY) && Number.isFinite(bounds.minZ);
+        const width = Math.max(0.04, (bounds.maxX - bounds.minX) * MM_TO_M);
+        const height = Math.max(0.04, (bounds.maxY - bounds.minY) * MM_TO_M);
+        const depth = Math.max(0.04, (bounds.maxZ - bounds.minZ) * MM_TO_M);
+        const center: Vec3Tuple = [
+          (bounds.minX + bounds.maxX) * 0.5 * MM_TO_M,
+          (bounds.minY + bounds.maxY) * 0.5 * MM_TO_M,
+          (bounds.minZ + bounds.maxZ) * 0.5 * MM_TO_M
+        ];
+        const endpoints = [system.lowerFlight, system.upperFlight].flatMap((flight) => {
+          if (!flight) return [];
+          const platform = toScenePoint(flight.platformPlanPoint, structure);
+          const floorPoint = toScenePoint(flight.floorPlanPoint, structure);
+          return [
+            { id: `${flight.stair.id}-platform`, point: platform, y: flight.finalPlatformYMm, color: flight.role === "lower-flight" ? "#16a34a" : "#0284c7" },
+            { id: `${flight.stair.id}-floor`, point: floorPoint, y: flight.finalFloorYMm, color: flight.stair.direction === "down" ? "#dc2626" : "#7c3aed" }
+          ];
+        });
+        return (
+          <group key={`${system.system.id}-debug`}>
+            {hasFiniteBounds && (
+              <mesh position={center}>
+                <boxGeometry args={[width, height, depth]} />
+                <meshBasicMaterial color="#f59e0b" wireframe transparent opacity={0.72} depthTest />
+              </mesh>
+            )}
+            {endpoints.map((endpoint) => (
+              <mesh key={endpoint.id} position={[endpoint.point.x, endpoint.y * MM_TO_M, endpoint.point.z]} renderOrder={30}>
+                <sphereGeometry args={[0.075, 16, 10]} />
+                <meshBasicMaterial color={endpoint.color} depthTest />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -3972,7 +4122,7 @@ function FurnitureBlock({
                   <group
                     key={`${item.id}-chair-${index}`}
                     position={[Math.cos(angle) * chairRadius, -height * 0.02, Math.sin(angle) * chairRadius]}
-                    rotation={[0, -angle + Math.PI / 2, 0]}
+                    rotation={[0, -angle - Math.PI / 2, 0]}
                   >
                     <mesh castShadow receiveShadow position={[0, -0.02, 0]}>
                       <boxGeometry args={[0.38, 0.09, 0.38]} />
@@ -5257,7 +5407,7 @@ function EntryCabinet3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Fireplace3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function StairAsset3DGroup(props: FurnitureAssetGroupProps) {
@@ -5301,6 +5451,7 @@ function Plant3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Generic3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props) && getFurnitureFamily(props.item, props.resolvedAsset.assetType) === "softDecor") return <FineVariantFurniture3DGroup {...props} />;
   return <FurnitureBlock {...props} />;
 }
 
@@ -5436,6 +5587,150 @@ function RenderToneMapping({ presentationMode, mobilePresentationMode, mobileQua
   return null;
 }
 
+function LightingFreeBrowseMinimap({
+  structure,
+  drawingItems,
+  pose,
+  onNavigate
+}: {
+  structure: HouseStructure;
+  drawingItems: DrawingItem[];
+  pose: CameraPlanPose;
+  onNavigate: (target: { targetX: number; targetZ: number }) => void;
+}) {
+  const size = getStructureSize(structure);
+  const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
+  const target = {
+    x: THREE.MathUtils.clamp(pose.targetX / MM_TO_M + size.width / 2, 0, size.width),
+    y: THREE.MathUtils.clamp(pose.targetZ / MM_TO_M + size.height / 2, 0, size.height)
+  };
+  const cameraDistance = Math.hypot(pose.targetX - pose.cameraX, pose.targetZ - pose.cameraZ);
+  const viewWidth = THREE.MathUtils.clamp(cameraDistance * 360, 650, 1800);
+  const viewHeight = viewWidth * 0.62;
+  const viewDirection = Math.atan2(pose.targetZ - pose.cameraZ, pose.targetX - pose.cameraX) * 180 / Math.PI;
+  const viewRotation = viewDirection + 90;
+  const lights = drawingItems.filter((item) => item.category === "light");
+
+  const getPlanPoint = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left) / Math.max(1, rect.width) * size.width,
+      y: (event.clientY - rect.top) / Math.max(1, rect.height) * size.height
+    };
+  };
+  const finishDrag = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    dragRef.current = null;
+  };
+
+  return (
+    <div
+      className="pointer-events-auto absolute right-4 top-24 z-[88] w-48 select-none overflow-hidden rounded-xl border border-white/85 bg-stone-950/82 text-white shadow-[0_12px_36px_rgba(28,25,23,0.28)] backdrop-blur"
+      data-testid="lighting-free-browse-minimap"
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerMove={(event) => event.stopPropagation()}
+      onPointerUp={(event) => event.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-3 py-2 text-[10px] font-bold tracking-wide">
+        <span>视角导航</span>
+        <span className="text-white/60">拖动方框</span>
+      </div>
+      <svg
+        aria-label="灯光点位图自由浏览导航"
+        className="block aspect-[4/3] w-full touch-none bg-[#f3eee5]"
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          event.preventDefault();
+          const point = getPlanPoint(event);
+          const planX = THREE.MathUtils.clamp(point.x + drag.offsetX, 0, size.width);
+          const planY = THREE.MathUtils.clamp(point.y + drag.offsetY, 0, size.height);
+          onNavigate({
+            targetX: (planX - size.width / 2) * MM_TO_M,
+            targetZ: (planY - size.height / 2) * MM_TO_M
+          });
+        }}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        preserveAspectRatio="xMidYMid meet"
+        viewBox={`0 0 ${size.width} ${size.height}`}
+      >
+        <rect width={size.width} height={size.height} fill="#f3eee5" />
+        {structure.rooms.map((room, index) => (
+          <polygon
+            key={room.id}
+            points={room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}
+            fill={index % 2 ? "#e5ddd0" : "#ebe4d9"}
+            stroke="#c9bfb2"
+            strokeWidth={30}
+          />
+        ))}
+        {structure.walls.map((wall) => wall.kind === "straight" ? (
+          <line
+            key={wall.id}
+            x1={wall.start.x}
+            y1={wall.start.y}
+            x2={wall.end.x}
+            y2={wall.end.y}
+            stroke="#57534e"
+            strokeLinecap="round"
+            strokeWidth={Math.max(48, wall.thickness * 0.52)}
+          />
+        ) : (
+          <polyline
+            key={wall.id}
+            points={getArcWallPoints(wall, 18).map((point) => `${point.x},${point.y}`).join(" ")}
+            fill="none"
+            stroke="#57534e"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={Math.max(48, wall.thickness * 0.52)}
+          />
+        ))}
+        {lights.map((light) => (
+          <circle key={light.id} cx={light.positionMm.x} cy={light.positionMm.y} r={75} fill="#f59e0b" stroke="#fff7ed" strokeWidth={32} />
+        ))}
+        <g
+          className="cursor-grab active:cursor-grabbing"
+          data-testid="lighting-free-browse-viewport"
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const svg = event.currentTarget.ownerSVGElement;
+            if (!svg) return;
+            const rect = svg.getBoundingClientRect();
+            const point = {
+              x: (event.clientX - rect.left) / Math.max(1, rect.width) * size.width,
+              y: (event.clientY - rect.top) / Math.max(1, rect.height) * size.height
+            };
+            dragRef.current = { pointerId: event.pointerId, offsetX: target.x - point.x, offsetY: target.y - point.y };
+            svg.setPointerCapture(event.pointerId);
+          }}
+          transform={`rotate(${viewRotation} ${target.x} ${target.y})`}
+        >
+          <rect
+            x={target.x - viewWidth / 2}
+            y={target.y - viewHeight / 2}
+            width={viewWidth}
+            height={viewHeight}
+            rx={110}
+            fill="#2563eb"
+            fillOpacity={0.18}
+            stroke="#1d4ed8"
+            strokeWidth={90}
+          />
+          <path
+            d={`M ${target.x} ${target.y - viewHeight * 0.33} L ${target.x - 120} ${target.y - viewHeight * 0.08} L ${target.x + 120} ${target.y - viewHeight * 0.08} Z`}
+            fill="#1d4ed8"
+          />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 function CameraRig({
   preset,
   fixedView,
@@ -5443,7 +5738,9 @@ function CameraRig({
   freeBrowseVersion,
   mode,
   tourNode,
-  mobilePresentationMode
+  mobilePresentationMode,
+  navigationRequest,
+  onCameraPlanPoseChange
 }: {
   preset: CameraPreset;
   fixedView: FixedCameraView | null;
@@ -5452,6 +5749,8 @@ function CameraRig({
   mode: CameraMode;
   tourNode: RoomTourView | null;
   mobilePresentationMode: boolean;
+  navigationRequest: CameraPlanNavigationRequest | null;
+  onCameraPlanPoseChange: (pose: CameraPlanPose) => void;
 }) {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
@@ -5461,6 +5760,7 @@ function CameraRig({
   const moveVectorRef = useRef(new THREE.Vector3());
   const forwardVectorRef = useRef(new THREE.Vector3());
   const rightVectorRef = useRef(new THREE.Vector3());
+  const poseReportElapsedRef = useRef(0);
   const transitionRef = useRef<{
     elapsed: number;
     duration: number;
@@ -5554,6 +5854,26 @@ function CameraRig({
   }, [camera, freeBrowseVersion]);
 
   useEffect(() => {
+    if (!navigationRequest || mode !== "orbit") return;
+    const controls = controlsRef.current;
+    if (!controls) return;
+    transitionRef.current = null;
+    const deltaX = navigationRequest.targetX - controls.target.x;
+    const deltaZ = navigationRequest.targetZ - controls.target.z;
+    camera.position.x += deltaX;
+    camera.position.z += deltaZ;
+    controls.target.x = navigationRequest.targetX;
+    controls.target.z = navigationRequest.targetZ;
+    controls.update();
+    onCameraPlanPoseChange({
+      cameraX: camera.position.x,
+      cameraZ: camera.position.z,
+      targetX: controls.target.x,
+      targetZ: controls.target.z
+    });
+  }, [camera, mode, navigationRequest, onCameraPlanPoseChange]);
+
+  useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
     controls.enabled = true;
@@ -5617,6 +5937,19 @@ function CameraRig({
   }, [mode]);
 
   useFrame((_, delta) => {
+    const reportCameraPlanPose = () => {
+      poseReportElapsedRef.current += delta;
+      if (poseReportElapsedRef.current < 0.08) return;
+      poseReportElapsedRef.current = 0;
+      const controls = controlsRef.current;
+      if (!controls) return;
+      onCameraPlanPoseChange({
+        cameraX: camera.position.x,
+        cameraZ: camera.position.z,
+        targetX: controls.target.x,
+        targetZ: controls.target.z
+      });
+    };
     const transition = transitionRef.current;
     if (transition && mode !== "walkthrough") {
       transition.elapsed = Math.min(transition.duration, transition.elapsed + delta);
@@ -5641,6 +5974,7 @@ function CameraRig({
           controls.update();
         }
       }
+      reportCameraPlanPose();
       return;
     }
     if (mode === "tour" && tourNode) {
@@ -5656,6 +5990,7 @@ function CameraRig({
         camera.position.z = origin.z + dz * scale;
       }
       camera.position.y = Math.min(1.95, Math.max(0.9, camera.position.y));
+      reportCameraPlanPose();
       return;
     }
     if (mode === "walkthrough") {
@@ -5680,6 +6015,7 @@ function CameraRig({
         if (controls) controls.target.y = Math.min(1.65, Math.max(0.35, controls.target.y));
       }
       controls?.update();
+      reportCameraPlanPose();
       return;
     }
     const controls = controlsRef.current;
@@ -5689,13 +6025,31 @@ function CameraRig({
       controls.target.z = THREE.MathUtils.clamp(controls.target.z, -9, 9);
       camera.position.y = THREE.MathUtils.clamp(camera.position.y, 0.55, 18);
     }
+    reportCameraPlanPose();
   });
 
   return null;
 }
 
 type LightingSceneMode = "dayWithLights" | "dusk" | "night" | "artificialOnly" | "beamAnalysis";
+type LightingExperienceScope = "wholeHouse" | "currentFloor" | "currentRoom";
+type LightingWallMode = "smartCutaway" | "transparent" | "hideOccluding" | "full";
+type LightingAnalysisMode = "none" | "brightness" | "colorTemperature";
+type LightingRoomViewMode = "full" | "human" | "top";
 type MaterialCategoryFilter = "all" | "structure" | "furniture" | "outdoor";
+
+type LightingSpaceSummary = {
+  id: string;
+  name: string;
+  kind: "room" | "outdoor";
+  lightIds: string[];
+  controlGroupIds: string[];
+  enabledLightCount: number;
+  totalLightCount: number;
+  averageBrightness: number;
+  dominantColorTemperature: DrawingItem["colorTemperature"];
+  status: "dark" | "comfortable" | "bright" | "overbright" | "control-warning";
+};
 
 const lightingSceneModeLabels: Record<LightingSceneMode, string> = {
   dayWithLights: "日间 + 灯光",
@@ -5704,6 +6058,53 @@ const lightingSceneModeLabels: Record<LightingSceneMode, string> = {
   artificialOnly: "仅人工灯光",
   beamAnalysis: "光束分析"
 };
+
+const lightingWallModeLabels: Record<LightingWallMode, string> = {
+  smartCutaway: "智能剖切",
+  transparent: "半透明墙",
+  hideOccluding: "隐藏遮挡墙",
+  full: "完整墙体"
+};
+
+const lightingStatusLabels: Record<LightingSpaceSummary["status"], string> = {
+  dark: "偏暗",
+  comfortable: "舒适",
+  bright: "明亮",
+  overbright: "过亮风险",
+  "control-warning": "控制异常"
+};
+
+const lightingStatusColors: Record<LightingSpaceSummary["status"], string> = {
+  dark: "#334155",
+  comfortable: "#65a30d",
+  bright: "#f59e0b",
+  overbright: "#ef4444",
+  "control-warning": "#a855f7"
+};
+
+function getLightingSpaceStatus(averageBrightness: number, totalLightCount: number, uncontrolledCount: number): LightingSpaceSummary["status"] {
+  if (uncontrolledCount > 0) return "control-warning";
+  if (totalLightCount === 0 || averageBrightness < 24) return "dark";
+  if (averageBrightness < 66) return "comfortable";
+  if (averageBrightness < 88) return "bright";
+  return "overbright";
+}
+
+function getDominantColorTemperature(items: DrawingItem[]): DrawingItem["colorTemperature"] {
+  const counts = new Map<string, number>();
+  items.forEach((item) => {
+    const value = item.colorTemperature ?? "3000K";
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  });
+  return (Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] as DrawingItem["colorTemperature"]) ?? "3000K";
+}
+
+function getColorTemperatureAnalysisColor(value: DrawingItem["colorTemperature"]) {
+  if (value === "2700K") return "#f59e0b";
+  if (value === "3500K") return "#fde68a";
+  if (value === "4000K") return "#bfdbfe";
+  return "#fdba74";
+}
 
 const drawingItemColors: Record<DrawingItem["category"], string> = {
   socket: "#f59e0b",
@@ -5830,6 +6231,8 @@ function DrawingItems3DLayer({
   showLightSpots,
   showControlRelations,
   showIlluminanceLayer,
+  lightingSelectedGroupId,
+  lightingSoloGroupId,
   showRelationshipLines,
   mobilePresentationMode,
   mobileQuality,
@@ -5847,6 +6250,8 @@ function DrawingItems3DLayer({
   showLightSpots: boolean;
   showControlRelations: boolean;
   showIlluminanceLayer: boolean;
+  lightingSelectedGroupId?: string | null;
+  lightingSoloGroupId?: string | null;
   showRelationshipLines: boolean;
   mobilePresentationMode: boolean;
   mobileQuality: MobileQuality;
@@ -5876,7 +6281,8 @@ function DrawingItems3DLayer({
         const selected = selectedObjectId === item.id;
         const isLight = item.category === "light";
         const controlledBySelection = Boolean(isLight && selectedControlGroup && item.controlGroupId === selectedControlGroup);
-        const markerColor = selected ? "#2563eb" : controlledBySelection ? "#60a5fa" : drawingItemColors[item.category];
+        const focusedGroup = Boolean(isLight && lightingSelectedGroupId && item.controlGroupId === lightingSelectedGroupId);
+        const markerColor = selected ? "#2563eb" : focusedGroup ? "#f59e0b" : controlledBySelection ? "#60a5fa" : drawingItemColors[item.category];
         const lightColor = colorTemperatureToHex(item.colorTemperature);
         const beamHeight = Math.max(0.3, y - 0.06);
         const beamRadius = Math.min(2.6, Math.tan(((item.beamAngle ?? 60) * Math.PI / 180) / 2) * beamHeight);
@@ -5936,10 +6342,10 @@ function DrawingItems3DLayer({
                 <meshBasicMaterial color={lightColor} transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
               </mesh>
             )}
-            {isLight && (showLightSpots || lightingScene === "beamAnalysis") && (
+            {isLight && (showLightSpots || lightingScene === "beamAnalysis" || focusedGroup) && (
               <mesh position={[scenePoint.x, 0.035, scenePoint.z]} rotation={[-Math.PI / 2, 0, 0]}>
                 <circleGeometry args={[Math.max(0.18, beamRadius), 32]} />
-                <meshBasicMaterial color={lightColor} transparent opacity={0.18} depthWrite={false} />
+                <meshBasicMaterial color={focusedGroup ? "#f59e0b" : lightColor} transparent opacity={focusedGroup ? 0.28 : 0.18} depthWrite={false} />
               </mesh>
             )}
             {(showFixtureIds || selected || controlledBySelection) && (
@@ -5969,6 +6375,46 @@ function DrawingItems3DLayer({
   );
 }
 
+function LightingAnalysisSurfaces({
+  structure,
+  summaries,
+  mode
+}: {
+  structure: HouseStructure;
+  summaries: LightingSpaceSummary[];
+  mode: LightingAnalysisMode;
+}) {
+  if (mode === "none") return null;
+  const summaryById = new Map(summaries.map((summary) => [summary.id, summary]));
+  const surfaces = [
+    ...structure.rooms.map((room) => ({ id: room.id, points: room.boundary })),
+    ...structure.outdoors.map((outdoor) => ({ id: outdoor.id, points: outdoor.polygon }))
+  ];
+  return (
+    <group>
+      {surfaces.map((surface) => {
+        const summary = summaryById.get(surface.id);
+        if (!summary || surface.points.length < 3) return null;
+        const color = mode === "brightness"
+          ? lightingStatusColors[summary.status]
+          : getColorTemperatureAnalysisColor(summary.dominantColorTemperature);
+        return (
+          <PolygonSurfaceMesh
+            key={`lighting-analysis-${surface.id}`}
+            id={`lighting-analysis-${surface.id}`}
+            points={surface.points}
+            structure={structure}
+            y={0.082}
+            color={color}
+            roughness={0.62}
+            opacity={0.38}
+          />
+        );
+      })}
+    </group>
+  );
+}
+
 function Floor3DScene({
   drawingSheetType,
   drawingItems,
@@ -5981,6 +6427,12 @@ function Floor3DScene({
   showLightSpots,
   showControlRelations,
   showIlluminanceLayer,
+  lightingExperienceScope,
+  lightingWallMode,
+  lightingAnalysisMode,
+  lightingSpaceSummaries,
+  lightingSelectedGroupId,
+  lightingSoloGroupId,
   ceilingSolid,
   materialCategoryFilter,
   cameraPreset,
@@ -5990,12 +6442,19 @@ function Floor3DScene({
   cameraMode,
   activeTourNode,
   mobilePresentationMode,
+  cameraPlanNavigationRequest = null,
+  onCameraPlanPoseChange = () => undefined,
   materialPreview,
   designStyle,
   presentationMode,
   mobileQuality,
   showServicePoints,
+  showStairDebug,
   houseStructure,
+  houseStructuresByFloor = {},
+  stairSystems = [],
+  stairLandings = [],
+  stairOpenings = [],
   furniture,
   selectedObjectId,
   selectedFurnitureId,
@@ -6016,6 +6475,12 @@ function Floor3DScene({
   showLightSpots: boolean;
   showControlRelations: boolean;
   showIlluminanceLayer: boolean;
+  lightingExperienceScope: LightingExperienceScope;
+  lightingWallMode: LightingWallMode;
+  lightingAnalysisMode: LightingAnalysisMode;
+  lightingSpaceSummaries: LightingSpaceSummary[];
+  lightingSelectedGroupId?: string | null;
+  lightingSoloGroupId?: string | null;
   ceilingSolid: boolean;
   materialCategoryFilter: MaterialCategoryFilter;
   cameraPreset: CameraPreset;
@@ -6025,12 +6490,19 @@ function Floor3DScene({
   cameraMode: CameraMode;
   activeTourNode: RoomTourView | null;
   mobilePresentationMode: boolean;
+  cameraPlanNavigationRequest?: CameraPlanNavigationRequest | null;
+  onCameraPlanPoseChange?: (pose: CameraPlanPose) => void;
   materialPreview: boolean;
   designStyle: DesignStylePreset;
   presentationMode: boolean;
   mobileQuality: MobileQuality;
   showServicePoints: boolean;
+  showStairDebug: boolean;
   houseStructure: HouseStructure;
+  houseStructuresByFloor: Partial<Record<Floor["id"], HouseStructure>>;
+  stairSystems: StairSystem[];
+  stairLandings: StairLanding[];
+  stairOpenings: StairOpening[];
   furniture: Furniture[];
   selectedObjectId: string;
   selectedFurnitureId: string;
@@ -6041,8 +6513,45 @@ function Floor3DScene({
   onClearHoverObject: (objectId: string) => void;
 }) {
   const size = getStructureSize(houseStructure);
+  const activeStairSystems = useMemo(
+    () => stairSystems.filter((system) => system.lowerFloorId === houseStructure.floorId || system.upperFloorId === houseStructure.floorId),
+    [houseStructure.floorId, stairSystems]
+  );
+  const stairAnalysisMode = showStairDebug || Boolean(fixedCameraView?.targetArea?.startsWith("stair"));
+  const visibleStairSystems = useMemo(() => {
+    if (fixedCameraView?.targetArea === "stair-down") return activeStairSystems.filter((system) => system.upperFloorId === houseStructure.floorId);
+    if (fixedCameraView?.targetArea === "stair-up") return activeStairSystems.filter((system) => system.lowerFloorId === houseStructure.floorId);
+    return activeStairSystems;
+  }, [activeStairSystems, fixedCameraView?.targetArea, houseStructure.floorId]);
+  const currentFloorStairOpenings = useMemo(
+    () => stairOpenings.filter((opening) => opening.floorId === houseStructure.floorId),
+    [houseStructure.floorId, stairOpenings]
+  );
+  const stairRenderSystems = useMemo(() => visibleStairSystems.map((system) => buildStairRenderSystemGeometry({
+    system,
+    structuresByFloor: houseStructuresByFloor,
+    currentStructure: houseStructure,
+    currentFloorId: houseStructure.floorId,
+    landing: stairLandings.find((candidate) => candidate.id === system.landingId),
+    opening: stairOpenings.find((candidate) => candidate.id === system.openingId),
+    mode: stairAnalysisMode ? "system-analysis" : "current-floor",
+    presentationOffsetMm: 0
+  })), [houseStructure, houseStructuresByFloor, stairAnalysisMode, stairLandings, stairOpenings, visibleStairSystems]);
+  const stairFlightsToRender = useMemo(() => stairRenderSystems.flatMap((renderSystem) => [
+    renderSystem.lowerFlight,
+    renderSystem.upperFlight
+  ].filter((flight): flight is NonNullable<typeof flight> => Boolean(flight))), [stairRenderSystems]);
   const drawingProfile = getDrawing3DPresentationProfile(drawingSheetType);
   const lightingActive = drawingSheetType === "lightingPlan" && drawingItems.some((item) => item.category === "light");
+  const lightingWallDisplayMode: Drawing3DWallMode = !lightingActive
+    ? drawingProfile.wallMode
+    : lightingWallMode === "full" || lightingWallMode === "transparent"
+      ? "full"
+      : lightingWallMode === "hideOccluding"
+        ? "low"
+        : "cutaway";
+  const lightingWallOpacity = lightingActive && lightingWallMode === "transparent" ? 0.24 : undefined;
+  const showSpecialtyCeiling = drawingProfile.showCeiling && (!lightingActive || lightingExperienceScope === "currentRoom");
   const palette = designStylePalettes[designStyle];
   const lightingEnvironment = lightingActive
     ? lightingScene === "dayWithLights" ? { ambient: 0.3, key: 0.72, fill: 0.22, background: "#d8d2c7" }
@@ -6085,6 +6594,8 @@ function Floor3DScene({
         mode={cameraMode}
         tourNode={activeTourNode}
         mobilePresentationMode={mobilePresentationMode}
+        navigationRequest={cameraPlanNavigationRequest}
+        onCameraPlanPoseChange={onCameraPlanPoseChange}
       />
       <color attach="background" args={[lightingEnvironment?.background ?? palette.background]} />
       <fog attach="fog" args={[lightingEnvironment?.background ?? palette.background, 12, 28]} />
@@ -6106,12 +6617,7 @@ function Floor3DScene({
 
       <mesh receiveShadow position={[0, -0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[18, 14]} />
-        <shadowMaterial color="#8b8071" transparent opacity={floorShadowOpacity} />
-      </mesh>
-
-      <mesh receiveShadow position={[0, -0.012, 0]}>
-        <boxGeometry args={[size.width * MM_TO_M + 0.5, 0.02, size.height * MM_TO_M + 0.5]} />
-        <meshStandardMaterial color="#d9d1c2" roughness={0.88} />
+        <shadowMaterial color="#8b8071" transparent opacity={floorShadowOpacity} depthWrite={false} />
       </mesh>
 
       {drawingProfile.showOutdoors && materialPlanShowsOutdoors && houseStructure.outdoors.filter((outdoor) => resolveVisibility(outdoor).visible3d).map((outdoor) => (
@@ -6136,9 +6642,9 @@ function Floor3DScene({
       ))}
 
       {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room, index) => (
-        <RoomFloorMesh key={room.id} room={room} index={index} structure={houseStructure} designStyle={designStyle} />
+        <RoomFloorMesh key={room.id} room={room} index={index} structure={houseStructure} designStyle={designStyle} openings={/楼梯/.test(room.name) ? currentFloorStairOpenings : []} />
       ))}
-      {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room) => (
+      {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d && !(/楼梯/.test(room.name) && currentFloorStairOpenings.length > 0)).map((room) => (
         <RoomFloorFinishOverlay key={`${room.id}-floor-finish`} room={room} structure={houseStructure} designStyle={designStyle} />
       ))}
       {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room) => (
@@ -6146,7 +6652,7 @@ function Floor3DScene({
       ))}
       {!lightingActive && drawingProfile.materialMode === "realistic" && <RoomLightingPlaceholders structure={houseStructure} designStyle={designStyle} />}
 
-      {drawingProfile.showCeiling && (
+      {showSpecialtyCeiling && (
         <SpecialtyCeilingLayer
           structure={houseStructure}
           drawingItems={visibleDrawingItems}
@@ -6161,7 +6667,8 @@ function Floor3DScene({
           wall={wall}
           structure={houseStructure}
           wallColor={drawingSheetType === "wallFinishPlan" && relatedWallIds.has(wall.id) ? "#f0a5c7" : isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : palette.wall}
-          wallMode={drawingProfile.wallMode}
+          wallMode={lightingWallDisplayMode}
+          wallOpacity={lightingWallOpacity}
           selected={selectedObjectId === wall.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -6186,7 +6693,7 @@ function Floor3DScene({
           key={partition.id}
           partition={partition}
           structure={houseStructure}
-          wallMode={drawingProfile.wallMode}
+          wallMode={lightingWallDisplayMode}
           selected={selectedObjectId === partition.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -6247,7 +6754,7 @@ function Floor3DScene({
           key={skylight.id}
           skylight={skylight}
           structure={houseStructure}
-          wallMode={drawingProfile.wallMode}
+          wallMode={lightingWallDisplayMode}
           selected={selectedObjectId === skylight.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -6255,31 +6762,60 @@ function Floor3DScene({
         />
       ))}
 
-      {houseStructure.floorId !== "B2" && getStairLandingConnections(houseStructure.stairs).map((connection) => (
-        <StairLandingMesh
-          key={connection.id}
-          connection={connection}
-          structure={houseStructure}
-          materialPreview={materialPreview}
-          selected={selectedObjectId === connection.fromId || selectedObjectId === connection.toId}
-          onSelect={onSelectStructure}
-          onHover={onHoverObject}
-          onClearHover={onClearHoverObject}
-        />
-      ))}
+      {stairRenderSystems.map((renderSystem) => {
+        const opening = renderSystem.opening;
+        if (!opening) return null;
+        return <StairOpeningMesh key={opening.opening.id} opening={opening.opening} elevationMm={opening.finalYMm} structure={houseStructure} selected={selectedObjectId === opening.opening.id} showSlabFrame={stairAnalysisMode && Math.abs(opening.realYMm) > 1} />;
+      })}
 
-      {houseStructure.stairs.filter((stair) => resolveVisibility(stair).visible3d).map((stair) => (
+      {stairRenderSystems.map((renderSystem) => {
+        const landing = renderSystem.landing;
+        if (!landing) return null;
+        return (
+          <StairLandingMesh
+            key={landing.landing.id}
+            landing={landing.landing}
+            elevationMm={landing.finalYMm}
+            structure={houseStructure}
+            materialPreview={materialPreview}
+            showLight={lightingActive}
+            selected={selectedObjectId === landing.landing.id || selectedObjectId === renderSystem.system.lowerFlightId || selectedObjectId === renderSystem.system.upperFlightId}
+            onSelect={onSelectStructure}
+            onHover={onHoverObject}
+            onClearHover={onClearHoverObject}
+          />
+        );
+      })}
+
+      {stairFlightsToRender.filter(({ stair }) => resolveVisibility(stair).visible3d).map((flight) => {
+        const renderStair = {
+          ...flight.stair,
+          start: flight.platformPlanPoint,
+          end: flight.floorPlanPoint
+        };
+        const system = stairRenderSystems.find((candidate) => candidate.system.id === flight.systemId)?.system;
+        if (!system) return null;
+        return (
         <StairMesh
-          key={stair.id}
-          stair={stair}
+          key={`${system.id}-${flight.stair.id}`}
+          stair={renderStair}
           structure={houseStructure}
+          startHeightMm={flight.finalPlatformYMm}
+          endHeightMm={flight.finalFloorYMm}
           materialPreview={materialPreview}
-          selected={selectedObjectId === stair.id}
+          muted={flight.muted}
+          showDirectionCue={!materialPreview && !flight.muted}
+          showStepLights={lightingActive}
+          stepLightHeightAboveTreadMm={system.lighting.stepLightHeightAboveTreadMm}
+          landingDepthMm={0}
+          directionLabel={`${flight.stair.direction === "down" ? "下至" : "上至"} ${flight.stair.connectedToFloorId ?? ""}`}
+          selected={selectedObjectId === flight.stair.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
           onClearHover={onClearHoverObject}
         />
-      ))}
+        );
+      })}
 
       {visibleFurniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
         <FurnitureContactShadow key={`${item.id}-contact-shadow`} item={item} structure={houseStructure} />
@@ -6311,7 +6847,7 @@ function Floor3DScene({
         />
       ))}
 
-      <DrawingItems3DLayer
+        <DrawingItems3DLayer
         drawingItems={visibleDrawingItems}
         structure={houseStructure}
         selectedObjectId={selectedObjectId}
@@ -6330,6 +6866,14 @@ function Floor3DScene({
         onSelect={onSelectDrawingItem}
       />
 
+      {lightingActive && (
+        <LightingAnalysisSurfaces
+          structure={houseStructure}
+          summaries={lightingSpaceSummaries}
+          mode={lightingAnalysisMode}
+        />
+      )}
+
       {drawingSheetType === "floorFinishPlan" && visibleDrawingItems.filter((item) => item.category === "floorFinish" && item.polygon && item.polygon.length >= 3).map((item) => (
         <PolygonSurfaceMesh
           key={`${item.id}-specialty-surface`}
@@ -6345,6 +6889,7 @@ function Floor3DScene({
       ))}
 
       {!materialPreview && <gridHelper args={[14, 14, palette.floorJoint, palette.grid]} position={[0, 0.006, 0]} />}
+      {showStairDebug && <StairDebugGeometryLayer systems={stairRenderSystems} structure={houseStructure} />}
     </>
   );
 }
@@ -6352,6 +6897,10 @@ function Floor3DScene({
 export function Floor3DView({
   floor,
   houseStructure,
+  houseStructuresByFloor = {},
+  stairSystems = [],
+  stairLandings = [],
+  stairOpenings = [],
   furniture,
   drawingItems,
   drawingSheetType,
@@ -6382,16 +6931,36 @@ export function Floor3DView({
   const [cameraMode, setCameraMode] = useState<CameraMode>("orbit");
   const [materialPreview, setMaterialPreview] = useState(true);
   const [showServicePoints, setShowServicePoints] = useState(false);
+  const [showStairDebug, setShowStairDebug] = useState(false);
   const [designStyle, setDesignStyle] = useState<DesignStylePreset>("warmJapandi");
   const [presentationMode, setPresentationMode] = useState(mobilePresentationMode);
   const [tourPanelOpen, setTourPanelOpen] = useState(false);
   const [activeTourNode, setActiveTourNode] = useState<RoomTourView | null>(null);
   const [activeCameraViewId, setActiveCameraViewId] = useState<string | null>(null);
   const [freeBrowseVersion, setFreeBrowseVersion] = useState(0);
+  const [cameraPlanPose, setCameraPlanPose] = useState<CameraPlanPose>(() => ({
+    cameraX: cameraPositions.overview[0],
+    cameraZ: cameraPositions.overview[2],
+    targetX: CAMERA_TARGET.x,
+    targetZ: CAMERA_TARGET.z
+  }));
+  const [cameraPlanNavigationRequest, setCameraPlanNavigationRequest] = useState<CameraPlanNavigationRequest | null>(null);
   const [drawingViewPreset, setDrawingViewPreset] = useState<Drawing3DViewPreset>(drawingProfile.defaultPreset);
-  const [lightingScene, setLightingScene] = useState<LightingSceneMode>("dusk");
+  const [lightingScene, setLightingScene] = useState<LightingSceneMode>("dayWithLights");
   const [activeLightingControlSceneId, setActiveLightingControlSceneId] = useState("SCENE-DAILY");
-  const [showFixtureModels, setShowFixtureModels] = useState(true);
+  const [lightingExperienceScope, setLightingExperienceScope] = useState<LightingExperienceScope>("wholeHouse");
+  const [selectedLightingSpaceId, setSelectedLightingSpaceId] = useState<string | null>(null);
+  const [lightingWallMode, setLightingWallMode] = useState<LightingWallMode>("smartCutaway");
+  const [lightingAnalysisMode, setLightingAnalysisMode] = useState<LightingAnalysisMode>("none");
+  const [advancedLightingOpen, setAdvancedLightingOpen] = useState(false);
+  const [lightingRoomPanelOpen, setLightingRoomPanelOpen] = useState(false);
+  const [lightingGroupOverrides, setLightingGroupOverrides] = useState<Record<string, number>>({});
+  const [lightingPanelCollapsed, setLightingPanelCollapsed] = useState(true);
+  const [lightingRoomViewMode, setLightingRoomViewMode] = useState<LightingRoomViewMode>("full");
+  const [lightingSelectedGroupId, setLightingSelectedGroupId] = useState<string | null>(null);
+  const [lightingSoloGroupId, setLightingSoloGroupId] = useState<string | null>(null);
+  const lightingSoloBackupRef = useRef<Record<string, number> | null>(null);
+  const [showFixtureModels, setShowFixtureModels] = useState(false);
   const [showFixtureIds, setShowFixtureIds] = useState(false);
   const [showBeamCones, setShowBeamCones] = useState(false);
   const [showLightSpots, setShowLightSpots] = useState(false);
@@ -6409,8 +6978,115 @@ export function Floor3DView({
   );
   const availableLightingControlScenes = useMemo(() => (lightingDesign?.scenes ?? []).filter((scene) => !scene.floorId || scene.floorId === floor.id), [floor.id, lightingDesign?.scenes]);
   const activeLightingControlScene = availableLightingControlScenes.find((scene) => scene.id === activeLightingControlSceneId) ?? availableLightingControlScenes[0];
-  const lightingControlBrightness = useMemo(() => new Map(activeLightingControlScene?.groupStates.map((state) => [state.controlGroupId, state.on ? state.brightness : 0]) ?? []), [activeLightingControlScene]);
+  const floorLights = useMemo(() => drawingItems.filter((item) => item.category === "light"), [drawingItems]);
+  const lightingControlBrightness = useMemo(() => {
+    const next = new Map<string, number>();
+    if (activeLightingControlSceneId === "__all_on__") {
+      floorLights.forEach((item) => item.controlGroupId && next.set(item.controlGroupId, 100));
+    } else {
+      activeLightingControlScene?.groupStates.forEach((state) => next.set(state.controlGroupId, state.on ? state.brightness : 0));
+    }
+    Object.entries(lightingGroupOverrides).forEach(([groupId, brightness]) => next.set(groupId, brightness));
+    return next;
+  }, [activeLightingControlScene, activeLightingControlSceneId, floorLights, lightingGroupOverrides]);
+  const primaryLightingScenes = useMemo(() => {
+    const requested = [
+      ["SCENE-DAILY", "日常"],
+      ["SCENE-GATHERING", "会客"],
+      ["SCENE-DINING", "用餐"],
+      ["SCENE-MOVIE", "观影"],
+      ["SCENE-ALL-CLEAN", "清洁"],
+      ["SCENE-BEDTIME", "睡前"],
+      ["SCENE-NIGHT", "起夜"],
+      ["SCENE-AWAY", "离家"],
+      ["SCENE-YARD-RELAX", "庭院休闲"]
+    ] as const;
+    const availableIds = new Set(availableLightingControlScenes.map((scene) => scene.id));
+    const scenes: Array<{ id: string; label: string }> = requested.filter(([id]) => availableIds.has(id)).map(([id, label]) => ({ id, label }));
+    return scenes.concat({ id: "__all_on__", label: "全开" });
+  }, [availableLightingControlScenes]);
+  const lightingSpaceSummaries = useMemo<LightingSpaceSummary[]>(() => {
+    const spaces = [
+      ...houseStructure.rooms.map((room) => ({ id: room.id, name: room.name, kind: "room" as const })),
+      ...houseStructure.outdoors.map((outdoor) => ({ id: outdoor.id, name: outdoor.name, kind: "outdoor" as const }))
+    ];
+    return spaces.map((space) => {
+      const lights = floorLights.filter((item) => (item.relatedRoomId ?? item.roomId) === space.id);
+      const brightnessValues = lights.map((item) => item.controlGroupId ? lightingControlBrightness.get(item.controlGroupId) ?? 0 : 0);
+      const enabledLightCount = brightnessValues.filter((value) => value > 0).length;
+      const averageBrightness = lights.length > 0 ? brightnessValues.reduce((sum, value) => sum + value, 0) / lights.length : 0;
+      const uncontrolledCount = lights.filter((item) => !item.controlGroupId || !lightingControlBrightness.has(item.controlGroupId)).length;
+      return {
+        id: space.id,
+        name: space.name,
+        kind: space.kind,
+        lightIds: lights.map((item) => item.id),
+        controlGroupIds: Array.from(new Set(lights.map((item) => item.controlGroupId).filter((id): id is string => Boolean(id)))),
+        enabledLightCount,
+        totalLightCount: lights.length,
+        averageBrightness,
+        dominantColorTemperature: getDominantColorTemperature(lights),
+        status: getLightingSpaceStatus(averageBrightness, lights.length, uncontrolledCount)
+      };
+    }).filter((summary) => summary.totalLightCount > 0);
+  }, [floorLights, houseStructure.outdoors, houseStructure.rooms, lightingControlBrightness]);
+  const selectedLightingSpace = lightingSpaceSummaries.find((summary) => summary.id === selectedLightingSpaceId) ?? null;
+  const lightingRoomGroups = useMemo(() => {
+    if (!selectedLightingSpace) return [];
+    return selectedLightingSpace.controlGroupIds.map((groupId) => {
+      const items = floorLights.filter((item) => item.controlGroupId === groupId);
+      const first = items[0];
+      const rawLabel = first?.label?.split("·").slice(1).join("·").trim() || groupId;
+      const label = rawLabel.replace(/控制$/, "").replace(/照明控制$/, "照明");
+      return {
+        id: groupId,
+        label,
+        items,
+        brightness: lightingControlBrightness.get(groupId) ?? 0,
+        enabled: (lightingControlBrightness.get(groupId) ?? 0) > 0,
+        colorTemperature: getDominantColorTemperature(items),
+        fixtureTypes: Array.from(new Set(items.map((item) => item.lightType ?? item.type).filter(Boolean))).join("、") || "灯具",
+        dimming: items.some((item) => Boolean(item.dimming))
+      };
+    });
+  }, [floorLights, lightingControlBrightness, selectedLightingSpace]);
+  const lightingSummary = useMemo(() => {
+    const scopedSpaces = lightingExperienceScope === "currentRoom" && selectedLightingSpace ? [selectedLightingSpace] : lightingSpaceSummaries;
+    const scopedLightIds = new Set(scopedSpaces.flatMap((space) => space.lightIds));
+    const scopedLights = floorLights.filter((item) => scopedLightIds.has(item.id));
+    const enabledLights = scopedLights.filter((item) => (item.controlGroupId ? lightingControlBrightness.get(item.controlGroupId) ?? 0 : 0) > 0);
+    const powerW = enabledLights.reduce((sum, item) => sum + (item.lightSpec?.powerW ?? 8) * ((item.controlGroupId ? lightingControlBrightness.get(item.controlGroupId) ?? 0 : 0) / 100), 0);
+    const averageBrightness = scopedLights.length > 0
+      ? scopedLights.reduce((sum, item) => sum + (item.controlGroupId ? lightingControlBrightness.get(item.controlGroupId) ?? 0 : 0), 0) / scopedLights.length
+      : 0;
+    return {
+      enabledSpaces: scopedSpaces.filter((space) => space.enabledLightCount > 0).length,
+      enabledLights: enabledLights.length,
+      powerW: Math.round(powerW),
+      dominantColorTemperature: getDominantColorTemperature(enabledLights),
+      averageBrightness,
+      dimmingLights: scopedLights.filter((item) => item.dimming).length,
+      smartLights: scopedLights.filter((item) => item.smartControl).length,
+      darkSpaces: scopedSpaces.filter((space) => space.status === "dark").length,
+      overbrightSpaces: scopedSpaces.filter((space) => space.status === "overbright").length,
+      uncontrolledLights: scopedLights.filter((item) => !item.controlGroupId || !lightingControlBrightness.has(item.controlGroupId)).length
+    };
+  }, [floorLights, lightingControlBrightness, lightingExperienceScope, lightingSpaceSummaries, selectedLightingSpace]);
   const specialtyFallback = Boolean(drawingProfile.emptyDataHint && relevantDrawingItems.length === 0);
+  const stairDebugSystems = useMemo(() => {
+    if (!showStairDebug) return [];
+    const systems = stairSystems.filter((system) => system.lowerFloorId === houseStructure.floorId || system.upperFloorId === houseStructure.floorId);
+    return systems.map((system) => buildStairRenderSystemGeometry({
+      system,
+      structuresByFloor: houseStructuresByFloor,
+      currentStructure: houseStructure,
+      currentFloorId: houseStructure.floorId,
+      landing: stairLandings.find((candidate) => candidate.id === system.landingId),
+      opening: stairOpenings.find((candidate) => candidate.id === system.openingId),
+      mode: "system-analysis",
+      presentationOffsetMm: 0
+    }));
+  }, [houseStructure, houseStructuresByFloor, showStairDebug, stairLandings, stairOpenings, stairSystems]);
   const currentFloorTourNodes = useMemo(
     () => roomTourViews.filter((node) => node.floorId === floor.id && node.status === "active"),
     [floor.id, roomTourViews]
@@ -6436,14 +7112,17 @@ export function Floor3DView({
         .filter((node): node is RoomTourView => Boolean(node))
         .slice(0, 4)
     : [], [activeTourNode, currentFloorTourNodes]);
-  const activateFloorCameraView = (view: FloorCameraView) => {
+  const activateFloorCameraView = (view: FloorCameraView, preserveLightingScene = false) => {
     setActiveCameraViewId(view.id);
     setActiveTourNode(view.tourView ?? null);
     setTourPanelOpen(false);
     setCameraMode(view.cameraMode === "walkthrough" ? "walkthrough" : view.cameraMode === "tour" ? "tour" : "orbit");
     setCameraRequest((current) => ({ preset: "overview", fixedView: view.fixedView, version: current.version + 1 }));
-    if (drawingSheetType === "lightingPlan" && view.recommendedLightingScene) setLightingScene(view.recommendedLightingScene);
-    if (drawingSheetType === "lightingPlan" && view.recommendedLightingSceneId) setActiveLightingControlSceneId(view.recommendedLightingSceneId);
+    if (!preserveLightingScene && drawingSheetType === "lightingPlan" && view.recommendedLightingScene) setLightingScene(view.recommendedLightingScene);
+    if (!preserveLightingScene && drawingSheetType === "lightingPlan" && view.recommendedLightingSceneId) {
+      setLightingGroupOverrides({});
+      setActiveLightingControlSceneId(view.recommendedLightingSceneId);
+    }
   };
   const requestFreeBrowse = () => {
     setCameraMode("orbit");
@@ -6456,6 +7135,117 @@ export function Floor3DView({
   const returnToBirdseye = () => {
     const overview = floorCameraViews.find((view) => view.name === "鸟瞰");
     if (overview) activateFloorCameraView(overview);
+  };
+  const buildLightingRoomFullView = (space: LightingSpaceSummary): FloorCameraView | null => {
+    const polygon = space.kind === "room"
+      ? houseStructure.rooms.find((room) => room.id === space.id)?.boundary
+      : houseStructure.outdoors.find((outdoor) => outdoor.id === space.id)?.polygon;
+    if (!polygon?.length) return null;
+    const bounds = getSceneBounds(polygon, houseStructure);
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerZ = (bounds.minZ + bounds.maxZ) / 2;
+    const span = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ, 2.8);
+    const mode = lightingRoomViewMode;
+    const cameraPosition = mode === "top"
+      ? { x: centerX + span * 0.22, y: Math.max(5.8, span * 1.12), z: centerZ + span * 0.2 }
+      : mode === "human"
+        ? { x: centerX + span * 0.82, y: 1.7, z: centerZ + span * 0.82 }
+        : { x: centerX + span * 1.45, y: Math.max(3.8, span * 1.12), z: centerZ + span * 1.45 };
+    const target = { x: centerX, y: mode === "top" ? 0 : 0.68, z: centerZ };
+    const fixedView: FixedCameraView = {
+      id: `lighting-room-${space.id}-${mode}`,
+      name: `${space.name} ${mode === "full" ? "全貌" : mode === "human" ? "人眼体验" : "顶部检查"}`,
+      floor: floor.id,
+      cameraPosition,
+      target,
+      mode: "perspective",
+      description: `${space.name}${mode === "full" ? "房间全貌" : mode === "human" ? "人眼体验" : "顶部检查"}`
+    };
+    return {
+      id: fixedView.id,
+      floorId: floor.id,
+      name: fixedView.name,
+      category: "lighting-scene",
+      cameraMode: "orbit",
+      cameraPosition,
+      target,
+      roomId: space.kind === "room" ? space.id : undefined,
+      outdoorId: space.kind === "outdoor" ? space.id : undefined,
+      description: fixedView.description,
+      fixedView,
+      primary: true,
+      priority: -50
+    };
+  };
+  const enterLightingSpace = (space: LightingSpaceSummary) => {
+    setSelectedLightingSpaceId(space.id);
+    setLightingExperienceScope("currentRoom");
+    setLightingWallMode("smartCutaway");
+    setLightingRoomViewMode("full");
+    setLightingSelectedGroupId(null);
+    setLightingSoloGroupId(null);
+    setAdvancedLightingOpen(false);
+    setLightingRoomPanelOpen(false);
+    const roomView = buildLightingRoomFullView(space) ?? floorCameraViews.find((view) => view.roomId === space.id || view.outdoorId === space.id);
+    if (roomView) activateFloorCameraView(roomView, true);
+    else requestFreeBrowse();
+  };
+  const returnToLightingOverview = (scope: Exclude<LightingExperienceScope, "currentRoom"> = "wholeHouse") => {
+    setLightingExperienceScope(scope);
+    setSelectedLightingSpaceId(null);
+    setLightingWallMode("smartCutaway");
+    setLightingRoomPanelOpen(false);
+    const overview = floorCameraViews.find((view) => view.name === "鸟瞰");
+    if (overview) activateFloorCameraView(overview, true);
+    else requestCameraPreset("overview");
+  };
+  const stepLightingSpace = (direction: -1 | 1) => {
+    if (!lightingSpaceSummaries.length) return;
+    const currentIndex = Math.max(0, lightingSpaceSummaries.findIndex((space) => space.id === selectedLightingSpaceId));
+    enterLightingSpace(lightingSpaceSummaries[(currentIndex + direction + lightingSpaceSummaries.length) % lightingSpaceSummaries.length]);
+  };
+  const changeLightingRoomViewMode = (mode: LightingRoomViewMode) => {
+    setLightingRoomViewMode(mode);
+    if (!selectedLightingSpace) return;
+    const polygon = selectedLightingSpace.kind === "room"
+      ? houseStructure.rooms.find((room) => room.id === selectedLightingSpace.id)?.boundary
+      : houseStructure.outdoors.find((outdoor) => outdoor.id === selectedLightingSpace.id)?.polygon;
+    if (!polygon?.length) return;
+    const bounds = getSceneBounds(polygon, houseStructure);
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerZ = (bounds.minZ + bounds.maxZ) / 2;
+    const span = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ, 2.8);
+    const cameraPosition = mode === "top"
+      ? { x: centerX + span * 0.22, y: Math.max(5.8, span * 1.12), z: centerZ + span * 0.2 }
+      : mode === "human"
+        ? { x: centerX + span * 0.82, y: 1.7, z: centerZ + span * 0.82 }
+        : { x: centerX + span * 1.45, y: Math.max(3.8, span * 1.12), z: centerZ + span * 1.45 };
+    const fixedView: FixedCameraView = { id: `lighting-room-${selectedLightingSpace.id}-${mode}`, name: `${selectedLightingSpace.name} ${mode === "full" ? "全貌" : mode === "human" ? "人眼体验" : "顶部检查"}`, floor: floor.id, cameraPosition, target: { x: centerX, y: mode === "top" ? 0 : 0.68, z: centerZ }, mode: "perspective", description: `${selectedLightingSpace.name}灯光查看视角` };
+    activateFloorCameraView({ id: fixedView.id, floorId: floor.id, name: fixedView.name, category: "lighting-scene", cameraMode: "orbit", cameraPosition, target: fixedView.target, roomId: selectedLightingSpace.kind === "room" ? selectedLightingSpace.id : undefined, outdoorId: selectedLightingSpace.kind === "outdoor" ? selectedLightingSpace.id : undefined, fixedView, primary: true, priority: -50 }, true);
+  };
+  const setLightingGroupBrightness = (groupId: string, brightness: number) => {
+    setLightingGroupOverrides((current) => ({ ...current, [groupId]: brightness }));
+  };
+  const toggleLightingGroup = (groupId: string, on: boolean) => setLightingGroupBrightness(groupId, on ? Math.max(65, lightingControlBrightness.get(groupId) ?? 70) : 0);
+  const toggleLightingGroupSolo = (groupId: string) => {
+    if (lightingSoloGroupId === groupId) {
+      setLightingGroupOverrides(lightingSoloBackupRef.current ?? {});
+      lightingSoloBackupRef.current = null;
+      setLightingSoloGroupId(null);
+      return;
+    }
+    const roomGroupIds = new Set(lightingRoomGroups.map((group) => group.id));
+    const backup = Object.fromEntries(Array.from(roomGroupIds).map((id) => [id, lightingControlBrightness.get(id) ?? 0]));
+    lightingSoloBackupRef.current = backup;
+    const next = Object.fromEntries(Array.from(roomGroupIds).map((id) => [id, id === groupId ? Math.max(65, backup[id] ?? 70) : 0]));
+    setLightingGroupOverrides(next);
+    setLightingSoloGroupId(groupId);
+    setLightingSelectedGroupId(groupId);
+  };
+  const setRoomLightingAll = (on: boolean) => {
+    setLightingGroupOverrides(Object.fromEntries(lightingRoomGroups.map((group) => [group.id, on ? 100 : 0])));
+    setLightingSoloGroupId(null);
+    lightingSoloBackupRef.current = null;
   };
   const resetMobileCamera = () => {
     setCameraMode("orbit");
@@ -6500,11 +7290,12 @@ export function Floor3DView({
     if (mobilePresentationMode) setPresentationMode(true);
     setMaterialPreview(true);
     setShowServicePoints(false);
+    const isStairInspection = node.type === "stair" || Boolean(node.targetArea?.startsWith("stair"));
     const configured = floorCameraViews.find((view) => view.id === node.id);
     if (configured) activateFloorCameraView(configured);
     else activateFloorCameraView({
       id: node.id, floorId: node.floorId, name: node.name, category: node.type === "viewpoint" ? "feature" : "room",
-      cameraMode: node.isFloorOverview ? "orbit" : "tour", cameraPosition: node.cameraPosition, target: node.target,
+      cameraMode: node.isFloorOverview ? "orbit" : isStairInspection ? "fixed" : "tour", cameraPosition: node.cameraPosition, target: node.target,
       roomId: node.roomId, outdoorId: node.outdoorId, description: node.description, fixedView: tourNodeToCameraView(node),
       tourView: node, primary: false, priority: 500
     });
@@ -6616,6 +7407,16 @@ export function Floor3DView({
     setShowLightSpots(false);
     setShowControlRelations(false);
     setShowIlluminanceLayer(false);
+    setShowFixtureModels(false);
+    setShowFixtureIds(false);
+    setAdvancedLightingOpen(false);
+    setLightingAnalysisMode("none");
+    setLightingGroupOverrides({});
+    setLightingPanelCollapsed(true);
+    setLightingRoomViewMode("full");
+    setLightingSelectedGroupId(null);
+    setLightingSoloGroupId(null);
+    lightingSoloBackupRef.current = null;
     setMaterialCategoryFilter("all");
   }, [drawingSheetType]);
   useEffect(() => {
@@ -6623,10 +7424,22 @@ export function Floor3DView({
     setActiveTourNode(null);
     setActiveCameraViewId(null);
     setCameraMode("orbit");
-    const defaultView = floorCameraViews.find((view) => view.defaultForFloor) ?? floorCameraViews.find((view) => view.name === "鸟瞰");
-    if (defaultView) activateFloorCameraView(defaultView);
+    if (drawingSheetType === "lightingPlan") {
+      setLightingExperienceScope("wholeHouse");
+      setSelectedLightingSpaceId(null);
+      setLightingWallMode("smartCutaway");
+      setLightingRoomPanelOpen(false);
+      setLightingPanelCollapsed(true);
+      setLightingRoomViewMode("full");
+      setLightingSelectedGroupId(null);
+      setLightingSoloGroupId(null);
+    }
+    const defaultView = drawingSheetType === "lightingPlan"
+      ? floorCameraViews.find((view) => view.name === "鸟瞰")
+      : floorCameraViews.find((view) => view.defaultForFloor) ?? floorCameraViews.find((view) => view.name === "鸟瞰");
+    if (defaultView) activateFloorCameraView(defaultView, drawingSheetType === "lightingPlan");
     else requestCameraPreset("overview");
-    setDrawingViewPreset(drawingProfile.defaultPreset);
+    setDrawingViewPreset(drawingSheetType === "lightingPlan" ? "birdseyeEdit" : drawingProfile.defaultPreset);
   }, [drawingSheetType, floor.id]);
   useEffect(() => {
     if (drawingSheetType !== "wallFinishPlan" || !selectedObjectId) return;
@@ -6685,6 +7498,9 @@ export function Floor3DView({
       data-camera-mode={cameraMode}
       data-active-camera-view-id={activeCameraViewId ?? ""}
       data-lighting-scene={drawingSheetType === "lightingPlan" ? lightingScene : undefined}
+      data-lighting-experience-scope={drawingSheetType === "lightingPlan" ? lightingExperienceScope : undefined}
+      data-lighting-wall-mode={drawingSheetType === "lightingPlan" ? lightingWallMode : undefined}
+      data-lighting-analysis-mode={drawingSheetType === "lightingPlan" ? lightingAnalysisMode : undefined}
       data-specialty-fallback={specialtyFallback ? "true" : "false"}
     >
       <Canvas
@@ -6706,6 +7522,12 @@ export function Floor3DView({
           showLightSpots={showLightSpots}
           showControlRelations={showControlRelations}
           showIlluminanceLayer={showIlluminanceLayer}
+          lightingSelectedGroupId={lightingSelectedGroupId}
+          lightingSoloGroupId={lightingSoloGroupId}
+          lightingExperienceScope={lightingExperienceScope}
+          lightingWallMode={lightingWallMode}
+          lightingAnalysisMode={lightingAnalysisMode}
+          lightingSpaceSummaries={lightingSpaceSummaries}
           ceilingSolid={ceilingSolid}
           materialCategoryFilter={materialCategoryFilter}
           cameraPreset={cameraRequest.preset}
@@ -6715,12 +7537,19 @@ export function Floor3DView({
           cameraMode={cameraMode}
           activeTourNode={activeTourNode}
           mobilePresentationMode={mobilePresentationMode}
+          cameraPlanNavigationRequest={cameraPlanNavigationRequest}
+          onCameraPlanPoseChange={setCameraPlanPose}
           materialPreview={materialPreview}
           designStyle={designStyle}
           presentationMode={presentationMode}
           mobileQuality={mobileQuality}
           showServicePoints={showServicePoints}
+          showStairDebug={showStairDebug}
           houseStructure={houseStructure}
+          houseStructuresByFloor={houseStructuresByFloor}
+          stairSystems={stairSystems}
+          stairLandings={stairLandings}
+          stairOpenings={stairOpenings}
           furniture={furniture}
           selectedObjectId={selectedObjectId}
           selectedFurnitureId={selectedFurnitureId}
@@ -6737,6 +7566,216 @@ export function Floor3DView({
           onClearHoverObject={onClearHoverObject}
         />
       </Canvas>
+
+      {drawingSheetType === "lightingPlan" && cameraMode === "orbit" && !activeCameraViewId && !mobilePresentationMode && (
+        <LightingFreeBrowseMinimap
+          structure={houseStructure}
+          drawingItems={drawingItems}
+          pose={cameraPlanPose}
+          onNavigate={(target) => setCameraPlanNavigationRequest((current) => ({
+            ...target,
+            version: (current?.version ?? 0) + 1
+          }))}
+        />
+      )}
+
+      {drawingSheetType === "lightingPlan" && !mobilePresentationMode && (
+        <aside className={`absolute left-4 z-[82] overflow-hidden rounded-2xl border border-white/80 bg-stone-950/78 text-white shadow-2xl backdrop-blur-xl ${lightingPanelCollapsed ? "bottom-20 max-w-[calc(100%-2rem)]" : "bottom-20 top-4 flex w-72 flex-col"}`} data-testid="lighting-room-overview-panel">
+          {lightingPanelCollapsed && (
+            <div className="flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto p-1.5">
+              <span className="shrink-0 rounded-lg bg-white/12 px-3 py-2 text-xs font-black">{selectedLightingSpace?.name ?? "选择房间"}</span>
+              {lightingSpaceSummaries.slice(0, 6).map((space) => <button key={space.id} className={`max-w-24 shrink-0 truncate rounded-lg px-3 py-2 text-xs font-bold ${selectedLightingSpaceId === space.id ? "bg-amber-300 text-stone-950" : "bg-white/10 hover:bg-white/20"}`} onClick={() => enterLightingSpace(space)} type="button">{space.name}</button>)}
+              {lightingSpaceSummaries.length > 6 && <button className="shrink-0 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold" onClick={() => setLightingPanelCollapsed(false)} type="button">更多</button>}
+              <button aria-label="展开房间导航" className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/10" onClick={() => setLightingPanelCollapsed(false)} type="button">＋</button>
+            </div>
+          )}
+          {!lightingPanelCollapsed && <>
+          <div className="border-b border-white/10 px-4 py-3">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-200/80">{floor.id} · Lighting experience</div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base font-black">{lightingExperienceScope === "currentRoom" ? `${selectedLightingSpace?.name ?? "房间"}体验` : "全屋灯光总览"}</h2>
+                <p className="mt-0.5 text-[11px] text-stone-300">{activeLightingControlSceneId === "__all_on__" ? "全开" : activeLightingControlScene?.name ?? "日常"} · {lightingSceneModeLabels[lightingScene]}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                {lightingExperienceScope === "currentRoom" && <button className="rounded-full bg-white px-3 py-2 text-[11px] font-bold text-stone-900" onClick={() => returnToLightingOverview()} type="button">返回总览</button>}
+                <button aria-label="收起房间导航" className="grid size-8 place-items-center rounded-full bg-white/10 text-lg" onClick={() => setLightingPanelCollapsed(true)} type="button">−</button>
+              </div>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-stone-300">
+              <span>{floor.id === "YARD" ? "庭院区域" : "本层房间"}</span>
+              <span>{lightingSpaceSummaries.length} 个空间</span>
+            </div>
+            <div className="space-y-2">
+              {lightingSpaceSummaries.map((space) => (
+                <button
+                  key={space.id}
+                  aria-pressed={selectedLightingSpaceId === space.id}
+                  className={`w-full overflow-hidden rounded-xl border text-left transition hover:-translate-y-0.5 ${selectedLightingSpaceId === space.id ? "border-amber-300 bg-white/16" : "border-white/10 bg-white/8 hover:bg-white/12"}`}
+                  data-lighting-room-id={space.id}
+                  onClick={() => enterLightingSpace(space)}
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="relative block h-14 overflow-hidden"
+                    style={{ background: `radial-gradient(circle at 55% 45%, ${colorTemperatureToHex(space.dominantColorTemperature)} ${Math.max(8, space.averageBrightness * 0.34)}%, ${lightingStatusColors[space.status]} 145%)` }}
+                  >
+                    <span className="absolute inset-x-3 bottom-2 h-px bg-white/35" />
+                    <span className="absolute bottom-2 left-3 h-5 w-px bg-white/35" />
+                    <span className="absolute bottom-2 right-3 h-8 w-px bg-white/25" />
+                    <span className="absolute left-1/2 top-2 size-2 -translate-x-1/2 rounded-full bg-white shadow-[0_0_14px_6px_rgba(255,235,190,0.5)]" />
+                  </span>
+                  <span className="block px-3 py-2.5">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-black">{space.name}</span>
+                      <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black" style={{ backgroundColor: `${lightingStatusColors[space.status]}33`, color: lightingStatusColors[space.status] }}>{lightingStatusLabels[space.status]}</span>
+                    </span>
+                    <span className="mt-1 flex items-center justify-between text-[10px] text-stone-300">
+                      <span>{space.enabledLightCount}/{space.totalLightCount} 盏开启</span>
+                      <span>{Math.round(space.averageBrightness)}% · {space.dominantColorTemperature ?? "3000K"}</span>
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            {selectedLightingSpace && lightingExperienceScope === "currentRoom" && (
+              <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3" data-testid="lighting-room-group-controls">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black">房间灯组</span>
+                  <div className="flex gap-1">
+                    <button aria-label="上一个房间" className="grid size-7 place-items-center rounded-full bg-white/10" onClick={() => stepLightingSpace(-1)} type="button">‹</button>
+                    <button aria-label="下一个房间" className="grid size-7 place-items-center rounded-full bg-white/10" onClick={() => stepLightingSpace(1)} type="button">›</button>
+                  </div>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {selectedLightingSpace.controlGroupIds.map((groupId) => (
+                    <label key={groupId} className="block text-[10px] text-stone-300">
+                      <span className="flex items-center justify-between gap-2"><span className="truncate">{groupId}</span><span>{Math.round(lightingControlBrightness.get(groupId) ?? 0)}%</span></span>
+                      <input
+                        aria-label={`${groupId} 亮度`}
+                        className="mt-1 w-full accent-amber-400"
+                        max="100"
+                        min="0"
+                        onChange={(event) => setLightingGroupOverrides((current) => ({ ...current, [groupId]: Number(event.target.value) }))}
+                        type="range"
+                        value={lightingControlBrightness.get(groupId) ?? 0}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          </>}
+        </aside>
+      )}
+
+      {drawingSheetType === "lightingPlan" && !mobilePresentationMode && lightingExperienceScope === "currentRoom" && selectedLightingSpace && (
+        <aside className="absolute bottom-20 right-4 top-20 z-[85] flex w-80 flex-col overflow-hidden rounded-2xl border border-white/80 bg-[#faf8f4]/96 text-stone-800 shadow-2xl backdrop-blur-xl" data-testid="lighting-room-group-panel">
+          <div className="border-b border-stone-200 px-4 py-3">
+            <div className="flex items-center justify-between gap-2"><div><div className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">当前房间灯组</div><h3 className="mt-1 text-lg font-black">{selectedLightingSpace.name}</h3></div><button aria-label="关闭灯组面板" className="grid size-8 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setLightingPanelCollapsed(true)} type="button">×</button></div>
+            <div className="mt-3 flex gap-2"><button className="flex-1 rounded-lg bg-stone-900 px-2 py-2 text-[11px] font-bold text-white" onClick={() => setRoomLightingAll(true)} type="button">本房间全开</button><button className="flex-1 rounded-lg bg-stone-200 px-2 py-2 text-[11px] font-bold" onClick={() => setRoomLightingAll(false)} type="button">本房间全关</button><button className="rounded-lg bg-amber-100 px-2 py-2 text-[11px] font-bold text-amber-900" onClick={() => { setLightingGroupOverrides({}); setLightingSoloGroupId(null); lightingSoloBackupRef.current = null; }} type="button">推荐</button></div>
+            <div className="mt-3 flex items-center gap-1 rounded-lg bg-stone-100 p-1">{([['full','房间全貌'],['human','人眼体验'],['top','顶部检查']] as Array<[LightingRoomViewMode,string]>).map(([mode,label]) => <button key={mode} className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-bold ${lightingRoomViewMode === mode ? "bg-white shadow-sm" : "text-stone-500"}`} onClick={() => changeLightingRoomViewMode(mode)} type="button">{label}</button>)}</div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="mb-2 flex items-center justify-between text-[10px] font-bold text-stone-500"><span>{lightingRoomGroups.length} 组灯光 · {selectedLightingSpace.totalLightCount} 盏</span><span>{selectedLightingSpace.dominantColorTemperature ?? "3000K"}</span></div>
+            <div className="space-y-2">
+              {lightingRoomGroups.map((group) => <div key={group.id} className={`rounded-xl border p-3 ${lightingSelectedGroupId === group.id ? "border-amber-400 bg-amber-50" : "border-stone-200 bg-white"}`}>
+                <div className="flex items-start gap-2"><button className="min-w-0 flex-1 text-left" onClick={() => setLightingSelectedGroupId(group.id)} type="button"><div className="truncate text-sm font-black">{group.label}</div><div className="mt-1 text-[10px] text-stone-500">{group.items.length} 盏 · {group.fixtureTypes} · {group.colorTemperature ?? "3000K"}</div></button><button aria-label={`${group.label}开关`} aria-pressed={group.enabled} className={`rounded-full px-2 py-1 text-[10px] font-black ${group.enabled ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-500"}`} onClick={() => toggleLightingGroup(group.id, !group.enabled)} type="button">{group.enabled ? "开" : "关"}</button></div>
+                <div className="mt-2 flex items-center gap-2"><input aria-label={`${group.label}亮度`} className="min-w-0 flex-1 accent-amber-500" max="100" min="0" onChange={(event) => setLightingGroupBrightness(group.id, Number(event.target.value))} type="range" value={group.brightness} /><span className="w-8 text-right text-[10px] font-black">{Math.round(group.brightness)}%</span></div>
+                <div className="mt-2 flex gap-1"><button className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-bold ${lightingSoloGroupId === group.id ? "bg-amber-500 text-white" : "bg-stone-100"}`} onClick={() => toggleLightingGroupSolo(group.id)} type="button">{lightingSoloGroupId === group.id ? "退出单组预览" : "只看该组"}</button><button className="rounded-md bg-stone-100 px-2 py-1.5 text-[10px] font-bold" onClick={() => setLightingSelectedGroupId(group.id)} type="button">高亮</button></div>
+                {lightingSelectedGroupId === group.id && <div className="mt-2 border-t border-stone-200 pt-2"><div className="mb-1 text-[10px] font-black text-stone-500">单灯调试</div>{group.items.map((item) => <div key={item.id} className="mb-1 rounded-lg bg-stone-50 px-2 py-1.5 text-[10px]"><div className="flex items-center justify-between gap-2"><span className="truncate font-bold">{item.label ?? item.id}</span><span>{item.colorTemperature ?? "3000K"}</span></div><div className="mt-1 flex items-center justify-between text-stone-500"><span>{item.id} · {item.lightType ?? item.type}</span><button className="font-bold text-amber-800" onClick={() => onSelectDrawingItem(item.id)} type="button">定位</button></div></div>)}</div>}
+              </div>)}
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {drawingSheetType === "lightingPlan" && !mobilePresentationMode && !advancedLightingOpen && (
+        <aside className="absolute bottom-20 left-1/2 z-[84] -translate-x-1/2 rounded-full border border-white/80 bg-stone-950/78 px-4 py-2 text-[11px] font-bold text-white shadow-lg backdrop-blur" data-testid="lighting-scene-summary">
+          {selectedLightingSpace ? <><span className="font-black">{selectedLightingSpace.name}</span><span className="mx-2 text-white/35">·</span><span>{lightingRoomGroups.length}组灯 · {selectedLightingSpace.enabledLightCount}盏开启 · {selectedLightingSpace.dominantColorTemperature ?? "3000K"} · {lightingScene === "night" || lightingScene === "artificialOnly" ? "夜间" : "白天"}</span></> : <><span className="font-black">{floor.label}</span><span className="mx-2 text-white/35">·</span><span>{lightingSummary.enabledLights}盏开启 · {lightingSummary.dominantColorTemperature ?? "3000K"}</span></>}
+        </aside>
+      )}
+
+      {drawingSheetType === "lightingPlan" && mobilePresentationMode && (
+        <div className="pointer-events-none absolute inset-x-3 top-[4.25rem] z-[88] flex justify-center">
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-white/70 bg-stone-950/78 p-1.5 text-[11px] font-bold text-white shadow-lg backdrop-blur">
+            <button className="max-w-24 truncate rounded-full bg-white/10 px-3 py-2" onClick={() => setLightingRoomPanelOpen(true)} type="button">房间 · {selectedLightingSpace?.name ?? lightingSpaceSummaries.length}</button>
+            <div className="flex rounded-full bg-white/10 p-0.5"><button className={`rounded-full px-2 py-1 ${lightingScene === "dayWithLights" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("dayWithLights")} type="button">白天</button><button className={`rounded-full px-2 py-1 ${lightingScene === "night" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("night")} type="button">夜间</button></div>
+            <button className="rounded-full bg-white/10 px-3 py-2" onClick={() => returnToLightingOverview()} type="button">全屋总览</button>
+            <button className={`rounded-full px-3 py-2 ${advancedLightingOpen ? "bg-amber-400 text-stone-950" : "bg-white/10"}`} onClick={() => setAdvancedLightingOpen((open) => !open)} type="button">分析</button>
+          </div>
+        </div>
+      )}
+
+      {drawingSheetType === "lightingPlan" && advancedLightingOpen && (
+        <aside className={`absolute z-[97] overflow-y-auto border border-white/80 bg-[#faf8f4]/98 p-4 text-stone-800 shadow-2xl backdrop-blur ${mobilePresentationMode ? "inset-x-3 bottom-3 max-h-[62%] rounded-3xl pb-[max(1rem,env(safe-area-inset-bottom))]" : "right-4 top-20 max-h-[calc(100%-10rem)] w-80 rounded-2xl"}`} data-testid="lighting-advanced-analysis">
+          <div className="flex items-start justify-between gap-3">
+            <div><div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Advanced analysis</div><h3 className="mt-1 text-lg font-black">高级分析</h3></div>
+            <button aria-label="关闭高级分析" className="grid size-9 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setAdvancedLightingOpen(false)} type="button">×</button>
+          </div>
+          <div className="mt-4">
+            <div className="rounded-xl bg-stone-100 p-3"><div className="text-[11px] font-black text-stone-500">高级场景</div><select aria-label="高级灯光场景" className="mt-2 h-9 w-full rounded-lg border-0 bg-white px-2 text-xs font-bold" value={activeLightingControlSceneId} onChange={(event) => { setLightingGroupOverrides({}); setActiveLightingControlSceneId(event.target.value); }}>{primaryLightingScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.label}</option>)}</select></div>
+          </div>
+          <div className="mt-4">
+            <div className="text-[11px] font-black text-stone-500">分析叠层</div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {([
+                ["none", "关闭分析层"],
+                ["brightness", "整体亮度热力图"],
+                ["colorTemperature", "色温分布"]
+              ] as Array<[LightingAnalysisMode, string]>).map(([mode, label]) => (
+                <button key={mode} aria-pressed={lightingAnalysisMode === mode} className={`min-h-10 rounded-xl px-3 py-2 text-xs font-bold ${lightingAnalysisMode === mode ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"}`} onClick={() => setLightingAnalysisMode(mode)} type="button">{label}</button>
+              ))}
+            </div>
+            {lightingAnalysisMode === "brightness" && <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-semibold leading-4 text-amber-900">视觉估算，不是专业照度报告。颜色用于识别偏暗、舒适、明亮和过亮风险。</p>}
+            {lightingAnalysisMode === "colorTemperature" && <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold">{["2700K", "3000K", "3500K", "4000K"].map((value) => <span key={value} className="rounded-full px-2 py-1" style={{ backgroundColor: `${getColorTemperatureAnalysisColor(value as DrawingItem["colorTemperature"])}66` }}>{value}</span>)}</div>}
+          </div>
+          <div className="mt-5 border-t border-stone-200 pt-4">
+            <div className="text-[11px] font-black text-stone-500">技术图层</div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {([
+                [showFixtureModels, setShowFixtureModels, "灯具模型"],
+                [showFixtureIds, setShowFixtureIds, "灯具 ID"],
+                [showFixtureModels, setShowFixtureModels, "光源位置"],
+                [showBeamCones, setShowBeamCones, "光束锥体"],
+                [showLightSpots, setShowLightSpots, "光斑"],
+                [showControlRelations, setShowControlRelations, "控制关系"],
+                [showControlRelations, setShowControlRelations, "开关关系"],
+                [showIlluminanceLayer, setShowIlluminanceLayer, "照度辅助层"]
+              ] as Array<[boolean, Dispatch<SetStateAction<boolean>>, string]>).map(([enabled, setter, label]) => (
+                <button key={label} aria-pressed={enabled} className={`min-h-10 rounded-xl px-3 py-2 text-xs font-bold ${enabled ? "bg-amber-600 text-white" : "bg-stone-100 text-stone-700"}`} onClick={() => setter((value) => !value)} type="button">{label}</button>
+              ))}
+              <button aria-pressed={showObjectIds} className={`min-h-10 rounded-xl px-3 py-2 text-xs font-bold ${showObjectIds ? "bg-amber-600 text-white" : "bg-stone-100 text-stone-700"}`} onClick={() => onShowObjectIdsChange(!showObjectIds)} type="button">对象信息</button>
+            </div>
+          </div>
+          <details className="mt-5 rounded-xl bg-stone-100 p-3 text-xs">
+            <summary className="cursor-pointer font-black">调试信息</summary>
+            <div className="mt-2 space-y-1 text-[10px] text-stone-600"><div>范围：{lightingExperienceScope}</div><div>墙体：{lightingWallMode}</div><div>相机：{cameraMode}</div><div>当前视角：{activeCameraViewName ?? "自由浏览"}</div><div>场景：{activeLightingControlSceneId}</div></div>
+          </details>
+        </aside>
+      )}
+
+      {drawingSheetType === "lightingPlan" && mobilePresentationMode && lightingRoomPanelOpen && (
+        <div className="absolute inset-0 z-[99] flex items-end bg-stone-950/25" data-testid="mobile-lighting-room-drawer" onClick={() => setLightingRoomPanelOpen(false)}>
+          <div className="max-h-[68%] w-full overflow-y-auto rounded-t-3xl border border-white/80 bg-[#faf8f4]/98 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mx-auto h-1 w-10 rounded-full bg-stone-300" />
+            <div className="mt-3 flex items-center justify-between"><div><div className="text-xs font-bold text-stone-500">{floor.id} · 当前场景</div><h3 className="text-lg font-black text-stone-900">房间实时预览</h3></div><button aria-label="关闭房间预览" className="grid size-10 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setLightingRoomPanelOpen(false)} type="button">×</button></div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {lightingSpaceSummaries.map((space) => (
+                <button key={space.id} className={`rounded-2xl border p-3 text-left ${selectedLightingSpaceId === space.id ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white"}`} onClick={() => enterLightingSpace(space)} type="button">
+                  <span className="block truncate text-sm font-black">{space.name}</span>
+                  <span className="mt-2 block text-[10px] font-bold text-stone-500">{space.enabledLightCount}/{space.totalLightCount} 盏 · {Math.round(space.averageBrightness)}%</span>
+                  <span className="mt-1 block text-[10px] font-bold" style={{ color: lightingStatusColors[space.status] }}>{space.dominantColorTemperature ?? "3000K"} · {lightingStatusLabels[space.status]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {mobilePresentationMode && (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[85] flex justify-center px-3">
@@ -6822,7 +7861,7 @@ export function Floor3DView({
         </div>
       )}
 
-      {!presentationMode && !mobilePresentationMode && <div className="pointer-events-none absolute left-4 top-4 z-[80]">
+      {!presentationMode && !mobilePresentationMode && drawingSheetType !== "lightingPlan" && <div className="pointer-events-none absolute left-4 top-4 z-[80]">
         <div className="pointer-events-auto rounded-lg border border-white/80 bg-white/88 px-4 py-3 shadow-sm backdrop-blur">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-400">{floor.id} · Shared Drawing 3D</div>
           <div className="mt-1 text-lg font-black text-stone-900">{drawingProfile.label}</div>
@@ -6830,6 +7869,22 @@ export function Floor3DView({
           {specialtyFallback && <div className="mt-2 max-w-[26rem] rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-semibold text-amber-900">{drawingProfile.emptyDataHint}</div>}
         </div>
       </div>}
+      {showStairDebug && !mobilePresentationMode && (
+        <aside className="pointer-events-auto absolute bottom-20 left-4 z-[93] max-h-[42vh] w-[min(34rem,calc(100%-2rem))] overflow-y-auto rounded-xl border border-amber-200 bg-stone-950/88 p-3 text-[10px] font-semibold leading-4 text-amber-50 shadow-2xl backdrop-blur" data-testid="stair-system-debug-panel">
+          <div className="mb-2 text-xs font-black text-amber-200">楼梯系统调试 · {floor.id}</div>
+          <div className="space-y-3 whitespace-pre-wrap font-mono">
+            {stairDebugSystems.map((system) => (
+              <div key={system.system.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
+                {formatStairRenderDebug(system)}
+                {(() => {
+                  const continuity = getStairRenderContinuity(system);
+                  return continuity ? `\ncontinuity: lower=${Math.round(continuity.lowerToLandingMm)}mm upper=${Math.round(continuity.upperToLandingMm)}mm` : "\ncontinuity: current-floor clipped";
+                })()}
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
       <div className={`${mobilePresentationMode ? "hidden" : "pointer-events-none"} absolute right-4 top-4 z-[90] flex max-w-[calc(100%-2rem)] justify-end`}>
         <div className={`pointer-events-auto flex flex-wrap items-center justify-end gap-2 rounded-lg border border-white/80 bg-white/88 p-2 shadow-sm backdrop-blur ${presentationMode ? "bg-white/68" : ""}`}>
           {presentationMode ? (
@@ -6841,6 +7896,30 @@ export function Floor3DView({
             >
               退出干净轴测
             </button>
+          ) : drawingSheetType === "lightingPlan" ? (
+            <>
+              <select
+                aria-label="3D 图纸专项"
+                className="h-8 max-w-36 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-950 outline-none"
+                value={drawingSheetType}
+                onChange={(event) => onDrawingSheetTypeChange(event.target.value as DrawingSheetType)}
+              >
+                {officialDrawingSheetTypes.map((sheetType) => <option key={sheetType} value={sheetType}>{drawingSheetTypeLabels[sheetType]}</option>)}
+              </select>
+              <select aria-label="灯光当前房间" className="h-8 max-w-32 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-950 outline-none" value={selectedLightingSpaceId ?? ""} onChange={(event) => { const space = lightingSpaceSummaries.find((item) => item.id === event.target.value); if (space) enterLightingSpace(space); }}>
+                <option value="">选择房间</option>{lightingSpaceSummaries.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
+              </select>
+              <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="灯光时间模式">
+                {([['dayWithLights','白天'],['night','夜间']] as Array<[LightingSceneMode,string]>).map(([mode,label]) => <button key={mode} aria-pressed={lightingScene === mode} className={`rounded px-2 py-1.5 text-xs font-bold ${lightingScene === mode ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => setLightingScene(mode)} type="button">{label}</button>)}
+              </div>
+              <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="房间视角">
+                {([['full','房间全貌'],['human','人眼体验'],['top','顶部检查']] as Array<[LightingRoomViewMode,string]>).map(([mode,label]) => <button key={mode} aria-pressed={lightingRoomViewMode === mode} className={`rounded px-2 py-1.5 text-xs font-bold ${lightingRoomViewMode === mode ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => selectedLightingSpace ? changeLightingRoomViewMode(mode) : setLightingRoomPanelOpen(true)} type="button">{label}</button>)}
+              </div>
+              <select aria-label="灯光墙体模式" className="h-8 max-w-24 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none" value={lightingWallMode} onChange={(event) => setLightingWallMode(event.target.value as LightingWallMode)}>
+                {(Object.entries(lightingWallModeLabels) as Array<[LightingWallMode, string]>).map(([mode, label]) => <option key={mode} value={mode}>{label}</option>)}
+              </select>
+              <button aria-pressed={advancedLightingOpen} className={`rounded-md px-3 py-2 text-xs font-bold ${advancedLightingOpen ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700 hover:bg-stone-200"}`} onClick={() => setAdvancedLightingOpen((open) => !open)} type="button">高级</button>
+            </>
           ) : (
             <>
           <select
@@ -6912,6 +7991,15 @@ export function Floor3DView({
               家具机电关联 / 净空
             </button>
           )}
+          <button
+            aria-pressed={showStairDebug}
+            className={`rounded-md px-3 py-2 text-xs font-bold transition ${showStairDebug ? "bg-amber-600 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+            data-testid="stair-system-debug-toggle"
+            onClick={() => setShowStairDebug((visible) => !visible)}
+            type="button"
+          >
+            楼梯系统调试
+          </button>
           {drawingSheetType === "switchPlan" && (
             <button
               aria-pressed={showControlRelations}
@@ -6931,46 +8019,6 @@ export function Floor3DView({
             >
               {ceilingSolid ? "实体顶面" : "透明顶面"}
             </button>
-          )}
-          {drawingSheetType === "lightingPlan" && (
-            <>
-              {availableLightingControlScenes.length > 0 && (
-                <select
-                  aria-label="控制场景"
-                  className="h-8 max-w-44 rounded-md border border-orange-200 bg-orange-50 px-2 text-xs font-bold text-orange-950 outline-none"
-                  value={activeLightingControlScene?.id ?? ""}
-                  onChange={(event) => setActiveLightingControlSceneId(event.target.value)}
-                >
-                  {availableLightingControlScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.name}</option>)}
-                </select>
-              )}
-              <select
-                aria-label="灯光场景"
-                className="h-8 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-950 outline-none"
-                value={lightingScene}
-                onChange={(event) => setLightingScene(event.target.value as LightingSceneMode)}
-              >
-                {(Object.entries(lightingSceneModeLabels) as Array<[LightingSceneMode, string]>).map(([mode, label]) => <option key={mode} value={mode}>{label}</option>)}
-              </select>
-              {([
-                [showFixtureModels, setShowFixtureModels, "灯具模型"],
-                [showFixtureIds, setShowFixtureIds, "灯具 ID"],
-                [showBeamCones, setShowBeamCones, "光束锥体"],
-                [showLightSpots, setShowLightSpots, "光斑"],
-                [showControlRelations, setShowControlRelations, "控制关系"],
-                [showIlluminanceLayer, setShowIlluminanceLayer, "照度辅助层"]
-              ] as Array<[boolean, Dispatch<SetStateAction<boolean>>, string]>).map(([enabled, setter, label]) => (
-                <button
-                  key={label}
-                  aria-pressed={enabled}
-                  className={`rounded-md px-3 py-2 text-xs font-bold transition ${enabled ? "bg-amber-600 text-white" : "text-stone-600 hover:bg-stone-100"}`}
-                  onClick={() => setter((visible) => !visible)}
-                  type="button"
-                >
-                  {label}
-                </button>
-              ))}
-            </>
           )}
           <label className="flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100">
             <input checked={showObjectIds} onChange={(event) => onShowObjectIdsChange(event.target.checked)} type="checkbox" />

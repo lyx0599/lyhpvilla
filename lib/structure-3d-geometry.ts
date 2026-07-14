@@ -18,9 +18,9 @@ export type StraightHostPanel = {
   reachesTop: boolean;
 };
 
-export const DOOR_3D_DISPLAY_HEIGHT_MM = 1450;
-export const WINDOW_3D_DISPLAY_HEIGHT_MM = 780;
-export const WINDOW_3D_SILL_HEIGHT_MM = 420;
+export const DOOR_3D_DISPLAY_HEIGHT_MM = 1320;
+export const WINDOW_3D_DISPLAY_HEIGHT_MM = 680;
+export const WINDOW_3D_SILL_HEIGHT_MM = 340;
 
 export function getDoor3DDisplayHeight(openingHeightMm: number) {
   return Math.min(openingHeightMm, DOOR_3D_DISPLAY_HEIGHT_MM);

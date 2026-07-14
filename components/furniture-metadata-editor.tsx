@@ -196,7 +196,17 @@ export function FurnitureMetadataEditor({ furniture, structure, drawingItems = [
             家具家族
             <select className={fieldClass} disabled={disabled} value={furnitureFamily} onChange={(event) => {
               const nextFamily = event.target.value as keyof typeof furnitureVariantCatalog;
-              const assetTypeByFamily = { bed: "bed", sofa: "sofa", diningTable: "diningTable", coffeeTable: "coffeeTable", chair: "diningChair", cabinet: "cabinet", other: render3d.assetType };
+              const assetTypeByFamily: Record<keyof typeof furnitureVariantCatalog, string> = {
+                bed: "bed",
+                sofa: "sofa",
+                diningTable: "diningTable",
+                coffeeTable: "coffeeTable",
+                chair: "diningChair",
+                cabinet: "cabinet",
+                softDecor: "generic",
+                mediaWall: "fireplace",
+                other: render3d.assetType
+              };
               updateRender3D({ assetType: assetTypeByFamily[nextFamily], variantId: furnitureVariantCatalog[nextFamily][0].id }, true);
             }}>
               {Object.entries(furnitureFamilyLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}

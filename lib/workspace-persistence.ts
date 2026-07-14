@@ -100,6 +100,9 @@ function collectWorkspaceObjects(workspace: Record<string, unknown>) {
   addItems(getArray(workspace.semanticObjects));
   addItems(getArray(workspace.cameraViews));
   addItems(getArray(workspace.roomTourViews));
+  addItems(getArray(workspace.stairSystems));
+  addItems(getArray(workspace.stairLandings));
+  addItems(getArray(workspace.stairOpenings));
   const structures = asRecord(workspace.houseStructuresByFloor) ?? {};
   Object.values(structures).forEach((structureValue) => {
     const structure = asRecord(structureValue);
@@ -213,6 +216,11 @@ export function getWorkspaceValidationErrors(value: unknown) {
       for (const field of ["modelAssetId", "assetUrl"]) if (render3d[field] !== undefined && typeof render3d[field] !== "string") errors.push(`furniture[${index}].render3d.${field} 必须是字符串。`);
     });
   }
+  if (schemaVersion >= 16) {
+    if (!Array.isArray(workspace.stairSystems)) errors.push("schemaVersion 16+ 缺少 stairSystems 数组。");
+    if (!Array.isArray(workspace.stairLandings)) errors.push("schemaVersion 16+ 缺少 stairLandings 数组。");
+    if (!Array.isArray(workspace.stairOpenings)) errors.push("schemaVersion 16+ 缺少 stairOpenings 数组。");
+  }
 
   const seenIds = new Set<string>();
   const validateItems = (items: unknown[], label: string) => {
@@ -235,6 +243,9 @@ export function getWorkspaceValidationErrors(value: unknown) {
   validateItems(getArray(workspace.semanticObjects), "semanticObjects");
   validateItems(getArray(workspace.cameraViews), "cameraViews");
   validateItems(getArray(workspace.roomTourViews), "roomTourViews");
+  validateItems(getArray(workspace.stairSystems), "stairSystems");
+  validateItems(getArray(workspace.stairLandings), "stairLandings");
+  validateItems(getArray(workspace.stairOpenings), "stairOpenings");
   Object.entries(structures ?? {}).forEach(([floorId, structureValue]) => {
     const structure = asRecord(structureValue);
     if (!structure) return;

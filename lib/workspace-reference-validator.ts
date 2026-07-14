@@ -43,7 +43,7 @@ const STRUCTURE_COLLECTIONS = [
 ] as const;
 
 const NOTE_FIELDS = new Set(["note", "notes", "constructionNote"]);
-const ID_TOKEN_PATTERN = /\b(?:ROOM|OD|W|AW|D|WIN|BW|SK|ST|furn|ph|module)-[A-Za-z0-9][A-Za-z0-9-]*\b/g;
+const ID_TOKEN_PATTERN = /\b(?:ROOM|OD|W|AW|D|WIN|BW|SK|ST|STAIR-SYS|LANDING|OPENING|GUARD|LIGHT|furn|ph|module)-[A-Za-z0-9][A-Za-z0-9-]*\b/g;
 
 function asRecord(value: unknown): JsonRecord | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
@@ -76,6 +76,9 @@ function collectKnownIds(workspace: JsonRecord) {
   add(asArray(workspace.semanticObjects));
   add(asArray(workspace.cameraViews));
   add(asArray(workspace.roomTourViews));
+  add(asArray(workspace.stairSystems));
+  add(asArray(workspace.stairLandings));
+  add(asArray(workspace.stairOpenings));
   const lightingDesign = asRecord(workspace.lightingDesign);
   add(asArray(lightingDesign?.fixtureFamilies));
   add(asArray(lightingDesign?.scenes));
@@ -149,6 +152,37 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
       const id = stringValue(object?.id);
       if (id && object) structureIndex.set(id, { floorId, collection, object });
     }));
+  });
+
+  const stairSystems = asArray(workspace.stairSystems).map(asRecord).filter((item): item is JsonRecord => Boolean(item));
+  const stairLandings = new Set(asArray(workspace.stairLandings).map((item) => stringValue(asRecord(item)?.id)).filter((id): id is string => Boolean(id)));
+  const stairOpenings = new Set(asArray(workspace.stairOpenings).map((item) => stringValue(asRecord(item)?.id)).filter((id): id is string => Boolean(id)));
+  stairSystems.forEach((system, index) => {
+    const id = stringValue(system.id) ?? `stairSystems[${index}]`;
+    for (const field of ["lowerFloorId", "upperFloorId"] as const) {
+      const floorId = stringValue(system[field]);
+      if (!floorId || !floorIds.has(floorId)) pushIssue(issues, {
+        severity: "error", code: "INVALID_STAIR_SYSTEM_FLOOR", objectId: id, path: `stairSystems[${index}].${field}`, value: floorId,
+        message: `楼梯系统 ${id} 的 ${field} 不存在。`, suggestion: "改为 floors 中存在的相邻楼层。"
+      });
+    }
+    for (const field of ["lowerFlightId", "upperFlightId"] as const) {
+      const flightId = stringValue(system[field]);
+      if (!flightId || structureIndex.get(flightId)?.collection !== "stairs") pushIssue(issues, {
+        severity: "error", code: "ORPHAN_STAIR_SYSTEM_FLIGHT", objectId: id, path: `stairSystems[${index}].${field}`, value: flightId,
+        message: `楼梯系统 ${id} 引用了不存在的梯段。`, suggestion: "恢复原 stair ID 或更新系统关联。"
+      });
+    }
+    const landingId = stringValue(system.landingId);
+    if (!landingId || !stairLandings.has(landingId)) pushIssue(issues, {
+      severity: "error", code: "ORPHAN_STAIR_LANDING", objectId: id, path: `stairSystems[${index}].landingId`, value: landingId,
+      message: `楼梯系统 ${id} 缺少有效中间平台。`, suggestion: "恢复对应 StairLanding 对象。"
+    });
+    const openingId = stringValue(system.openingId);
+    if (!openingId || !stairOpenings.has(openingId)) pushIssue(issues, {
+      severity: "error", code: "ORPHAN_STAIR_OPENING", objectId: id, path: `stairSystems[${index}].openingId`, value: openingId,
+      message: `楼梯系统 ${id} 缺少有效楼板洞口。`, suggestion: "恢复对应 StairOpening 对象。"
+    });
   });
 
   asArray(workspace.furniture).forEach((item, index) => {
