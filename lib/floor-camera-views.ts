@@ -125,12 +125,13 @@ function categoryForTour(node: RoomTourView, sheetType: DrawingSheetType): Floor
 function tourViewToConfig(node: RoomTourView, floorId: FloorId, sheetType: DrawingSheetType): FloorCameraView {
   const fixedView = tourNodeToCameraView(node);
   const priority = semanticScore(node.name, floorId, sheetType);
+  const isStairInspection = node.type === "stair" || Boolean(node.targetArea?.startsWith("stair"));
   return {
     id: node.id,
     floorId,
     name: cleanViewName(node.name, floorId),
     category: categoryForTour(node, sheetType),
-    cameraMode: node.isFloorOverview ? "orbit" : "tour",
+    cameraMode: node.isFloorOverview ? "orbit" : isStairInspection ? "fixed" : "tour",
     cameraPosition: node.cameraPosition,
     target: node.target,
     roomId: node.roomId,

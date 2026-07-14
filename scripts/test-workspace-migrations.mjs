@@ -164,6 +164,46 @@ const migratedFurnitureVariants = applyWorkspaceMigrations(legacyFurnitureVarian
 assert.ok(migratedFurnitureVariants.workspace.furniture.every((item) => item.render3d.variantId && Number.isInteger(item.render3d.variationSeed)), "Legacy furniture must receive stable variant metadata.");
 assert.deepEqual(migratedFurnitureVariants.workspace.furniture.map((item) => ({ id: item.id, name: item.name, floorId: item.floorId, roomId: item.roomId, position: item.position, dimensions: item.dimensions, material: item.material, primaryMaterial: item.render3d.primaryMaterial })), variantProtectedData, "Furniture variant migration must preserve geometry, identity, room and existing material data.");
 
+const legacyIndependentFlights = structuredClone(canonical);
+legacyIndependentFlights.schemaVersion = 15;
+legacyIndependentFlights.dataRevision = "2026-07-14-furniture-variants-v1";
+delete legacyIndependentFlights.stairSystems;
+delete legacyIndependentFlights.stairLandings;
+delete legacyIndependentFlights.stairOpenings;
+legacyIndependentFlights.cameraViews = legacyIndependentFlights.cameraViews.filter((view) => !view.id.startsWith("stair-view-"));
+const legacyFlightIds = Object.values(legacyIndependentFlights.houseStructuresByFloor).flatMap((structure) => structure.stairs.map((stair) => stair.id));
+for (const structure of Object.values(legacyIndependentFlights.houseStructuresByFloor)) {
+  for (const stair of structure.stairs) {
+    delete stair.stairSystemId;
+    delete stair.flightRole;
+    delete stair.connectedFromFloorId;
+    delete stair.connectedToFloorId;
+    delete stair.landingId;
+  }
+}
+const legacyB2Flight = legacyIndependentFlights.houseStructuresByFloor.B2.stairs.find((stair) => stair.id === "ST-B2-001");
+legacyB2Flight.stepCount = 14;
+legacyB2Flight.height = 2800;
+const legacy2FFlight = legacyIndependentFlights.houseStructuresByFloor["2F"].stairs.find((stair) => stair.id === "ST-2F-001");
+legacy2FFlight.start.y = 3575;
+legacy2FFlight.end.y = 3575;
+legacy2FFlight.direction = "up";
+legacy2FFlight.stepCount = 14;
+legacy2FFlight.height = 2800;
+const migratedStairSystems = applyWorkspaceMigrations(legacyIndependentFlights, { canonicalWorkspace: canonical });
+const migratedFlightIds = Object.values(migratedStairSystems.workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs.map((stair) => stair.id));
+assert.deepEqual(migratedFlightIds, legacyFlightIds, "Stair migration must bind existing IDs without creating duplicate flights.");
+assert.equal(migratedStairSystems.workspace.stairSystems.length, 3);
+assert.equal(migratedStairSystems.workspace.stairLandings.length, 3);
+assert.equal(migratedStairSystems.workspace.stairOpenings.length, 3);
+assert.ok(Object.values(migratedStairSystems.workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs).every((stair) => stair.stepCount === 10 && stair.height === 1400 && stair.stairSystemId && stair.landingId));
+assert.equal(migratedStairSystems.workspace.houseStructuresByFloor["2F"].stairs[0].direction, "down");
+assert.equal(migratedStairSystems.workspace.houseStructuresByFloor["2F"].stairs[0].start.y, 4625);
+assert.equal(migratedStairSystems.workspace.cameraViews.filter((view) => view.id.startsWith("stair-view-")).length, 15, "Existing legacy camera collections must receive the stair inspection views.");
+assert.equal(migratedStairSystems.sources.stairSystems, "migration");
+assert.equal(migratedStairSystems.sources.stairLandings, "migration");
+assert.equal(migratedStairSystems.sources.stairOpenings, "migration");
+
 const invalidCurrent = structuredClone(canonical);
 delete invalidCurrent.floors;
 assert.throws(

@@ -220,12 +220,12 @@ function turningStairs(floorId: FloorId): HouseStair[] {
 function topFloorArrivalStair(floorId: FloorId): HouseStair[] {
   return [
     {
-      ...stairStackStair(`ST-${floorId}-001`, floorId, "upper"),
-      name: "W-2F-012 1F→2F 到达梯段",
+      ...stairStackStair(`ST-${floorId}-001`, floorId, "lower"),
+      name: "2F 下行至 1F 梯段",
       baseHeight: 0,
-      height: 2800,
-      stepCount: 14,
-      direction: "up"
+      height: 1400,
+      stepCount: 10,
+      direction: "down"
     }
   ];
 }
@@ -434,8 +434,8 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
       ...stairStackStair("ST-B2-001", "B2", "upper"),
       name: "B2 上行至 B1 楼梯",
       baseHeight: 0,
-      height: 2800,
-      stepCount: 14,
+      height: 1400,
+      stepCount: 10,
       direction: "up"
     }],
     columns: b2SupportColumns,

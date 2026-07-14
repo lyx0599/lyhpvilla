@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 15,
-  "dataRevision": "2026-07-14-modern-natural-furniture-v1",
-  "defaultWorkspaceRevision": "2026-07-14-modern-warm-lighting-v1",
+  "schemaVersion": 16,
+  "dataRevision": "2026-07-14-stair-systems-v1",
+  "defaultWorkspaceRevision": "2026-07-15-furniture-visual-showcases-v3",
   "savedAt": "2026-07-12T05:48:23.775Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -3171,10 +3171,10 @@
       "type": "adjustableSpotlight",
       "positionMm": {
         "x": 3960,
-        "y": 5780
+        "y": 5510
       },
       "hostObjectId": null,
-      "hostWallId": "W-1F-013",
+      "hostWallId": null,
       "relatedFurnitureId": "furn-living-fireplace-south-001",
       "heightMm": 2800,
       "circuitId": null,
@@ -3201,7 +3201,7 @@
       "dimming": true,
       "relatedFurniturePositionMm": {
         "x": 3960,
-        "y": 6480
+        "y": 6210
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -3214,7 +3214,7 @@
         "trimColor": "哑黑 / 哑白"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-FEATURE:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"adjustableSpotlight\",\"positionMm\":{\"x\":3960,\"y\":5780},\"relatedFurnitureId\":\"furn-living-fireplace-south-001\",\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-1F-V1-26 · 壁炉/背景墙重点照明\",\"notes\":\"灯轴对准壁炉或材质墙，不直射电视屏幕；保留设备自身发光并控制辅助光亮度。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-FEATURE\",\"lightType\":\"adjustableSpotlight\",\"lightingLayer\":\"accent\",\"colorTemperature\":\"3000K\",\"beamAngle\":24,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-1F-V1-20\",\"controlGroupId\":\"CG-1F-1F-005-FEATURE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-013\",\"lightSpec\":{\"powerW\":10,\"luminousFluxLm\":780,\"cri\":90,\"glareRating\":\"深藏光源\",\"fixtureFamily\":\"adjustable-spot\",\"trimColor\":\"哑黑 / 哑白\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"adjustableSpotlight\",\"positionMm\":{\"x\":3960,\"y\":5510},\"relatedFurnitureId\":\"furn-living-fireplace-south-001\",\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-1F-V1-26 · 壁炉/背景墙重点照明\",\"notes\":\"灯轴对准壁炉或材质墙，不直射电视屏幕；保留设备自身发光并控制辅助光亮度。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-FEATURE\",\"lightType\":\"adjustableSpotlight\",\"lightingLayer\":\"accent\",\"colorTemperature\":\"3000K\",\"beamAngle\":24,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-1F-V1-20\",\"controlGroupId\":\"CG-1F-1F-005-FEATURE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":10,\"luminousFluxLm\":780,\"cri\":90,\"glareRating\":\"深藏光源\",\"fixtureFamily\":\"adjustable-spot\",\"trimColor\":\"哑黑 / 哑白\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-1F-V1-20",
@@ -3224,7 +3224,7 @@
       "type": "switchAndSceneControl",
       "positionMm": {
         "x": 3540,
-        "y": 6200
+        "y": 5930
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -3256,7 +3256,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-FEATURE:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":3540,\"y\":6200},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-20 · 重点照明控制\",\"notes\":\"控制组 CG-1F-1F-005-FEATURE；控制 L-1F-V1-26。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-26\"],\"lightGroupId\":\"CG-1F-1F-005-FEATURE\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-FEATURE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-26\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":3540,\"y\":5930},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-20 · 重点照明控制\",\"notes\":\"控制组 CG-1F-1F-005-FEATURE；控制 L-1F-V1-26。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-26\"],\"lightGroupId\":\"CG-1F-1F-005-FEATURE\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-FEATURE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-26\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-1F-V1-30",
@@ -5791,7 +5791,7 @@
       "type": "stairStepLight",
       "positionMm": {
         "x": 2548,
-        "y": 3575
+        "y": 4625
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -5830,7 +5830,7 @@
         "trimColor": "深灰"
       },
       "generatedKey": "lighting-design-v1:2F:CG-2F-2F-008-STEP:light:1",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"light\",\"type\":\"stairStepLight\",\"positionMm\":{\"x\":2548,\"y\":3575},\"relatedFurnitureId\":null,\"heightMm\":300,\"circuitId\":null,\"label\":\"L-2F-V1-30 · 楼梯间楼梯灯带 / 踏步低位灯\",\"notes\":\"楼梯上下口双控并预留人体感应；夜间只开低位灯，玻璃栏杆处避免眩光和反射。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-008-STEP\",\"lightType\":\"stairStepLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":90,\"mountingType\":\"stepMounted\",\"relatedSwitchId\":\"SW-2F-V1-28\",\"controlGroupId\":\"CG-2F-2F-008-STEP\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":2,\"luminousFluxLm\":120,\"cri\":90,\"glareRating\":\"遮光向下\",\"fixtureFamily\":\"step-light\",\"trimColor\":\"深灰\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"light\",\"type\":\"stairStepLight\",\"positionMm\":{\"x\":2548,\"y\":4625},\"relatedFurnitureId\":null,\"heightMm\":300,\"circuitId\":null,\"label\":\"L-2F-V1-30 · 楼梯间楼梯灯带 / 踏步低位灯\",\"notes\":\"楼梯上下口双控并预留人体感应；夜间只开低位灯，玻璃栏杆处避免眩光和反射。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-008-STEP\",\"lightType\":\"stairStepLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":90,\"mountingType\":\"stepMounted\",\"relatedSwitchId\":\"SW-2F-V1-28\",\"controlGroupId\":\"CG-2F-2F-008-STEP\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":2,\"luminousFluxLm\":120,\"cri\":90,\"glareRating\":\"遮光向下\",\"fixtureFamily\":\"step-light\",\"trimColor\":\"深灰\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-2F-V1-28",
@@ -5840,7 +5840,7 @@
       "type": "switchAndSceneControl",
       "positionMm": {
         "x": 2128,
-        "y": 3995
+        "y": 5045
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -5872,7 +5872,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "generatedKey": "lighting-design-v1:2F:CG-2F-2F-008-STEP:switch",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":2128,\"y\":3995},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-2F-V1-28 · 氛围照明控制\",\"notes\":\"控制组 CG-2F-2F-008-STEP；控制 L-2F-V1-30。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-2F-V1-30\"],\"lightGroupId\":\"CG-2F-2F-008-STEP\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-2F-2F-008-STEP\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-2F-V1-30\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":2128,\"y\":5045},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-2F-V1-28 · 氛围照明控制\",\"notes\":\"控制组 CG-2F-2F-008-STEP；控制 L-2F-V1-30。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-2F-V1-30\"],\"lightGroupId\":\"CG-2F-2F-008-STEP\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-2F-2F-008-STEP\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-2F-V1-30\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-YARD-V1-01",
@@ -6713,101 +6713,6 @@
       "dimming": false,
       "generatedKey": "lighting-design-v1:YARD:CG-YARD-YARD-SOUTH-001-CABINET:switch",
       "generatedFingerprint": "{\"floorId\":\"YARD\",\"roomId\":\"OD-YARD-SOUTH-001\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":1740,\"y\":8820},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-YARD-V1-12 · 户外灯控制\",\"notes\":\"控制组 CG-YARD-YARD-SOUTH-001-CABINET；控制 L-YARD-V1-12。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-YARD-V1-12\"],\"lightGroupId\":\"CG-YARD-YARD-SOUTH-001-CABINET\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-YARD-YARD-SOUTH-001-CABINET\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"OD-YARD-SOUTH-001\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-YARD-V1-12\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
-    },
-    {
-      "id": "L-1F-V1-33",
-      "floorId": "1F",
-      "roomId": "ROOM-1F-001",
-      "category": "light",
-      "type": "roundTablePendant",
-      "positionMm": {
-        "x": 6940,
-        "y": 6354
-      },
-      "hostObjectId": null,
-      "hostWallId": null,
-      "relatedFurnitureId": "module-1f-table-001",
-      "heightMm": 1700,
-      "circuitId": null,
-      "materialId": null,
-      "label": "L-1F-V1-33 · 餐桌吊灯 / 六人圆桌装饰灯",
-      "notes": "灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。",
-      "source": "generated-from-furniture",
-      "status": "draft",
-      "quantity": 1,
-      "relatedRoomId": "ROOM-1F-001",
-      "createdAt": "2026-07-12T08:00:00.000Z",
-      "updatedAt": "2026-07-14T08:00:00.000Z",
-      "lightType": "roundTablePendant",
-      "lightingLayer": "accent",
-      "colorTemperature": "2700K",
-      "lightColorTemperature": "2700K",
-      "beamAngle": 40,
-      "mountingType": "pendant",
-      "relatedSwitchId": "SW-1F-V1-27",
-      "controlGroupId": "CG-1F-1F-001-DINING",
-      "lightGroupId": "CG-1F-1F-001-DINING",
-      "smartControl": true,
-      "needsSmartControl": true,
-      "dimming": true,
-      "relatedFurniturePositionMm": {
-        "x": 6940,
-        "y": 6354
-      },
-      "hostCeilingAreaId": null,
-      "directionDeg": null,
-      "lightSpec": {
-        "powerW": 24,
-        "luminousFluxLm": 1800,
-        "cri": 95,
-        "glareRating": "柔光罩",
-        "fixtureFamily": "round-table-pendant",
-        "trimColor": "黑色 / 香槟金属"
-      },
-      "generatedKey": "lighting-design-v1:1F:CG-1F-1F-001-DINING:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-001\",\"category\":\"light\",\"type\":\"roundTablePendant\",\"positionMm\":{\"x\":6940,\"y\":6354},\"relatedFurnitureId\":\"module-1f-table-001\",\"heightMm\":1700,\"circuitId\":null,\"label\":\"L-1F-V1-33 · 餐桌吊灯 / 六人圆桌装饰灯\",\"notes\":\"灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-001-DINING\",\"lightType\":\"roundTablePendant\",\"lightingLayer\":\"accent\",\"colorTemperature\":\"2700K\",\"beamAngle\":40,\"mountingType\":\"pendant\",\"relatedSwitchId\":\"SW-1F-V1-27\",\"controlGroupId\":\"CG-1F-1F-001-DINING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-001\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":24,\"luminousFluxLm\":1800,\"cri\":95,\"glareRating\":\"柔光罩\",\"fixtureFamily\":\"round-table-pendant\",\"trimColor\":\"黑色 / 香槟金属\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
-    },
-    {
-      "id": "SW-1F-V1-27",
-      "floorId": "1F",
-      "roomId": "ROOM-1F-001",
-      "category": "switch",
-      "type": "switchAndSceneControl",
-      "positionMm": {
-        "x": 6520,
-        "y": 6774
-      },
-      "hostObjectId": null,
-      "hostWallId": null,
-      "relatedFurnitureId": null,
-      "heightMm": null,
-      "circuitId": null,
-      "materialId": null,
-      "label": "SW-1F-V1-27 · 重点照明控制",
-      "notes": "控制组 CG-1F-1F-001-DINING；控制 L-1F-V1-33。同组灯具可由本开关或智能场景联动。",
-      "source": "generated-from-room",
-      "status": "draft",
-      "quantity": 1,
-      "relatedRoomId": "ROOM-1F-001",
-      "createdAt": "2026-07-12T08:00:00.000Z",
-      "updatedAt": "2026-07-14T08:00:00.000Z",
-      "controlGroupId": "CG-1F-1F-001-DINING",
-      "lightGroupId": "CG-1F-1F-001-DINING",
-      "controlledLightIds": [
-        "L-1F-V1-33"
-      ],
-      "relatedLightIds": [
-        "L-1F-V1-33"
-      ],
-      "switchControl": [
-        "物理开关",
-        "智能场景"
-      ],
-      "smartControl": true,
-      "needsSmartControl": true,
-      "dimming": true,
-      "generatedKey": "lighting-design-v1:1F:CG-1F-1F-001-DINING:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-001\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":6520,\"y\":6774},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-27 · 重点照明控制\",\"notes\":\"控制组 CG-1F-1F-001-DINING；控制 L-1F-V1-33。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-33\"],\"lightGroupId\":\"CG-1F-1F-001-DINING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-001-DINING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-001\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-33\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-B2-V1-03",
@@ -8386,7 +8291,7 @@
       "type": "wallWashSpotlight",
       "positionMm": {
         "x": 4720,
-        "y": 5830
+        "y": 5560
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -8416,7 +8321,7 @@
       "dimming": true,
       "relatedFurniturePositionMm": {
         "x": 3960,
-        "y": 6480
+        "y": 6210
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -8429,7 +8334,7 @@
         "trimColor": "哑黑"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-TV-WALL:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"wallWashSpotlight\",\"positionMm\":{\"x\":4720,\"y\":5830},\"relatedFurnitureId\":\"furn-living-fireplace-south-001\",\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-1F-V1-27 · 电视背景低亮度洗墙\",\"notes\":\"低亮度擦墙，灯轴避开屏幕反射角；观影场景仅保留约 10%–20%。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-TV-WALL\",\"lightType\":\"wallWashSpotlight\",\"lightingLayer\":\"accent\",\"colorTemperature\":\"2700K\",\"beamAngle\":18,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-1F-V1-21\",\"controlGroupId\":\"CG-1F-1F-005-TV-WALL\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":10,\"luminousFluxLm\":760,\"cri\":90,\"glareRating\":\"蜂窝防眩\",\"fixtureFamily\":\"narrow-wallwasher\",\"trimColor\":\"哑黑\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"wallWashSpotlight\",\"positionMm\":{\"x\":4720,\"y\":5560},\"relatedFurnitureId\":\"furn-living-fireplace-south-001\",\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-1F-V1-27 · 电视背景低亮度洗墙\",\"notes\":\"低亮度擦墙，灯轴避开屏幕反射角；观影场景仅保留约 10%–20%。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-TV-WALL\",\"lightType\":\"wallWashSpotlight\",\"lightingLayer\":\"accent\",\"colorTemperature\":\"2700K\",\"beamAngle\":18,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-1F-V1-21\",\"controlGroupId\":\"CG-1F-1F-005-TV-WALL\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":10,\"luminousFluxLm\":760,\"cri\":90,\"glareRating\":\"蜂窝防眩\",\"fixtureFamily\":\"narrow-wallwasher\",\"trimColor\":\"哑黑\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-1F-V1-21",
@@ -8439,7 +8344,7 @@
       "type": "switchAndSceneControl",
       "positionMm": {
         "x": 4300,
-        "y": 6250
+        "y": 5980
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -8471,7 +8376,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-TV-WALL:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":4300,\"y\":6250},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-21 · 重点照明控制\",\"notes\":\"控制组 CG-1F-1F-005-TV-WALL；控制 L-1F-V1-27。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-27\"],\"lightGroupId\":\"CG-1F-1F-005-TV-WALL\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-TV-WALL\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-27\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":4300,\"y\":5980},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-21 · 重点照明控制\",\"notes\":\"控制组 CG-1F-1F-005-TV-WALL；控制 L-1F-V1-27。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-27\"],\"lightGroupId\":\"CG-1F-1F-005-TV-WALL\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-TV-WALL\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-27\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-1F-V1-28",
@@ -8480,19 +8385,19 @@
       "category": "light",
       "type": "floorReadingLight",
       "positionMm": {
-        "x": 6696,
-        "y": 5783
+        "x": 6490,
+        "y": 6210
       },
       "hostObjectId": null,
       "hostWallId": null,
-      "relatedFurnitureId": null,
+      "relatedFurnitureId": "furn-1f-living-main-sofa-001",
       "heightMm": 1450,
       "circuitId": null,
       "materialId": null,
       "label": "L-1F-V1-28 · 客厅沙发阅读灯预留",
-      "notes": "落地阅读灯或家具插座预留；避免顶灯正压沙发中心。；可选项，确认后再施工。",
-      "source": "generated-from-room",
-      "status": "todo",
+      "notes": "落地阅读灯或家具插座预留；避免顶灯正压沙发中心。",
+      "source": "generated-from-furniture",
+      "status": "draft",
       "quantity": 1,
       "relatedRoomId": "ROOM-1F-005",
       "createdAt": "2026-07-14T08:00:00.000Z",
@@ -8509,6 +8414,10 @@
       "smartControl": true,
       "needsSmartControl": true,
       "dimming": true,
+      "relatedFurniturePositionMm": {
+        "x": 5640,
+        "y": 6210
+      },
       "hostCeilingAreaId": null,
       "directionDeg": null,
       "lightSpec": {
@@ -8520,7 +8429,7 @@
         "trimColor": "黑色 / 拉丝金属"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-READING:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"floorReadingLight\",\"positionMm\":{\"x\":6696,\"y\":5783},\"relatedFurnitureId\":null,\"heightMm\":1450,\"circuitId\":null,\"label\":\"L-1F-V1-28 · 客厅沙发阅读灯预留\",\"notes\":\"落地阅读灯或家具插座预留；避免顶灯正压沙发中心。；可选项，确认后再施工。\",\"status\":\"todo\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-READING\",\"lightType\":\"floorReadingLight\",\"lightingLayer\":\"task\",\"colorTemperature\":\"2700K\",\"beamAngle\":36,\"mountingType\":\"floorMounted\",\"relatedSwitchId\":\"SW-1F-V1-22\",\"controlGroupId\":\"CG-1F-1F-005-READING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":6,\"luminousFluxLm\":420,\"cri\":90,\"glareRating\":\"独立调光\",\"fixtureFamily\":\"bed-reading\",\"trimColor\":\"黑色 / 拉丝金属\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"floorReadingLight\",\"positionMm\":{\"x\":6490,\"y\":6210},\"relatedFurnitureId\":\"furn-1f-living-main-sofa-001\",\"heightMm\":1450,\"circuitId\":null,\"label\":\"L-1F-V1-28 · 客厅沙发阅读灯预留\",\"notes\":\"落地阅读灯或家具插座预留；避免顶灯正压沙发中心。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-READING\",\"lightType\":\"floorReadingLight\",\"lightingLayer\":\"task\",\"colorTemperature\":\"2700K\",\"beamAngle\":36,\"mountingType\":\"floorMounted\",\"relatedSwitchId\":\"SW-1F-V1-22\",\"controlGroupId\":\"CG-1F-1F-005-READING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":6,\"luminousFluxLm\":420,\"cri\":90,\"glareRating\":\"独立调光\",\"fixtureFamily\":\"bed-reading\",\"trimColor\":\"黑色 / 拉丝金属\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-1F-V1-22",
@@ -8529,8 +8438,8 @@
       "category": "switch",
       "type": "switchAndSceneControl",
       "positionMm": {
-        "x": 6276,
-        "y": 6203
+        "x": 6070,
+        "y": 6630
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -8562,7 +8471,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-READING:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":6276,\"y\":6203},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-22 · 功能照明控制\",\"notes\":\"控制组 CG-1F-1F-005-READING；控制 L-1F-V1-28。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-28\"],\"lightGroupId\":\"CG-1F-1F-005-READING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-READING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-28\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":6070,\"y\":6630},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-22 · 功能照明控制\",\"notes\":\"控制组 CG-1F-1F-005-READING；控制 L-1F-V1-28。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-28\"],\"lightGroupId\":\"CG-1F-1F-005-READING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-READING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-28\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-1F-V1-29",
@@ -9222,7 +9131,7 @@
       "type": "antiGlareDownlight",
       "positionMm": {
         "x": 2998,
-        "y": 3575
+        "y": 4625
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -9261,7 +9170,7 @@
         "trimColor": "哑白 / 哑黑"
       },
       "generatedKey": "lighting-design-v1:2F:CG-2F-2F-008-LANDING:light:1",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"light\",\"type\":\"antiGlareDownlight\",\"positionMm\":{\"x\":2998,\"y\":3575},\"relatedFurnitureId\":null,\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-2F-V1-31 · 楼梯间平台安全灯\",\"notes\":\"平台和转折处保证安全照度，与踏步灯共享上下层双控或感应逻辑。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-008-LANDING\",\"lightType\":\"antiGlareDownlight\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3000K\",\"beamAngle\":50,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-2F-V1-29\",\"controlGroupId\":\"CG-2F-2F-008-LANDING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":9,\"luminousFluxLm\":720,\"cri\":90,\"glareRating\":\"UGR<19\",\"fixtureFamily\":\"deep-cup-downlight\",\"trimColor\":\"哑白 / 哑黑\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"light\",\"type\":\"antiGlareDownlight\",\"positionMm\":{\"x\":2998,\"y\":4625},\"relatedFurnitureId\":null,\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-2F-V1-31 · 楼梯间平台安全灯\",\"notes\":\"平台和转折处保证安全照度，与踏步灯共享上下层双控或感应逻辑。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-008-LANDING\",\"lightType\":\"antiGlareDownlight\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3000K\",\"beamAngle\":50,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-2F-V1-29\",\"controlGroupId\":\"CG-2F-2F-008-LANDING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":9,\"luminousFluxLm\":720,\"cri\":90,\"glareRating\":\"UGR<19\",\"fixtureFamily\":\"deep-cup-downlight\",\"trimColor\":\"哑白 / 哑黑\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-2F-V1-29",
@@ -9271,7 +9180,7 @@
       "type": "switchAndSceneControl",
       "positionMm": {
         "x": 2578,
-        "y": 3995
+        "y": 5045
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -9303,7 +9212,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "generatedKey": "lighting-design-v1:2F:CG-2F-2F-008-LANDING:switch",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":2578,\"y\":3995},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-2F-V1-29 · 功能照明控制\",\"notes\":\"控制组 CG-2F-2F-008-LANDING；控制 L-2F-V1-31。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-2F-V1-31\"],\"lightGroupId\":\"CG-2F-2F-008-LANDING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-2F-2F-008-LANDING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-2F-V1-31\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-008\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":2578,\"y\":5045},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-2F-V1-29 · 功能照明控制\",\"notes\":\"控制组 CG-2F-2F-008-LANDING；控制 L-2F-V1-31。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-2F-V1-31\"],\"lightGroupId\":\"CG-2F-2F-008-LANDING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-2F-2F-008-LANDING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-008\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-2F-V1-31\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-YARD-V1-04",
@@ -9680,6 +9589,101 @@
       "dimming": true,
       "generatedKey": "lighting-design-v1:YARD:CG-YARD-YARD-SOUTH-001-DINING:switch",
       "generatedFingerprint": "{\"floorId\":\"YARD\",\"roomId\":\"OD-YARD-SOUTH-001\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":6830,\"y\":8820},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-YARD-V1-13 · 户外灯控制\",\"notes\":\"控制组 CG-YARD-YARD-SOUTH-001-DINING；控制 L-YARD-V1-13。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-YARD-V1-13\"],\"lightGroupId\":\"CG-YARD-YARD-SOUTH-001-DINING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-YARD-YARD-SOUTH-001-DINING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"OD-YARD-SOUTH-001\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-YARD-V1-13\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+    },
+    {
+      "id": "L-1F-V1-33",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "category": "light",
+      "type": "roundTablePendant",
+      "positionMm": {
+        "x": 7980,
+        "y": 6210
+      },
+      "hostObjectId": null,
+      "hostWallId": null,
+      "relatedFurnitureId": "module-1f-table-001",
+      "heightMm": 1700,
+      "circuitId": null,
+      "materialId": null,
+      "label": "L-1F-V1-33 · 餐桌吊灯 / 六人圆桌装饰灯",
+      "notes": "灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。",
+      "source": "generated-from-furniture",
+      "status": "draft",
+      "quantity": 1,
+      "relatedRoomId": "ROOM-1F-005",
+      "createdAt": "2026-07-14T08:00:00.000Z",
+      "updatedAt": "2026-07-14T08:00:00.000Z",
+      "lightType": "roundTablePendant",
+      "lightingLayer": "accent",
+      "colorTemperature": "2700K",
+      "lightColorTemperature": "2700K",
+      "beamAngle": 40,
+      "mountingType": "pendant",
+      "relatedSwitchId": "SW-1F-V1-27",
+      "controlGroupId": "CG-1F-1F-005-DINING",
+      "lightGroupId": "CG-1F-1F-005-DINING",
+      "smartControl": true,
+      "needsSmartControl": true,
+      "dimming": true,
+      "relatedFurniturePositionMm": {
+        "x": 7980,
+        "y": 6210
+      },
+      "hostCeilingAreaId": null,
+      "directionDeg": null,
+      "lightSpec": {
+        "powerW": 24,
+        "luminousFluxLm": 1800,
+        "cri": 95,
+        "glareRating": "柔光罩",
+        "fixtureFamily": "round-table-pendant",
+        "trimColor": "黑色 / 香槟金属"
+      },
+      "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-DINING:light:1",
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"roundTablePendant\",\"positionMm\":{\"x\":7980,\"y\":6210},\"relatedFurnitureId\":\"module-1f-table-001\",\"heightMm\":1700,\"circuitId\":null,\"label\":\"L-1F-V1-33 · 餐桌吊灯 / 六人圆桌装饰灯\",\"notes\":\"灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-DINING\",\"lightType\":\"roundTablePendant\",\"lightingLayer\":\"accent\",\"colorTemperature\":\"2700K\",\"beamAngle\":40,\"mountingType\":\"pendant\",\"relatedSwitchId\":\"SW-1F-V1-27\",\"controlGroupId\":\"CG-1F-1F-005-DINING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":24,\"luminousFluxLm\":1800,\"cri\":95,\"glareRating\":\"柔光罩\",\"fixtureFamily\":\"round-table-pendant\",\"trimColor\":\"黑色 / 香槟金属\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+    },
+    {
+      "id": "SW-1F-V1-27",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "category": "switch",
+      "type": "switchAndSceneControl",
+      "positionMm": {
+        "x": 7560,
+        "y": 6630
+      },
+      "hostObjectId": null,
+      "hostWallId": null,
+      "relatedFurnitureId": null,
+      "heightMm": null,
+      "circuitId": null,
+      "materialId": null,
+      "label": "SW-1F-V1-27 · 重点照明控制",
+      "notes": "控制组 CG-1F-1F-005-DINING；控制 L-1F-V1-33。同组灯具可由本开关或智能场景联动。",
+      "source": "generated-from-room",
+      "status": "draft",
+      "quantity": 1,
+      "relatedRoomId": "ROOM-1F-005",
+      "createdAt": "2026-07-14T08:00:00.000Z",
+      "updatedAt": "2026-07-14T08:00:00.000Z",
+      "controlGroupId": "CG-1F-1F-005-DINING",
+      "lightGroupId": "CG-1F-1F-005-DINING",
+      "controlledLightIds": [
+        "L-1F-V1-33"
+      ],
+      "relatedLightIds": [
+        "L-1F-V1-33"
+      ],
+      "switchControl": [
+        "物理开关",
+        "智能场景"
+      ],
+      "smartControl": true,
+      "needsSmartControl": true,
+      "dimming": true,
+      "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-DINING:switch",
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":7560,\"y\":6630},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-27 · 重点照明控制\",\"notes\":\"控制组 CG-1F-1F-005-DINING；控制 L-1F-V1-33。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-33\"],\"lightGroupId\":\"CG-1F-1F-005-DINING\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-DINING\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-33\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     }
   ],
   "drawingPackage": {
@@ -9830,8 +9834,6 @@
       "SW-YARD-V1-10",
       "L-YARD-V1-12",
       "SW-YARD-V1-12",
-      "L-1F-V1-33",
-      "SW-1F-V1-27",
       "L-B2-V1-03",
       "SW-B2-V1-03",
       "L-B2-V1-04",
@@ -9892,7 +9894,9 @@
       "L-YARD-V1-11",
       "SW-YARD-V1-11",
       "L-YARD-V1-13",
-      "SW-YARD-V1-13"
+      "SW-YARD-V1-13",
+      "L-1F-V1-33",
+      "SW-1F-V1-27"
     ],
     "createdAt": "2026-07-12T00:00:00.000Z",
     "updatedAt": "2026-07-14T08:00:00.000Z"
@@ -12399,9 +12403,9 @@
         "exhaust": false
       },
       "position": {
-        "x": 61.39999999999997,
-        "y": 75.43333333333332,
-        "rotation": 270
+        "x": 71.6,
+        "y": 69,
+        "rotation": 0
       },
       "color": "#c8a887",
       "render3d": {
@@ -14710,8 +14714,8 @@
       "roomId": "ROOM-1F-005",
       "dimensions": {
         "width": 210,
-        "depth": 90,
-        "height": 90,
+        "depth": 75,
+        "height": 80,
         "unit": "cm"
       },
       "material": "岩板台面 + 下柜收纳",
@@ -14817,7 +14821,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "210x90x90cm",
+        "reserveSize": "210x75x80cm",
         "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -15068,7 +15072,7 @@
     {
       "id": "furn-living-fireplace-south-001",
       "code": "FP-1F-01",
-      "name": "W-1F-013 嵌入式小壁炉",
+      "name": "1F 客厅电视壁炉收纳一体墙",
       "type": "fireplace",
       "catalogId": "living-fireplace",
       "moduleCategory": "living",
@@ -15076,13 +15080,13 @@
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 120,
-        "depth": 12,
-        "height": 70,
+        "width": 260,
+        "depth": 35,
+        "height": 185,
         "unit": "cm"
       },
-      "material": "浅嵌入电子雾化壁炉 + 防火饰面",
-      "note": "嵌在 W-1F-013 墙面上，2D 平面只保留很浅的厚度，作为客厅墙面的氛围点而不是外凸柜体。",
+      "material": "浅橡木 + 暖灰洞石 + 暖白哑光漆 + 黑钛",
+      "note": "电视、壁炉、悬浮抽屉、开放格和背景墙统一收口；保留设备散热与检修。",
       "constructionNote": "贴 W-1F-013 做浅嵌入，预留电源、检修口和防火收边；真实燃烧壁炉需另行复核排烟和物业要求。",
       "serviceRequirements": {
         "water": false,
@@ -15092,7 +15096,7 @@
       },
       "position": {
         "x": 33,
-        "y": 72,
+        "y": 69,
         "rotation": 270
       },
       "color": "#b86f52",
@@ -15143,19 +15147,19 @@
         "assetType": "fireplace",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "primaryMaterial": "travertine",
-        "secondaryMaterial": "microCement",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "travertine",
         "accentMaterial": "blackTitanium",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "merged",
-        "variantId": "proceduralDefault",
+        "variantId": "integratedMediaWall",
         "variationSeed": 643147082,
         "styleSource": "generated"
       },
       "mepMeta": {
         "needsSocket": true,
-        "socketCount": 1,
+        "socketCount": 4,
         "socketHeight": 300,
         "needsSwitch": true,
         "switchControl": [
@@ -15168,24 +15172,24 @@
         "waterSupplyType": "none",
         "needsDrainage": false,
         "drainageType": "none",
-        "needsNetwork": false,
+        "needsNetwork": true,
         "needsVentilation": true,
         "needsSmartControl": false,
         "relatedCircuit": "常规插座回路",
-        "notes": "贴 W-1F-013 做浅嵌入，预留电源、检修口和防火收边；真实燃烧壁炉需另行复核排烟和物业要求。"
+        "notes": "电视、壁炉、悬浮抽屉、开放格和背景墙统一收口；保留设备散热与检修。"
       },
       "constructionMeta": {
         "customMade": true,
-        "installType": "builtIn",
-        "reserveSize": "120x12x70cm",
-        "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
+        "installType": "customCabinet",
+        "reserveSize": "260x35x185cm",
+        "wallDependency": "安装前复核完成面、墙体垂直度和固定基层",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
         "waterproofRequired": false,
-        "inspectionAccessRequired": true,
-        "purchaseCategory": "定制柜体/硬装",
-        "supplierType": "全屋定制/木作供应商",
-        "notes": "贴 W-1F-013 做浅嵌入，预留电源、检修口和防火收边；真实燃烧壁炉需另行复核排烟和物业要求。"
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体",
+        "supplierType": "定制柜体供应商",
+        "notes": "电视、壁炉、悬浮抽屉、开放格和背景墙统一收口；保留设备散热与检修。"
       }
     },
     {
@@ -16034,7 +16038,7 @@
       "moduleCategory": "living",
       "moduleType": "table",
       "floorId": "1F",
-      "roomId": "ROOM-1F-001",
+      "roomId": "ROOM-1F-005",
       "dimensions": {
         "width": 240,
         "depth": 240,
@@ -16051,8 +16055,8 @@
         "exhaust": false
       },
       "position": {
-        "x": 57.829166666666715,
-        "y": 70.60000000000005,
+        "x": 66.5,
+        "y": 69,
         "rotation": 0
       },
       "color": "#d6d9d7",
@@ -16845,6 +16849,461 @@
         "supplierType": "成品家具供应商",
         "notes": "成品家具，结合落地灯和插座位置复核。"
       }
+    },
+    {
+      "id": "furn-1f-living-main-sofa-001",
+      "code": "SF-1F-01",
+      "name": "1F 客厅低矮模块主沙发",
+      "type": "sofa",
+      "catalogId": "visual-showcase-sofa",
+      "moduleCategory": "living",
+      "moduleType": "sofa",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 282,
+        "depth": 112,
+        "height": 76,
+        "unit": "cm"
+      },
+      "material": "米灰布艺 + 内收深色底座",
+      "note": "低矮深坐模块沙发，面向西侧电视壁炉墙；右侧端位保留去餐厅通道。",
+      "constructionNote": "低矮深坐模块沙发，面向西侧电视壁炉墙；右侧端位保留去餐厅通道。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 47,
+        "y": 69,
+        "rotation": 90
+      },
+      "color": "#d5c7b8",
+      "render3d": {
+        "assetType": "sofa",
+        "variantId": "lowModular",
+        "variationSeed": 2711605882,
+        "stylePreset": "modernNatural",
+        "styleSource": "generated",
+        "detailLevel": "presentation",
+        "primaryMaterial": "taupeFabric",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "camelFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "低矮深坐模块沙发，面向西侧电视壁炉墙；右侧端位保留去餐厅通道。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "282x112x76cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "低矮深坐模块沙发，面向西侧电视壁炉墙；右侧端位保留去餐厅通道。"
+      }
+    },
+    {
+      "id": "furn-1f-living-rug-001",
+      "code": "RG-1F-01",
+      "name": "1F 客厅米灰织物地毯",
+      "type": "custom",
+      "catalogId": "visual-showcase-generic",
+      "moduleCategory": "living",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 360,
+        "depth": 220,
+        "height": 3,
+        "unit": "cm"
+      },
+      "material": "米灰低绒织物",
+      "note": "覆盖沙发前区和茶几区，边缘不压主要通道。",
+      "constructionNote": "覆盖沙发前区和茶几区，边缘不压主要通道。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 39.5,
+        "y": 69,
+        "rotation": 90
+      },
+      "color": "#d8cabc",
+      "render3d": {
+        "assetType": "generic",
+        "variantId": "areaRug",
+        "variationSeed": 3214941823,
+        "stylePreset": "modernNatural",
+        "styleSource": "generated",
+        "detailLevel": "presentation",
+        "primaryMaterial": "beigeFabric",
+        "secondaryMaterial": "creamFabric",
+        "accentMaterial": "taupeFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "覆盖沙发前区和茶几区，边缘不压主要通道。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "360x220x3cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "覆盖沙发前区和茶几区，边缘不压主要通道。"
+      }
+    },
+    {
+      "id": "furn-1f-living-coffee-table-001",
+      "code": "CT-1F-01",
+      "name": "1F 客厅洞石木质组合茶几",
+      "type": "table",
+      "catalogId": "visual-showcase-coffeeTable",
+      "moduleCategory": "living",
+      "moduleType": "table",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 108,
+        "depth": 72,
+        "height": 36,
+        "unit": "cm"
+      },
+      "material": "米色洞石 + 浅橡木",
+      "note": "两只错位茶几形成不对称中心，保留沙发前操作距离。",
+      "constructionNote": "两只错位茶几形成不对称中心，保留沙发前操作距离。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 37.3,
+        "y": 69,
+        "rotation": 90
+      },
+      "color": "#ded2bd",
+      "render3d": {
+        "assetType": "coffeeTable",
+        "variantId": "nestedDouble",
+        "variationSeed": 3364910982,
+        "stylePreset": "modernNatural",
+        "styleSource": "generated",
+        "detailLevel": "presentation",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "两只错位茶几形成不对称中心，保留沙发前操作距离。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "108x72x36cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "两只错位茶几形成不对称中心，保留沙发前操作距离。"
+      }
+    },
+    {
+      "id": "furn-1f-living-side-table-001",
+      "code": "STB-1F-01",
+      "name": "1F 客厅沙发单侧圆边几",
+      "type": "table",
+      "catalogId": "visual-showcase-coffeeTable",
+      "moduleCategory": "living",
+      "moduleType": "table",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 48,
+        "depth": 48,
+        "height": 48,
+        "unit": "cm"
+      },
+      "material": "暖灰石材 + 黑钛底座",
+      "note": "仅设在沙发一端，避免完全对称陈列。",
+      "constructionNote": "仅设在沙发一端，避免完全对称陈列。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 50.2,
+        "y": 82,
+        "rotation": 0
+      },
+      "color": "#d8d1c6",
+      "render3d": {
+        "assetType": "coffeeTable",
+        "variantId": "lowRound",
+        "variationSeed": 3783918669,
+        "stylePreset": "modernNatural",
+        "styleSource": "generated",
+        "detailLevel": "presentation",
+        "primaryMaterial": "warmGreyStone",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "仅设在沙发一端，避免完全对称陈列。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "48x48x48cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "仅设在沙发一端，避免完全对称陈列。"
+      }
+    },
+    {
+      "id": "furn-1f-living-floor-lamp-001",
+      "code": "FL-1F-01",
+      "name": "1F 客厅单侧阅读落地灯",
+      "type": "custom",
+      "catalogId": "visual-showcase-generic",
+      "moduleCategory": "living",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "dimensions": {
+        "width": 46,
+        "depth": 46,
+        "height": 158,
+        "unit": "cm"
+      },
+      "material": "织物灯罩 + 黑钛灯杆",
+      "note": "沙发北端阅读灯，插座随沙发端位复核。",
+      "constructionNote": "沙发北端阅读灯，插座随沙发端位复核。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 50.4,
+        "y": 54.5,
+        "rotation": 0
+      },
+      "color": "#eee3d6",
+      "render3d": {
+        "assetType": "generic",
+        "variantId": "floorLamp",
+        "variationSeed": 1471054144,
+        "stylePreset": "modernNatural",
+        "styleSource": "generated",
+        "detailLevel": "presentation",
+        "primaryMaterial": "creamFabric",
+        "secondaryMaterial": "warmLightEmissive",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "local"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "沙发北端阅读灯，插座随沙发端位复核。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "46x46x158cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "沙发北端阅读灯，插座随沙发端位复核。"
+      }
+    },
+    {
+      "id": "furn-2f-master-rug-001",
+      "code": "RG-2F-01",
+      "name": "2F 主卧床下米灰地毯",
+      "type": "custom",
+      "catalogId": "visual-showcase-generic",
+      "moduleCategory": "living",
+      "floorId": "2F",
+      "roomId": "ROOM-2F-006",
+      "dimensions": {
+        "width": 225,
+        "depth": 280,
+        "height": 3,
+        "unit": "cm"
+      },
+      "material": "米灰短绒织物",
+      "note": "从床侧和床尾露出柔和边界，减少大面积硬地感。",
+      "constructionNote": "从床侧和床尾露出柔和边界，减少大面积硬地感。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 71.6,
+        "y": 69,
+        "rotation": 0
+      },
+      "color": "#d8cabc",
+      "render3d": {
+        "assetType": "generic",
+        "variantId": "areaRug",
+        "variationSeed": 3215192141,
+        "stylePreset": "modernNatural",
+        "styleSource": "generated",
+        "detailLevel": "presentation",
+        "primaryMaterial": "beigeFabric",
+        "secondaryMaterial": "creamFabric",
+        "accentMaterial": "taupeFabric",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "notes": "从床侧和床尾露出柔和边界，减少大面积硬地感。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "225x280x3cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "从床侧和床尾露出柔和边界，减少大面积硬地感。"
+      }
     }
   ],
   "semanticObjects": [
@@ -17356,6 +17815,360 @@
     "2F": [],
     "YARD": []
   },
+  "stairSystems": [
+    {
+      "id": "STAIR-SYS-B2-B1",
+      "lowerFloorId": "B2",
+      "upperFloorId": "B1",
+      "orientationRule": "left-down-right-up",
+      "lowerFlightId": "ST-B2-001",
+      "upperFlightId": "ST-B1-002",
+      "landingId": "LANDING-B2-B1",
+      "openingId": "OPENING-B2-B1",
+      "floorToFloorHeightMm": 2800,
+      "totalStepCount": 20,
+      "lighting": {
+        "controlGroupId": "CG-STAIR-SYS-B2-B1",
+        "lowerSwitchFloorId": "B2",
+        "upperSwitchFloorId": "B1",
+        "stepLightMode": "every-step",
+        "stepLightHeightAboveTreadMm": 250,
+        "landingLightId": "LIGHT-LANDING-B2-B1",
+        "geometryFingerprint": "[\"STAIR-SYS-B2-B1\",2800,20,[[\"ST-B2-001\",\"B2\",4146,3575,950,3575,1050,1400,10],[\"ST-B1-002\",\"B1\",4146,4625,950,4625,1050,1400,10]]]",
+        "syncStatus": "synchronized"
+      },
+      "status": "confirmed"
+    },
+    {
+      "id": "STAIR-SYS-B1-1F",
+      "lowerFloorId": "B1",
+      "upperFloorId": "1F",
+      "orientationRule": "left-down-right-up",
+      "lowerFlightId": "ST-B1-001",
+      "upperFlightId": "ST-1F-002",
+      "landingId": "LANDING-B1-1F",
+      "openingId": "OPENING-B1-1F",
+      "floorToFloorHeightMm": 2800,
+      "totalStepCount": 20,
+      "lighting": {
+        "controlGroupId": "CG-STAIR-SYS-B1-1F",
+        "lowerSwitchFloorId": "B1",
+        "upperSwitchFloorId": "1F",
+        "stepLightMode": "every-step",
+        "stepLightHeightAboveTreadMm": 250,
+        "landingLightId": "LIGHT-LANDING-B1-1F",
+        "geometryFingerprint": "[\"STAIR-SYS-B1-1F\",2800,20,[[\"ST-B1-001\",\"B1\",4146,3575,950,3575,1050,1400,10],[\"ST-1F-002\",\"1F\",4146,4625,950,4625,1050,1400,10]]]",
+        "syncStatus": "synchronized"
+      },
+      "status": "confirmed"
+    },
+    {
+      "id": "STAIR-SYS-1F-2F",
+      "lowerFloorId": "1F",
+      "upperFloorId": "2F",
+      "orientationRule": "left-down-right-up",
+      "lowerFlightId": "ST-1F-001",
+      "upperFlightId": "ST-2F-001",
+      "landingId": "LANDING-1F-2F",
+      "openingId": "OPENING-1F-2F",
+      "floorToFloorHeightMm": 2800,
+      "totalStepCount": 20,
+      "lighting": {
+        "controlGroupId": "CG-STAIR-SYS-1F-2F",
+        "lowerSwitchFloorId": "1F",
+        "upperSwitchFloorId": "2F",
+        "stepLightMode": "every-step",
+        "stepLightHeightAboveTreadMm": 250,
+        "landingLightId": "LIGHT-LANDING-1F-2F",
+        "geometryFingerprint": "[\"STAIR-SYS-1F-2F\",2800,20,[[\"ST-1F-001\",\"1F\",4146,3575,950,3575,1050,1400,10],[\"ST-2F-001\",\"2F\",4146,4625,950,4625,1050,1400,10]]]",
+        "syncStatus": "synchronized"
+      },
+      "status": "confirmed"
+    }
+  ],
+  "stairLandings": [
+    {
+      "id": "LANDING-B2-B1",
+      "stairSystemId": "STAIR-SYS-B2-B1",
+      "lowerFloorId": "B2",
+      "upperFloorId": "B1",
+      "polygon": [
+        {
+          "x": 4146,
+          "y": 3050
+        },
+        {
+          "x": 4146,
+          "y": 5150
+        },
+        {
+          "x": 3096,
+          "y": 5150
+        },
+        {
+          "x": 3096,
+          "y": 3050
+        }
+      ],
+      "centerLine": {
+        "start": {
+          "x": 4146,
+          "y": 3575
+        },
+        "end": {
+          "x": 4146,
+          "y": 4625
+        }
+      },
+      "elevationFromLowerFloorMm": 1400,
+      "width": 2100,
+      "depth": 1050,
+      "supportKind": "wall-bearing",
+      "status": "confirmed"
+    },
+    {
+      "id": "LANDING-B1-1F",
+      "stairSystemId": "STAIR-SYS-B1-1F",
+      "lowerFloorId": "B1",
+      "upperFloorId": "1F",
+      "polygon": [
+        {
+          "x": 4146,
+          "y": 3050
+        },
+        {
+          "x": 4146,
+          "y": 5150
+        },
+        {
+          "x": 3096,
+          "y": 5150
+        },
+        {
+          "x": 3096,
+          "y": 3050
+        }
+      ],
+      "centerLine": {
+        "start": {
+          "x": 4146,
+          "y": 3575
+        },
+        "end": {
+          "x": 4146,
+          "y": 4625
+        }
+      },
+      "elevationFromLowerFloorMm": 1400,
+      "width": 2100,
+      "depth": 1050,
+      "supportKind": "wall-bearing",
+      "status": "confirmed"
+    },
+    {
+      "id": "LANDING-1F-2F",
+      "stairSystemId": "STAIR-SYS-1F-2F",
+      "lowerFloorId": "1F",
+      "upperFloorId": "2F",
+      "polygon": [
+        {
+          "x": 4146,
+          "y": 3050
+        },
+        {
+          "x": 4146,
+          "y": 5150
+        },
+        {
+          "x": 3096,
+          "y": 5150
+        },
+        {
+          "x": 3096,
+          "y": 3050
+        }
+      ],
+      "centerLine": {
+        "start": {
+          "x": 4146,
+          "y": 3575
+        },
+        "end": {
+          "x": 4146,
+          "y": 4625
+        }
+      },
+      "elevationFromLowerFloorMm": 1400,
+      "width": 2100,
+      "depth": 1050,
+      "supportKind": "wall-bearing",
+      "status": "confirmed"
+    }
+  ],
+  "stairOpenings": [
+    {
+      "id": "OPENING-B2-B1",
+      "stairSystemId": "STAIR-SYS-B2-B1",
+      "floorId": "B1",
+      "polygon": [
+        {
+          "x": 1429,
+          "y": 3080
+        },
+        {
+          "x": 4116,
+          "y": 3080
+        },
+        {
+          "x": 4116,
+          "y": 5120
+        },
+        {
+          "x": 1429,
+          "y": 5120
+        }
+      ],
+      "guardEdges": [
+        {
+          "id": "GUARD-B2-B1-A",
+          "start": {
+            "x": 1429,
+            "y": 3080
+          },
+          "end": {
+            "x": 4116,
+            "y": 3080
+          },
+          "kind": "glass-railing"
+        },
+        {
+          "id": "GUARD-B2-B1-B",
+          "start": {
+            "x": 1429,
+            "y": 5120
+          },
+          "end": {
+            "x": 4116,
+            "y": 5120
+          },
+          "kind": "glass-railing"
+        }
+      ],
+      "clearAccessFlightIds": [
+        "ST-B2-001",
+        "ST-B1-002"
+      ],
+      "status": "confirmed"
+    },
+    {
+      "id": "OPENING-B1-1F",
+      "stairSystemId": "STAIR-SYS-B1-1F",
+      "floorId": "1F",
+      "polygon": [
+        {
+          "x": 1429,
+          "y": 3080
+        },
+        {
+          "x": 4116,
+          "y": 3080
+        },
+        {
+          "x": 4116,
+          "y": 5120
+        },
+        {
+          "x": 1429,
+          "y": 5120
+        }
+      ],
+      "guardEdges": [
+        {
+          "id": "GUARD-B1-1F-A",
+          "start": {
+            "x": 1429,
+            "y": 3080
+          },
+          "end": {
+            "x": 4116,
+            "y": 3080
+          },
+          "kind": "glass-railing"
+        },
+        {
+          "id": "GUARD-B1-1F-B",
+          "start": {
+            "x": 1429,
+            "y": 5120
+          },
+          "end": {
+            "x": 4116,
+            "y": 5120
+          },
+          "kind": "glass-railing"
+        }
+      ],
+      "clearAccessFlightIds": [
+        "ST-B1-001",
+        "ST-1F-002"
+      ],
+      "status": "confirmed"
+    },
+    {
+      "id": "OPENING-1F-2F",
+      "stairSystemId": "STAIR-SYS-1F-2F",
+      "floorId": "2F",
+      "polygon": [
+        {
+          "x": 1429,
+          "y": 3080
+        },
+        {
+          "x": 4116,
+          "y": 3080
+        },
+        {
+          "x": 4116,
+          "y": 5120
+        },
+        {
+          "x": 1429,
+          "y": 5120
+        }
+      ],
+      "guardEdges": [
+        {
+          "id": "GUARD-1F-2F-A",
+          "start": {
+            "x": 1429,
+            "y": 3080
+          },
+          "end": {
+            "x": 4116,
+            "y": 3080
+          },
+          "kind": "glass-railing"
+        },
+        {
+          "id": "GUARD-1F-2F-B",
+          "start": {
+            "x": 1429,
+            "y": 5120
+          },
+          "end": {
+            "x": 4116,
+            "y": 5120
+          },
+          "kind": "glass-railing"
+        }
+      ],
+      "clearAccessFlightIds": [
+        "ST-1F-001",
+        "ST-2F-001"
+      ],
+      "status": "confirmed"
+    }
+  ],
   "houseStructuresByFloor": {
     "B2": {
       "floorId": "B2",
@@ -17818,9 +18631,14 @@
           },
           "width": 1050,
           "baseHeight": 0,
-          "height": 2800,
-          "stepCount": 14,
+          "height": 1400,
+          "stepCount": 10,
           "direction": "up",
+          "stairSystemId": "STAIR-SYS-B2-B1",
+          "flightRole": "lower-flight",
+          "connectedFromFloorId": "B2",
+          "connectedToFloorId": "B1",
+          "landingId": "LANDING-B2-B1",
           "editable": true,
           "removable": true,
           "verificationMeta": {
@@ -18539,6 +19357,11 @@
           "height": 1400,
           "stepCount": 10,
           "direction": "up",
+          "stairSystemId": "STAIR-SYS-B1-1F",
+          "flightRole": "lower-flight",
+          "connectedFromFloorId": "B1",
+          "connectedToFloorId": "1F",
+          "landingId": "LANDING-B1-1F",
           "editable": true,
           "removable": true,
           "verificationMeta": {
@@ -18565,6 +19388,11 @@
           "height": 1400,
           "stepCount": 10,
           "direction": "down",
+          "stairSystemId": "STAIR-SYS-B2-B1",
+          "flightRole": "upper-flight",
+          "connectedFromFloorId": "B1",
+          "connectedToFloorId": "B2",
+          "landingId": "LANDING-B2-B1",
           "editable": true,
           "removable": true,
           "verificationMeta": {
@@ -19321,6 +20149,11 @@
           "height": 1400,
           "stepCount": 10,
           "direction": "up",
+          "stairSystemId": "STAIR-SYS-1F-2F",
+          "flightRole": "lower-flight",
+          "connectedFromFloorId": "1F",
+          "connectedToFloorId": "2F",
+          "landingId": "LANDING-1F-2F",
           "editable": true,
           "removable": true,
           "verificationMeta": {
@@ -19347,6 +20180,11 @@
           "height": 1400,
           "stepCount": 10,
           "direction": "down",
+          "stairSystemId": "STAIR-SYS-B1-1F",
+          "flightRole": "upper-flight",
+          "connectedFromFloorId": "1F",
+          "connectedToFloorId": "B1",
+          "landingId": "LANDING-B1-1F",
           "editable": true,
           "removable": true,
           "verificationMeta": {
@@ -20524,21 +21362,26 @@
         {
           "id": "ST-2F-001",
           "floorId": "2F",
-          "name": "W-2F-012 1F→2F 到达梯段",
+          "name": "2F 下行至 1F 梯段",
           "geometryType": "line",
           "start": {
             "x": 4146,
-            "y": 3575
+            "y": 4625
           },
           "end": {
             "x": 950,
-            "y": 3575
+            "y": 4625
           },
           "width": 1050,
           "baseHeight": 0,
-          "height": 2800,
-          "stepCount": 14,
-          "direction": "up",
+          "height": 1400,
+          "stepCount": 10,
+          "direction": "down",
+          "stairSystemId": "STAIR-SYS-1F-2F",
+          "flightRole": "upper-flight",
+          "connectedFromFloorId": "2F",
+          "connectedToFloorId": "1F",
+          "landingId": "LANDING-1F-2F",
           "editable": true,
           "removable": true,
           "verificationMeta": {
@@ -21209,10 +22052,10 @@
       "target": {
         "x": -2.04,
         "y": 1.15,
-        "z": 1.98
+        "z": 1.71
       },
-      "yaw": -1.048934936056146,
-      "pitch": -0.1854823531370921,
+      "yaw": -1.2074475844746713,
+      "pitch": -0.1996239795117975,
       "fov": 58,
       "linkedNodeIds": [],
       "description": "1F 客厅会客 · 推荐场景：1f-living-daily",
@@ -21236,10 +22079,10 @@
       "target": {
         "x": -2.04,
         "y": 1.15,
-        "z": 1.98
+        "z": 1.71
       },
-      "yaw": -1.048934936056146,
-      "pitch": -0.1854823531370921,
+      "yaw": -1.2074475844746713,
+      "pitch": -0.1996239795117975,
       "fov": 58,
       "linkedNodeIds": [],
       "description": "1F 客厅观影 · 推荐场景：1f-living-movie",
@@ -21252,21 +22095,21 @@
     {
       "id": "lighting-view-1f-dining",
       "floorId": "1F",
-      "roomId": "ROOM-1F-001",
+      "roomId": "ROOM-1F-005",
       "name": "1F 餐厅用餐",
       "type": "viewpoint",
       "cameraPosition": {
-        "x": -1.97,
+        "x": -0.654,
         "y": 1.25,
-        "z": -2.45
+        "z": 1.183
       },
       "target": {
-        "x": 0.94,
+        "x": 1.98,
         "y": 1.15,
-        "z": 1.854
+        "z": 1.71
       },
-      "yaw": 0.5945154305303011,
-      "pitch": -0.019245300356264504,
+      "yaw": 1.3733277582571117,
+      "pitch": -0.03721008929699234,
       "fov": 58,
       "linkedNodeIds": [],
       "description": "1F 餐厅用餐 · 推荐场景：dining",
@@ -21468,6 +22311,291 @@
   ],
   "cameraViews": [
     {
+      "id": "stair-view-b1-panorama",
+      "name": "B1 正面对楼梯全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -5.8,
+        "y": 8.2,
+        "z": 4.8
+      },
+      "target": {
+        "x": -3.05,
+        "y": 0.15,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-panorama",
+      "description": "同时读取左侧下行 B2 与右侧上行 1F 的两套连续折返路径。"
+    },
+    {
+      "id": "stair-view-b1-down-b2",
+      "name": "B1 左侧下行至 B2",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": 4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": -1.2,
+        "z": 0.28
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-down",
+      "description": "沿 B1 左侧入口看向 B2 中间平台和下一跑。"
+    },
+    {
+      "id": "stair-view-b1-up-1f",
+      "name": "B1 右侧上行至 1F",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": -4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": 1.2,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-up",
+      "description": "沿 B1 右侧入口看向 1F 中间平台和上一跑。"
+    },
+    {
+      "id": "stair-view-b1-landing",
+      "name": "B1 中间平台",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -0.9,
+        "y": 6.5,
+        "z": 4.8
+      },
+      "target": {
+        "x": -2.72,
+        "y": 0,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-landing",
+      "description": "检查两个半层平台、扶手连续性与转身尺寸。"
+    },
+    {
+      "id": "stair-view-b1-opening-edge",
+      "name": "B1 挑空边缘俯视",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -2.15,
+        "y": 7.6,
+        "z": 3.75
+      },
+      "target": {
+        "x": -3.1,
+        "y": -1.05,
+        "z": 0.1
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-opening",
+      "description": "从洞口危险边俯视 B2 下行路径与栏杆收口。"
+    },
+    {
+      "id": "stair-view-1f-living-front",
+      "name": "1F 客厅正面对楼梯",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 2.6,
+        "y": 2.2,
+        "z": 3.8
+      },
+      "target": {
+        "x": -2.35,
+        "y": 0.25,
+        "z": -0.4
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-panorama",
+      "description": "从客厅正面检查 1F 左下右上与家具前后遮挡关系。"
+    },
+    {
+      "id": "stair-view-1f-down-entry",
+      "name": "1F 左侧下行入口",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": 4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": -1.2,
+        "z": 0.28
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-down",
+      "description": "检查 1F 下行 B1 入口、洞口和下行第一跑。"
+    },
+    {
+      "id": "stair-view-1f-up-entry",
+      "name": "1F 右侧上行入口",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": -4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": 1.2,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-up",
+      "description": "检查 1F 上行 2F 入口、踏步高程和右侧扶手。"
+    },
+    {
+      "id": "stair-view-1f-landing",
+      "name": "1F 中间平台",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -0.9,
+        "y": 6.5,
+        "z": 4.8
+      },
+      "target": {
+        "x": -2.72,
+        "y": 0,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-landing",
+      "description": "检查 B1↔1F 和 1F↔2F 的半层平台收口。"
+    },
+    {
+      "id": "stair-view-2f-down-entry",
+      "name": "2F 下行入口",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": 4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": -1.2,
+        "z": 0.28
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-down",
+      "description": "2F 仅检查真实下行至 1F 的入口与踏步。"
+    },
+    {
+      "id": "stair-view-2f-arrival-landing",
+      "name": "2F 到达平台",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -0.9,
+        "y": 3.55,
+        "z": 3.8
+      },
+      "target": {
+        "x": -2.72,
+        "y": -0.8,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-landing",
+      "description": "从 2F 检查 1F↔2F 中间平台与下行回转。"
+    },
+    {
+      "id": "stair-view-2f-opening-overlook",
+      "name": "2F 挑空俯视",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -2.15,
+        "y": 5.75,
+        "z": 3.55
+      },
+      "target": {
+        "x": -3.1,
+        "y": -1.05,
+        "z": 0.05
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-opening",
+      "description": "俯视 2F 洞口、危险边栏杆与下行路径。"
+    },
+    {
+      "id": "stair-view-b2-bottom-up",
+      "name": "B2 楼梯底部上行",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 6.4,
+        "z": -4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": 1.2,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-up",
+      "description": "从 B2 完成面清楚看向上行 B1 的第一跑。"
+    },
+    {
+      "id": "stair-view-b2-bottom-back",
+      "name": "B2 楼梯底部回看",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -2.8,
+        "y": 1.75,
+        "z": 1.75
+      },
+      "target": {
+        "x": -5.15,
+        "y": 0.25,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-back",
+      "description": "从 B2 底部回看两跑、中间平台与净空。"
+    },
+    {
+      "id": "stair-view-b2-opening-up",
+      "name": "B2 挑空仰视",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -3.7,
+        "y": 0.9,
+        "z": 3.25
+      },
+      "target": {
+        "x": -2.55,
+        "y": 2.35,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-opening",
+      "description": "从 B2 仰视 B1 洞口、平台底部与扶手连续性。"
+    },
+    {
       "id": "view-1f-living-dining-overview",
       "name": "1F 客餐厨总览",
       "floor": "1F",
@@ -21490,18 +22618,18 @@
       "name": "1F 中岛 + 餐桌",
       "floor": "1F",
       "cameraPosition": {
-        "x": 5.8,
-        "y": 3.8,
-        "z": 4.8
+        "x": 2.5,
+        "y": 1.75,
+        "z": 3.15
       },
       "target": {
-        "x": 1.05,
-        "y": 0.55,
-        "z": -0.1
+        "x": 1.98,
+        "y": 0.52,
+        "z": 1.7
       },
       "zoom": 1.08,
       "mode": "perspective",
-      "description": "突出微水泥岛台与木石圆桌的材质差异。"
+      "description": "以六人圆桌为中心，同时观察餐椅、餐边柜和中岛的材质关系。"
     },
     {
       "id": "view-1f-entry",
@@ -21526,36 +22654,36 @@
       "name": "1F 壁炉 / 起居区",
       "floor": "1F",
       "cameraPosition": {
-        "x": 1.4,
-        "y": 2.4,
-        "z": 0.15
+        "x": -0.88,
+        "y": 1.35,
+        "z": 1.05
       },
       "target": {
-        "x": -1.95,
-        "y": 0.58,
-        "z": 1.7
+        "x": -2.04,
+        "y": 0.64,
+        "z": 1.71
       },
       "zoom": 1.05,
       "mode": "perspective",
-      "description": "强调壁炉墙面、沙发、茶几与通道关系。"
+      "description": "从客厅内部正看电视、壁炉、悬浮抽屉和开放格的一体化关系。"
     },
     {
       "id": "view-2f-master-bedroom",
       "name": "2F 主卧",
       "floor": "2F",
       "cameraPosition": {
-        "x": 6.1,
-        "y": 3.6,
-        "z": 5.8
+        "x": 2.5,
+        "y": 1.8,
+        "z": 3.08
       },
       "target": {
-        "x": 2.58,
-        "y": 0.62,
-        "z": 0.92
+        "x": 2.55,
+        "y": 0.5,
+        "z": 1.65
       },
       "zoom": 1.08,
       "mode": "perspective",
-      "description": "主床、整墙衣柜和主卫入口总览。"
+      "description": "从主卧西南侧观察软包床、非对称床头组合与东侧通顶衣柜。"
     },
     {
       "id": "view-2f-closet",
@@ -21802,9 +22930,27 @@
       "scope": "courtyard",
       "targetArea": "southLiving",
       "description": "聚焦南院休闲活动区、连接小路、庭院灯和宠物角。"
+    },
+    {
+      "id": "view-1f-living-sofa-detail",
+      "name": "1F 沙发模块细节",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.45,
+        "y": 1.25,
+        "z": 2.65
+      },
+      "target": {
+        "x": -0.36,
+        "y": 0.42,
+        "z": 1.71
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "description": "近距离观察模块坐垫、独立靠背、底座和不对称靠包。"
     }
   ],
-  "updatedAt": "2026-07-14T08:00:00.000Z",
+  "updatedAt": "2026-07-14T21:40:15.893Z",
   "lightingDesign": {
     "version": "modern-warm-v1",
     "style": "modern-warm",
@@ -22540,11 +23686,6 @@
             "brightness": 100
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
-            "on": true,
-            "brightness": 100
-          },
-          {
             "controlGroupId": "CG-B2-B2-001-TV-WALL",
             "on": true,
             "brightness": 100
@@ -22681,6 +23822,11 @@
           },
           {
             "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
+            "on": true,
+            "brightness": 100
+          },
+          {
+            "controlGroupId": "CG-1F-1F-005-DINING",
             "on": true,
             "brightness": 100
           }
@@ -23044,11 +24190,6 @@
             "brightness": 25
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
-            "on": true,
-            "brightness": 45
-          },
-          {
             "controlGroupId": "CG-B2-B2-001-TV-WALL",
             "on": true,
             "brightness": 45
@@ -23187,6 +24328,11 @@
             "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
             "on": true,
             "brightness": 25
+          },
+          {
+            "controlGroupId": "CG-1F-1F-005-DINING",
+            "on": true,
+            "brightness": 45
           }
         ],
         "notes": "场景只记录控制组状态，不复制灯具；相对亮度待现场调试。",
@@ -23226,11 +24372,6 @@
             "controlGroupId": "CG-1F-1F-005-ISLAND",
             "on": true,
             "brightness": 35
-          },
-          {
-            "controlGroupId": "CG-1F-1F-001-DINING",
-            "on": true,
-            "brightness": 65
           },
           {
             "controlGroupId": "CG-B2-B2-001-TV-WALL",
@@ -23281,6 +24422,11 @@
             "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
             "on": true,
             "brightness": 35
+          },
+          {
+            "controlGroupId": "CG-1F-1F-005-DINING",
+            "on": true,
+            "brightness": 65
           }
         ],
         "notes": "场景只记录控制组状态，不复制灯具；相对亮度待现场调试。",
@@ -23302,14 +24448,14 @@
             "brightness": 40
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
-            "on": true,
-            "brightness": 85
-          },
-          {
             "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
             "on": true,
             "brightness": 40
+          },
+          {
+            "controlGroupId": "CG-1F-1F-005-DINING",
+            "on": true,
+            "brightness": 85
           }
         ],
         "notes": "场景只记录控制组状态，不复制灯具；相对亮度待现场调试。",
@@ -24464,11 +25610,6 @@
             "brightness": 0
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
-            "on": false,
-            "brightness": 0
-          },
-          {
             "controlGroupId": "CG-B2-B2-001-TV-WALL",
             "on": false,
             "brightness": 0
@@ -24605,6 +25746,11 @@
           },
           {
             "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
+            "on": false,
+            "brightness": 0
+          },
+          {
+            "controlGroupId": "CG-1F-1F-005-DINING",
             "on": false,
             "brightness": 0
           }
@@ -25017,12 +26163,12 @@
             "brightness": 60
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
+            "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
             "on": true,
             "brightness": 60
           },
           {
-            "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
+            "controlGroupId": "CG-1F-1F-005-DINING",
             "on": true,
             "brightness": 60
           }
@@ -25052,12 +26198,12 @@
             "brightness": 100
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
+            "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
             "on": true,
             "brightness": 100
           },
           {
-            "controlGroupId": "CG-YARD-YARD-SOUTH-001-DINING",
+            "controlGroupId": "CG-1F-1F-005-DINING",
             "on": true,
             "brightness": 100
           }
@@ -25077,7 +26223,7 @@
             "brightness": 15
           },
           {
-            "controlGroupId": "CG-1F-1F-001-DINING",
+            "controlGroupId": "CG-1F-1F-005-DINING",
             "on": true,
             "brightness": 15
           }

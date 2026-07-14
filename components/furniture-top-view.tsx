@@ -81,6 +81,13 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
     return <FootprintSymbolShell><path d="M8 65 C20 12 80 12 92 65 L78 80 C68 46 32 46 22 80 Z" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} /><path d="M22 62 C34 34 66 34 78 62" fill="none" stroke={light} strokeWidth="7" opacity="0.5" {...strokeProps} /></FootprintSymbolShell>;
   }
 
+  if ((visualType === "diningTable" || visualType === "slabTable") && variantId === "roundPedestal") {
+    return <FootprintSymbolShell><circle cx="50" cy="50" r="29" fill={color} stroke={stroke} strokeWidth="2.5" {...strokeProps} /><circle cx="50" cy="50" r="11" fill={metal} opacity="0.78" /><circle cx="50" cy="50" r="5" fill={light} opacity="0.62" />{[0, 60, 120, 180, 240, 300].map((angle) => <g key={angle} transform={`rotate(${angle} 50 50)`}><rect x="42" y="2" width="16" height="20" rx="7" fill="#d9c4a7" stroke={stroke} strokeWidth="1.3" {...strokeProps} /></g>)}</FootprintSymbolShell>;
+  }
+  if ((visualType === "diningTable" || visualType === "slabTable") && variantId === "roundFourLeg") {
+    return <FootprintSymbolShell><circle cx="50" cy="50" r="29" fill={color} stroke={stroke} strokeWidth="2.5" {...strokeProps} />{[[39, 39], [61, 39], [39, 61], [61, 61]].map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="3.6" fill={metal} />)}{[0, 60, 120, 180, 240, 300].map((angle) => <g key={angle} transform={`rotate(${angle} 50 50)`}><rect x="42" y="2" width="16" height="20" rx="7" fill="#d9c4a7" stroke={stroke} strokeWidth="1.3" {...strokeProps} /></g>)}</FootprintSymbolShell>;
+  }
+
   if ((visualType === "diningTable" || visualType === "slabTable") && variantId && !["roundPedestal", "roundFourLeg"].includes(variantId)) {
     const oval = variantId === "ovalSlab" || variantId === "stoneTop";
     return <FootprintSymbolShell><rect x="4" y="5" width="92" height="90" rx="10" fill={`${color}16`} stroke={stroke} strokeDasharray="4 4" strokeWidth="1.4" {...strokeProps} />{[15, 85].flatMap((x) => [25, 50, 75].map((y) => <rect key={`${x}-${y}`} x={x - 7} y={y - 7} width="14" height="14" rx="5" fill="#d9c4a7" stroke={stroke} strokeWidth="1.2" {...strokeProps} />))}<rect x="25" y="18" width="50" height="64" rx={oval ? 24 : 5} fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} />{variantId === "lightMetalFrame" && <path d="M31 25 L69 75 M69 25 L31 75" stroke={metal} strokeWidth="2" {...strokeProps} />}</FootprintSymbolShell>;
@@ -91,6 +98,16 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
     if (variantId === "softOrganic") return <FootprintSymbolShell><path d="M13 58 C7 31 29 13 52 19 C73 4 94 28 84 49 C98 71 74 91 52 80 C31 94 14 80 13 58Z" fill={color} stroke={stroke} strokeWidth="2.3" {...strokeProps} /></FootprintSymbolShell>;
     if (variantId === "lowRound") return <FootprintSymbolShell><circle cx="50" cy="50" r="40" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} /><circle cx="50" cy="50" r="18" fill={light} opacity="0.32" /></FootprintSymbolShell>;
   }
+
+  if ((visualType === "diningChair" || type === "chair") && variantId) {
+    const curved = variantId === "curvedLounge" || variantId === "armHost";
+    const woven = variantId === "wovenDining";
+    return <FootprintSymbolShell><rect x="25" y="37" width="50" height="45" rx={curved ? 14 : 7} fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} /><path d={curved ? "M18 43 C22 8 78 8 82 43" : "M25 35 Q50 14 75 35"} fill="none" stroke={stroke} strokeWidth={curved ? 8 : 6} strokeLinecap="round" {...strokeProps} />{woven && [-10, 0, 10].map((offset) => <line key={offset} x1={50 + offset} y1="18" x2={50 + offset} y2="35" stroke="#d9c4a7" strokeWidth="2" {...strokeProps} />)}{variantId === "armHost" && <><path d="M23 48 H10 V71" fill="none" stroke={stroke} strokeWidth="4" {...strokeProps} /><path d="M77 48 H90 V71" fill="none" stroke={stroke} strokeWidth="4" {...strokeProps} /></>}</FootprintSymbolShell>;
+  }
+
+  if (variantId === "areaRug") return <FootprintSymbolShell><rect x="5" y="8" width="90" height="84" rx="9" fill={color} stroke={stroke} strokeWidth="2" {...strokeProps} /><rect x="16" y="19" width="68" height="62" rx="7" fill="none" stroke={light} strokeWidth="2" opacity="0.72" {...strokeProps} /><path d="M20 66 C35 48 60 77 80 40" fill="none" stroke={stroke} strokeWidth="1.6" opacity="0.25" {...strokeProps} /></FootprintSymbolShell>;
+  if (variantId === "floorLamp") return <FootprintSymbolShell><circle cx="50" cy="68" r="19" fill={metal} opacity="0.72" /><line x1="50" y1="24" x2="50" y2="67" stroke={metal} strokeWidth="4" {...strokeProps} /><path d="M28 31 H72 L63 9 H37 Z" fill={color} stroke={stroke} strokeWidth="2" {...strokeProps} /><circle cx="50" cy="27" r="6" fill="#fde68a" /></FootprintSymbolShell>;
+  if (variantId === "pendantLight") return <FootprintSymbolShell><line x1="50" y1="5" x2="50" y2="41" stroke={metal} strokeWidth="3" {...strokeProps} /><path d="M21 66 H79 L65 36 H35 Z" fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} /><circle cx="50" cy="58" r="7" fill="#fde68a" /></FootprintSymbolShell>;
 
   if (["wardrobe", "walkInCloset", "entryCabinet", "sideboard", "cabinet", "snackCabinet", "kitchenCabinet", "wallCabinet", "bathroomVanity", "island", "outdoorCabinet"].includes(visualType) && variantId) {
     const glassVariant = variantId === "glassDisplay" || variantId === "slimGlassFrame";

@@ -1,6 +1,6 @@
 import type { Furniture, Render3DAssetType, Render3DMeta } from "@/types/space";
 
-export type FurnitureFamily = "bed" | "sofa" | "diningTable" | "coffeeTable" | "chair" | "cabinet" | "other";
+export type FurnitureFamily = "bed" | "sofa" | "diningTable" | "coffeeTable" | "chair" | "cabinet" | "softDecor" | "mediaWall" | "other";
 
 export type FurnitureVariantDefinition = {
   id: string;
@@ -30,6 +30,8 @@ export const furnitureFamilyLabels: Record<FurnitureFamily, string> = {
   coffeeTable: "茶几",
   chair: "餐椅与单椅",
   cabinet: "柜体",
+  softDecor: "地毯与灯具",
+  mediaWall: "电视与壁炉墙",
   other: "通用家具"
 };
 
@@ -84,6 +86,18 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
     { id: "slimGlassFrame", label: "细框玻璃柜", description: "深色细框和浅茶玻璃", planShape: "glass" },
     { id: "wallMounted", label: "壁挂吊柜", description: "壁挂箱体和底部任务照明", planShape: "floating" }
   ],
+  softDecor: [
+    { id: "areaRug", label: "自然织物地毯", description: "低绒织物、柔和边缘和克制纹理", planShape: "rect" },
+    { id: "floorLamp", label: "阅读落地灯", description: "细金属灯杆和织物灯罩", planShape: "round" },
+    { id: "pendantLight", label: "柔光吊灯", description: "轻薄吊线和柔和下照灯罩", planShape: "round" },
+    { id: "throwTextile", label: "自然织物披毯", description: "用于床尾或沙发的松弛织物层", planShape: "rect" },
+    { id: "sculpturalVase", label: "克制陶艺摆件", description: "低饱和陶艺轮廓和小尺度点缀", planShape: "curve" }
+  ],
+  mediaWall: [
+    { id: "integratedMediaWall", label: "壁炉电视一体墙", description: "木饰面、石材壁炉、电视和悬浮柜一体组合", planShape: "open" },
+    { id: "floatingMediaWall", label: "悬浮电视柜墙", description: "暖白背景、悬浮柜和不对称开放层板", planShape: "floating" },
+    { id: "stoneHearthWall", label: "石材壁炉墙", description: "暖灰石材壁炉和低矮木质收纳", planShape: "rect" }
+  ],
   other: [
     { id: "proceduralDefault", label: "程序化默认", description: "保留现有资产类型的默认表达", planShape: "rect" }
   ]
@@ -99,6 +113,8 @@ function searchableText(item: Furniture) {
 }
 
 export function getFurnitureFamily(item: Furniture, assetType: string = item.render3d?.assetType ?? item.moduleType ?? item.type): FurnitureFamily {
+  const text = searchableText(item);
+  if (assetType === "fireplace") return "mediaWall";
   if (assetType === "bed" || item.type === "bed") return "bed";
   if (assetType === "sofa" || item.type === "sofa") return "sofa";
   if (assetType === "diningChair" || item.type === "chair") return "chair";
@@ -106,6 +122,8 @@ export function getFurnitureFamily(item: Furniture, assetType: string = item.ren
   if (["coffeeTable", "loungeCoffeeTable"].includes(assetType)) return "coffeeTable";
   if (cabinetAssetTypes.has(assetType) || item.type === "cabinet") return "cabinet";
   if (item.type === "table") return Math.max(item.dimensions.width, item.dimensions.depth) >= 165 ? "diningTable" : "coffeeTable";
+  if (/电视墙|壁炉|media wall|fireplace/.test(text)) return "mediaWall";
+  if (/地毯|rug|落地灯|floor lamp|吊灯|pendant|披毯|throw|陶艺|花瓶|vase/.test(text)) return "softDecor";
   return "other";
 }
 
@@ -166,6 +184,14 @@ export function getRecommendedFurnitureVariantId(item: Furniture, family = getFu
     if (assetType === "island" || assetType === "kitchenCabinet") return "woodWarmWhite";
     return chooseBySeed(["handleless", "openClosedMix", "woodWarmWhite", "slimGlassFrame"], seed, 13);
   }
+  if (family === "softDecor") {
+    if (/地毯|rug/.test(text)) return "areaRug";
+    if (/落地灯|floor lamp/.test(text)) return "floorLamp";
+    if (/吊灯|pendant/.test(text)) return "pendantLight";
+    if (/披毯|throw/.test(text)) return "throwTextile";
+    return "sculpturalVase";
+  }
+  if (family === "mediaWall") return /悬浮/.test(text) ? "floatingMediaWall" : /石材/.test(text) ? "stoneHearthWall" : "integratedMediaWall";
   return "proceduralDefault";
 }
 
@@ -198,6 +224,8 @@ export function getModernNaturalMaterials(item: Furniture, family = getFurniture
   if (family === "coffeeTable") return { primaryMaterial: variantId.includes("travertine") || variantId === "softOrganic" ? "travertine" : "warmOak", secondaryMaterial: "warmGreyStone", accentMaterial: "blackTitanium" };
   if (family === "chair") return { primaryMaterial: variantId === "upholsteredDining" || variantId === "curvedLounge" ? "beigeFabric" : "warmOak", secondaryMaterial: variantId === "wovenDining" ? "camelFabric" : "creamFabric", accentMaterial: "blackTitanium" };
   if (family === "cabinet") return { primaryMaterial: variantId.includes("Glass") || variantId === "glassDisplay" ? "warmOak" : "warmOak", secondaryMaterial: variantId === "glassDisplay" || variantId === "slimGlassFrame" ? "smokedGlass" : item.render3d?.assetType === "bathroomVanity" ? "travertine" : "warmWhiteCeramic", accentMaterial: "brushedBronze" };
+  if (family === "softDecor") return { primaryMaterial: variantId === "areaRug" ? "beigeFabric" : variantId.includes("Light") ? "creamFabric" : "warmWhiteCeramic", secondaryMaterial: "taupeFabric", accentMaterial: "blackTitanium" };
+  if (family === "mediaWall") return { primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "blackTitanium" };
   return { primaryMaterial: item.render3d?.primaryMaterial, secondaryMaterial: item.render3d?.secondaryMaterial, accentMaterial: item.render3d?.accentMaterial };
 }
 
@@ -228,6 +256,10 @@ export function isFurnitureStyleProtected(item: Furniture) {
   return Boolean(item.locked || item.render3d?.styleLocked || item.render3d?.styleSource === "manual" || possibleVerification.verificationMeta?.status === "confirmed");
 }
 
+export function isModernNaturalStyleEligible(item: Furniture) {
+  return getFurnitureFamily(item) !== "other";
+}
+
 export type ModernNaturalScope = { type: "room"; roomId: string } | { type: "floor"; floorId: string } | { type: "house" };
 
 export function isFurnitureInModernNaturalScope(item: Furniture, scope: ModernNaturalScope) {
@@ -238,7 +270,7 @@ export function isFurnitureInModernNaturalScope(item: Furniture, scope: ModernNa
 
 export function previewModernNaturalApplication(items: Furniture[], scope: ModernNaturalScope) {
   const scoped = items.filter((item) => isFurnitureInModernNaturalScope(item, scope));
-  const skipped = scoped.filter(isFurnitureStyleProtected);
+  const skipped = scoped.filter((item) => isFurnitureStyleProtected(item) || !isModernNaturalStyleEligible(item));
   return { total: scoped.length, adjustable: scoped.length - skipped.length, skipped: skipped.length, skippedIds: skipped.map((item) => item.id) };
 }
 
@@ -247,7 +279,7 @@ export function applyModernNaturalStyle(items: Furniture[], scope: ModernNatural
   let skipped = 0;
   const furniture = items.map((item) => {
     if (!isFurnitureInModernNaturalScope(item, scope)) return item;
-    if (isFurnitureStyleProtected(item)) {
+    if (isFurnitureStyleProtected(item) || !isModernNaturalStyleEligible(item)) {
       skipped += 1;
       return item;
     }
@@ -256,7 +288,7 @@ export function applyModernNaturalStyle(items: Furniture[], scope: ModernNatural
     const variantId = getRecommendedFurnitureVariantId(seeded, family);
     const materials = getModernNaturalMaterials(seeded, family, variantId);
     adjusted += 1;
-    return {
+    const styled = {
       ...seeded,
       render3d: {
         ...seeded.render3d!,
@@ -266,6 +298,13 @@ export function applyModernNaturalStyle(items: Furniture[], scope: ModernNatural
         detailLevel: getRecommendedFurnitureDetailLevel(seeded),
         ...materials
       }
+    };
+    return {
+      ...styled,
+      floorId: item.floorId,
+      roomId: item.roomId,
+      outdoorId: item.outdoorId,
+      position: item.position
     };
   });
   return { furniture, adjusted, skipped };

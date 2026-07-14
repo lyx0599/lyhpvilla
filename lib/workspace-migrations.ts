@@ -4,13 +4,17 @@ import { normalizeVerificationMeta, verificationTargetCollections } from "./dime
 import { getDrawingItemGeneratedFingerprint, getLegacyDrawingItemGeneratedFingerprintV13 } from "./drawing-items.ts";
 import { generateLightingDesignV1 } from "./lighting-design.ts";
 import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
+import { buildManagedStairInfrastructure, normalizeManagedStairFlights } from "./stair-systems.ts";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 15;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-14-modern-natural-furniture-v1";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 16;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-14-stair-systems-v1";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
   "houseStructuresByFloor",
+  "stairSystems",
+  "stairLandings",
+  "stairOpenings",
   "furniture",
   "drawingItems",
   "drawingPackage",
@@ -296,6 +300,14 @@ export function applyWorkspaceMigrations(
   });
   migrateMissingCategory("semanticObjects", canonical?.semanticObjects ?? []);
   migrateMissingCategory("cameraViews", canonical?.cameraViews ?? []);
+  if (canMigrate && canonical?.cameraViews && hasOwn(original, "cameraViews")) {
+    const existingIds = new Set((workspace.cameraViews ?? []).map((view) => view.id));
+    const stairInspectionViews = canonical.cameraViews.filter((view) => view.id.startsWith("stair-view-") && !existingIds.has(view.id));
+    if (stairInspectionViews.length > 0) {
+      workspace.cameraViews = [...(workspace.cameraViews ?? []), ...cloneJson(stairInspectionViews)];
+      sources.cameraViews = "migration";
+    }
+  }
   migrateMissingCategory("roomTourViews", canonical?.roomTourViews ?? []);
   migrateMissingCategory("lightingDesign", canonical?.lightingDesign ?? emptyLightingDesign());
   migrateMissingCategory("visualSettingsByFloor", canonical?.visualSettingsByFloor ?? {} as WorkspaceDocument["visualSettingsByFloor"]);
@@ -311,6 +323,29 @@ export function applyWorkspaceMigrations(
     return [floor.id, result.structure];
   })) as WorkspaceDocument["houseStructuresByFloor"];
   if (canMigrate && migrateStairLaneConvention(workspace)) structureMigrated = true;
+  if (canMigrate) {
+    const normalized = normalizeManagedStairFlights(workspace.houseStructuresByFloor);
+    workspace.houseStructuresByFloor = normalized.structuresByFloor;
+    structureMigrated = true;
+    if (!hasOwn(original, "stairSystems")) {
+      workspace.stairSystems = normalized.infrastructure.stairSystems;
+      sources.stairSystems = "migration";
+    }
+    if (!hasOwn(original, "stairLandings")) {
+      workspace.stairLandings = normalized.infrastructure.stairLandings;
+      sources.stairLandings = "migration";
+    }
+    if (!hasOwn(original, "stairOpenings")) {
+      workspace.stairOpenings = normalized.infrastructure.stairOpenings;
+      sources.stairOpenings = "migration";
+    }
+  }
+  if (!workspace.stairSystems || !workspace.stairLandings || !workspace.stairOpenings) {
+    const infrastructure = buildManagedStairInfrastructure(workspace.houseStructuresByFloor);
+    workspace.stairSystems ??= cloneJson(canonical?.stairSystems ?? infrastructure.stairSystems);
+    workspace.stairLandings ??= cloneJson(canonical?.stairLandings ?? infrastructure.stairLandings);
+    workspace.stairOpenings ??= cloneJson(canonical?.stairOpenings ?? infrastructure.stairOpenings);
+  }
   if (canMigrate && migrateDimensionVerification(workspace)) structureMigrated = true;
   if (canMigrate && migrateFurniturePlacement(workspace)) {
     sources.furniture = "migration";

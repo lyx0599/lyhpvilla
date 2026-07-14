@@ -24,6 +24,7 @@ import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspace
 import { applyWorkspaceMigrations, CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION, reportWorkspaceDataSources } from "@/lib/workspace-migrations";
 import { compareWorkspace, getDetailedWorkspaceDifference, getWorkspaceDifferenceSummary, getWorkspaceHash, getWorkspaceStats, getWorkspaceValidationErrors, validateWorkspacePayload } from "@/lib/workspace-persistence";
 import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
+import { validateStairSystems } from "@/lib/stair-systems";
 import { deriveRoomTourViews } from "@/lib/room-tour";
 import { normalizeDrawingSheetType } from "@/lib/drawing-sheets";
 import {
@@ -48,7 +49,7 @@ import {
   verificationDisplayStateLabels
 } from "@/lib/dimension-verification";
 import type { VerificationDisplayState, VerificationTargetEntry } from "@/lib/dimension-verification";
-import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlanCanvasMode, PlannerMode, Render3DAssetType, RoomTourView, SpaceData, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlanCanvasMode, PlannerMode, Render3DAssetType, RoomTourView, SpaceData, StairLanding, StairOpening, StairSystem, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 import type { LightingDesign, WorkspaceDocument } from "@/types/workspace";
 
@@ -1114,15 +1115,15 @@ const twoFloorTopStairs: HouseStair[] = [
   {
     id: "ST-2F-001",
     floorId: "2F",
-    name: "W-2F-012 1F→2F 到达梯段",
+    name: "2F 下行至 1F 梯段",
     geometryType: "line",
-    start: { x: 4146, y: 3575 },
-    end: { x: 950, y: 3575 },
+    start: { x: 4146, y: 4625 },
+    end: { x: 950, y: 4625 },
     width: 1050,
     baseHeight: 0,
-    height: 2800,
-    stepCount: 14,
-    direction: "up",
+    height: 1400,
+    stepCount: 10,
+    direction: "down",
     editable: true,
     removable: true
   }
@@ -1435,7 +1436,7 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
     moduleCategory: "kitchen",
     moduleType: "island",
     roomId: "ROOM-1F-005",
-    dimensions: { width: 210, depth: 90, height: 90, unit: "cm" },
+    dimensions: { width: 210, depth: 75, height: 80, unit: "cm" },
     material: "岩板台面 + 下柜收纳",
     note: "放在厨房推拉门口和客厅之间，长度对齐靠窗水槽段，作为备餐、端菜和储物岛台。",
     constructionNote: "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。",
@@ -2318,6 +2319,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [visualSettingsByFloor, setVisualSettingsByFloor] = useState<Record<FloorId, FloorPlanVisualSettings>>(initialVisualSettings);
   const [cleanPatchesByFloor, setCleanPatchesByFloor] = useState<Record<FloorId, CleanPatch[]>>(initialCleanPatches);
   const [houseStructuresByFloor, setHouseStructuresByFloor] = useState<Record<FloorId, HouseStructure>>(() => data.workspace.houseStructuresByFloor);
+  const [stairSystems, setStairSystems] = useState<StairSystem[]>(() => data.workspace.stairSystems);
+  const [stairLandings, setStairLandings] = useState<StairLanding[]>(() => data.workspace.stairLandings);
+  const [stairOpenings, setStairOpenings] = useState<StairOpening[]>(() => data.workspace.stairOpenings);
   const [wallSyncOverrides, setWallSyncOverrides] = useState<WallSyncOverrides>({});
   const [validatorRepairLog, setValidatorRepairLog] = useState<string[]>([]);
   const [focusMode, setFocusMode] = useState(false);
@@ -2475,9 +2479,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     drawingPackage,
     semanticObjects,
     houseStructuresByFloor,
+    stairSystems,
+    stairLandings,
+    stairOpenings,
     cameraViews,
     roomTourViews
-  }), [floors, furniture, drawingItems, drawingPackage, semanticObjects, houseStructuresByFloor, cameraViews, roomTourViews]);
+  }), [floors, furniture, drawingItems, drawingPackage, semanticObjects, houseStructuresByFloor, stairSystems, stairLandings, stairOpenings, cameraViews, roomTourViews]);
+  const stairValidationIssues = useMemo(() => validateStairSystems({
+    structuresByFloor: houseStructuresByFloor,
+    stairSystems,
+    stairLandings,
+    stairOpenings,
+    furniture
+  }), [furniture, houseStructuresByFloor, stairLandings, stairOpenings, stairSystems]);
   const verificationConflictIds = useMemo(() => {
     const ids = new Set(referenceReport.errors.map((issue) => issue.objectId));
     floors.forEach((floor) => {
@@ -2629,6 +2643,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setCameraViews(migratedWorkspace.cameraViews);
     setRoomTourViews(migratedWorkspace.roomTourViews);
     setLightingDesign(migratedWorkspace.lightingDesign ?? fallbackLightingDesign);
+    setStairSystems(migratedWorkspace.stairSystems);
+    setStairLandings(migratedWorkspace.stairLandings);
+    setStairOpenings(migratedWorkspace.stairOpenings);
     setHouseStructuresByFloor(nextStructures);
     committedModelRef.current = Object.fromEntries(nextFloors.map((floor) => [
       floor.id,
@@ -2643,7 +2660,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   useEffect(() => {
-    if (!canUseExternalSync) {
+    if (!IS_DEVELOPMENT || !canUseExternalSync) {
       setLocalCodeAutoSync(false);
       setLocalCodeServerOnline(false);
       setLocalCodeFileHandle(null);
@@ -2684,7 +2701,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }, [canUseExternalSync]);
 
   useEffect(() => {
-    if (!canUseExternalSync) return;
+    if (!IS_DEVELOPMENT || !canUseExternalSync) return;
     if (localCodeFileHandle || localCodeServerOnline) return;
     let cancelled = false;
     let retryTimer: number | undefined;
@@ -2810,6 +2827,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     visualSettingsByFloor,
     cleanPatchesByFloor,
     houseStructuresByFloor,
+    stairSystems,
+    stairLandings,
+    stairOpenings,
     wallSyncOverrides,
     cameraViews,
     roomTourViews,
@@ -2844,6 +2864,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     visualSettingsByFloor,
     cleanPatchesByFloor,
     houseStructuresByFloor,
+    stairSystems,
+    stairLandings,
+    stairOpenings,
     wallSyncOverrides,
     cameraViews,
     roomTourViews,
@@ -2886,6 +2909,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     visualSettingsByFloor,
     cleanPatchesByFloor,
     houseStructuresByFloor,
+    stairSystems,
+    stairLandings,
+    stairOpenings,
     wallSyncOverrides,
     cameraViews,
     roomTourViews,
@@ -3053,6 +3079,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       visualSettingsByFloor,
       cleanPatchesByFloor,
       houseStructuresByFloor,
+      stairSystems,
+      stairLandings,
+      stairOpenings,
       wallSyncOverrides,
       cameraViews,
       roomTourViews,
@@ -4234,7 +4263,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   function handleApplyModernNaturalStyle() {
     if (!canMutateWorkspace || modernNaturalPreview.adjustable === 0) return;
     const scopeLabel = modernNaturalScope.type === "house" ? "全屋" : modernNaturalScope.type === "floor" ? `${modernNaturalScope.floorId} 当前楼层` : "当前房间";
-    const confirmed = window.confirm(`${scopeLabel}将调整 ${modernNaturalPreview.adjustable} 件家具，保留 ${modernNaturalPreview.skipped} 件锁定或人工确认对象。继续应用现代自然风？`);
+    const confirmed = window.confirm(`${scopeLabel}将调整 ${modernNaturalPreview.adjustable} 件家具，保留 ${modernNaturalPreview.skipped} 件锁定、人工确认或院子专用对象。继续应用现代自然风？`);
     if (!confirmed) return;
     const result = applyModernNaturalStyle(furniture, modernNaturalScope);
     const after = result.furniture.map(enrichFurniture3DMeta);
@@ -5405,7 +5434,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               id="status"
               eyebrow="Validator"
               title="模型状态"
-              summary={`${houseValidation.errors.length + referenceReport.errors.length} 错误 · ${houseValidation.warnings.length + referenceReport.warnings.length} 警告`}
+              summary={`${houseValidation.errors.length + referenceReport.errors.length} 错误 · ${houseValidation.warnings.length + referenceReport.warnings.length + stairValidationIssues.length} 警告`}
               open={openRightPanels.status}
               onToggle={toggleRightPanel}
             >
@@ -5482,7 +5511,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   <p>错误</p>
                 </div>
                 <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-700">
-                  <p className="font-semibold">{houseValidation.warnings.length + referenceReport.warnings.length}</p>
+                  <p className="font-semibold">{houseValidation.warnings.length + referenceReport.warnings.length + stairValidationIssues.length}</p>
                   <p>警告</p>
                 </div>
               </div>
@@ -5502,7 +5531,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     <p className="mt-1 text-stone-500">建议：{issue.suggestion}</p>
                   </button>
                 ))}
-                {houseValidation.errors.length + houseValidation.warnings.length + referenceReport.issues.length === 0 && (
+                {stairValidationIssues.map((issue, index) => (
+                  <button key={`${issue.code}-${issue.objectId}-${index}`} className="block w-full rounded-xl bg-amber-50 p-2 text-left text-xs leading-5 text-amber-900 transition hover:bg-amber-100" onClick={() => { if (issue.floorId !== selectedFloorId) setSelectedFloorId(issue.floorId); locateValidationObject(issue.objectId); }} type="button">
+                    <p className="font-semibold">楼梯系统警告 · {issue.floorId} · {issue.objectId}</p>
+                    <p>{issue.message}</p>
+                    <p className="mt-1 font-semibold text-blue-700">定位到楼层与对象</p>
+                  </button>
+                ))}
+                {houseValidation.errors.length + houseValidation.warnings.length + referenceReport.issues.length + stairValidationIssues.length === 0 && (
                   <p className="rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-500">当前楼层未发现结构表达或引用错误。</p>
                 )}
               </div>

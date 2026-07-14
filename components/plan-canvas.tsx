@@ -2121,46 +2121,51 @@ export function PlanCanvas({
   }
 
   function getStairGeometry(stair: HouseStructure["stairs"][number]) {
-    const length = Math.max(1, getLineLength(stair.start, stair.end));
-    const ux = (stair.end.x - stair.start.x) / length;
-    const uy = (stair.end.y - stair.start.y) / length;
+    const fullLength = Math.max(1, getLineLength(stair.start, stair.end));
+    const fullUx = (stair.end.x - stair.start.x) / fullLength;
+    const fullUy = (stair.end.y - stair.start.y) / fullLength;
+    const landingDepth = constructionExportWorkspace.stairLandings.find((landing) => landing.id === stair.landingId)?.depth ?? 0;
+    const runInset = Math.min(Math.max(0, landingDepth), fullLength * 0.42);
+    const renderStart = { x: stair.start.x + fullUx * runInset, y: stair.start.y + fullUy * runInset };
+    const length = Math.max(1, getLineLength(renderStart, stair.end));
+    const ux = (stair.end.x - renderStart.x) / length;
+    const uy = (stair.end.y - renderStart.y) / length;
     const normal = { x: -uy, y: ux };
     const steps = Array.from({ length: Math.max(2, stair.stepCount) }, (_, index) => {
       const ratio = (index + 1) / (Math.max(2, stair.stepCount) + 1);
       const center = {
-        x: stair.start.x + (stair.end.x - stair.start.x) * ratio,
-        y: stair.start.y + (stair.end.y - stair.start.y) * ratio
+        x: renderStart.x + (stair.end.x - renderStart.x) * ratio,
+        y: renderStart.y + (stair.end.y - renderStart.y) * ratio
       };
       return {
         start: { x: center.x - normal.x * stair.width * 0.42, y: center.y - normal.y * stair.width * 0.42 },
         end: { x: center.x + normal.x * stair.width * 0.42, y: center.y + normal.y * stair.width * 0.42 }
       };
     });
-    return { length, ux, uy, normal, steps };
+    return { length, ux, uy, normal, steps, renderStart };
   }
 
   function getStairLandingConnections(stairs: HouseStructure["stairs"]) {
-    if (floor.id === "B2" || floor.id === "2F" || floor.id === "YARD") return [];
-    const firstRun = stairs.find((stair) => stair.id.endsWith("-001"));
-    const secondRun = stairs.find((stair) => stair.id.endsWith("-002") && stair.direction === "down");
-    if (!firstRun || !secondRun) return [];
-    const length = getLineLength(firstRun.start, secondRun.start);
-    if (length <= 0 || length > 3400) return [];
-    const width = Math.min(firstRun.width, secondRun.width);
-    const minX = Math.min(firstRun.start.x, secondRun.start.x) - width / 2;
-    const maxX = Math.max(firstRun.start.x, secondRun.start.x) + width / 2;
-    const minY = Math.min(firstRun.start.y, secondRun.start.y) - width / 2;
-    const maxY = Math.max(firstRun.start.y, secondRun.start.y) + width / 2;
-    return [{
-      id: `${firstRun.id}-${secondRun.id}-landing`,
-      fromId: firstRun.id,
-      toId: secondRun.id,
-      start: firstRun.start,
-      end: secondRun.start,
-      width,
-      length,
-      bounds: { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
-    }];
+    const stairIds = new Set(stairs.map((stair) => stair.id));
+    return constructionExportWorkspace.stairSystems.flatMap((system) => {
+      if (!stairIds.has(system.lowerFlightId) && !stairIds.has(system.upperFlightId)) return [];
+      const landing = constructionExportWorkspace.stairLandings.find((candidate) => candidate.id === system.landingId);
+      if (!landing) return [];
+      const xs = landing.polygon.map((point) => point.x);
+      const ys = landing.polygon.map((point) => point.y);
+      const currentIsLower = floor.id === system.lowerFloorId;
+      return [{
+        id: landing.id,
+        fromId: system.lowerFlightId,
+        toId: system.upperFlightId,
+        start: landing.centerLine.start,
+        end: landing.centerLine.end,
+        width: landing.width,
+        length: getLineLength(landing.centerLine.start, landing.centerLine.end),
+        elevationLabel: currentIsLower ? "+1.40m" : "-1.40m",
+        bounds: { x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) }
+      }];
+    });
   }
 
   function getDownStairLabel() {
@@ -2170,18 +2175,17 @@ export function PlanCanvas({
   }
 
   function isTwoFloorArrivalStair(stair: HouseStructure["stairs"][number]) {
-    return floor.id === "2F" && stair.id === "ST-2F-001";
+    return false;
   }
 
   function getStairMovementLabel(stair: HouseStructure["stairs"][number]) {
-    if (isTwoFloorArrivalStair(stair)) return "1F → 2F 到达";
+    if (stair.connectedToFloorId) return `${stair.direction === "down" ? "下至" : "上至"} ${stair.connectedToFloorId}`;
     if (stair.direction === "down") return getDownStairLabel();
-    return "";
+    return "上行";
   }
 
   function getStairDirectionDetail(stair: HouseStructure["stairs"][number]) {
-    if (isTwoFloorArrivalStair(stair)) return "1F→2F 到达";
-    return stair.direction === "up" ? "上行" : "下行";
+    return stair.connectedToFloorId ? `${stair.direction === "up" ? "上行" : "下行"}至 ${stair.connectedToFloorId}` : stair.direction === "up" ? "上行" : "下行";
   }
 
   function getArcPath(wall: Extract<HouseWall, { kind: "arc" }>) {
@@ -5571,7 +5575,47 @@ export function PlanCanvas({
               </g>
 
               <g className={yardImmersiveMode ? "hidden" : undefined} data-layer="StairLayer">
-                {getStairLandingConnections(houseStructure.stairs).map((connection) => {
+                {constructionExportWorkspace.stairOpenings.filter((opening) => opening.floorId === floor.id).map((opening) => {
+                  const center = opening.polygon.reduce((sum, point) => ({ x: sum.x + point.x / opening.polygon.length, y: sum.y + point.y / opening.polygon.length }), { x: 0, y: 0 });
+                  return (
+                    <g key={opening.id} data-stair-opening={opening.id} pointerEvents="none">
+                      <polygon
+                        points={opening.polygon.map((point) => `${point.x},${point.y}`).join(" ")}
+                        fill="#ffffff"
+                        fillOpacity={0.82}
+                        stroke="#7c3aed"
+                        strokeDasharray="180 105"
+                        strokeWidth={30}
+                      />
+                      {opening.guardEdges.map((edge) => (
+                        <line
+                          key={edge.id}
+                          x1={edge.start.x}
+                          y1={edge.start.y}
+                          x2={edge.end.x}
+                          y2={edge.end.y}
+                          stroke="#92400e"
+                          strokeLinecap="round"
+                          strokeWidth={54}
+                        />
+                      ))}
+                      <text
+                        x={center.x}
+                        y={center.y - 235}
+                        fill="#5b21b6"
+                        fontSize={126}
+                        fontWeight={900}
+                        paintOrder="stroke"
+                        stroke="#ffffff"
+                        strokeWidth={66}
+                        textAnchor="middle"
+                      >
+                        楼板洞口
+                      </text>
+                    </g>
+                  );
+                })}
+                {getStairLandingConnections(houseStructure.stairs).map((connection, connectionIndex) => {
                   const isSelected = isObjectSelected(connection.fromId) || isObjectSelected(connection.toId);
                   const isHovered = isObjectHovered(connection.fromId) || isObjectHovered(connection.toId);
                   const locked = objectIsLocked(connection.fromId) || objectIsLocked(connection.toId);
@@ -5607,7 +5651,7 @@ export function PlanCanvas({
                       />
                       <text
                         x={center.x}
-                        y={center.y}
+                        y={center.y + (connectionIndex - (getStairLandingConnections(houseStructure.stairs).length - 1) / 2) * 150}
                         fill={locked ? "#6b7280" : "#4c1d95"}
                         fontSize={130}
                         fontWeight={900}
@@ -5617,7 +5661,7 @@ export function PlanCanvas({
                         strokeWidth={70}
                         textAnchor="middle"
                       >
-                        平台
+                        平台 {connection.elevationLabel}
                       </text>
                     </g>
                   );
@@ -5634,23 +5678,25 @@ export function PlanCanvas({
                     x: point.x + stairGeometry.normal.x * arrivalVisualOffset,
                     y: point.y + stairGeometry.normal.y * arrivalVisualOffset
                   });
-                  const visualStart = shiftArrivalPoint(stair.start);
+                  const visualStart = shiftArrivalPoint(stairGeometry.renderStart);
                   const visualEnd = shiftArrivalPoint(stair.end);
                   const arrowStart = {
-                    x: visualStart.x + stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
-                    y: visualStart.y + stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
-                  };
-                  const arrowEnd = {
                     x: visualEnd.x - stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
                     y: visualEnd.y - stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
                   };
+                  const arrowEnd = {
+                    x: visualStart.x + stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
+                    y: visualStart.y + stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
+                  };
+                  const arrowUx = -stairGeometry.ux;
+                  const arrowUy = -stairGeometry.uy;
                   const headLeft = {
-                    x: arrowEnd.x - stairGeometry.ux * 210 + stairGeometry.normal.x * 150,
-                    y: arrowEnd.y - stairGeometry.uy * 210 + stairGeometry.normal.y * 150
+                    x: arrowEnd.x - arrowUx * 210 + stairGeometry.normal.x * 150,
+                    y: arrowEnd.y - arrowUy * 210 + stairGeometry.normal.y * 150
                   };
                   const headRight = {
-                    x: arrowEnd.x - stairGeometry.ux * 210 - stairGeometry.normal.x * 150,
-                    y: arrowEnd.y - stairGeometry.uy * 210 - stairGeometry.normal.y * 150
+                    x: arrowEnd.x - arrowUx * 210 - stairGeometry.normal.x * 150,
+                    y: arrowEnd.y - arrowUy * 210 - stairGeometry.normal.y * 150
                   };
                   const labelPoint = {
                     x: (arrowStart.x + arrowEnd.x) / 2 + stairGeometry.normal.x * Math.min(310, stair.width * 0.34),
@@ -6781,6 +6827,10 @@ export function PlanCanvas({
         <Floor3DView
           floor={floor}
           houseStructure={houseStructure}
+          houseStructuresByFloor={constructionExportWorkspace.houseStructuresByFloor}
+          stairSystems={constructionExportWorkspace.stairSystems}
+          stairLandings={constructionExportWorkspace.stairLandings}
+          stairOpenings={constructionExportWorkspace.stairOpenings}
           furniture={furniture}
           drawingItems={drawingItems}
           drawingSheetType={normalizeDrawingSheetType(sheetMode) ?? "sitePlan"}

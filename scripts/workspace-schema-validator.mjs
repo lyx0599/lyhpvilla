@@ -65,7 +65,10 @@ function collectPersistedObjects(workspace) {
     [workspace.drawingItems, "drawingItems"],
     [workspace.semanticObjects, "semanticObjects"],
     [workspace.cameraViews, "cameraViews"],
-    [workspace.roomTourViews, "roomTourViews"]
+    [workspace.roomTourViews, "roomTourViews"],
+    [workspace.stairSystems, "stairSystems"],
+    [workspace.stairLandings, "stairLandings"],
+    [workspace.stairOpenings, "stairOpenings"]
   ];
   const structures = isRecord(workspace.houseStructuresByFloor) ? workspace.houseStructuresByFloor : {};
   for (const floorId of REQUIRED_FLOOR_IDS) {
@@ -110,6 +113,9 @@ export function validateWorkspaceDocument(workspace) {
     else if (!allowEmpty && workspace[key].length === 0) issues.push(issue(`workspace.${key}`, "must not be empty"));
   }
   if (!Array.isArray(workspace.roomTourViews)) issues.push(issue("workspace.roomTourViews", "must be an array"));
+  if (!Array.isArray(workspace.stairSystems) || workspace.stairSystems.length !== 3) issues.push(issue("workspace.stairSystems", "must contain the three adjacent-floor stair systems"));
+  if (!Array.isArray(workspace.stairLandings) || workspace.stairLandings.length !== 3) issues.push(issue("workspace.stairLandings", "must contain one landing per stair system"));
+  if (!Array.isArray(workspace.stairOpenings) || workspace.stairOpenings.length !== 3) issues.push(issue("workspace.stairOpenings", "must contain one opening per stair system"));
   if (workspace.schemaVersion >= 11 && !DRAWING_SHEET_TYPES.has(workspace.selectedDrawingSheetType)) issues.push(issue("workspace.selectedDrawingSheetType", "must be a supported DrawingSheetType"));
   if (!Array.isArray(workspace.drawingItems)) issues.push(issue("workspace.drawingItems", "must be an array"));
   if (!isRecord(workspace.drawingPackage)) issues.push(issue("workspace.drawingPackage", "must be an object"));
@@ -131,7 +137,7 @@ export function validateWorkspaceDocument(workspace) {
       const isCamera = label === "cameraViews";
       const floorField = isCamera ? "floor" : "floorId";
       const floorId = typeof item[floorField] === "string" ? item[floorField] : "";
-      if (label !== "floors" && !REQUIRED_FLOOR_IDS.includes(floorId)) {
+      if (label !== "floors" && !["stairSystems", "stairLandings", "stairOpenings"].includes(label) && !REQUIRED_FLOOR_IDS.includes(floorId)) {
         issues.push(issue(`${path}.${floorField}`, floorId ? `unknown floor ${floorId}` : "must be a valid floor id", id || path));
       }
       const structureCollection = label.split(".").at(-1);

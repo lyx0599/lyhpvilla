@@ -439,6 +439,7 @@ export type RoomTourView = {
   description: string;
   status: TourNodeStatus;
   sourceCameraViewId?: string;
+  targetArea?: FixedCameraView["targetArea"];
   isFloorOverview?: boolean;
   supportedSheetTypes?: DrawingSheetType[];
   recommendedLightingSceneId?: string;
@@ -708,8 +709,72 @@ export type HouseStair = SyncObjectState & VerificationState & {
   height: number;
   stepCount: number;
   direction: "up" | "down";
+  stairSystemId?: string;
+  flightRole?: StairFlightRole;
+  connectedFromFloorId?: FloorId;
+  connectedToFloorId?: FloorId;
+  landingId?: string;
   editable: true;
   removable: true;
+};
+
+export type StairFlightRole = "lower-flight" | "upper-flight";
+
+export type StairLanding = {
+  id: string;
+  stairSystemId: string;
+  lowerFloorId: FloorId;
+  upperFloorId: FloorId;
+  polygon: MmPoint[];
+  centerLine: { start: MmPoint; end: MmPoint };
+  elevationFromLowerFloorMm: number;
+  width: number;
+  depth: number;
+  supportKind: "wall-bearing" | "beam-bearing" | "self-supporting";
+  status: "draft" | "confirmed";
+};
+
+export type StairOpeningGuardEdge = {
+  id: string;
+  start: MmPoint;
+  end: MmPoint;
+  kind: "glass-railing" | "wall";
+};
+
+export type StairOpening = {
+  id: string;
+  stairSystemId: string;
+  floorId: FloorId;
+  polygon: MmPoint[];
+  guardEdges: StairOpeningGuardEdge[];
+  clearAccessFlightIds: string[];
+  status: "draft" | "confirmed";
+};
+
+export type StairSystemLighting = {
+  controlGroupId: string;
+  lowerSwitchFloorId: FloorId;
+  upperSwitchFloorId: FloorId;
+  stepLightMode: "every-step";
+  stepLightHeightAboveTreadMm: number;
+  landingLightId: string;
+  geometryFingerprint: string;
+  syncStatus: "synchronized" | "needs-resync";
+};
+
+export type StairSystem = {
+  id: string;
+  lowerFloorId: FloorId;
+  upperFloorId: FloorId;
+  orientationRule: "left-down-right-up";
+  lowerFlightId: string;
+  upperFlightId: string;
+  landingId: string;
+  openingId: string;
+  floorToFloorHeightMm: number;
+  totalStepCount: number;
+  lighting: StairSystemLighting;
+  status: "draft" | "confirmed";
 };
 
 export type HouseColumn = SyncObjectState & VerificationState & {

@@ -100,4 +100,5 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   expect(audit.indexedDbOpens.filter((name) => name.includes("villa-space-local-code-file"))).toEqual([]);
   expect(audit.storedKeys.filter((key) => key.includes("villa-space-web-workspace"))).toEqual([]);
   expect(externalWriteRequests).toEqual([]);
+  await page.close({ runBeforeUnload: false });
 });
