@@ -1,4 +1,5 @@
-import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
+import { validateWorkspaceReferences } from "./workspace-reference-validator.ts";
+import { getVerificationMetaIssues, verificationTargetCollections } from "./dimension-verification.ts";
 
 const UI_TEMPORARY_WORKSPACE_KEYS = new Set([
   "savedAt",
@@ -170,6 +171,48 @@ export function getWorkspaceValidationErrors(value: unknown) {
     if (!asRecord(workspace.drawingPackage)) errors.push("schemaVersion 6+ 缺少 drawingPackage。");
   }
   if (schemaVersion >= 8 && !Array.isArray(workspace.roomTourViews)) errors.push("schemaVersion 8+ 缺少 roomTourViews 数组。");
+  if (schemaVersion >= 11 && typeof workspace.selectedDrawingSheetType !== "string") errors.push("schemaVersion 11+ 缺少 selectedDrawingSheetType。");
+  if (schemaVersion >= 13 && Array.isArray(workspace.furniture)) {
+    workspace.furniture.forEach((item, index) => {
+      const furniture = asRecord(item);
+      const anchor = asRecord(furniture?.wallAnchor);
+      const clearance = asRecord(furniture?.clearanceMeta);
+      if (furniture?.wallAnchor !== undefined && !anchor) errors.push(`furniture[${index}].wallAnchor 必须是对象。`);
+      if (anchor) {
+        if (!Number.isFinite(anchor.positionOnWall) || Number(anchor.positionOnWall) < 0 || Number(anchor.positionOnWall) > 1) errors.push(`furniture[${index}].wallAnchor.positionOnWall 必须在 0 到 1 之间。`);
+        if (!Number.isFinite(anchor.offsetMm) || Number(anchor.offsetMm) < 0) errors.push(`furniture[${index}].wallAnchor.offsetMm 必须是非负数。`);
+        if (!["left", "right", "center"].includes(String(anchor.side))) errors.push(`furniture[${index}].wallAnchor.side 无效。`);
+        if (typeof anchor.followWall !== "boolean") errors.push(`furniture[${index}].wallAnchor.followWall 必须是布尔值。`);
+      }
+      if (furniture?.clearanceMeta !== undefined && !clearance) errors.push(`furniture[${index}].clearanceMeta 必须是对象。`);
+      if (clearance) {
+        ["frontMm", "leftMm", "rightMm", "rearMm", "serviceMm", "doorSwingMm"].forEach((field) => {
+          if (clearance[field] !== undefined && (!Number.isFinite(clearance[field]) || Number(clearance[field]) < 0)) errors.push(`furniture[${index}].clearanceMeta.${field} 必须是非负数。`);
+        });
+      }
+    });
+    if (Array.isArray(workspace.drawingItems)) workspace.drawingItems.forEach((item, index) => {
+      const drawingItem = asRecord(item);
+      const baseline = asRecord(drawingItem?.relatedFurniturePositionMm);
+      if (drawingItem?.relatedFurniturePositionMm !== undefined && (!baseline || !Number.isFinite(baseline.x) || !Number.isFinite(baseline.y))) errors.push(`drawingItems[${index}].relatedFurniturePositionMm 必须包含有效的毫米坐标。`);
+    });
+  }
+  if (schemaVersion >= 15 && Array.isArray(workspace.furniture)) {
+    workspace.furniture.forEach((item, index) => {
+      const furniture = asRecord(item);
+      const render3d = asRecord(furniture?.render3d);
+      if (!render3d) {
+        errors.push(`furniture[${index}].render3d 必须是对象。`);
+        return;
+      }
+      if (typeof render3d.variantId !== "string" || !render3d.variantId) errors.push(`furniture[${index}].render3d.variantId 必须是非空字符串。`);
+      if (!Number.isInteger(render3d.variationSeed) || Number(render3d.variationSeed) < 0) errors.push(`furniture[${index}].render3d.variationSeed 必须是非负整数。`);
+      if (render3d.styleSource !== undefined && !["generated", "manual"].includes(String(render3d.styleSource))) errors.push(`furniture[${index}].render3d.styleSource 无效。`);
+      if (render3d.detailLevel !== undefined && !["draft", "standard", "presentation"].includes(String(render3d.detailLevel))) errors.push(`furniture[${index}].render3d.detailLevel 无效。`);
+      if (render3d.styleLocked !== undefined && typeof render3d.styleLocked !== "boolean") errors.push(`furniture[${index}].render3d.styleLocked 必须是布尔值。`);
+      for (const field of ["modelAssetId", "assetUrl"]) if (render3d[field] !== undefined && typeof render3d[field] !== "string") errors.push(`furniture[${index}].render3d.${field} 必须是字符串。`);
+    });
+  }
 
   const seenIds = new Set<string>();
   const validateItems = (items: unknown[], label: string) => {
@@ -196,7 +239,16 @@ export function getWorkspaceValidationErrors(value: unknown) {
     const structure = asRecord(structureValue);
     if (!structure) return;
     Object.entries(structure).forEach(([key, collection]) => {
-      if (Array.isArray(collection)) validateItems(collection, `houseStructuresByFloor.${floorId}.${key}`);
+      if (!Array.isArray(collection)) return;
+      validateItems(collection, `houseStructuresByFloor.${floorId}.${key}`);
+      if (schemaVersion >= 10 && verificationTargetCollections.includes(key as (typeof verificationTargetCollections)[number])) {
+        collection.forEach((item, index) => {
+          const record = asRecord(item);
+          getVerificationMetaIssues(record?.verificationMeta).forEach((message) => {
+            errors.push(`houseStructuresByFloor.${floorId}.${key}[${index}].verificationMeta ${message}。`);
+          });
+        });
+      }
     });
   });
   validateWorkspaceReferences(workspace).errors.forEach((issue) => {

@@ -76,6 +76,9 @@ function collectKnownIds(workspace: JsonRecord) {
   add(asArray(workspace.semanticObjects));
   add(asArray(workspace.cameraViews));
   add(asArray(workspace.roomTourViews));
+  const lightingDesign = asRecord(workspace.lightingDesign);
+  add(asArray(lightingDesign?.fixtureFamilies));
+  add(asArray(lightingDesign?.scenes));
   const structures = asRecord(workspace.houseStructuresByFloor) ?? {};
   Object.values(structures).forEach((value) => {
     const structure = asRecord(value);
@@ -158,6 +161,16 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
       severity: "error", code: "ORPHAN_FURNITURE_ROOM", objectId: id, path: `furniture[${index}].roomId`, value: roomId,
       message: `家具 ${id} 的 roomId 未指向同楼层真实房间或室外区。`,
       suggestion: roomId && LEGACY_ROOM_ID_MIGRATIONS[roomId] ? `迁移为 ${LEGACY_ROOM_ID_MIGRATIONS[roomId]}。` : "选择同楼层 ROOM-* 或 OD-* 对象。"
+    });
+    const outdoorId = stringValue(furniture.outdoorId);
+    if (outdoorId && !roomOutdoorByFloor.get(floorId)?.has(outdoorId)) pushIssue(issues, {
+      severity: "warning", code: "ORPHAN_FURNITURE_OUTDOOR", objectId: id, path: `furniture[${index}].outdoorId`, value: outdoorId,
+      message: `家具 ${id} 的 outdoorId 未指向同楼层室外区。`, suggestion: "重新选择同楼层 OD-* 对象，或清空 outdoorId。"
+    });
+    const hostWallId = stringValue(furniture.hostWallId);
+    if (hostWallId && !hostsByFloor.get(floorId)?.has(hostWallId)) pushIssue(issues, {
+      severity: "warning", code: "FURNITURE_WALL_REBIND_REQUIRED", objectId: id, path: `furniture[${index}].hostWallId`, value: hostWallId,
+      message: `家具 ${id} 的宿主墙 ${hostWallId} 已不存在，需要重新绑定。`, suggestion: "使用墙体吸附选择新墙；保留该引用用于提示，不阻止保存。"
     });
     if (furniture.cabinetDesign !== undefined && !knownIds.has(id)) pushIssue(issues, {
       severity: "error", code: "ORPHAN_CABINET_DESIGN", objectId: id, path: `furniture[${index}].cabinetDesign`,
@@ -341,6 +354,30 @@ export function validateWorkspaceReferences(value: unknown): WorkspaceReferenceR
         severity: "warning", code: "INVALID_TOUR_LINK", objectId: id, path: `roomTourViews[${index}].linkedNodeIds[${linkIndex}]`, value: linkedId,
         message: `漫游节点 ${id} 链接了不存在的持久化节点 ${linkedId}。`, suggestion: "删除链接，或补充目标节点；自动派生链接无需持久化。"
       });
+    });
+  });
+
+  const lightingDesign = asRecord(workspace.lightingDesign);
+  const sceneIds = new Set(asArray(lightingDesign?.scenes).map((item) => stringValue(asRecord(item)?.id)).filter((id): id is string => Boolean(id)));
+  const controlGroupIds = new Set(asArray(workspace.drawingItems).map((item) => stringValue(asRecord(item)?.controlGroupId)).filter((id): id is string => Boolean(id)));
+  asArray(lightingDesign?.scenes).forEach((item, sceneIndex) => {
+    const scene = asRecord(item);
+    const id = stringValue(scene?.id) ?? `lightingDesign.scenes[${sceneIndex}]`;
+    asArray(scene?.groupStates).forEach((stateValue, stateIndex) => {
+      const controlGroupId = stringValue(asRecord(stateValue)?.controlGroupId);
+      if (controlGroupId && !controlGroupIds.has(controlGroupId)) pushIssue(issues, {
+        severity: "error", code: "INVALID_LIGHTING_SCENE_GROUP", objectId: id, path: `lightingDesign.scenes[${sceneIndex}].groupStates[${stateIndex}].controlGroupId`, value: controlGroupId,
+        message: `灯光场景 ${id} 引用了不存在的控制组 ${controlGroupId}。`, suggestion: "改为 drawingItems 中存在的 controlGroupId，或删除该场景状态。"
+      });
+    });
+  });
+  asArray(workspace.roomTourViews).forEach((item, index) => {
+    const node = asRecord(item);
+    const id = stringValue(node?.id) ?? `roomTourViews[${index}]`;
+    const recommendedSceneId = stringValue(node?.recommendedLightingSceneId);
+    if (recommendedSceneId && !sceneIds.has(recommendedSceneId)) pushIssue(issues, {
+      severity: "error", code: "INVALID_TOUR_LIGHTING_SCENE", objectId: id, path: `roomTourViews[${index}].recommendedLightingSceneId`, value: recommendedSceneId,
+      message: `灯光体验视角 ${id} 引用了不存在的场景 ${recommendedSceneId}。`, suggestion: "绑定 lightingDesign.scenes 中存在的场景 ID。"
     });
   });
 

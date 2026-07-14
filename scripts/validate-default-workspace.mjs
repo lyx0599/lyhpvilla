@@ -23,5 +23,19 @@ assertInvalid((value) => { delete value.floors; }, /workspace\.floors/, "missing
 assertInvalid((value) => { value.semanticObjects[0].id = value.furniture[0].id; }, /duplicates/, "duplicate id");
 assertInvalid((value) => { value.furniture[0].roomId = "ROOM-MISSING"; }, /roomId|ROOM-MISSING/, "orphan roomId");
 assertInvalid((value) => { value.furniture[0].position.x = Number.NaN; }, /finite/, "NaN position");
+assertInvalid((value) => { delete value.houseStructuresByFloor["1F"].walls[0].verificationMeta; }, /verificationMeta/, "missing verification metadata");
+assertInvalid((value) => { value.houseStructuresByFloor["1F"].doors[0].verificationMeta.status = "approved"; }, /verificationMeta.*status/, "unsupported verification status");
+assertInvalid((value) => { value.houseStructuresByFloor["1F"].windows[0].verificationMeta.toleranceMm = -1; }, /toleranceMm/, "negative verification tolerance");
+assertInvalid((value) => { value.furniture[0].wallAnchor = { positionOnWall: 1.2, offsetMm: 0, side: "left", followWall: true }; }, /positionOnWall/, "wall anchor outside host range");
+assertInvalid((value) => { value.furniture[0].wallAnchor = { positionOnWall: 0.5, offsetMm: 0, side: "outside", followWall: true }; }, /wallAnchor.*side/, "unsupported wall anchor side");
+assertInvalid((value) => { value.furniture[0].clearanceMeta = { serviceMm: -10 }; }, /clearanceMeta.*serviceMm/, "negative service clearance");
+
+const verificationCollections = ["walls", "doors", "windows", "bayWindows", "stairs", "columns", "rooms", "outdoors", "skylights", "partitions"];
+const verificationObjects = Object.values(workspace.houseStructuresByFloor).flatMap((structure) => verificationCollections.flatMap((collection) => structure[collection]));
+assert.ok(verificationObjects.length > 0);
+assert.ok(verificationObjects.every((object) => object.verificationMeta));
+assert.ok(verificationObjects.every((object) => object.verificationMeta.status !== "confirmed"), "Estimated default geometry must not be auto-confirmed.");
+assert.ok(workspace.furniture.filter((item) => item.roomId.startsWith("OD-")).every((item) => item.outdoorId === item.roomId), "Outdoor furniture must explicitly retain outdoorId.");
+assert.ok(workspace.drawingItems.filter((item) => item.relatedFurnitureId).every((item) => item.relatedFurniturePositionMm), "Linked drawing items must retain their furniture-position baseline.");
 
 console.log("default-workspace schema validation passed");

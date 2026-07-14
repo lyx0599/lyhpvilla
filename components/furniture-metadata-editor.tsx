@@ -1,11 +1,32 @@
 "use client";
 
-import type { ConstructionMeta, Furniture, MepMeta, Render3DMeta } from "@/types/space";
+import {
+  anchorFurnitureToWall,
+  getRecommendedClearance,
+  getRelatedDrawingItemSyncState,
+  resolveFurnitureSpaceAssignment,
+  syncRelatedDrawingItemsToFurniture
+} from "@/lib/furniture-placement";
+import { FurnitureTopView } from "@/components/furniture-top-view";
+import {
+  cycleFurnitureVariant,
+  furnitureFamilyLabels,
+  furnitureVariantCatalog,
+  getFurnitureFamily,
+  restoreModernNaturalRecommendation,
+  stableFurnitureSeed
+} from "@/lib/furniture-variants";
+import { drawingItemCategoryLabels } from "@/lib/drawing-items";
+import type { ConstructionMeta, DrawingItem, Furniture, FurnitureClearanceMeta, HouseStructure, MepMeta, Render3DAssetType, Render3DMeta } from "@/types/space";
 
 type Props = {
   furniture: Furniture;
+  structure?: HouseStructure;
+  drawingItems?: DrawingItem[];
   disabled?: boolean;
   onChange: (furniture: Furniture) => void;
+  onDrawingItemsChange?: (items: DrawingItem[]) => void;
+  onLocateDrawingItem?: (item: DrawingItem) => void;
 };
 
 const fieldClass = "mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400";
@@ -32,13 +53,35 @@ function MetadataSection({ children, summary }: { children: React.ReactNode; sum
   );
 }
 
-export function FurnitureMetadataEditor({ furniture, disabled = false, onChange }: Props) {
+export function FurnitureMetadataEditor({ furniture, structure, drawingItems = [], disabled = false, onChange, onDrawingItemsChange, onLocateDrawingItem }: Props) {
   const render3d = furniture.render3d ?? { assetType: furniture.moduleType ?? furniture.type };
   const mep = furniture.mepMeta ?? {};
   const construction = furniture.constructionMeta ?? {};
+  const assignment = structure ? resolveFurnitureSpaceAssignment(furniture, structure) : null;
+  const relatedItems = drawingItems.filter((item) => item.relatedFurnitureId === furniture.id);
+  const furnitureFamily = getFurnitureFamily(furniture, render3d.assetType);
+  const familyVariants = furnitureVariantCatalog[furnitureFamily];
+  const syncStates = structure ? relatedItems.map((item) => ({ item, state: getRelatedDrawingItemSyncState(item, furniture, structure) })) : [];
+  const unsyncedItems = syncStates.filter(({ state }) => state.needsSync);
+  const movableUnsyncedItems = unsyncedItems.filter(({ state }) => state.canMoveWithFurniture);
 
-  function updateRender3D(patch: Partial<Render3DMeta>) {
-    onChange({ ...furniture, render3d: { ...render3d, ...patch } });
+  function updateRender3D(patch: Partial<Render3DMeta>, markStyleManual = false) {
+    onChange({ ...furniture, render3d: { ...render3d, ...patch, ...(markStyleManual ? { styleSource: "manual" as const } : {}) } });
+  }
+
+  function restoreProceduralDefault() {
+    const {
+      variantId: _variantId,
+      variationSeed: _variationSeed,
+      stylePreset: _stylePreset,
+      styleSource: _styleSource,
+      primaryMaterial: _primaryMaterial,
+      secondaryMaterial: _secondaryMaterial,
+      accentMaterial: _accentMaterial,
+      detailLevel: _detailLevel,
+      ...rest
+    } = render3d;
+    onChange({ ...furniture, render3d: { ...rest, assetType: rest.assetType || furniture.moduleType || furniture.type } });
   }
 
   function updateMep(patch: Partial<MepMeta>) {
@@ -49,17 +92,155 @@ export function FurnitureMetadataEditor({ furniture, disabled = false, onChange 
     onChange({ ...furniture, constructionMeta: { ...construction, ...patch } });
   }
 
+  function updateClearance(patch: Partial<FurnitureClearanceMeta>) {
+    onChange({ ...furniture, clearanceMeta: { ...(furniture.clearanceMeta ?? {}), ...patch } });
+  }
+
   return (
     <div>
+      {structure && (
+        <MetadataSection summary="定位与宿主">
+          <label className="block text-xs text-stone-500">
+            所属房间 / 庭院
+            <select
+              className={fieldClass}
+              disabled={disabled}
+              value={furniture.roomId}
+              onChange={(event) => {
+                const spaceId = event.target.value;
+                const outdoor = structure.outdoors.some((item) => item.id === spaceId);
+                onChange({ ...furniture, roomId: spaceId, outdoorId: outdoor ? spaceId : undefined });
+              }}
+            >
+              {structure.rooms.map((room) => <option key={room.id} value={room.id}>{room.name} · {room.id}</option>)}
+              {structure.outdoors.map((outdoor) => <option key={outdoor.id} value={outdoor.id}>{outdoor.name} · {outdoor.id}</option>)}
+            </select>
+          </label>
+          <ToggleField checked={Boolean(furniture.roomAssignmentLocked)} disabled={disabled} label="锁定人工房间归属" onChange={(checked) => onChange({ ...furniture, roomAssignmentLocked: checked })} />
+          {assignment?.spanning && <p className="mt-2 rounded-lg bg-amber-50 px-2 py-2 text-[11px] font-semibold leading-4 text-amber-800">家具跨越多个空间：{assignment.candidateSpaceIds.join("、")}。当前按中心点/主要占地归入 {assignment.primarySpaceId ?? "未识别"}。</p>}
+          {assignment?.primarySpaceId && assignment.primarySpaceId !== furniture.roomId && <p className="mt-2 rounded-lg bg-red-50 px-2 py-2 text-[11px] font-semibold leading-4 text-red-700">当前位置属于 {assignment.primarySpaceId}，与当前 roomId 不一致。</p>}
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:bg-stone-300" disabled={disabled || structure.walls.length === 0} onClick={() => onChange(anchorFurnitureToWall(furniture, structure))} type="button">吸附最近墙体</button>
+            <button className="rounded-lg bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-700 disabled:text-stone-300" disabled={disabled || !furniture.hostWallId} onClick={() => onChange({ ...furniture, hostWallId: undefined, wallAnchor: undefined })} type="button">解除墙体关联</button>
+          </div>
+          <label className="mt-2 block text-xs text-stone-500">
+            关联墙体
+            <select className={fieldClass} disabled={disabled} value={furniture.hostWallId ?? ""} onChange={(event) => onChange(event.target.value ? anchorFurnitureToWall(furniture, structure, event.target.value) : { ...furniture, hostWallId: undefined, wallAnchor: undefined })}>
+              <option value="">未绑定</option>
+              {structure.walls.map((wall) => <option key={wall.id} value={wall.id}>{wall.name} · {wall.id}</option>)}
+            </select>
+          </label>
+          {furniture.wallAnchor && (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="text-xs text-stone-500">离墙距离 mm<input className={fieldClass} disabled={disabled} min="0" type="number" value={furniture.wallAnchor.offsetMm} onChange={(event) => onChange(anchorFurnitureToWall(furniture, structure, furniture.hostWallId, { offsetMm: Math.max(0, Number(event.target.value) || 0) }))} /></label>
+              <label className="text-xs text-stone-500">墙体侧<select className={fieldClass} disabled={disabled} value={furniture.wallAnchor.side} onChange={(event) => onChange(anchorFurnitureToWall(furniture, structure, furniture.hostWallId, { side: event.target.value as NonNullable<Furniture["wallAnchor"]>["side"] }))}><option value="left">左侧</option><option value="right">右侧</option><option value="center">中心线</option></select></label>
+              <ToggleField checked={furniture.wallAnchor.followWall} disabled={disabled} label="跟随墙体变化" onChange={(checked) => onChange({ ...furniture, wallAnchor: { ...furniture.wallAnchor!, followWall: checked } })} />
+              {furniture.wallAnchor.needsRebind && <button className="rounded-lg bg-red-100 px-2 py-2 text-xs font-semibold text-red-700" disabled={disabled || !furniture.wallAnchor.suggestedWallId} onClick={() => onChange(anchorFurnitureToWall(furniture, structure, furniture.wallAnchor?.suggestedWallId))} type="button">采用建议墙体</button>}
+            </div>
+          )}
+        </MetadataSection>
+      )}
+
+      <MetadataSection summary="操作与检修空间">
+        <div className="grid grid-cols-2 gap-2">
+          {([[
+            "frontMm", "前方"
+          ], ["rearMm", "后方"], ["leftMm", "左侧"], ["rightMm", "右侧"], ["serviceMm", "检修"], ["doorSwingMm", "开门"]] as Array<[keyof FurnitureClearanceMeta, string]>).map(([field, label]) => (
+            <label key={field} className="text-xs text-stone-500">{label} mm<input className={fieldClass} disabled={disabled} min="0" type="number" value={typeof furniture.clearanceMeta?.[field] === "number" ? furniture.clearanceMeta[field] as number : ""} onChange={(event) => updateClearance({ [field]: event.target.value === "" ? undefined : Math.max(0, Number(event.target.value) || 0) })} /></label>
+          ))}
+        </div>
+        <button className="mt-2 w-full rounded-lg bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-700 disabled:text-stone-300" disabled={disabled} onClick={() => onChange({ ...furniture, clearanceMeta: { ...getRecommendedClearance(furniture), notes: furniture.clearanceMeta?.notes } })} type="button">采用建议预留范围</button>
+        <label className="mt-2 block text-xs text-stone-500">预留说明<textarea className={`${fieldClass} min-h-16`} disabled={disabled} value={furniture.clearanceMeta?.notes ?? ""} onChange={(event) => updateClearance({ notes: event.target.value || undefined })} /></label>
+      </MetadataSection>
+
+      {structure && relatedItems.length > 0 && (
+        <MetadataSection summary={`关联机电点位 · ${relatedItems.length}`}>
+          {unsyncedItems.length > 0 && <p className="rounded-lg bg-amber-50 px-2 py-2 text-[11px] font-semibold leading-4 text-amber-800">家具已移动，{unsyncedItems.length} 个关联点位可能需要同步；人工调整过的点位不会被自动覆盖。</p>}
+          <div className="mt-2 grid gap-1">
+            {syncStates.map(({ item, state }) => (
+              <div key={item.id} className={`flex items-center justify-between gap-2 rounded-lg px-2 py-2 text-[11px] ${state.needsSync ? "bg-amber-50" : "bg-white"}`}>
+                <button className="min-w-0 flex-1 truncate text-left font-semibold text-stone-700" onClick={() => onLocateDrawingItem?.(item)} type="button">{drawingItemCategoryLabels[item.category]} · {item.label}</button>
+                <span className={state.needsSync ? "text-amber-700" : "text-emerald-700"}>{state.needsSync ? `${Math.round(state.distanceMm)}mm` : "已同步"}</span>
+                <button className="shrink-0 text-red-600" disabled={disabled} onClick={() => onDrawingItemsChange?.(drawingItems.map((candidate) => candidate.id === item.id ? { ...candidate, relatedFurnitureId: null, relatedFurniturePositionMm: undefined } : candidate))} type="button">解除</button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button className="rounded-lg bg-blue-700 px-2 py-2 text-xs font-semibold text-white disabled:bg-stone-300" disabled={disabled || movableUnsyncedItems.length === 0} onClick={() => onDrawingItemsChange?.(syncRelatedDrawingItemsToFurniture(drawingItems, furniture, structure, { moveUntouchedGenerated: true }))} type="button">一并移动自动点位</button>
+            <button className="rounded-lg bg-stone-100 px-2 py-2 text-xs font-semibold text-stone-700 disabled:text-stone-300" disabled={disabled || unsyncedItems.length === 0} onClick={() => onDrawingItemsChange?.(syncRelatedDrawingItemsToFurniture(drawingItems, furniture, structure, { markReviewed: true }))} type="button">保留位置并确认</button>
+          </div>
+        </MetadataSection>
+      )}
+
       <MetadataSection summary="3D 表现">
+        <div className="grid grid-cols-[88px_1fr] gap-3 rounded-lg bg-stone-50 p-2">
+          <FurnitureTopView
+            assetType={render3d.assetType as Render3DAssetType}
+            variantId={render3d.variantId}
+            className="h-20 w-[88px] border border-white shadow-sm"
+            color={furniture.color}
+            footprint={furniture.dimensions}
+            showLabel={false}
+            stretchToFill
+            type={furniture.type}
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-stone-800">{furnitureFamilyLabels[furnitureFamily]}</p>
+            <p className="mt-1 text-[11px] leading-4 text-stone-500">{familyVariants.find((variant) => variant.id === render3d.variantId)?.description ?? "使用当前程序化默认结构"}</p>
+            <p className="mt-2 text-[10px] font-semibold text-emerald-700">{render3d.styleSource === "manual" ? "人工选择，自动方案将保留" : "程序推荐，可继续调整"}</p>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <label className="text-xs text-stone-500">
+            家具家族
+            <select className={fieldClass} disabled={disabled} value={furnitureFamily} onChange={(event) => {
+              const nextFamily = event.target.value as keyof typeof furnitureVariantCatalog;
+              const assetTypeByFamily = { bed: "bed", sofa: "sofa", diningTable: "diningTable", coffeeTable: "coffeeTable", chair: "diningChair", cabinet: "cabinet", other: render3d.assetType };
+              updateRender3D({ assetType: assetTypeByFamily[nextFamily], variantId: furnitureVariantCatalog[nextFamily][0].id }, true);
+            }}>
+              {Object.entries(furnitureFamilyLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-stone-500">
+            细节等级
+            <select className={fieldClass} disabled={disabled} value={render3d.detailLevel ?? "standard"} onChange={(event) => updateRender3D({ detailLevel: event.target.value as NonNullable<Render3DMeta["detailLevel"]> }, true)}>
+              <option value="draft">草图</option><option value="standard">标准</option><option value="presentation">展示</option>
+            </select>
+          </label>
+        </div>
+        <label className="mt-3 block text-xs text-stone-500">
+          外形变体
+          <select className={fieldClass} disabled={disabled} value={render3d.variantId ?? ""} onChange={(event) => updateRender3D({ variantId: event.target.value }, true)}>
+            {familyVariants.map((variant) => <option key={variant.id} value={variant.id}>{variant.label}</option>)}
+          </select>
+        </label>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {familyVariants.map((variant) => (
+            <button key={variant.id} className={`grid grid-cols-[44px_1fr] items-center gap-2 rounded-lg border p-1.5 text-left ${render3d.variantId === variant.id ? "border-emerald-500 bg-emerald-50" : "border-stone-200 bg-white"}`} disabled={disabled} onClick={() => updateRender3D({ variantId: variant.id }, true)} type="button">
+              <FurnitureTopView assetType={render3d.assetType as Render3DAssetType} variantId={variant.id} className="size-11" color={furniture.color} footprint={furniture.dimensions} showLabel={false} stretchToFill type={furniture.type} />
+              <span className="text-[11px] font-semibold leading-4 text-stone-700">{variant.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <label className="text-xs text-stone-500">稳定差异种子<input className={fieldClass} disabled={disabled} min="0" step="1" type="number" value={render3d.variationSeed ?? stableFurnitureSeed(furniture.id)} onChange={(event) => updateRender3D({ variationSeed: Math.max(0, Math.round(Number(event.target.value) || 0)) }, true)} /></label>
+          <ToggleField checked={Boolean(render3d.styleLocked)} disabled={disabled} label="锁定外形与风格" onChange={(checked) => updateRender3D({ styleLocked: checked }, true)} />
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <button className="rounded-lg bg-stone-100 px-2 py-2 text-[11px] font-semibold text-stone-700 disabled:text-stone-300" disabled={disabled || familyVariants.length < 2} onClick={() => onChange(cycleFurnitureVariant(furniture))} type="button">换一个相似变体</button>
+          <button className="rounded-lg bg-emerald-700 px-2 py-2 text-[11px] font-semibold text-white disabled:bg-stone-300" disabled={disabled} onClick={() => onChange(restoreModernNaturalRecommendation(furniture))} type="button">恢复现代自然推荐</button>
+          <button className="rounded-lg bg-stone-100 px-2 py-2 text-[11px] font-semibold text-stone-700 disabled:text-stone-300" disabled={disabled} onClick={restoreProceduralDefault} type="button">恢复程序化默认</button>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-stone-500">
             资产类型
-            <input className={fieldClass} disabled={disabled} value={render3d.assetType ?? ""} onChange={(event) => updateRender3D({ assetType: event.target.value })} />
+            <input className={fieldClass} disabled={disabled} value={render3d.assetType ?? ""} onChange={(event) => updateRender3D({ assetType: event.target.value }, true)} />
           </label>
           <label className="text-xs text-stone-500">
             风格预设
-            <select className={fieldClass} disabled={disabled} value={render3d.stylePreset ?? "tuscan-sunlight"} onChange={(event) => updateRender3D({ stylePreset: event.target.value })}>
+            <select className={fieldClass} disabled={disabled} value={render3d.stylePreset ?? "modernNatural"} onChange={(event) => updateRender3D({ stylePreset: event.target.value }, true)}>
+              <option value="modernNatural">现代自然</option>
               <option value="tuscan-sunlight">托斯卡纳阳光</option>
               <option value="elevatedTuscanSun">高级托斯卡纳</option>
               <option value="warmJapandi">暖白浅木</option>
@@ -70,9 +251,9 @@ export function FurnitureMetadataEditor({ furniture, disabled = false, onChange 
           </label>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <label className="text-xs text-stone-500">主材质<input className={fieldClass} disabled={disabled} value={render3d.primaryMaterial ?? ""} onChange={(event) => updateRender3D({ primaryMaterial: event.target.value })} /></label>
-          <label className="text-xs text-stone-500">辅材质<input className={fieldClass} disabled={disabled} value={render3d.secondaryMaterial ?? ""} onChange={(event) => updateRender3D({ secondaryMaterial: event.target.value })} /></label>
-          <label className="text-xs text-stone-500">点缀材质<input className={fieldClass} disabled={disabled} value={render3d.accentMaterial ?? ""} onChange={(event) => updateRender3D({ accentMaterial: event.target.value })} /></label>
+          <label className="text-xs text-stone-500">主材质<input className={fieldClass} disabled={disabled} value={render3d.primaryMaterial ?? ""} onChange={(event) => updateRender3D({ primaryMaterial: event.target.value }, true)} /></label>
+          <label className="text-xs text-stone-500">辅材质<input className={fieldClass} disabled={disabled} value={render3d.secondaryMaterial ?? ""} onChange={(event) => updateRender3D({ secondaryMaterial: event.target.value }, true)} /></label>
+          <label className="text-xs text-stone-500">点缀材质<input className={fieldClass} disabled={disabled} value={render3d.accentMaterial ?? ""} onChange={(event) => updateRender3D({ accentMaterial: event.target.value }, true)} /></label>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <ToggleField checked={render3d.visibleIn3d ?? true} disabled={disabled} label="3D 可见" onChange={(checked) => updateRender3D({ visibleIn3d: checked })} />

@@ -49,15 +49,17 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await page.getByRole("button", { name: "3D 模型", exact: true }).click();
   await expect(page.locator("canvas")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("button", { name: "重置视角", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "房间漫游", exact: true })).toBeVisible();
+  await expect(page.getByTestId("mobile-camera-bar")).toBeVisible();
+  await expect(page.getByRole("button", { name: "自由浏览", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "鸟瞰", exact: true })).toBeVisible();
   await expect(page.locator("canvas")).toHaveCSS("touch-action", "none");
 
-  await page.getByRole("button", { name: "房间漫游", exact: true }).click();
+  await page.getByTestId("mobile-camera-bar").getByRole("button", { name: /^更多/ }).click();
   const tourPanel = page.getByTestId("tour-room-panel");
   await expect(tourPanel).toBeVisible();
-  await expect(tourPanel.getByRole("button").filter({ hasText: "B1 楼层总览" })).toBeVisible();
   const roomButton = tourPanel.getByRole("button").filter({ hasText: "房间" }).last();
   await roomButton.click();
+  await expect(tourPanel).toBeHidden();
   await expect(page.getByTestId("mobile-tour-title")).toContainText("B1 /");
   await expect(page.locator('[data-room-tour-active="true"]')).toBeVisible();
   await expect(page.getByTestId("tour-hotspots")).toBeVisible();
@@ -65,8 +67,11 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(nextRoomHotspot).toBeVisible();
   await nextRoomHotspot.click();
   await expect(page.getByTestId("mobile-tour-title")).toContainText("B1 /");
-  await page.getByRole("button", { name: "退出漫游", exact: true }).click();
+  await page.getByRole("button", { name: "自由浏览", exact: true }).click();
   await expect(page.locator('[data-room-tour-active="false"]')).toBeVisible();
+  await expect(page.locator('[data-camera-mode="orbit"]')).toBeVisible();
+  await expect(page.locator('[data-active-camera-view-id=""]')).toBeVisible();
+  await expect(page.getByRole("button", { name: "自由浏览", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "2D 图纸", exact: true }).click();
 
   const furniture = page.locator("[data-furniture-id]").first();

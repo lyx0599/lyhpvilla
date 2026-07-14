@@ -18,6 +18,7 @@ import type {
   ArcHouseWall,
   StraightHouseWall
 } from "@/types/space";
+import { createManualVerificationMeta } from "./dimension-verification.ts";
 
 export const STRUCTURE_WIDTH_MM = 12000;
 export const STRUCTURE_HEIGHT_MM = 9000;
@@ -112,7 +113,8 @@ export function createStraightWall(id: string, floorId: FloorId, start: MmPoint,
     end,
     thickness: DEFAULT_WALL_THICKNESS_MM,
     height: DEFAULT_WALL_HEIGHT_MM,
-    length: getLineLength(start, end)
+    length: getLineLength(start, end),
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -138,7 +140,8 @@ export function createArcWall(
     thickness: DEFAULT_WALL_THICKNESS_MM,
     height: DEFAULT_WALL_HEIGHT_MM,
     direction,
-    length: Math.round((Math.abs(endAngle - startAngle) * Math.PI * radius) / 180)
+    length: Math.round((Math.abs(endAngle - startAngle) * Math.PI * radius) / 180),
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -186,7 +189,8 @@ export function createArcWallFromEndpoints(
     thickness: DEFAULT_WALL_THICKNESS_MM,
     height: DEFAULT_WALL_HEIGHT_MM,
     direction,
-    length: Math.round((clampedSweepAngle * Math.PI * radius) / 180)
+    length: Math.round((clampedSweepAngle * Math.PI * radius) / 180),
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -206,7 +210,8 @@ export function createPartition(id: string, floorId: FloorId, start: MmPoint, en
     thickness: DEFAULT_PARTITION_THICKNESS_MM,
     height: DEFAULT_PARTITION_HEIGHT_MM,
     editable: true,
-    removable: true
+    removable: true,
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -223,7 +228,8 @@ export function createStair(id: string, floorId: FloorId, start: MmPoint, end: M
     stepCount: DEFAULT_STAIR_STEP_COUNT,
     direction: "up",
     editable: true,
-    removable: true
+    removable: true,
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -240,7 +246,8 @@ export function createColumn(id: string, floorId: FloorId, center: MmPoint, radi
     material: "reinforcedConcrete",
     supportsFloorId: floorId === "B2" ? "B1" : undefined,
     editable: true,
-    removable: true
+    removable: true,
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -289,7 +296,8 @@ function createGeneratedRoom(
     geometryType: "polygon",
     boundary,
     area: getPolygonArea(boundary),
-    sourceWallIds
+    sourceWallIds,
+    verificationMeta: previousRoom?.verificationMeta ?? createManualVerificationMeta()
   });
 }
 
@@ -486,7 +494,8 @@ export function createDoor(id: string, floorId: FloorId, host: NonNullable<Retur
     positionOnWall: Number(host.projection.t.toFixed(3)),
     width: 900,
     height: 2100,
-    openDirection: "leftIn"
+    openDirection: "leftIn",
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -500,7 +509,8 @@ export function createWindow(id: string, floorId: FloorId, host: NonNullable<Ret
     hostType: host.hostType,
     positionOnWall: Number(host.projection.t.toFixed(3)),
     width: 1200,
-    height: 1400
+    height: 1400,
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -515,7 +525,8 @@ export function createBayWindow(id: string, floorId: FloorId, host: NonNullable<
     positionOnWall: Number(host.projection.t.toFixed(3)),
     width: 1600,
     depth: 550,
-    height: 900
+    height: 900,
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -531,7 +542,8 @@ export function createSkylight(id: string, floorId: FloorId, center: MmPoint): H
     height: 120,
     rotation: 0,
     editable: true,
-    removable: true
+    removable: true,
+    verificationMeta: createManualVerificationMeta()
   };
 }
 
@@ -544,7 +556,8 @@ export function createOutdoor(id: string, floorId: FloorId, polygon: MmPoint[]):
     geometryType: "polygon",
     outdoorType: "patio",
     polygon,
-    area: getPolygonArea(polygon)
+    area: getPolygonArea(polygon),
+    verificationMeta: createManualVerificationMeta()
   };
 }
 

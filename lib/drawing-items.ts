@@ -107,7 +107,8 @@ function generatedFields(item: DrawingItem) {
     mountingType: item.mountingType ?? null, relatedSwitchId: item.relatedSwitchId ?? null,
     controlGroupId: item.controlGroupId ?? null, smartControl: Boolean(item.smartControl),
     dimming: Boolean(item.dimming), relatedRoomId: item.relatedRoomId ?? null,
-    hostCeilingAreaId: item.hostCeilingAreaId ?? null,
+    hostCeilingAreaId: item.hostCeilingAreaId ?? null, hostWallId: item.hostWallId ?? null,
+    lightSpec: item.lightSpec ?? null,
     polygon: item.polygon ?? [], ceilingHeightMm: item.ceilingHeightMm ?? null,
     relatedLightIds: item.relatedLightIds ?? [], inspectionAccess: Boolean(item.inspectionAccess),
     airVent: Boolean(item.airVent), returnAir: Boolean(item.returnAir), maintenanceOpening: Boolean(item.maintenanceOpening),
@@ -121,6 +122,14 @@ function generatedFields(item: DrawingItem) {
 
 export function getDrawingItemGeneratedFingerprint(item: DrawingItem) {
   return JSON.stringify(generatedFields(item));
+}
+
+/** Fingerprint shape used before schema v14 added host-wall and photometric fields. */
+export function getLegacyDrawingItemGeneratedFingerprintV13(item: DrawingItem) {
+  const fields: Record<string, unknown> = generatedFields(item);
+  delete fields.hostWallId;
+  delete fields.lightSpec;
+  return JSON.stringify(fields);
 }
 
 function getGeneratedPosition(furniture: Furniture, structure: HouseStructure, index: number) {
@@ -137,6 +146,14 @@ function getGeneratedPosition(furniture: Furniture, structure: HouseStructure, i
   return {
     x: Math.round(Math.min(maxX, Math.max(minX, centerX + Math.cos(angle) * offset))),
     y: Math.round(Math.min(maxY, Math.max(minY, centerY + Math.sin(angle) * offset)))
+  };
+}
+
+function getFurnitureCenter(furniture: Furniture, structure: HouseStructure) {
+  const coordinateSystem = structure.coordinateSystem;
+  return {
+    x: Math.round(coordinateSystem.origin.x + (furniture.position.x / 100) * coordinateSystem.width),
+    y: Math.round(coordinateSystem.origin.y + (furniture.position.y / 100) * coordinateSystem.height)
   };
 }
 
@@ -183,6 +200,7 @@ export function generateDrawingItemsFromFurniture(input: {
         smartControl: Boolean(demand.needsSmartControl),
         needsSmartControl: Boolean(demand.needsSmartControl),
         switchControl: demand.switchControl ?? [],
+        relatedFurniturePositionMm: getFurnitureCenter(furniture, structure),
         generatedKey,
         createdAt: current?.createdAt ?? now,
         updatedAt: now

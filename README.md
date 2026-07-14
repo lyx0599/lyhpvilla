@@ -188,6 +188,25 @@ components/floor-3d-view.tsx
 - 3D 里至少有稳定的体块表达和默认材质。
 - `types/space.ts` 里的类型允许这个新模块。
 
+## 家具变体与现代自然风
+
+程序化家具不再只由 `assetType` 决定外形。`lib/furniture-variants.ts` 统一管理床、沙发、餐桌、茶几、椅子和柜体家族，2D 顶视图与 3D renderer 共用 `variantId`：
+
+- `variantId` 表示结构差异，例如悬浮平台床、L 型沙发、圆形中柱桌或开放封闭组合柜。
+- `variationSeed` 由家具 ID 生成并持久化，同一变体可获得稳定的小差异，刷新和导入后不会变化。
+- `stylePreset: "modernNatural"` 使用浅橡木、暖白、米灰布艺、暖灰石材、洞石、浅茶玻璃和少量深色金属。
+- `detailLevel` 分为 `draft`、`standard` 和 `presentation`；普通对象默认标准，重点家具使用展示级，草图级会减少圆角分段、靠包和分缝。
+- `modelAssetId` 与 `assetUrl` 仅作为后续 GLB/GLTF 接入预留，本版不会加载外部模型。
+
+家具工作区的“现代自然风方案”可按房间、楼层或全屋应用，并显示调整与保留数量。`locked`、`styleLocked` 或人工选择的对象不会被自动覆盖；操作支持一次撤销和重做。属性面板可切换家族、中文变体、三层材质、细节等级与稳定种子。
+
+更新默认方案时运行：
+
+```bash
+pnpm apply:furniture-style
+pnpm test:furniture-variants
+```
+
 ## 验证命令
 
 核心检查：

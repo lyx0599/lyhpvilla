@@ -1,5 +1,6 @@
 import { formatDimensions } from "@/lib/format";
 import { semanticCategoryLabels } from "@/lib/semantic-map";
+import { verificationSourceLabels, verificationStatusLabels } from "@/lib/dimension-verification";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import type {
   Floor,
@@ -240,6 +241,16 @@ function getStructureSummary(object: HouseStructureObject | null | undefined): {
   };
 }
 
+function getVerificationRows(object: HouseStructureObject | null | undefined): InfoRow[] {
+  if (!object || !("verificationMeta" in object) || !object.verificationMeta) return [];
+  return [
+    { label: "尺寸状态", value: verificationStatusLabels[object.verificationMeta.status] },
+    { label: "数据来源", value: verificationSourceLabels[object.verificationMeta.source] },
+    { label: "允许误差", value: object.verificationMeta.toleranceMm === undefined ? "未标注" : formatMm(object.verificationMeta.toleranceMm) },
+    { label: "复核备注", value: object.verificationMeta.notes || object.verificationMeta.sourceNote || "暂无备注" }
+  ];
+}
+
 function serviceRows(furniture: Furniture | null): InfoRow[] {
   if (!furniture) return [];
   const mep = furniture.mepMeta ?? {};
@@ -316,7 +327,7 @@ export function MobileDetailsDrawer({
         ...serviceRows(furniture)
       ]
       : structureSummary
-        ? structureSummary.rows
+        ? [...structureSummary.rows, ...getVerificationRows(structureObject)]
         : semanticObject
           ? [
             { label: "类型", value: semanticObject.type },

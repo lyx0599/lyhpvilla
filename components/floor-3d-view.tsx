@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { FurnitureFamily3D } from "@/components/furniture-family-3d";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
 import { tourNodeToCameraView } from "@/lib/room-tour";
+import { buildFloorCameraViews, splitFloorCameraViews } from "@/lib/floor-camera-views";
+import type { FloorCameraView } from "@/lib/floor-camera-views";
+import { drawingSheetTypeLabels, officialDrawingSheetTypes } from "@/lib/drawing-sheets";
+import {
+  drawing3DViewPresetLabels,
+  drawing3DViewPresets,
+  getDrawing3DPresentationProfile
+} from "@/lib/drawing-3d-profiles";
 import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
 import {
   getDoor3DDisplayHeight,
@@ -19,6 +28,8 @@ import {
 import type { Resolved3DAsset, ResolvedRender3DMaterialLayer, ResolvedRender3DMaterials } from "@/lib/render3d-assets";
 import type {
   Floor,
+  DrawingItem,
+  DrawingSheetType,
   FixedCameraView,
   Furniture,
   HouseBayWindow,
@@ -39,21 +50,28 @@ import type {
   Render3DAssetType,
   RoomTourView
 } from "@/types/space";
+import type { Drawing3DViewPreset, Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
+import type { LightingDesign } from "@/types/workspace";
 
 type Floor3DViewProps = {
   floor: Floor;
   houseStructure: HouseStructure;
   furniture: Furniture[];
+  drawingItems: DrawingItem[];
+  drawingSheetType: DrawingSheetType;
   selectedObjectId: string;
   selectedFurnitureId: string;
   showObjectIds: boolean;
   onShowObjectIdsChange: (visible: boolean) => void;
   onSelectStructure: (objectId: string) => void;
   onSelectFurniture: (furniture: Furniture) => void;
+  onSelectDrawingItem: (drawingItemId: string) => void;
+  onDrawingSheetTypeChange: (sheetType: DrawingSheetType) => void;
   onHoverObject: (objectId: string) => void;
   onClearHoverObject: (objectId: string) => void;
   cameraViews?: FixedCameraView[];
   roomTourViews?: RoomTourView[];
+  lightingDesign?: LightingDesign;
   cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   mobilePresentationMode?: boolean;
@@ -134,6 +152,7 @@ const WALL_CAP_COLOR = "#2f3538";
 const WALL_CAP_SELECTED_COLOR = "#1d4ed8";
 const CUTAWAY_OBJECT_MAX_HEIGHT_M = (WALL_PREVIEW_HEIGHT_MM - 90) * MM_TO_M;
 const RAILING_SELECTED_COLOR = "#2563eb";
+const DEFAULT_CEILING_HEIGHT_MM = 2800;
 const CAMERA_TARGET = new THREE.Vector3(0.12, 0.42, 0.32);
 const cameraPositions: Record<CameraPreset, [number, number, number]> = {
   overview: [6.7, 7.85, 7.45],
@@ -157,18 +176,6 @@ const cameraTargets: Record<CameraPreset, THREE.Vector3> = {
   stair: new THREE.Vector3(-3.75, 0.42, -0.98),
   fireplace: new THREE.Vector3(-2.04, 0.44, 1.98)
 };
-const cameraRotationOrder: CameraPreset[] = ["front", "right", "back", "left"];
-const cameraViewOptions: Array<[CameraPreset, string]> = [
-  ["overview", "鸟瞰"],
-  ["front", "前"],
-  ["right", "右"],
-  ["back", "后"],
-  ["left", "左"],
-  ["living", "客厅"],
-  ["kitchen", "厨房"],
-  ["stair", "楼梯"],
-  ["fireplace", "壁炉"]
-];
 const designStyleOptions: Array<[DesignStylePreset, string]> = [
   ["naturalWood", "浅木自然"],
   ["softCream", "奶油白"],
@@ -223,15 +230,6 @@ const interiorMaterialCatalog = {
   shadowLine: { label: "柔和分缝", color: "#7d7166", roughness: 0.7, metalness: 0.03, opacity: 0.46, envMapIntensity: 0.2 }
 } satisfies Record<string, EffectMaterial>;
 type InteriorMaterialKey = keyof typeof interiorMaterialCatalog;
-const materialLegendText = [
-  effectMaterialCatalog.wallPaint.label,
-  effectMaterialCatalog.wallCap.label,
-  interiorMaterialCatalog.travertine.label,
-  interiorMaterialCatalog.warmOak.label,
-  interiorMaterialCatalog.creamFabric.label,
-  interiorMaterialCatalog.clearGlass.label,
-  interiorMaterialCatalog.brushedBronze.label
-].join(" / ");
 function effectMaterialProps(key: EffectMaterialKey) {
   const material = effectMaterialCatalog[key];
   return {
@@ -418,6 +416,7 @@ function RoundedBoxMesh({
   roughness = 0.62,
   metalness = 0.02,
   opacity = 1,
+  side = THREE.FrontSide,
   transparent,
   emissive = "#000000",
   emissiveIntensity = 0,
@@ -437,6 +436,7 @@ function RoundedBoxMesh({
   roughness?: number;
   metalness?: number;
   opacity?: number;
+  side?: THREE.Side;
   transparent?: boolean;
   emissive?: string;
   emissiveIntensity?: number;
@@ -474,6 +474,7 @@ function RoundedBoxMesh({
         emissive={emissive}
         emissiveIntensity={emissiveIntensity}
         envMapIntensity={envMapIntensity}
+        side={side}
       />
     </mesh>
   );
@@ -1888,10 +1889,6 @@ function getFurnitureServiceMarkers(item: Furniture) {
   return serviceMarkerOptions.filter((service) => requirements[service.key]);
 }
 
-function countServiceMarkers(furniture: Furniture[]) {
-  return furniture.reduce((total, item) => total + getFurnitureServiceMarkers(item).length, 0);
-}
-
 function RoomFloorMesh({
   room,
   index,
@@ -2081,6 +2078,7 @@ function PolygonSurfaceMesh({
   roughness,
   metalness = 0.02,
   opacity = 1,
+  side = THREE.FrontSide,
   textureKind = null,
   textureAccent,
   onSelect,
@@ -2095,6 +2093,7 @@ function PolygonSurfaceMesh({
   roughness: number;
   metalness?: number;
   opacity?: number;
+  side?: THREE.Side;
   textureKind?: ProceduralTextureKind | null;
   textureAccent?: string;
   onSelect?: (id: string) => void;
@@ -2145,6 +2144,7 @@ function PolygonSurfaceMesh({
         metalness={metalness}
         transparent={opacity < 1}
         opacity={opacity}
+        side={side}
       />
     </mesh>
   );
@@ -2882,10 +2882,17 @@ function CutWallPanel({
   );
 }
 
+function getWallDisplayHeightMm(heightMm: number, selected: boolean, wallMode: Drawing3DWallMode) {
+  if (wallMode === "full") return heightMm;
+  if (wallMode === "low") return Math.min(heightMm, selected ? 1450 : 820);
+  return Math.min(heightMm, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM);
+}
+
 function StraightWallWithOpenings({
   wall,
   structure,
   wallColor,
+  wallMode,
   selected,
   onSelect,
   onHover,
@@ -2894,12 +2901,13 @@ function StraightWallWithOpenings({
   wall: Extract<HouseWall, { kind: "straight" }>;
   structure: HouseStructure;
   wallColor: string;
+  wallMode: Drawing3DWallMode;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
-  const displayHeightMm = Math.min(wall.height, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM);
+  const displayHeightMm = getWallDisplayHeightMm(wall.height, selected, wallMode);
   const lengthMm = Math.max(1, Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y));
   const cuts = getHostedOpeningCuts(structure, wall.id, "wall", lengthMm, wall.height);
   const panels = getStraightHostPanels(wall.start, wall.end, displayHeightMm, cuts);
@@ -2932,6 +2940,7 @@ function WallMesh({
   wall,
   structure,
   wallColor,
+  wallMode,
   selected,
   onSelect,
   onHover,
@@ -2940,6 +2949,7 @@ function WallMesh({
   wall: HouseWall;
   structure: HouseStructure;
   wallColor: string;
+  wallMode: Drawing3DWallMode;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2989,7 +2999,7 @@ function WallMesh({
 
   if (wall.kind === "arc") {
     const points = getArcWallPoints(wall);
-    const heightMm = Math.min(wall.height, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM);
+    const heightMm = getWallDisplayHeightMm(wall.height, selected, wallMode);
     return (
       <group>
         {points.slice(0, -1).map((point, index) => (
@@ -3020,6 +3030,7 @@ function WallMesh({
         wall={wall}
         structure={structure}
         wallColor={wallColor}
+        wallMode={wallMode}
         selected={selected}
         onSelect={onSelect}
         onHover={onHover}
@@ -3034,7 +3045,7 @@ function WallMesh({
       start={wall.start}
       end={wall.end}
       widthMm={wall.thickness}
-      heightMm={Math.min(wall.height, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM)}
+      heightMm={getWallDisplayHeightMm(wall.height, selected, wallMode)}
       structure={structure}
       color={wallColor}
       selected={selected}
@@ -3048,6 +3059,7 @@ function WallMesh({
 function PartitionMesh({
   partition,
   structure,
+  wallMode,
   selected,
   onSelect,
   onHover,
@@ -3055,6 +3067,7 @@ function PartitionMesh({
 }: {
   partition: HousePartition;
   structure: HouseStructure;
+  wallMode: Drawing3DWallMode;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -3066,7 +3079,7 @@ function PartitionMesh({
       start={partition.start}
       end={partition.end}
       widthMm={partition.thickness}
-      heightMm={partition.height}
+      heightMm={getWallDisplayHeightMm(partition.height, selected, wallMode)}
       structure={structure}
       color={partition.material === "glass" ? "#bae6fd" : "#ddd6c8"}
       opacity={partition.transparency ? Math.max(0.28, 1 - partition.transparency) : 0.82}
@@ -3302,6 +3315,7 @@ function BayWindowMesh({
 function SkylightMesh({
   skylight,
   structure,
+  wallMode,
   selected,
   onSelect,
   onHover,
@@ -3309,6 +3323,7 @@ function SkylightMesh({
 }: {
   skylight: HouseSkylight;
   structure: HouseStructure;
+  wallMode: Drawing3DWallMode;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -3323,7 +3338,7 @@ function SkylightMesh({
   const frameColor = selected ? "#2563eb" : effectMaterialCatalog.blackMetal.color;
   return (
     <group
-      position={[center.x, WALL_PREVIEW_HEIGHT_MM * MM_TO_M + 0.04, center.z]}
+      position={[center.x, (wallMode === "full" ? Math.max(DEFAULT_CEILING_HEIGHT_MM, ...structure.walls.map((wall) => wall.height)) : WALL_PREVIEW_HEIGHT_MM) * MM_TO_M + 0.04, center.z]}
       rotation={[0, -skylight.rotation * Math.PI / 180, 0]}
       onClick={(event) => {
         event.stopPropagation();
@@ -5145,28 +5160,44 @@ function FurnitureBlock({
 
 type ResolvedFurnitureAssetProps = Omit<FurnitureAssetGroupProps, "resolvedAsset">;
 
-function Bed3DGroup(props: FurnitureAssetGroupProps) {
-  if (shouldUseFineAsset(props)) return <Bed3DAsset {...props} />;
+function FineVariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  return (
+    <SelectableFurnitureGroup props={props} position={metrics.position} groupY={metrics.groupY} rotation={metrics.rotation}>
+      <FurnitureFamily3D
+        item={props.item}
+        asset={props.resolvedAsset}
+        width={metrics.width}
+        depth={metrics.depth}
+        height={metrics.height}
+      />
+    </SelectableFurnitureGroup>
+  );
+}
+
+function VariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
+  if (shouldUseFineAsset(props)) return <FineVariantFurniture3DGroup {...props} />;
   return <FurnitureBlock {...props} />;
+}
+
+function Bed3DGroup(props: FurnitureAssetGroupProps) {
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Nightstand3DGroup(props: FurnitureAssetGroupProps) {
-  if (shouldUseFineAsset(props)) return <Nightstand3DAsset {...props} />;
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Wardrobe3DGroup(props: FurnitureAssetGroupProps) {
-  if (shouldUseFineAsset(props)) return <Wardrobe3DAsset {...props} />;
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function WalkInCloset3DGroup(props: FurnitureAssetGroupProps) {
-  if (shouldUseFineAsset(props)) return <Wardrobe3DAsset {...props} forceOpen />;
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Cabinet3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Desk3DGroup(props: FurnitureAssetGroupProps) {
@@ -5175,8 +5206,7 @@ function Desk3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function BathroomVanity3DGroup(props: FurnitureAssetGroupProps) {
-  if (shouldUseFineAsset(props)) return <BathroomVanity3DAsset {...props} />;
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Toilet3DGroup(props: FurnitureAssetGroupProps) {
@@ -5195,35 +5225,35 @@ function Shower3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Sofa3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function CoffeeTable3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function DiningTable3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function DiningChair3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function KitchenCabinet3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Island3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Sideboard3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function EntryCabinet3DGroup(props: FurnitureAssetGroupProps) {
-  return <FurnitureBlock {...props} />;
+  return <VariantFurniture3DGroup {...props} />;
 }
 
 function Fireplace3DGroup(props: FurnitureAssetGroupProps) {
@@ -5410,6 +5440,7 @@ function CameraRig({
   preset,
   fixedView,
   requestVersion,
+  freeBrowseVersion,
   mode,
   tourNode,
   mobilePresentationMode
@@ -5417,6 +5448,7 @@ function CameraRig({
   preset: CameraPreset;
   fixedView: FixedCameraView | null;
   requestVersion: number;
+  freeBrowseVersion: number;
   mode: CameraMode;
   tourNode: RoomTourView | null;
   mobilePresentationMode: boolean;
@@ -5424,6 +5456,7 @@ function CameraRig({
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
   const walkInitializedRef = useRef(false);
+  const freeBrowseInitializedRef = useRef(false);
   const pressedKeysRef = useRef<Set<string>>(new Set());
   const moveVectorRef = useRef(new THREE.Vector3());
   const forwardVectorRef = useRef(new THREE.Vector3());
@@ -5488,12 +5521,37 @@ function CameraRig({
     };
     // Mobile uses a perspective camera even for legacy orthographic presets, so those
     // presets keep their position/target but not their large orthographic zoom value.
-    if (controls) {
-      controls.enableRotate = mobilePresentationMode || fixedView?.mode !== "orthographic";
-      controls.enablePan = true;
-    }
+    if (controls) controls.enabled = false;
     walkInitializedRef.current = false;
-  }, [camera, fixedView, mobilePresentationMode, preset, requestVersion, tourNode?.fov]);
+    // requestVersion is the one-shot boundary. Keeping a selected view active in
+    // the UI must never cause later renders to re-apply its position.
+  }, [camera, mobilePresentationMode, requestVersion]);
+
+  useEffect(() => {
+    if (!freeBrowseInitializedRef.current) {
+      freeBrowseInitializedRef.current = true;
+      return;
+    }
+    const controls = controlsRef.current;
+    transitionRef.current = null;
+    pressedKeysRef.current.clear();
+    if (!controls) return;
+    controls.enabled = true;
+    controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.enableZoom = true;
+    controls.minDistance = 0.75;
+    controls.maxDistance = 18;
+    controls.minPolarAngle = Math.PI / 8;
+    controls.maxPolarAngle = Math.PI / 2.08;
+    const targetDistance = controls.target.distanceTo(camera.position);
+    if (!Number.isFinite(targetDistance) || targetDistance < 0.2) {
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+      controls.target.copy(camera.position).add(direction.multiplyScalar(3));
+    }
+    controls.update();
+  }, [camera, freeBrowseVersion]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -5526,7 +5584,7 @@ function CameraRig({
       return;
     }
     if (mode === "orbit") {
-      controls.enableRotate = mobilePresentationMode || fixedView?.mode !== "orthographic";
+      controls.enableRotate = true;
       controls.enablePan = true;
       controls.minDistance = 0.75;
       controls.maxDistance = 18;
@@ -5534,7 +5592,7 @@ function CameraRig({
       walkInitializedRef.current = false;
       controls.update();
     }
-  }, [camera, fixedView?.mode, mobilePresentationMode, mode]);
+  }, [camera, mode]);
 
   useEffect(() => {
     if (mode !== "walkthrough") return;
@@ -5572,7 +5630,17 @@ function CameraRig({
       camera.lookAt(currentTarget);
       camera.updateProjectionMatrix();
       controlsRef.current?.update();
-      if (rawProgress >= 1) transitionRef.current = null;
+      if (rawProgress >= 1) {
+        transitionRef.current = null;
+        const controls = controlsRef.current;
+        if (controls) {
+          controls.enabled = true;
+          controls.enableZoom = true;
+          controls.enableRotate = true;
+          controls.enablePan = mode !== "tour";
+          controls.update();
+        }
+      }
       return;
     }
     if (mode === "tour" && tourNode) {
@@ -5626,10 +5694,299 @@ function CameraRig({
   return null;
 }
 
+type LightingSceneMode = "dayWithLights" | "dusk" | "night" | "artificialOnly" | "beamAnalysis";
+type MaterialCategoryFilter = "all" | "structure" | "furniture" | "outdoor";
+
+const lightingSceneModeLabels: Record<LightingSceneMode, string> = {
+  dayWithLights: "日间 + 灯光",
+  dusk: "傍晚",
+  night: "夜间",
+  artificialOnly: "仅人工灯光",
+  beamAnalysis: "光束分析"
+};
+
+const drawingItemColors: Record<DrawingItem["category"], string> = {
+  socket: "#f59e0b",
+  switch: "#2563eb",
+  light: "#ffd166",
+  waterSupply: "#0ea5e9",
+  drainage: "#16a34a",
+  ceiling: "#a78bfa",
+  floorFinish: "#d97706",
+  wallFinish: "#db2777",
+  cabinet: "#92400e",
+  annotation: "#ef4444",
+  network: "#06b6d4",
+  ventilation: "#64748b"
+};
+
+function colorTemperatureToHex(value: DrawingItem["colorTemperature"]) {
+  if (value === "2700K") return "#ffd3a0";
+  if (value === "3500K") return "#ffe7c2";
+  if (value === "4000K") return "#fff4e5";
+  return "#ffddb0";
+}
+
+function drawingItemHeightM(item: DrawingItem) {
+  if (typeof item.heightMm === "number") return Math.max(0.06, item.heightMm * MM_TO_M);
+  if (item.category === "light" || item.category === "ceiling" || item.category === "ventilation") return DEFAULT_CEILING_HEIGHT_MM * MM_TO_M;
+  if (item.category === "switch") return 1.2;
+  if (item.category === "socket" || item.category === "network") return 0.3;
+  if (item.category === "drainage") return 0.08;
+  if (item.category === "waterSupply") return 0.45;
+  return 1.35;
+}
+
+function DrawingItemIdSprite({ text, position }: { text: string; position: [number, number, number] }) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 112;
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.fillStyle = "rgba(20, 24, 28, 0.88)";
+      context.roundRect(6, 6, 500, 100, 22);
+      context.fill();
+      context.fillStyle = "#ffffff";
+      context.font = "700 34px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(text, 256, 56, 470);
+    }
+    const nextTexture = new THREE.CanvasTexture(canvas);
+    nextTexture.colorSpace = THREE.SRGBColorSpace;
+    nextTexture.needsUpdate = true;
+    return nextTexture;
+  }, [text]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  return (
+    <sprite position={position} scale={[1.55, 0.34, 1]}>
+      <spriteMaterial map={texture} transparent depthTest={false} />
+    </sprite>
+  );
+}
+
+function DrawingConnection({ from, to, color = "#60a5fa" }: { from: THREE.Vector3; to: THREE.Vector3; color?: string }) {
+  const metrics = useMemo(() => {
+    const midpoint = from.clone().add(to).multiplyScalar(0.5);
+    const direction = to.clone().sub(from);
+    const length = Math.max(0.01, direction.length());
+    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    return { midpoint, length, quaternion };
+  }, [from.x, from.y, from.z, to.x, to.y, to.z]);
+  return (
+    <mesh position={metrics.midpoint} quaternion={metrics.quaternion}>
+      <cylinderGeometry args={[0.009, 0.009, metrics.length, 8]} />
+      <meshBasicMaterial color={color} transparent opacity={0.7} depthWrite={false} />
+    </mesh>
+  );
+}
+
+function SpecialtyCeilingLayer({
+  structure,
+  drawingItems,
+  solid,
+  onSelect
+}: {
+  structure: HouseStructure;
+  drawingItems: DrawingItem[];
+  solid: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const ceilingItems = drawingItems.filter((item) => item.category === "ceiling" && item.polygon && item.polygon.length >= 3);
+  const surfaces = ceilingItems.length > 0
+    ? ceilingItems.map((item) => ({ id: item.id, points: item.polygon!, y: (item.ceilingHeightMm ?? item.heightMm ?? DEFAULT_CEILING_HEIGHT_MM) * MM_TO_M }))
+    : structure.rooms.map((room) => ({ id: `ceiling-fallback-${room.id}`, points: room.boundary, y: DEFAULT_CEILING_HEIGHT_MM * MM_TO_M }));
+  return (
+    <group>
+      {surfaces.map((surface) => (
+        <PolygonSurfaceMesh
+          key={surface.id}
+          id={surface.id}
+          points={surface.points}
+          structure={structure}
+          y={surface.y}
+          color="#eee8dc"
+          roughness={0.76}
+          opacity={solid ? 0.94 : 0.24}
+          side={THREE.DoubleSide}
+          onSelect={surface.id.startsWith("ceiling-fallback-") ? undefined : onSelect}
+        />
+      ))}
+    </group>
+  );
+}
+
+function DrawingItems3DLayer({
+  drawingItems,
+  structure,
+  selectedObjectId,
+  lightingActive,
+  lightingScene,
+  lightingControlBrightness,
+  showFixtureModels,
+  showFixtureIds,
+  showBeamCones,
+  showLightSpots,
+  showControlRelations,
+  showIlluminanceLayer,
+  showRelationshipLines,
+  mobilePresentationMode,
+  mobileQuality,
+  onSelect
+}: {
+  drawingItems: DrawingItem[];
+  structure: HouseStructure;
+  selectedObjectId: string;
+  lightingActive: boolean;
+  lightingScene: LightingSceneMode;
+  lightingControlBrightness: ReadonlyMap<string, number>;
+  showFixtureModels: boolean;
+  showFixtureIds: boolean;
+  showBeamCones: boolean;
+  showLightSpots: boolean;
+  showControlRelations: boolean;
+  showIlluminanceLayer: boolean;
+  showRelationshipLines: boolean;
+  mobilePresentationMode: boolean;
+  mobileQuality: MobileQuality;
+  onSelect: (id: string) => void;
+}) {
+  const lights = drawingItems.filter((item) => item.category === "light");
+  const showTechnicalBeam = lightingScene === "beamAnalysis" || showBeamCones;
+  const lightIntensity = lightingScene === "dayWithLights" ? 0.7 : lightingScene === "dusk" ? 1.05 : lightingScene === "beamAnalysis" ? 0.55 : 1.25;
+  const selectedItem = drawingItems.find((item) => item.id === selectedObjectId);
+  const selectedControlGroup = selectedItem?.category === "switch" ? selectedItem.controlGroupId : null;
+  const relationGroups = new Set<string>();
+  if (showControlRelations || showRelationshipLines) {
+    if (selectedItem?.controlGroupId) relationGroups.add(selectedItem.controlGroupId);
+    else if (showControlRelations) drawingItems.forEach((item) => item.controlGroupId && relationGroups.add(item.controlGroupId));
+  }
+  const relations = Array.from(relationGroups).flatMap((groupId) => {
+    const switches = drawingItems.filter((item) => item.category === "switch" && item.controlGroupId === groupId);
+    const groupedLights = lights.filter((item) => item.controlGroupId === groupId);
+    return switches.flatMap((switchItem) => groupedLights.map((light) => ({ switchItem, light })));
+  }).slice(0, mobilePresentationMode ? 8 : 48);
+
+  return (
+    <group>
+      {drawingItems.map((item, index) => {
+        const scenePoint = toScenePoint(item.positionMm, structure);
+        const y = drawingItemHeightM(item);
+        const selected = selectedObjectId === item.id;
+        const isLight = item.category === "light";
+        const controlledBySelection = Boolean(isLight && selectedControlGroup && item.controlGroupId === selectedControlGroup);
+        const markerColor = selected ? "#2563eb" : controlledBySelection ? "#60a5fa" : drawingItemColors[item.category];
+        const lightColor = colorTemperatureToHex(item.colorTemperature);
+        const beamHeight = Math.max(0.3, y - 0.06);
+        const beamRadius = Math.min(2.6, Math.tan(((item.beamAngle ?? 60) * Math.PI / 180) / 2) * beamHeight);
+        const allowRealtimeShadow = lightingActive && index < (mobilePresentationMode ? 1 : mobileQuality === "high" ? 6 : 3);
+        const controlBrightness = isLight && item.controlGroupId ? (lightingControlBrightness.get(item.controlGroupId) ?? 100) / 100 : 1;
+        return (
+          <group key={item.id}>
+            {(showFixtureModels || !isLight) && (
+              <group
+                position={[scenePoint.x, y, scenePoint.z]}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect(item.id);
+                }}
+              >
+                {isLight ? (
+                  <>
+                    <mesh rotation={[Math.PI / 2, 0, 0]}>
+                      <cylinderGeometry args={[selected ? 0.12 : 0.085, selected ? 0.12 : 0.085, 0.04, 24]} />
+                      <meshStandardMaterial color={markerColor} emissive={lightColor} emissiveIntensity={lightingActive ? 0.9 : 0.28} roughness={0.25} />
+                    </mesh>
+                    {(item.mountingType === "pendant" || item.lightType?.toLowerCase().includes("pendant")) && (
+                      <mesh position={[0, -0.28, 0]}>
+                        <sphereGeometry args={[0.14, 20, 14]} />
+                        <meshStandardMaterial color="#d7c1a0" emissive={lightColor} emissiveIntensity={0.5} />
+                      </mesh>
+                    )}
+                  </>
+                ) : item.category === "switch" || item.category === "socket" || item.category === "network" ? (
+                  <mesh>
+                    <boxGeometry args={[selected ? 0.2 : 0.15, selected ? 0.2 : 0.15, 0.05]} />
+                    <meshStandardMaterial color={markerColor} emissive={markerColor} emissiveIntensity={0.22} />
+                  </mesh>
+                ) : (
+                  <mesh>
+                    <sphereGeometry args={[selected ? 0.13 : 0.09, 18, 12]} />
+                    <meshStandardMaterial color={markerColor} emissive={markerColor} emissiveIntensity={0.18} />
+                  </mesh>
+                )}
+              </group>
+            )}
+            {isLight && lightingActive && controlBrightness > 0 && (
+              <pointLight
+                position={[scenePoint.x, Math.max(0.15, y - 0.12), scenePoint.z]}
+                color={lightColor}
+                intensity={lightIntensity * (item.dimming ? 1 : 0.82) * controlBrightness}
+                distance={Math.max(2.2, beamRadius * 2.6)}
+                decay={2}
+                castShadow={allowRealtimeShadow}
+                shadow-mapSize-width={mobilePresentationMode ? 256 : 512}
+                shadow-mapSize-height={mobilePresentationMode ? 256 : 512}
+              />
+            )}
+            {isLight && showTechnicalBeam && (
+              <mesh position={[scenePoint.x, y - beamHeight / 2, scenePoint.z]}>
+                <coneGeometry args={[beamRadius, beamHeight, 24, 1, true]} />
+                <meshBasicMaterial color={lightColor} transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+              </mesh>
+            )}
+            {isLight && (showLightSpots || lightingScene === "beamAnalysis") && (
+              <mesh position={[scenePoint.x, 0.035, scenePoint.z]} rotation={[-Math.PI / 2, 0, 0]}>
+                <circleGeometry args={[Math.max(0.18, beamRadius), 32]} />
+                <meshBasicMaterial color={lightColor} transparent opacity={0.18} depthWrite={false} />
+              </mesh>
+            )}
+            {(showFixtureIds || selected || controlledBySelection) && (
+              <DrawingItemIdSprite text={item.id} position={[scenePoint.x, y + 0.3, scenePoint.z]} />
+            )}
+          </group>
+        );
+      })}
+      {relations.map(({ switchItem, light }) => {
+        const switchPoint = toScenePoint(switchItem.positionMm, structure);
+        const lightPoint = toScenePoint(light.positionMm, structure);
+        return (
+          <DrawingConnection
+            key={`${switchItem.id}-${light.id}`}
+            from={new THREE.Vector3(switchPoint.x, drawingItemHeightM(switchItem), switchPoint.z)}
+            to={new THREE.Vector3(lightPoint.x, drawingItemHeightM(light), lightPoint.z)}
+          />
+        );
+      })}
+      {showIlluminanceLayer && (
+        <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[getStructureSize(structure).width * MM_TO_M, getStructureSize(structure).height * MM_TO_M, 12, 12]} />
+          <meshBasicMaterial color="#facc15" wireframe transparent opacity={0.18} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
 function Floor3DScene({
+  drawingSheetType,
+  drawingItems,
+  drawingViewPreset,
+  lightingScene,
+  lightingControlBrightness,
+  showFixtureModels,
+  showFixtureIds,
+  showBeamCones,
+  showLightSpots,
+  showControlRelations,
+  showIlluminanceLayer,
+  ceilingSolid,
+  materialCategoryFilter,
   cameraPreset,
   fixedCameraView,
   cameraRequestVersion,
+  freeBrowseVersion,
   cameraMode,
   activeTourNode,
   mobilePresentationMode,
@@ -5644,12 +6001,27 @@ function Floor3DScene({
   selectedFurnitureId,
   onSelectStructure,
   onSelectFurniture,
+  onSelectDrawingItem,
   onHoverObject,
   onClearHoverObject
 }: {
+  drawingSheetType: DrawingSheetType;
+  drawingItems: DrawingItem[];
+  drawingViewPreset: Drawing3DViewPreset;
+  lightingScene: LightingSceneMode;
+  lightingControlBrightness: ReadonlyMap<string, number>;
+  showFixtureModels: boolean;
+  showFixtureIds: boolean;
+  showBeamCones: boolean;
+  showLightSpots: boolean;
+  showControlRelations: boolean;
+  showIlluminanceLayer: boolean;
+  ceilingSolid: boolean;
+  materialCategoryFilter: MaterialCategoryFilter;
   cameraPreset: CameraPreset;
   fixedCameraView: FixedCameraView | null;
   cameraRequestVersion: number;
+  freeBrowseVersion: number;
   cameraMode: CameraMode;
   activeTourNode: RoomTourView | null;
   mobilePresentationMode: boolean;
@@ -5664,17 +6036,44 @@ function Floor3DScene({
   selectedFurnitureId: string;
   onSelectStructure: (objectId: string) => void;
   onSelectFurniture: (furniture: Furniture) => void;
+  onSelectDrawingItem: (drawingItemId: string) => void;
   onHoverObject: (objectId: string) => void;
   onClearHoverObject: (objectId: string) => void;
 }) {
   const size = getStructureSize(houseStructure);
+  const drawingProfile = getDrawing3DPresentationProfile(drawingSheetType);
+  const lightingActive = drawingSheetType === "lightingPlan" && drawingItems.some((item) => item.category === "light");
   const palette = designStylePalettes[designStyle];
-  const ambientIntensity = presentationMode ? 0.56 : 0.48;
-  const keyLightIntensity = presentationMode ? 1.92 : 1.68;
-  const fillLightIntensity = presentationMode ? 0.72 : 0.54;
+  const lightingEnvironment = lightingActive
+    ? lightingScene === "dayWithLights" ? { ambient: 0.3, key: 0.72, fill: 0.22, background: "#d8d2c7" }
+      : lightingScene === "dusk" ? { ambient: 0.13, key: 0.24, fill: 0.08, background: "#464754" }
+        : lightingScene === "beamAnalysis" ? { ambient: 0.12, key: 0.14, fill: 0.04, background: "#252a32" }
+          : lightingScene === "night" ? { ambient: 0.045, key: 0.06, fill: 0.02, background: "#111827" }
+            : { ambient: 0.012, key: 0, fill: 0, background: "#070b12" }
+    : null;
+  const ambientIntensity = lightingEnvironment?.ambient ?? (presentationMode ? 0.56 : 0.48);
+  const keyLightIntensity = lightingEnvironment?.key ?? (presentationMode ? 1.92 : 1.68);
+  const fillLightIntensity = lightingEnvironment?.fill ?? (presentationMode ? 0.72 : 0.54);
   const floorShadowOpacity = presentationMode ? 0.18 : 0.12;
   const balancedQuality = mobileQuality === "balanced";
   const shadowMapSize = balancedQuality ? 1024 : presentationMode ? 4096 : 2048;
+  const relatedFurnitureIds = new Set(drawingItems.map((item) => item.relatedFurnitureId).filter((id): id is string => Boolean(id)));
+  const materialPlanHidesFurniture = drawingSheetType === "materialPlan" && (materialCategoryFilter === "structure" || materialCategoryFilter === "outdoor");
+  const visibleFurniture = drawingProfile.furnitureMode === "hidden" || materialPlanHidesFurniture
+    ? []
+    : drawingProfile.furnitureMode === "relatedOnly"
+      ? furniture.filter((item) => relatedFurnitureIds.has(item.id) || item.id === selectedFurnitureId || item.id === selectedObjectId)
+      : drawingProfile.furnitureMode === "major"
+        ? furniture.filter((item) => item.dimensions.width * item.dimensions.depth >= 12000 || item.roomId?.includes("YARD"))
+        : furniture;
+  const visibleDrawingItems = drawingItems.filter((item) => drawingProfile.drawingCategories.includes(item.category));
+  const materialPlanShowsStructure = drawingSheetType !== "materialPlan" || materialCategoryFilter === "all" || materialCategoryFilter === "structure";
+  const materialPlanShowsOutdoors = drawingSheetType !== "materialPlan" || materialCategoryFilter === "all" || materialCategoryFilter === "outdoor";
+  const selectedFurnitureMaterial = drawingSheetType === "materialPlan" && selectedObjectId
+    ? furniture.find((item) => item.id === selectedObjectId)
+    : null;
+  const selectedFurnitureMaterialText = selectedFurnitureMaterial ? materialText(selectedFurnitureMaterial) : "";
+  const relatedWallIds = new Set(visibleDrawingItems.flatMap((item) => [item.hostWallId, item.wallId]).filter((id): id is string => Boolean(id)));
   return (
     <>
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} />
@@ -5682,15 +6081,16 @@ function Floor3DScene({
         preset={cameraPreset}
         fixedView={fixedCameraView}
         requestVersion={cameraRequestVersion}
+        freeBrowseVersion={freeBrowseVersion}
         mode={cameraMode}
         tourNode={activeTourNode}
         mobilePresentationMode={mobilePresentationMode}
       />
-      <color attach="background" args={[palette.background]} />
-      <fog attach="fog" args={[palette.background, 12, 28]} />
+      <color attach="background" args={[lightingEnvironment?.background ?? palette.background]} />
+      <fog attach="fog" args={[lightingEnvironment?.background ?? palette.background, 12, 28]} />
       <ambientLight intensity={ambientIntensity} />
       <directionalLight
-        castShadow={!mobilePresentationMode || mobileQuality === "high"}
+        castShadow={!lightingActive && (!mobilePresentationMode || mobileQuality === "high")}
         color="#fff1c7"
         position={[6.8, 9.2, 7.4]}
         intensity={keyLightIntensity}
@@ -5701,8 +6101,8 @@ function Floor3DScene({
         shadow-camera-top={9}
         shadow-camera-bottom={-9}
       />
-      <spotLight color="#ffd99b" intensity={fillLightIntensity} position={[-5.8, 4.8, 5.6]} angle={0.62} penumbra={0.76} distance={14} castShadow={!balancedQuality} />
-      <hemisphereLight args={["#fff4d6", palette.background, presentationMode ? 0.56 : 0.48]} />
+      <spotLight color="#ffd99b" intensity={fillLightIntensity} position={[-5.8, 4.8, 5.6]} angle={0.62} penumbra={0.76} distance={14} castShadow={!lightingActive && !balancedQuality} />
+      <hemisphereLight args={["#fff4d6", lightingEnvironment?.background ?? palette.background, lightingActive ? ambientIntensity * 0.6 : presentationMode ? 0.56 : 0.48]} />
 
       <mesh receiveShadow position={[0, -0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[18, 14]} />
@@ -5714,7 +6114,7 @@ function Floor3DScene({
         <meshStandardMaterial color="#d9d1c2" roughness={0.88} />
       </mesh>
 
-      {houseStructure.outdoors.filter((outdoor) => resolveVisibility(outdoor).visible3d).map((outdoor) => (
+      {drawingProfile.showOutdoors && materialPlanShowsOutdoors && houseStructure.outdoors.filter((outdoor) => resolveVisibility(outdoor).visible3d).map((outdoor) => (
         <OutdoorGroundMesh
           key={outdoor.id}
           outdoor={outdoor}
@@ -5724,7 +6124,7 @@ function Floor3DScene({
           onClearHover={onClearHoverObject}
         />
       ))}
-      {houseStructure.outdoorSurfaces.filter((surface) => resolveVisibility(surface).visible3d).map((surface) => (
+      {drawingProfile.showOutdoors && materialPlanShowsOutdoors && houseStructure.outdoorSurfaces.filter((surface) => resolveVisibility(surface).visible3d).map((surface) => (
         <OutdoorSurfaceMesh
           key={surface.id}
           surface={surface}
@@ -5744,14 +6144,24 @@ function Floor3DScene({
       {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room) => (
         <RoomAmbientOcclusion key={`${room.id}-ambient-occlusion`} room={room} structure={houseStructure} />
       ))}
-      <RoomLightingPlaceholders structure={houseStructure} designStyle={designStyle} />
+      {!lightingActive && drawingProfile.materialMode === "realistic" && <RoomLightingPlaceholders structure={houseStructure} designStyle={designStyle} />}
 
-      {houseStructure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => (
+      {drawingProfile.showCeiling && (
+        <SpecialtyCeilingLayer
+          structure={houseStructure}
+          drawingItems={visibleDrawingItems}
+          solid={ceilingSolid}
+          onSelect={onSelectDrawingItem}
+        />
+      )}
+
+      {materialPlanShowsStructure && houseStructure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => (
         <WallMesh
           key={wall.id}
           wall={wall}
           structure={houseStructure}
-          wallColor={isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : palette.wall}
+          wallColor={drawingSheetType === "wallFinishPlan" && relatedWallIds.has(wall.id) ? "#f0a5c7" : isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : palette.wall}
+          wallMode={drawingProfile.wallMode}
           selected={selectedObjectId === wall.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -5776,6 +6186,7 @@ function Floor3DScene({
           key={partition.id}
           partition={partition}
           structure={houseStructure}
+          wallMode={drawingProfile.wallMode}
           selected={selectedObjectId === partition.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -5836,6 +6247,7 @@ function Floor3DScene({
           key={skylight.id}
           skylight={skylight}
           structure={houseStructure}
+          wallMode={drawingProfile.wallMode}
           selected={selectedObjectId === skylight.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -5869,25 +6281,25 @@ function Floor3DScene({
         />
       ))}
 
-      {furniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
+      {visibleFurniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
         <FurnitureContactShadow key={`${item.id}-contact-shadow`} item={item} structure={houseStructure} />
       ))}
 
-      {furniture.map((item) => (
+      {visibleFurniture.map((item) => (
         <ResolvedFurnitureAsset
           key={item.id}
           item={item}
           structure={houseStructure}
           materialPreview={materialPreview}
           designStyle={designStyle}
-          selected={selectedFurnitureId === item.id || selectedObjectId === item.id}
+          selected={selectedFurnitureId === item.id || selectedObjectId === item.id || Boolean(selectedFurnitureMaterialText && materialText(item) === selectedFurnitureMaterialText)}
           onSelect={onSelectFurniture}
           onHover={onHoverObject}
           onClearHover={onClearHoverObject}
         />
       ))}
 
-      {showServicePoints && furniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
+      {showServicePoints && visibleFurniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (
         <FurnitureServiceMarkers
           key={`${item.id}-service-markers`}
           item={item}
@@ -5896,6 +6308,39 @@ function Floor3DScene({
           onSelect={onSelectFurniture}
           onHover={onHoverObject}
           onClearHover={onClearHoverObject}
+        />
+      ))}
+
+      <DrawingItems3DLayer
+        drawingItems={visibleDrawingItems}
+        structure={houseStructure}
+        selectedObjectId={selectedObjectId}
+        lightingActive={lightingActive}
+        lightingScene={lightingScene}
+        showFixtureModels={showFixtureModels}
+        showFixtureIds={showFixtureIds}
+        showBeamCones={showBeamCones}
+        showLightSpots={showLightSpots}
+        showControlRelations={showControlRelations}
+        showIlluminanceLayer={showIlluminanceLayer}
+        showRelationshipLines={drawingProfile.showRelationshipLines}
+        mobilePresentationMode={mobilePresentationMode}
+        mobileQuality={mobileQuality}
+        lightingControlBrightness={lightingControlBrightness}
+        onSelect={onSelectDrawingItem}
+      />
+
+      {drawingSheetType === "floorFinishPlan" && visibleDrawingItems.filter((item) => item.category === "floorFinish" && item.polygon && item.polygon.length >= 3).map((item) => (
+        <PolygonSurfaceMesh
+          key={`${item.id}-specialty-surface`}
+          id={item.id}
+          points={item.polygon!}
+          structure={houseStructure}
+          y={0.055}
+          color="#d8b47a"
+          roughness={0.62}
+          opacity={0.88}
+          onSelect={onSelectDrawingItem}
         />
       ))}
 
@@ -5908,9 +6353,11 @@ export function Floor3DView({
   floor,
   houseStructure,
   furniture,
+  drawingItems,
+  drawingSheetType,
   cameraViews = [],
   roomTourViews = [],
-  cameraViewFloorIds,
+  lightingDesign,
   cameraViewRequest = null,
   mobilePresentationMode = false,
   mobileQuality = "balanced",
@@ -5921,10 +6368,12 @@ export function Floor3DView({
   onShowObjectIdsChange,
   onSelectStructure,
   onSelectFurniture,
+  onSelectDrawingItem,
+  onDrawingSheetTypeChange,
   onHoverObject,
-  onClearHoverObject,
-  onSelectCameraView
+  onClearHoverObject
 }: Floor3DViewProps) {
+  const drawingProfile = getDrawing3DPresentationProfile(drawingSheetType);
   const [cameraRequest, setCameraRequest] = useState<{ preset: CameraPreset; fixedView: FixedCameraView | null; version: number }>(() => ({
     preset: "overview",
     fixedView: mobilePresentationMode ? getMobileDefaultCameraView(floor, houseStructure) : null,
@@ -5937,100 +6386,257 @@ export function Floor3DView({
   const [presentationMode, setPresentationMode] = useState(mobilePresentationMode);
   const [tourPanelOpen, setTourPanelOpen] = useState(false);
   const [activeTourNode, setActiveTourNode] = useState<RoomTourView | null>(null);
+  const [activeCameraViewId, setActiveCameraViewId] = useState<string | null>(null);
+  const [freeBrowseVersion, setFreeBrowseVersion] = useState(0);
+  const [drawingViewPreset, setDrawingViewPreset] = useState<Drawing3DViewPreset>(drawingProfile.defaultPreset);
+  const [lightingScene, setLightingScene] = useState<LightingSceneMode>("dusk");
+  const [activeLightingControlSceneId, setActiveLightingControlSceneId] = useState("SCENE-DAILY");
+  const [showFixtureModels, setShowFixtureModels] = useState(true);
+  const [showFixtureIds, setShowFixtureIds] = useState(false);
+  const [showBeamCones, setShowBeamCones] = useState(false);
+  const [showLightSpots, setShowLightSpots] = useState(false);
+  const [showControlRelations, setShowControlRelations] = useState(false);
+  const [showIlluminanceLayer, setShowIlluminanceLayer] = useState(false);
+  const [ceilingSolid, setCeilingSolid] = useState(false);
+  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<MaterialCategoryFilter>("all");
   const gestureRef = useRef({ pointers: new Map<number, { x: number; y: number }>(), moved: false });
   const suppressSelectionUntilRef = useRef(0);
   const selectedFurniture = furniture.find((item) => item.id === selectedFurnitureId || item.id === selectedObjectId);
-  const selectedStructure =
-    houseStructure.walls.find((item) => item.id === selectedObjectId) ??
-    houseStructure.partitions.find((item) => item.id === selectedObjectId) ??
-    houseStructure.stairs.find((item) => item.id === selectedObjectId) ??
-    (houseStructure.columns ?? []).find((item) => item.id === selectedObjectId) ??
-    houseStructure.fences.find((item) => item.id === selectedObjectId) ??
-    houseStructure.outdoorSurfaces.find((item) => item.id === selectedObjectId) ??
-    houseStructure.outdoors.find((item) => item.id === selectedObjectId) ??
-    houseStructure.doors.find((item) => item.id === selectedObjectId) ??
-    houseStructure.windows.find((item) => item.id === selectedObjectId) ??
-    houseStructure.bayWindows.find((item) => item.id === selectedObjectId) ??
-    houseStructure.skylights.find((item) => item.id === selectedObjectId) ??
-    null;
-  const selectedName = selectedFurniture?.name ?? selectedStructure?.name ?? selectedObjectId;
-  const servicePointCount = useMemo(() => countServiceMarkers(furniture), [furniture]);
-  const acceptedCameraViewFloorIds = useMemo(() => cameraViewFloorIds ?? [floor.id], [cameraViewFloorIds, floor.id]);
-  const currentFloorCameraViews = useMemo(
-    () => cameraViews.filter((view) => acceptedCameraViewFloorIds.includes(view.floor)),
-    [acceptedCameraViewFloorIds, cameraViews]
+  const selectedDrawingItem = drawingItems.find((item) => item.id === selectedObjectId);
+  const relevantDrawingItems = useMemo(
+    () => drawingItems.filter((item) => drawingProfile.drawingCategories.includes(item.category)),
+    [drawingItems, drawingProfile.drawingCategories]
   );
+  const availableLightingControlScenes = useMemo(() => (lightingDesign?.scenes ?? []).filter((scene) => !scene.floorId || scene.floorId === floor.id), [floor.id, lightingDesign?.scenes]);
+  const activeLightingControlScene = availableLightingControlScenes.find((scene) => scene.id === activeLightingControlSceneId) ?? availableLightingControlScenes[0];
+  const lightingControlBrightness = useMemo(() => new Map(activeLightingControlScene?.groupStates.map((state) => [state.controlGroupId, state.on ? state.brightness : 0]) ?? []), [activeLightingControlScene]);
+  const specialtyFallback = Boolean(drawingProfile.emptyDataHint && relevantDrawingItems.length === 0);
   const currentFloorTourNodes = useMemo(
     () => roomTourViews.filter((node) => node.floorId === floor.id && node.status === "active"),
     [floor.id, roomTourViews]
   );
+  const floorCameraViews = useMemo(() => buildFloorCameraViews({
+    floor,
+    structure: houseStructure,
+    sheetType: drawingSheetType,
+    cameraViews,
+    roomTourViews
+  }), [cameraViews, drawingSheetType, floor, houseStructure, roomTourViews]);
+  const { primary: primaryCameraViews, more: moreCameraViews } = useMemo(
+    () => splitFloorCameraViews(floorCameraViews, mobilePresentationMode),
+    [floorCameraViews, mobilePresentationMode]
+  );
+  const activeCameraView = floorCameraViews.find((view) => view.id === activeCameraViewId) ?? null;
+  const activeViewIndex = activeCameraView ? floorCameraViews.findIndex((view) => view.id === activeCameraView.id) : -1;
+  const activeCameraViewName = activeCameraView?.name ?? (cameraRequest.fixedView?.id === activeCameraViewId ? cameraRequest.fixedView.name : null);
+  const activeViewIsMore = Boolean(activeCameraViewId && activeCameraView?.name !== "鸟瞰" && !primaryCameraViews.some((view) => view.id === activeCameraViewId));
   const linkedTourNodes = useMemo(() => activeTourNode
     ? activeTourNode.linkedNodeIds
         .map((id) => currentFloorTourNodes.find((node) => node.id === id))
         .filter((node): node is RoomTourView => Boolean(node))
         .slice(0, 4)
     : [], [activeTourNode, currentFloorTourNodes]);
+  const activateFloorCameraView = (view: FloorCameraView) => {
+    setActiveCameraViewId(view.id);
+    setActiveTourNode(view.tourView ?? null);
+    setTourPanelOpen(false);
+    setCameraMode(view.cameraMode === "walkthrough" ? "walkthrough" : view.cameraMode === "tour" ? "tour" : "orbit");
+    setCameraRequest((current) => ({ preset: "overview", fixedView: view.fixedView, version: current.version + 1 }));
+    if (drawingSheetType === "lightingPlan" && view.recommendedLightingScene) setLightingScene(view.recommendedLightingScene);
+    if (drawingSheetType === "lightingPlan" && view.recommendedLightingSceneId) setActiveLightingControlSceneId(view.recommendedLightingSceneId);
+  };
+  const requestFreeBrowse = () => {
+    setCameraMode("orbit");
+    setActiveCameraViewId(null);
+    setActiveTourNode(null);
+    setTourPanelOpen(false);
+    setCameraRequest((current) => ({ ...current, fixedView: null }));
+    setFreeBrowseVersion((version) => version + 1);
+  };
+  const returnToBirdseye = () => {
+    const overview = floorCameraViews.find((view) => view.name === "鸟瞰");
+    if (overview) activateFloorCameraView(overview);
+  };
   const resetMobileCamera = () => {
     setCameraMode("orbit");
     setActiveTourNode(null);
+    setActiveCameraViewId(null);
     setTourPanelOpen(false);
     setMaterialPreview(true);
     setShowServicePoints(false);
     setPresentationMode(true);
-    setCameraRequest((current) => ({
-      preset: "overview",
-      fixedView: getMobileDefaultCameraView(floor, houseStructure),
-      version: current.version + 1
-    }));
+    const defaultView = floorCameraViews.find((view) => view.defaultForFloor) ?? floorCameraViews.find((view) => view.name === "鸟瞰");
+    if (defaultView) activateFloorCameraView(defaultView);
+    else setCameraRequest((current) => ({ preset: "overview", fixedView: getMobileDefaultCameraView(floor, houseStructure), version: current.version + 1 }));
   };
   useEffect(() => {
     if (!mobilePresentationMode) return;
     resetMobileCamera();
-  }, [floor.id, mobilePresentationMode, resetViewRequest]);
+  }, [mobilePresentationMode, resetViewRequest]);
   useEffect(() => {
     const requestedView = cameraViewRequest?.view;
-    if (!requestedView || !acceptedCameraViewFloorIds.includes(requestedView.floor)) return;
-    setCameraMode("orbit");
-    setActiveTourNode(null);
-    setCameraRequest((current) => ({ preset: current.preset, fixedView: requestedView, version: current.version + 1 }));
-  }, [acceptedCameraViewFloorIds, cameraViewRequest?.nonce, cameraViewRequest?.view]);
+    if (!requestedView || requestedView.floor !== floor.id) return;
+    const configured = floorCameraViews.find((view) => view.id === requestedView.id);
+    if (configured) activateFloorCameraView(configured);
+    else activateFloorCameraView({
+      id: requestedView.id, floorId: floor.id, name: requestedView.name, category: "feature", cameraMode: "fixed",
+      cameraPosition: requestedView.cameraPosition, target: requestedView.target, description: requestedView.description,
+      fixedView: requestedView, primary: false, priority: 500
+    });
+  }, [cameraViewRequest?.nonce]);
   const requestCameraPreset = (preset: CameraPreset) => {
-    setCameraMode("orbit");
+    const generalName = preset === "overview" ? "鸟瞰" : preset === "front" ? "前" : preset === "right" ? "右" : preset === "back" ? "后" : preset === "left" ? "左" : null;
+    const configured = generalName ? floorCameraViews.find((view) => view.name === generalName) : null;
+    if (configured) {
+      activateFloorCameraView(configured);
+      return;
+    }
+    setActiveCameraViewId(null);
     setActiveTourNode(null);
+    setCameraMode(preset === "living" ? "walkthrough" : "orbit");
     setCameraRequest((current) => ({ preset, fixedView: null, version: current.version + 1 }));
   };
-  const rotateCameraPreset = (direction: -1 | 1) => {
-    setCameraMode("orbit");
-    setActiveTourNode(null);
-    setCameraRequest((current) => {
-      const currentIndex = cameraRotationOrder.indexOf(current.preset);
-      const fallbackIndex = direction > 0 ? -1 : 0;
-      const nextIndex = ((currentIndex >= 0 ? currentIndex : fallbackIndex) + direction + cameraRotationOrder.length) % cameraRotationOrder.length;
-      return { preset: cameraRotationOrder[nextIndex], fixedView: null, version: current.version + 1 };
-    });
-  };
   const goToTourNode = (node: RoomTourView) => {
-    setActiveTourNode(node);
-    setTourPanelOpen(false);
     if (mobilePresentationMode) setPresentationMode(true);
     setMaterialPreview(true);
     setShowServicePoints(false);
-    setCameraMode(node.isFloorOverview ? "orbit" : "tour");
-    setCameraRequest((current) => ({
-      preset: current.preset,
-      fixedView: tourNodeToCameraView(node),
-      version: current.version + 1
-    }));
+    const configured = floorCameraViews.find((view) => view.id === node.id);
+    if (configured) activateFloorCameraView(configured);
+    else activateFloorCameraView({
+      id: node.id, floorId: node.floorId, name: node.name, category: node.type === "viewpoint" ? "feature" : "room",
+      cameraMode: node.isFloorOverview ? "orbit" : "tour", cameraPosition: node.cameraPosition, target: node.target,
+      roomId: node.roomId, outdoorId: node.outdoorId, description: node.description, fixedView: tourNodeToCameraView(node),
+      tourView: node, primary: false, priority: 500
+    });
   };
-  const exitTour = () => {
-    if (mobilePresentationMode) {
-      resetMobileCamera();
+  const applyDrawingViewPreset = (preset: Drawing3DViewPreset) => {
+    setDrawingViewPreset(preset);
+    if (preset === "interiorTour" || preset === "currentRoom") {
+      const requestedRoomId = selectedDrawingItem?.relatedRoomId ?? selectedDrawingItem?.roomId ?? (selectedObjectId ? selectedFurniture?.roomId : undefined);
+      const node = currentFloorTourNodes.find((item) => !item.isFloorOverview && item.roomId === requestedRoomId)
+        ?? currentFloorTourNodes.find((item) => !item.isFloorOverview && /入口|玄关|公共|客厅|起居|餐|厨房|活动区|主卧|庭院/.test(item.name))
+        ?? currentFloorTourNodes.find((item) => !item.isFloorOverview);
+      if (node) {
+        goToTourNode(node);
+        return;
+      }
+      setCameraMode("walkthrough");
+      setActiveTourNode(null);
+      setCameraRequest((current) => ({ preset: "living", fixedView: null, version: current.version + 1 }));
       return;
     }
-    setActiveTourNode(null);
+    if (preset === "ceilingUp") {
+      const ceilingView = floorCameraViews.find((view) => view.name === "顶面观察");
+      if (ceilingView) {
+        activateFloorCameraView(ceilingView);
+        return;
+      }
+      setCameraMode("orbit");
+      setActiveTourNode(null);
+      setActiveCameraViewId(null);
+      setCameraRequest((current) => ({
+        preset: current.preset,
+        fixedView: {
+          id: `specialty-ceiling-${floor.id}`,
+          name: `${floor.label} 顶面观察`,
+          floor: floor.id,
+          cameraPosition: { x: 0, y: 0.85, z: 2.6 },
+          target: { x: 0, y: DEFAULT_CEILING_HEIGHT_MM * MM_TO_M, z: 0 },
+          mode: "perspective",
+          description: "从室内向上检查吊顶区域、灯具、风口与检修口。"
+        },
+        version: current.version + 1
+      }));
+      return;
+    }
+    if (preset === "wallElevation") {
+      const selectedWall = houseStructure.walls.find((wall) => wall.id === selectedObjectId && wall.kind === "straight");
+      if (selectedWall?.kind === "straight") {
+        const start = toScenePoint(selectedWall.start, houseStructure);
+        const end = toScenePoint(selectedWall.end, houseStructure);
+        const dx = end.x - start.x;
+        const dz = end.z - start.z;
+        const length = Math.max(0.01, Math.hypot(dx, dz));
+        const center = { x: (start.x + end.x) / 2, z: (start.z + end.z) / 2 };
+        setCameraMode("orbit");
+        setActiveTourNode(null);
+        setActiveCameraViewId(`specialty-wall-${selectedWall.id}`);
+        setCameraRequest((current) => ({
+          preset: current.preset,
+          fixedView: {
+            id: `specialty-wall-${selectedWall.id}`,
+            name: `${selectedWall.name} 正视`,
+            floor: floor.id,
+            cameraPosition: { x: center.x - dz / length * 4, y: 1.45, z: center.z + dx / length * 4 },
+            target: { x: center.x, y: 1.45, z: center.z },
+            mode: "orthographic",
+            zoom: 80,
+            description: "自动正对当前墙面。"
+          },
+          version: current.version + 1
+        }));
+        return;
+      }
+      requestCameraPreset("front");
+      return;
+    }
+    if (preset === "currentObject") {
+      const drawingPoint = selectedDrawingItem ? toScenePoint(selectedDrawingItem.positionMm, houseStructure) : null;
+      const furniturePoint = selectedFurniture ? getFurnitureScenePosition(selectedFurniture, houseStructure) : null;
+      const targetPoint = drawingPoint ?? furniturePoint;
+      if (targetPoint) {
+        const targetY = selectedDrawingItem ? drawingItemHeightM(selectedDrawingItem) : 0.65;
+        setCameraMode("orbit");
+        setActiveTourNode(null);
+        setActiveCameraViewId(`specialty-object-${selectedObjectId}`);
+        setCameraRequest((current) => ({
+          preset: current.preset,
+          fixedView: {
+            id: `specialty-object-${selectedObjectId}`,
+            name: "当前对象",
+            floor: floor.id,
+            cameraPosition: { x: targetPoint.x + 2.6, y: Math.max(1.4, targetY + 0.8), z: targetPoint.z + 2.6 },
+            target: { x: targetPoint.x, y: targetY, z: targetPoint.z },
+            mode: "perspective",
+            description: "围绕当前选中对象检查定位与关联。"
+          },
+          version: current.version + 1
+        }));
+        return;
+      }
+    }
+    requestCameraPreset(preset === "fullSpace" ? "front" : "overview");
+  };
+  useEffect(() => {
+    setMaterialPreview(drawingProfile.materialMode === "realistic");
+    setShowServicePoints(false);
+    setPresentationMode(false);
+    setCeilingSolid(false);
+    setShowBeamCones(false);
+    setShowLightSpots(false);
+    setShowControlRelations(false);
+    setShowIlluminanceLayer(false);
+    setMaterialCategoryFilter("all");
+  }, [drawingSheetType]);
+  useEffect(() => {
     setTourPanelOpen(false);
+    setActiveTourNode(null);
+    setActiveCameraViewId(null);
     setCameraMode("orbit");
-    setCameraRequest((current) => ({ preset: "overview", fixedView: null, version: current.version + 1 }));
+    const defaultView = floorCameraViews.find((view) => view.defaultForFloor) ?? floorCameraViews.find((view) => view.name === "鸟瞰");
+    if (defaultView) activateFloorCameraView(defaultView);
+    else requestCameraPreset("overview");
+    setDrawingViewPreset(drawingProfile.defaultPreset);
+  }, [drawingSheetType, floor.id]);
+  useEffect(() => {
+    if (drawingSheetType !== "wallFinishPlan" || !selectedObjectId) return;
+    if (houseStructure.walls.some((wall) => wall.id === selectedObjectId)) applyDrawingViewPreset("wallElevation");
+  }, [drawingSheetType, selectedObjectId]);
+  const stepCameraView = (direction: -1 | 1) => {
+    if (!floorCameraViews.length) return;
+    const startIndex = activeViewIndex >= 0 ? activeViewIndex : floorCameraViews.findIndex((view) => view.name === "鸟瞰");
+    const nextIndex = (startIndex + direction + floorCameraViews.length) % floorCameraViews.length;
+    activateFloorCameraView(floorCameraViews[nextIndex]);
   };
   const selectionAllowed = () => performance.now() > suppressSelectionUntilRef.current;
   const handleGesturePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -6055,7 +6661,9 @@ export function Floor3DView({
         setShowServicePoints(false);
         setCameraMode("orbit");
         setActiveTourNode(null);
-        setCameraRequest((current) => ({ preset: "overview", fixedView: null, version: current.version + 1 }));
+        setActiveCameraViewId(null);
+        const overview = floorCameraViews.find((view) => view.name === "鸟瞰");
+        if (overview) activateFloorCameraView(overview);
       }
       return nextEnabled;
     });
@@ -6072,6 +6680,12 @@ export function Floor3DView({
       onPointerUpCapture={handleGesturePointerEnd}
       onPointerCancelCapture={handleGesturePointerEnd}
       data-room-tour-active={activeTourNode ? "true" : "false"}
+      data-drawing-sheet-type={drawingSheetType}
+      data-drawing-3d-preset={drawingViewPreset}
+      data-camera-mode={cameraMode}
+      data-active-camera-view-id={activeCameraViewId ?? ""}
+      data-lighting-scene={drawingSheetType === "lightingPlan" ? lightingScene : undefined}
+      data-specialty-fallback={specialtyFallback ? "true" : "false"}
     >
       <Canvas
         key={floor.id}
@@ -6081,9 +6695,23 @@ export function Floor3DView({
         gl={{ antialias: mobileQuality === "high", preserveDrawingBuffer: true, powerPreference: mobileQuality === "balanced" ? "low-power" : "high-performance" }}
       >
         <Floor3DScene
+          drawingSheetType={drawingSheetType}
+          drawingItems={drawingItems}
+          drawingViewPreset={drawingViewPreset}
+          lightingScene={lightingScene}
+          lightingControlBrightness={lightingControlBrightness}
+          showFixtureModels={showFixtureModels}
+          showFixtureIds={showFixtureIds}
+          showBeamCones={showBeamCones}
+          showLightSpots={showLightSpots}
+          showControlRelations={showControlRelations}
+          showIlluminanceLayer={showIlluminanceLayer}
+          ceilingSolid={ceilingSolid}
+          materialCategoryFilter={materialCategoryFilter}
           cameraPreset={cameraRequest.preset}
           fixedCameraView={cameraRequest.fixedView}
           cameraRequestVersion={cameraRequest.version}
+          freeBrowseVersion={freeBrowseVersion}
           cameraMode={cameraMode}
           activeTourNode={activeTourNode}
           mobilePresentationMode={mobilePresentationMode}
@@ -6102,6 +6730,9 @@ export function Floor3DView({
           onSelectFurniture={(item) => {
             if (selectionAllowed()) onSelectFurniture(item);
           }}
+          onSelectDrawingItem={(drawingItemId) => {
+            if (selectionAllowed()) onSelectDrawingItem(drawingItemId);
+          }}
           onHoverObject={onHoverObject}
           onClearHoverObject={onClearHoverObject}
         />
@@ -6109,23 +6740,16 @@ export function Floor3DView({
 
       {mobilePresentationMode && (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[85] flex justify-center px-3">
-          <div className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border border-white/80 bg-stone-950/78 px-2 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur">
-            {activeTourNode ? (
-              <>
-                <span className="max-w-[11rem] truncate px-2" data-testid="mobile-tour-title">{floor.id === "YARD" ? "院子" : floor.id} / {activeTourNode.name}</span>
-                <button className="rounded-full bg-white/15 px-3 py-1.5" onClick={() => setTourPanelOpen(true)} type="button">换房间</button>
-                <button className="rounded-full bg-white px-3 py-1.5 text-stone-900" onClick={exitTour} type="button">退出漫游</button>
-              </>
-            ) : (
-              <button
-                aria-label="房间漫游"
-                className="rounded-full bg-white px-4 py-2 text-stone-900"
-                onClick={() => setTourPanelOpen(true)}
-                type="button"
-              >
-                房间漫游
-              </button>
-            )}
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-hidden rounded-full border border-white/80 bg-stone-950/78 p-1.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur" data-testid="mobile-camera-bar">
+            <button aria-pressed={!activeCameraViewId} className={`whitespace-nowrap rounded-full px-3 py-2 ${!activeCameraViewId ? "bg-white text-stone-900" : "bg-white/10"}`} onClick={requestFreeBrowse} type="button">自由浏览</button>
+            <button aria-pressed={activeCameraView?.name === "鸟瞰"} className={`whitespace-nowrap rounded-full px-3 py-2 ${activeCameraView?.name === "鸟瞰" ? "bg-white text-stone-900" : "bg-white/10"}`} onClick={returnToBirdseye} type="button">鸟瞰</button>
+            {primaryCameraViews.slice(0, 1).map((view) => (
+              <button key={view.id} aria-pressed={activeCameraViewId === view.id} className={`max-w-24 truncate rounded-full px-3 py-2 ${activeCameraViewId === view.id ? "bg-white text-stone-900" : "bg-white/10"}`} onClick={() => activateFloorCameraView(view)} type="button">{view.name}</button>
+            ))}
+            <button aria-label="上一个视角" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => stepCameraView(-1)} type="button">‹</button>
+            <button aria-label="下一个视角" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => stepCameraView(1)} type="button">›</button>
+            <button aria-pressed={activeViewIsMore || tourPanelOpen} className={`max-w-28 truncate whitespace-nowrap rounded-full px-3 py-2 ${activeViewIsMore ? "bg-white text-stone-900" : "bg-white/10"}`} onClick={() => setTourPanelOpen(true)} type="button">{activeViewIsMore ? `更多 · ${activeCameraViewName}` : "更多"}</button>
+            {activeTourNode && <span className="sr-only" data-testid="mobile-tour-title">{floor.id === "YARD" ? "院子" : floor.id} / {activeTourNode.name}</span>}
           </div>
         </div>
       )}
@@ -6147,29 +6771,29 @@ export function Floor3DView({
       )}
 
       {tourPanelOpen && (
-        <div className="absolute inset-0 z-[95] flex items-end bg-stone-950/20" data-testid="tour-room-panel" onClick={() => setTourPanelOpen(false)}>
+        <div className={`absolute z-[95] ${mobilePresentationMode ? "inset-0 flex items-end bg-stone-950/20" : "bottom-20 left-1/2 w-[min(42rem,calc(100%-2rem))] -translate-x-1/2"}`} data-testid="tour-room-panel" onClick={() => setTourPanelOpen(false)}>
           <div
-            className="max-h-[64%] w-full overflow-y-auto rounded-t-[1.75rem] border-t border-white/80 bg-[#faf8f4]/98 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_60px_rgba(28,25,23,0.2)] backdrop-blur"
+            className={`w-full overflow-y-auto border border-white/80 bg-[#faf8f4]/98 px-4 pt-3 backdrop-blur ${mobilePresentationMode ? "max-h-[64%] rounded-t-[1.75rem] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-18px_60px_rgba(28,25,23,0.2)]" : "max-h-[28rem] rounded-2xl pb-4 shadow-[0_18px_60px_rgba(28,25,23,0.2)]"}`}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mx-auto h-1 w-10 rounded-full bg-stone-300" />
+            {mobilePresentationMode && <div className="mx-auto h-1 w-10 rounded-full bg-stone-300" />}
             <div className="mt-3 flex items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-semibold text-stone-500">{floor.id === "YARD" ? "院子" : floor.id} · 只读展示</div>
-                <h3 className="mt-0.5 text-lg font-bold text-stone-900">选择漫游房间</h3>
+                <div className="text-xs font-semibold text-stone-500">{floor.id === "YARD" ? "院子" : floor.id} · {drawingProfile.label}</div>
+                <h3 className="mt-0.5 text-lg font-bold text-stone-900">更多视角</h3>
               </div>
-              <button aria-label="关闭漫游房间列表" className="grid size-10 place-items-center rounded-full bg-stone-100 text-lg text-stone-600" onClick={() => setTourPanelOpen(false)} type="button">×</button>
+              <button aria-label="关闭更多视角" className="grid size-10 place-items-center rounded-full bg-stone-100 text-lg text-stone-600" onClick={() => setTourPanelOpen(false)} type="button">×</button>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              {currentFloorTourNodes.map((node) => (
+              {moreCameraViews.map((view) => (
                 <button
-                  key={node.id}
-                  className={`min-h-16 rounded-2xl border p-3 text-left transition active:scale-[0.98] ${node.id === activeTourNode?.id ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white text-stone-800"}`}
-                  onClick={() => goToTourNode(node)}
+                  key={view.id}
+                  className={`min-h-16 rounded-2xl border p-3 text-left transition active:scale-[0.98] ${view.id === activeCameraViewId ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white text-stone-800"}`}
+                  onClick={() => activateFloorCameraView(view)}
                   type="button"
                 >
-                  <span className="block text-sm font-bold">{node.name}</span>
-                  <span className={`mt-1 block text-[11px] ${node.id === activeTourNode?.id ? "text-stone-300" : "text-stone-500"}`}>{node.isFloorOverview ? "楼层总览" : node.type === "yard" ? "庭院视角" : node.type === "corridor" ? "通行空间" : "房间视角"}</span>
+                  <span className="block text-sm font-bold">{view.name}</span>
+                  <span className={`mt-1 block text-[11px] ${view.id === activeCameraViewId ? "text-stone-300" : "text-stone-500"}`}>{view.category === "general" ? "通用视角" : view.category === "feature" ? "结构 / 特征视角" : view.category === "lighting-scene" ? "灯光体验视角" : "房间视角"}</span>
                 </button>
               ))}
             </div>
@@ -6181,11 +6805,29 @@ export function Floor3DView({
         <div className="pointer-events-none absolute inset-0 z-[50] bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0)_42%,rgba(132,102,64,0.12)_100%)]" />
       )}
 
+      {!mobilePresentationMode && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[92] flex justify-center px-4">
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-xl border border-white/80 bg-white/90 p-1.5 text-xs font-bold text-stone-700 shadow-lg backdrop-blur" data-testid="floor-camera-bar">
+            <button aria-pressed={!activeCameraViewId} className={`whitespace-nowrap rounded-lg px-3 py-2 transition ${!activeCameraViewId ? "bg-stone-900 text-white" : "hover:bg-stone-100"}`} onClick={requestFreeBrowse} type="button">自由浏览</button>
+            <button aria-pressed={activeCameraView?.name === "鸟瞰"} className={`whitespace-nowrap rounded-lg px-3 py-2 transition ${activeCameraView?.name === "鸟瞰" ? "bg-stone-900 text-white" : "hover:bg-stone-100"}`} onClick={returnToBirdseye} type="button">鸟瞰</button>
+            <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-stone-200" />
+            {primaryCameraViews.map((view) => (
+              <button key={view.id} aria-pressed={activeCameraViewId === view.id} className={`max-w-36 shrink-0 truncate rounded-lg px-3 py-2 transition ${activeCameraViewId === view.id ? "bg-stone-900 text-white" : "hover:bg-stone-100"}`} onClick={() => activateFloorCameraView(view)} title={view.description} type="button">{view.name}</button>
+            ))}
+            <span aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-stone-200" />
+            <button aria-label="上一个视角" className="grid size-8 shrink-0 place-items-center rounded-lg hover:bg-stone-100" onClick={() => stepCameraView(-1)} title="上一个视角" type="button">‹</button>
+            <button aria-label="下一个视角" className="grid size-8 shrink-0 place-items-center rounded-lg hover:bg-stone-100" onClick={() => stepCameraView(1)} title="下一个视角" type="button">›</button>
+            <button aria-pressed={activeViewIsMore || tourPanelOpen} className={`max-w-44 shrink-0 truncate whitespace-nowrap rounded-lg px-3 py-2 transition ${activeViewIsMore || tourPanelOpen ? "bg-stone-900 text-white" : "hover:bg-stone-100"}`} onClick={() => setTourPanelOpen((open) => !open)} type="button">{activeViewIsMore ? `更多 · ${activeCameraViewName}` : "更多"}</button>
+          </div>
+        </div>
+      )}
+
       {!presentationMode && !mobilePresentationMode && <div className="pointer-events-none absolute left-4 top-4 z-[80]">
         <div className="pointer-events-auto rounded-lg border border-white/80 bg-white/88 px-4 py-3 shadow-sm backdrop-blur">
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-400">{floor.id} Render Model</div>
-          <div className="mt-1 text-lg font-black text-stone-900">{floor.label} · {floor.subtitle}</div>
-          <div className="mt-1 text-xs font-semibold text-stone-500">效果轴测 / 家具材质 / 水电点位都基于当前楼层模型</div>
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-400">{floor.id} · Shared Drawing 3D</div>
+          <div className="mt-1 text-lg font-black text-stone-900">{drawingProfile.label}</div>
+          <div className="mt-1 max-w-[26rem] text-xs font-semibold leading-5 text-stone-500">{drawingProfile.summary}</div>
+          {specialtyFallback && <div className="mt-2 max-w-[26rem] rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-semibold text-amber-900">{drawingProfile.emptyDataHint}</div>}
         </div>
       </div>}
       <div className={`${mobilePresentationMode ? "hidden" : "pointer-events-none"} absolute right-4 top-4 z-[90] flex max-w-[calc(100%-2rem)] justify-end`}>
@@ -6201,61 +6843,57 @@ export function Floor3DView({
             </button>
           ) : (
             <>
-          <button
-            aria-label="逆时针旋转视图"
-            className="grid size-8 place-items-center rounded-md text-base font-black text-stone-600 transition hover:bg-stone-100"
-            onClick={() => rotateCameraPreset(-1)}
-            title="逆时针旋转视图"
-            type="button"
-          >
-            ↺
-          </button>
-          {currentFloorCameraViews.length > 0 && (
-            <select
-              aria-label="当前固定视角"
-              className="h-8 max-w-40 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
-              value={cameraRequest.fixedView && acceptedCameraViewFloorIds.includes(cameraRequest.fixedView.floor) ? cameraRequest.fixedView.id : ""}
-              onChange={(event) => {
-                const view = currentFloorCameraViews.find((item) => item.id === event.target.value);
-                if (view) onSelectCameraView?.(view);
-              }}
-            >
-              <option value="">当前固定视角</option>
-              {currentFloorCameraViews.map((view) => <option key={view.id} value={view.id}>{view.name}</option>)}
-            </select>
-          )}
-          {cameraViews.length > 0 && (
-            <select
-              aria-label="全部关键视角"
-              className="h-8 max-w-44 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
-              value={cameraRequest.fixedView?.id ?? ""}
-              onChange={(event) => {
-                const view = cameraViews.find((item) => item.id === event.target.value);
-                if (view) onSelectCameraView?.(view);
-              }}
-            >
-              <option value="">全部关键视角</option>
-              {cameraViews.map((view) => <option key={view.id} value={view.id}>{view.floor} · {view.name}</option>)}
-            </select>
-          )}
           <select
-            aria-label="风格方案"
-            className="h-8 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none transition hover:bg-stone-50"
-            value={designStyle}
-            onChange={(event) => setDesignStyle(event.target.value as DesignStylePreset)}
+            aria-label="3D 图纸专项"
+            className="h-8 max-w-40 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-800 outline-none"
+            value={drawingSheetType}
+            onChange={(event) => onDrawingSheetTypeChange(event.target.value as DrawingSheetType)}
           >
-            {designStyleOptions.map(([preset, label]) => (
-              <option key={preset} value={preset}>{label}</option>
-            ))}
+            {officialDrawingSheetTypes.map((sheetType) => <option key={sheetType} value={sheetType}>{drawingSheetTypeLabels[sheetType]}</option>)}
           </select>
-          <button
-            aria-pressed={materialPreview}
-            className={`rounded-md px-3 py-2 text-xs font-bold transition ${materialPreview ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}
-            onClick={() => setMaterialPreview((visible) => !visible)}
-            type="button"
+          <select
+            aria-label="3D 视图预设"
+            className="h-8 max-w-32 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
+            value={drawingViewPreset}
+            onChange={(event) => applyDrawingViewPreset(event.target.value as Drawing3DViewPreset)}
           >
-            {materialPreview ? "效果" : "白模"}
-          </button>
+            {drawing3DViewPresets.map((preset) => <option key={preset} value={preset}>{drawing3DViewPresetLabels[preset]}</option>)}
+          </select>
+          {drawingSheetType === "materialPlan" && (
+            <select
+              aria-label="材料类别过滤"
+              className="h-8 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none"
+              value={materialCategoryFilter}
+              onChange={(event) => setMaterialCategoryFilter(event.target.value as MaterialCategoryFilter)}
+            >
+              <option value="all">全部材料</option>
+              <option value="structure">墙地结构</option>
+              <option value="furniture">家具柜体</option>
+              <option value="outdoor">庭院材料</option>
+            </select>
+          )}
+          {drawingProfile.materialMode === "realistic" && (
+            <>
+              <select
+                aria-label="风格方案"
+                className="h-8 rounded-md border border-stone-200 bg-white px-2 text-xs font-bold text-stone-700 outline-none transition hover:bg-stone-50"
+                value={designStyle}
+                onChange={(event) => setDesignStyle(event.target.value as DesignStylePreset)}
+              >
+                {designStyleOptions.map(([preset, label]) => (
+                  <option key={preset} value={preset}>{label}</option>
+                ))}
+              </select>
+              <button
+                aria-pressed={materialPreview}
+                className={`rounded-md px-3 py-2 text-xs font-bold transition ${materialPreview ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+                onClick={() => setMaterialPreview((visible) => !visible)}
+                type="button"
+              >
+                {materialPreview ? "效果" : "白模"}
+              </button>
+            </>
+          )}
           <button
             aria-pressed={presentationMode}
             className="rounded-md px-3 py-2 text-xs font-bold text-stone-600 transition hover:bg-stone-100"
@@ -6264,54 +6902,76 @@ export function Floor3DView({
           >
             干净轴测
           </button>
-          <button
-            aria-pressed={showServicePoints}
-            className={`rounded-md px-3 py-2 text-xs font-bold transition ${showServicePoints ? "bg-sky-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
-            onClick={() => setShowServicePoints((visible) => !visible)}
-            type="button"
-          >
-            水电点
-          </button>
-          <button
-            aria-pressed={Boolean(activeTourNode)}
-            className={`rounded-md px-3 py-2 text-xs font-bold transition ${activeTourNode ? "bg-emerald-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
-            onClick={() => setTourPanelOpen(true)}
-            type="button"
-          >
-            漫游节点 {currentFloorTourNodes.length}
-          </button>
-          {activeTourNode && (
-            <button className="rounded-md px-3 py-2 text-xs font-bold text-stone-600 transition hover:bg-stone-100" onClick={exitTour} type="button">退出节点测试</button>
+          {drawingSheetType === "furniturePlan" && (
+            <button
+              aria-pressed={showServicePoints}
+              className={`rounded-md px-3 py-2 text-xs font-bold transition ${showServicePoints ? "bg-sky-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+              onClick={() => setShowServicePoints((visible) => !visible)}
+              type="button"
+            >
+              家具机电关联 / 净空
+            </button>
           )}
-          <button
-            aria-pressed={cameraMode === "walkthrough"}
-            className={`rounded-md px-3 py-2 text-xs font-bold transition ${cameraMode === "walkthrough" ? "bg-emerald-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
-            onClick={() => setCameraMode((mode) => mode === "walkthrough" ? "orbit" : "walkthrough")}
-            type="button"
-          >
-            {cameraMode === "walkthrough" ? "退出漫游" : "自由漫游"}
-          </button>
-          <div className="flex flex-wrap gap-1">
-            {cameraViewOptions.map(([preset, label]) => (
-              <button
-                key={preset}
-                className={`rounded-md px-3 py-2 text-xs font-bold transition ${!cameraRequest.fixedView && cameraRequest.preset === preset ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-stone-100"}`}
-                onClick={() => requestCameraPreset(preset)}
-                type="button"
+          {drawingSheetType === "switchPlan" && (
+            <button
+              aria-pressed={showControlRelations}
+              className={`rounded-md px-3 py-2 text-xs font-bold transition ${showControlRelations ? "bg-blue-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+              onClick={() => setShowControlRelations((visible) => !visible)}
+              type="button"
+            >
+              控制组关系
+            </button>
+          )}
+          {drawingSheetType === "ceilingPlan" && (
+            <button
+              aria-pressed={ceilingSolid}
+              className={`rounded-md px-3 py-2 text-xs font-bold transition ${ceilingSolid ? "bg-violet-700 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+              onClick={() => setCeilingSolid((solid) => !solid)}
+              type="button"
+            >
+              {ceilingSolid ? "实体顶面" : "透明顶面"}
+            </button>
+          )}
+          {drawingSheetType === "lightingPlan" && (
+            <>
+              {availableLightingControlScenes.length > 0 && (
+                <select
+                  aria-label="控制场景"
+                  className="h-8 max-w-44 rounded-md border border-orange-200 bg-orange-50 px-2 text-xs font-bold text-orange-950 outline-none"
+                  value={activeLightingControlScene?.id ?? ""}
+                  onChange={(event) => setActiveLightingControlSceneId(event.target.value)}
+                >
+                  {availableLightingControlScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.name}</option>)}
+                </select>
+              )}
+              <select
+                aria-label="灯光场景"
+                className="h-8 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-950 outline-none"
+                value={lightingScene}
+                onChange={(event) => setLightingScene(event.target.value as LightingSceneMode)}
               >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            aria-label="顺时针旋转视图"
-            className="grid size-8 place-items-center rounded-md text-base font-black text-stone-600 transition hover:bg-stone-100"
-            onClick={() => rotateCameraPreset(1)}
-            title="顺时针旋转视图"
-            type="button"
-          >
-            ↻
-          </button>
+                {(Object.entries(lightingSceneModeLabels) as Array<[LightingSceneMode, string]>).map(([mode, label]) => <option key={mode} value={mode}>{label}</option>)}
+              </select>
+              {([
+                [showFixtureModels, setShowFixtureModels, "灯具模型"],
+                [showFixtureIds, setShowFixtureIds, "灯具 ID"],
+                [showBeamCones, setShowBeamCones, "光束锥体"],
+                [showLightSpots, setShowLightSpots, "光斑"],
+                [showControlRelations, setShowControlRelations, "控制关系"],
+                [showIlluminanceLayer, setShowIlluminanceLayer, "照度辅助层"]
+              ] as Array<[boolean, Dispatch<SetStateAction<boolean>>, string]>).map(([enabled, setter, label]) => (
+                <button
+                  key={label}
+                  aria-pressed={enabled}
+                  className={`rounded-md px-3 py-2 text-xs font-bold transition ${enabled ? "bg-amber-600 text-white" : "text-stone-600 hover:bg-stone-100"}`}
+                  onClick={() => setter((visible) => !visible)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </>
+          )}
           <label className="flex items-center gap-2 rounded-md px-3 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100">
             <input checked={showObjectIds} onChange={(event) => onShowObjectIdsChange(event.target.checked)} type="checkbox" />
             对象信息
@@ -6321,47 +6981,6 @@ export function Floor3DView({
         </div>
       </div>
 
-      {!presentationMode && (cameraRequest.fixedView || cameraRequest.preset !== "stair") && (
-        <div className="pointer-events-none absolute bottom-4 right-4 z-[70] max-w-[18rem] rounded-lg border border-white/75 bg-white/78 p-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
-          <div className="font-black text-stone-900">{materialPreview ? `${floor.label} 效果轴测` : `${floor.label} 白模检查`}</div>
-          {cameraRequest.fixedView && (
-            <div className="mt-1 font-semibold text-stone-700">
-              {cameraRequest.fixedView.name} · {cameraRequest.fixedView.mode === "orthographic" ? "正交轴测" : "透视视角"}
-              {cameraRequest.fixedView.description ? `：${cameraRequest.fixedView.description}` : ""}
-            </div>
-          )}
-          <div className="mt-1">
-            {cameraMode === "walkthrough"
-              ? "自由漫游中：W/A/S/D 或方向键前后左右移动，Q/E 升降，鼠标拖拽调整视角；退出后回到鸟瞰旋转模式。"
-              : materialPreview
-                ? `${designStylePalettes[designStyle].label}方案：墙体、地面、门窗、灯光和家具材质化表达。`
-                : "白模只用于确认空间比例、通道和家具体量；切回效果后继续看材质、灯光和水电点。"}
-          </div>
-          {materialPreview && (
-            <div className="mt-2 text-[10px] font-semibold leading-4 text-stone-500">
-              材质基准：{materialLegendText}
-            </div>
-          )}
-          {showServicePoints && servicePointCount > 0 && (
-            <div className="mt-3 rounded-md bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-900">
-              <div>当前显示 {servicePointCount} 个水电/排烟提示点，点位会随家具模块移动。</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {serviceMarkerOptions.map((service) => (
-                  <span key={service.key} className="inline-flex items-center gap-1.5">
-                    <span className="size-2.5 rounded-full" style={{ backgroundColor: service.color }} />
-                    {service.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {showObjectIds && (
-            <div className="mt-3 rounded-md bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600">
-              {selectedObjectId ? `当前选中：${selectedObjectId}${selectedName ? ` · ${selectedName}` : ""}` : "点选墙体、楼梯、门窗或家具后，这里显示对象信息。"}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

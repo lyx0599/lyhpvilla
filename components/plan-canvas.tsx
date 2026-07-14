@@ -70,6 +70,7 @@ import {
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
 import { Floor3DView } from "@/components/floor-3d-view";
+import type { LightingDesign } from "@/types/workspace";
 import type {
   CleanPatch,
   DrawTool,
@@ -97,6 +98,8 @@ import type {
 import { getSemanticObjectPosition, semanticCategoryLabels, semanticIdPrefixes } from "@/lib/semantic-map";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
 import { constructionPackageToCsv, constructionPackageToHtml, constructionPackageToJson, validateConstructionPackage } from "@/lib/construction-package-export";
+import { getVerificationDisplayState, verificationDisplayStateLabels, verificationDisplayStyles } from "@/lib/dimension-verification";
+import { getFurnitureCenterMm, getRelatedDrawingItemSyncState, validateFurniturePlacement } from "@/lib/furniture-placement";
 import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
 import type { WorkspaceDocument } from "@/types/workspace";
 
@@ -110,9 +113,11 @@ type Props = {
   furniture: Furniture[];
   drawingItems: DrawingItem[];
   constructionExportWorkspace: WorkspaceDocument;
+  dimensionVerificationConflictIds?: ReadonlySet<string>;
   semanticObjects: SemanticObject[];
   selectedFurnitureId: string;
   selectedSemanticObjectId: string;
+  sheetMode: PlanCanvasMode;
   viewMode: ViewMode;
   plannerMode: PlannerMode;
   drawTool: DrawTool;
@@ -134,12 +139,14 @@ type Props = {
   activeFurnitureId?: string;
   cameraViews?: FixedCameraView[];
   roomTourViews?: RoomTourView[];
+  lightingDesign?: LightingDesign;
   cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   locateObjectRequest: { id: string; nonce: number } | null;
   canUndo: boolean;
   canRedo: boolean;
   onScaleChange: (scale: number) => void;
+  onSheetModeChange: (mode: PlanCanvasMode) => void;
   onSelectFloor: (floorId: Floor["id"]) => void;
   onActiveObjectChange: (objectId: string) => void;
   onSelectStructureObject?: (objectId: string) => void;
@@ -154,6 +161,7 @@ type Props = {
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
   onSelectFurniture: (furniture: Furniture) => void;
   onFurnitureChange: (furniture: Furniture[]) => void;
+  onFurnitureDragEnd: (furniture: Furniture, deltaMm: MmPoint) => void;
   onDrawingItemsChange: (drawingItems: DrawingItem[]) => void;
   onGenerateDrawingItems: (scope: "floor" | "all") => void;
   onGenerateLightingDesign: (scope: "floor" | "all") => void;
@@ -578,9 +586,11 @@ export function PlanCanvas({
   furniture,
   drawingItems,
   constructionExportWorkspace,
+  dimensionVerificationConflictIds = new Set<string>(),
   semanticObjects = [],
   selectedFurnitureId,
   selectedSemanticObjectId = "",
+  sheetMode,
   viewMode,
   plannerMode,
   drawTool,
@@ -602,12 +612,14 @@ export function PlanCanvas({
   activeFurnitureId = "",
   cameraViews = [],
   roomTourViews = [],
+  lightingDesign,
   cameraViewFloorIds,
   cameraViewRequest = null,
   locateObjectRequest,
   canUndo,
   canRedo,
   onScaleChange,
+  onSheetModeChange,
   onSelectFloor,
   onActiveObjectChange,
   onSelectStructureObject,
@@ -622,6 +634,7 @@ export function PlanCanvas({
   onCleanPatchesChange: requestCleanPatchesChange,
   onSelectFurniture,
   onFurnitureChange: requestFurnitureChange,
+  onFurnitureDragEnd,
   onDrawingItemsChange: requestDrawingItemsChange,
   onGenerateDrawingItems,
   onGenerateLightingDesign,
@@ -672,9 +685,8 @@ export function PlanCanvas({
   const [isCleanupPanelOpen, setIsCleanupPanelOpen] = useState(false);
   const [cleanupSelection, setCleanupSelection] = useState<CleanPatch["rect"] | null>(null);
   const [exportOptions, setExportOptions] = useState({ overlay: false, roomNames: false, furniture: false });
-  const [sheetMode, setNormalizedSheetMode] = useState<PlanCanvasMode>("sitePlan");
   const setSheetMode = (nextMode: PlanCanvasMode | DrawingSheetType | string | null | undefined) => {
-    setNormalizedSheetMode(normalizePlanCanvasMode(nextMode));
+    onSheetModeChange(normalizePlanCanvasMode(nextMode));
   };
   const [isConstructionPackageOpen, setIsConstructionPackageOpen] = useState(false);
   const [pendingConstructionExport, setPendingConstructionExport] = useState<"html" | "json" | "csv" | null>(null);
@@ -694,6 +706,7 @@ export function PlanCanvas({
   const [selectedDrawingItemId, setSelectedDrawingItemId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
+  const [showFurnitureClearances, setShowFurnitureClearances] = useState(true);
   const [internalShowFurnitureLabels, setInternalShowFurnitureLabels] = useState(true);
   const [labelFilter, setLabelFilter] = useState<LabelFilter>("all");
   const [syncPaintRuleId, setSyncPaintRuleId] = useState<SyncPaintRuleId | null>(null);
@@ -704,7 +717,8 @@ export function PlanCanvas({
   const structureMoveRef = useRef<{ pointerId: number; objectId: string; lastPoint: MmPoint; moved: boolean } | null>(null);
   const drawDragRef = useRef<{ pointerId: number; start: MmPoint } | null>(null);
   const openingDragRef = useRef<{ pointerId: number; objectId: string; objectType: "door" | "window"; moved: boolean } | null>(null);
-  const furnitureDragRef = useRef<{ pointerId: number; objectId: string; lastPosition: MmPoint; moved: boolean } | null>(null);
+  const furnitureDragRef = useRef<{ pointerId: number; objectId: string; lastPosition: MmPoint; moved: boolean; totalDelta: MmPoint; latestFurniture: Furniture } | null>(null);
+  const skipFurnitureClickRef = useRef("");
   const drawingItemDragRef = useRef<{ pointerId: number; objectId: string } | null>(null);
   const cleanupDragRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const planRef = useRef<HTMLDivElement | null>(null);
@@ -787,7 +801,7 @@ export function PlanCanvas({
     setSelectedStructureId("");
     setInteractionState((currentState) => ({ ...currentState, selectedObjectId: "", hoveredObjectId: "", editingObjectId: "" }));
     onActiveObjectChange("");
-  }, [floor.id, sheetMode, onActiveObjectChange]);
+  }, [floor.id]);
 
   useEffect(() => {
     if (!furnitureImmersiveMode) return;
@@ -873,6 +887,24 @@ export function PlanCanvas({
   useEffect(() => {
     if (!locateObjectRequest) return;
     const { id } = locateObjectRequest;
+    const drawingItem = drawingItems.find((item) => item.id === id);
+    if (drawingItem) {
+      setSelectedDrawingItemId(id);
+      setSelectedStructureId("");
+      selectObject(id);
+      onActiveObjectChange(id);
+      setScale(1.45);
+      onScaleChange(1.45);
+      const rect = planRef.current?.getBoundingClientRect();
+      if (rect) {
+        setPan({
+          x: (0.5 - (drawingItem.positionMm.x - planBounds.x) / planBounds.width) * rect.width * 1.45,
+          y: (0.5 - (drawingItem.positionMm.y - planBounds.y) / planBounds.height) * rect.height * 1.45
+        });
+      }
+      setStructureMessage(`已定位图纸对象 ${id}`);
+      return;
+    }
     const furnitureObject = furniture.find((item) => item.id === id);
     if (furnitureObject) {
       setSelectedStructureId("");
@@ -1111,14 +1143,18 @@ export function PlanCanvas({
   }
 
   function nudgeFurnitureObject(furnitureId: string, delta: { x: number; y: number }) {
-    updateFurnitureObject(furnitureId, (item) => ({
-      ...item,
+    const current = furniture.find((item) => item.id === furnitureId);
+    if (!current || resolveLock(current, interactionState).locked2d) return;
+    const next = {
+      ...current,
       position: {
-        ...item.position,
-        x: Math.min(100, Math.max(0, item.position.x + delta.x)),
-        y: Math.min(100, Math.max(0, item.position.y + delta.y))
+        ...current.position,
+        x: Math.min(100, Math.max(0, current.position.x + delta.x)),
+        y: Math.min(100, Math.max(0, current.position.y + delta.y))
       }
-    }));
+    };
+    onFurnitureChange(furniture.map((item) => item.id === furnitureId ? next : item));
+    onFurnitureDragEnd(next, { x: delta.x / 100 * houseStructure.coordinateSystem.width, y: delta.y / 100 * houseStructure.coordinateSystem.height });
   }
 
   function rotateFurnitureObject(furnitureId: string, delta: number) {
@@ -1184,8 +1220,18 @@ export function PlanCanvas({
   }
 
   function commitInteractionModel(nextModel: { houseStructure: HouseStructure; furniture: Furniture[] }) {
-    onHouseStructureChange(nextModel.houseStructure);
-    onFurnitureChange(nextModel.furniture);
+    if (nextModel.houseStructure !== houseStructure) onHouseStructureChange(nextModel.houseStructure);
+    if (nextModel.furniture !== furniture) onFurnitureChange(nextModel.furniture);
+  }
+
+  function finishFurnitureDrag(pointerId: number) {
+    const drag = furnitureDragRef.current;
+    if (!drag || drag.pointerId !== pointerId) return;
+    if (drag.moved) onFurnitureDragEnd(drag.latestFurniture, drag.totalDelta);
+    window.setTimeout(() => {
+      if (furnitureDragRef.current?.pointerId === pointerId) furnitureDragRef.current = null;
+      if (drag.moved && skipFurnitureClickRef.current === drag.objectId) skipFurnitureClickRef.current = "";
+    }, 0);
   }
 
   function selectObject(objectId: string) {
@@ -3357,18 +3403,29 @@ export function PlanCanvas({
 
   const floorPlanFilter = getFloorPlanFilter(floorPlanVisualSettings);
   const constructionPackageValidation = validateConstructionPackage(constructionExportWorkspace);
+  const verificationConflictIds = new Set([
+    ...constructionPackageValidation.errors.map((issue) => issue.objectId),
+    ...Array.from(dimensionVerificationConflictIds)
+  ]);
   const layerVisibility = floorPlanVisualSettings.layerVisibility;
   const isSiteSheetMode = sheetMode === "sitePlan";
   const isStructureSheetMode = sheetMode === "structurePlan";
   const isSyncSheetMode = sheetMode === "structureSyncCheck";
   const isDemolitionBuildSheetMode = sheetMode === "demolitionAndBuildPlan";
+  const visibleVerificationStatusLayer = isStructureSheetMode || isDemolitionBuildSheetMode;
   const isAnnotationSheetMode = sheetMode === "annotationPlan";
   const isFurnitureSheetMode = sheetMode === "furniturePlan";
   const isProfessionalDrawingSheetMode = ["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(sheetMode);
   const activeDrawingItemCategories = getDrawingItemCategoriesForSheet(normalizeDrawingSheetType(sheetMode));
-  const visibleDrawingItems = drawingItems.filter((item) => activeDrawingItemCategories.includes(item.category));
+  const selectedFurnitureRelatedDrawingItems = selectedFurnitureId
+    ? drawingItems.filter((item) => item.relatedFurnitureId === selectedFurnitureId && ["socket", "switch", "light", "waterSupply", "drainage", "network", "ventilation", "annotation"].includes(item.category))
+    : [];
+  const visibleDrawingItems = isFurnitureSheetMode && selectedFurnitureRelatedDrawingItems.length > 0
+    ? selectedFurnitureRelatedDrawingItems
+    : drawingItems.filter((item) => activeDrawingItemCategories.includes(item.category));
   const selectedDrawingItem = drawingItems.find((item) => item.id === selectedDrawingItemId) ?? null;
-  const drawingItemLayerActive = activeDrawingItemCategories.length > 0;
+  const drawingItemLayerActive = activeDrawingItemCategories.length > 0 || (isFurnitureSheetMode && selectedFurnitureRelatedDrawingItems.length > 0);
+  const furniturePlacementWarnings = validateFurniturePlacement(houseStructure, furniture, drawingItems);
   const isMobileAnnotatedPlan = mobilePresentationMode && mobileDisplayLevel !== "simple";
   const visibleBaseFloorPlan = false;
   const visibleCleanupPatch = false;
@@ -4351,6 +4408,67 @@ export function PlanCanvas({
     );
   }
 
+  function renderVerificationStatusLayer() {
+    if (!visibleVerificationStatusLayer) return null;
+    const paint = (object: { id: string; verificationMeta?: HouseWall["verificationMeta"] }) => {
+      const state = getVerificationDisplayState(object.verificationMeta, verificationConflictIds.has(object.id));
+      return { state, ...verificationDisplayStyles[state] };
+    };
+    const statusLine = (id: string, start: MmPoint, end: MmPoint, object: { id: string; verificationMeta?: HouseWall["verificationMeta"] }, width = 58) => {
+      const style = paint(object);
+      return <line key={`verification-${id}`} data-verification-state={style.state} x1={start.x} y1={start.y} x2={end.x} y2={end.y} fill="none" stroke={style.color} strokeDasharray={style.dasharray} strokeLinecap="round" strokeWidth={width} opacity={0.88} />;
+    };
+
+    return (
+      <g data-layer="DimensionVerificationLayer" pointerEvents="none">
+        {houseStructure.rooms.map((room) => {
+          const style = paint(room);
+          return <polygon key={`verification-${room.id}`} data-verification-state={style.state} points={room.boundary.map((point) => `${point.x},${point.y}`).join(" ")} fill={style.background} fillOpacity={0.08} stroke={style.color} strokeDasharray={style.dasharray} strokeWidth={46} opacity={0.9} />;
+        })}
+        {houseStructure.outdoors.map((outdoor) => {
+          const style = paint(outdoor);
+          return <polygon key={`verification-${outdoor.id}`} data-verification-state={style.state} points={outdoor.polygon.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke={style.color} strokeDasharray={style.dasharray} strokeWidth={54} opacity={0.88} />;
+        })}
+        {houseStructure.walls.map((wall) => {
+          const style = paint(wall);
+          return wall.kind === "arc"
+            ? <path key={`verification-${wall.id}`} data-verification-state={style.state} d={getArcPath(wall)} fill="none" stroke={style.color} strokeDasharray={style.dasharray} strokeLinecap="round" strokeWidth={Math.max(54, wall.thickness * 0.32)} opacity={0.9} />
+            : statusLine(wall.id, wall.start, wall.end, wall, Math.max(54, wall.thickness * 0.32));
+        })}
+        {houseStructure.partitions.map((partition) => statusLine(partition.id, partition.start, partition.end, partition, Math.max(48, partition.thickness * 0.55)))}
+        {houseStructure.stairs.map((stair) => statusLine(stair.id, stair.start, stair.end, stair, 74))}
+        {houseStructure.columns.map((column) => {
+          const style = paint(column);
+          return <circle key={`verification-${column.id}`} data-verification-state={style.state} cx={column.center.x} cy={column.center.y} fill="none" r={column.radius + 64} stroke={style.color} strokeDasharray={style.dasharray} strokeWidth={54} opacity={0.9} />;
+        })}
+        {houseStructure.doors.map((door) => {
+          const host = getHostLine(door.hostId, door.hostType);
+          if (!host) return null;
+          const segment = getSegmentOnLine(host.start, host.end, door.positionOnWall, door.width);
+          return statusLine(door.id, segment.start, segment.end, door, 62);
+        })}
+        {houseStructure.windows.map((windowObject) => {
+          const host = getHostLine(windowObject.hostId, windowObject.hostType);
+          if (!host) return null;
+          const segment = getSegmentOnLine(host.start, host.end, windowObject.positionOnWall, windowObject.width);
+          return statusLine(windowObject.id, segment.start, segment.end, windowObject, 62);
+        })}
+        {houseStructure.bayWindows.map((bayWindow) => {
+          const host = getHostLine(bayWindow.wallId, "wall");
+          if (!host) return null;
+          const segment = getSegmentOnLine(host.start, host.end, bayWindow.positionOnWall, bayWindow.width);
+          const style = paint(bayWindow);
+          const points = [segment.start, segment.end, { x: segment.end.x + segment.normal.x * bayWindow.depth, y: segment.end.y + segment.normal.y * bayWindow.depth }, { x: segment.start.x + segment.normal.x * bayWindow.depth, y: segment.start.y + segment.normal.y * bayWindow.depth }];
+          return <polygon key={`verification-${bayWindow.id}`} data-verification-state={style.state} points={points.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke={style.color} strokeDasharray={style.dasharray} strokeWidth={54} opacity={0.9} />;
+        })}
+        {houseStructure.skylights.map((skylight) => {
+          const style = paint(skylight);
+          return <rect key={`verification-${skylight.id}`} data-verification-state={style.state} x={skylight.center.x - skylight.width / 2} y={skylight.center.y - skylight.depth / 2} width={skylight.width} height={skylight.depth} fill="none" stroke={style.color} strokeDasharray={style.dasharray} strokeWidth={54} opacity={0.9} transform={`rotate(${skylight.rotation} ${skylight.center.x} ${skylight.center.y})`} />;
+        })}
+      </g>
+    );
+  }
+
   return (
     <div
       className={`relative min-h-0 flex-1 overscroll-contain ${mobilePresentationMode ? "h-full overflow-hidden bg-[#f7f3ec] p-0" : `overflow-auto bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}`}
@@ -4415,6 +4533,12 @@ export function PlanCanvas({
               <input checked={showObjectIds} onChange={(event) => setShowObjectIds(event.target.checked)} type="checkbox" />
               <span className="whitespace-nowrap text-xs">显示对象 ID</span>
             </label>
+            {isFurnitureSheetMode && (
+              <label className="hidden cursor-pointer items-center gap-2 rounded-xl px-2 py-2 hover:bg-stone-100 sm:flex">
+                <input checked={showFurnitureClearances} onChange={(event) => setShowFurnitureClearances(event.target.checked)} type="checkbox" />
+                <span className="whitespace-nowrap text-xs">预留范围</span>
+              </label>
+            )}
             {showObjectIds && (
               <select className="hidden rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs outline-none sm:block" value={labelFilter} onChange={(event) => setLabelFilter(event.target.value as LabelFilter)}>
                 <option value="all">全部标签</option>
@@ -5921,7 +6045,9 @@ export function PlanCanvas({
                   {visibleDrawingItems.map((item, index) => {
                     const selected = item.id === selectedDrawingItemId;
                     const relatedFurniture = furniture.find((candidate) => candidate.id === item.relatedFurnitureId);
-                    const statusColor = item.status === "confirmed" ? "#047857" : item.status === "todo" ? "#b45309" : item.status === "deprecated" ? "#78716c" : "#2563eb";
+                    const relatedToSelectedFurniture = Boolean(selectedFurnitureId && item.relatedFurnitureId === selectedFurnitureId);
+                    const relatedSyncState = relatedFurniture ? getRelatedDrawingItemSyncState(item, relatedFurniture, houseStructure) : null;
+                    const statusColor = relatedSyncState?.needsSync ? "#d97706" : relatedToSelectedFurniture ? "#7c3aed" : item.status === "confirmed" ? "#047857" : item.status === "todo" ? "#b45309" : item.status === "deprecated" ? "#78716c" : "#2563eb";
                     const wall = item.category === "wallFinish" ? [...houseStructure.walls, ...houseStructure.partitions].find((candidate) => candidate.id === (item.wallId ?? item.hostWallId)) : null;
                     const wallStart = wall && "start" in wall ? wall.start : null;
                     const wallEnd = wall && "end" in wall ? wall.end : null;
@@ -5959,13 +6085,17 @@ export function PlanCanvas({
                           if (drawingItemDragRef.current?.pointerId === event.pointerId) drawingItemDragRef.current = null;
                         }}
                       >
+                        {relatedFurniture && relatedToSelectedFurniture && (() => {
+                          const furnitureCenter = getFurnitureCenterMm(relatedFurniture, houseStructure);
+                          return <line x1={0} y1={0} x2={furnitureCenter.x - anchor.x} y2={furnitureCenter.y - anchor.y} stroke={statusColor} strokeDasharray="70 55" strokeWidth={32} opacity={0.75} />;
+                        })()}
                         {item.category === "switch" && (item.controlledLightIds ?? []).map((lightId) => {
                           const light = drawingItems.find((candidate) => candidate.id === lightId && candidate.category === "light");
                           return light ? <line key={lightId} x1={0} y1={0} x2={light.positionMm.x - anchor.x} y2={light.positionMm.y - anchor.y} stroke="#2563eb" strokeDasharray="90 65" strokeWidth={28} opacity={0.7} /> : null;
                         })}
                         {polygon && <polygon points={polygon.map((point) => `${point.x - anchor.x},${point.y - anchor.y}`).join(" ")} fill={item.category === "ceiling" ? "rgba(14,165,233,0.12)" : "rgba(180,83,9,0.12)"} stroke={statusColor} strokeDasharray={item.category === "ceiling" ? "100 70" : undefined} strokeWidth={selected ? 58 : 34} />}
                         {wallStart && wallEnd && <line x1={wallStart.x - anchor.x} y1={wallStart.y - anchor.y} x2={wallEnd.x - anchor.x} y2={wallEnd.y - anchor.y} stroke={statusColor} strokeWidth={selected ? 150 : 105} opacity={0.65} />}
-                        <circle r={selected ? 190 : 160} fill="#ffffff" stroke={statusColor} strokeWidth={selected ? 55 : 38} />
+                        <circle r={selected || relatedToSelectedFurniture ? 190 : 160} fill="#ffffff" stroke={statusColor} strokeWidth={selected || relatedToSelectedFurniture ? 55 : 38} />
                         <text y={58} fill={statusColor} fontSize={170} fontWeight={900} textAnchor="middle">{drawingItemCategoryLabels[item.category].slice(0, 1)}</text>
                         <text y={-235} fill="#0f172a" fontSize={150} fontWeight={800} paintOrder="stroke" stroke="#ffffff" strokeWidth={42} textAnchor="middle">
                           {`${index + 1}. ${item.label || drawingItemCategoryLabels[item.category]}`}
@@ -5985,6 +6115,7 @@ export function PlanCanvas({
                 </g>
               )}
 
+              {renderVerificationStatusLayer()}
               {renderDimensionLayer()}
 
               {drawPreview && (
@@ -6032,21 +6163,21 @@ export function PlanCanvas({
               )}
             </svg>
 
-            {drawingItemLayerActive && !mobilePresentationMode && (
+            {drawingItemLayerActive && !isFurnitureSheetMode && !mobilePresentationMode && (
               <div className="absolute right-5 top-16 z-[58] max-h-[calc(100%-5rem)] w-[min(360px,calc(100%-2.5rem))] overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-3 text-xs text-stone-600 shadow-lg backdrop-blur" onPointerDown={(event) => event.stopPropagation()}>
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="font-semibold text-ink">图纸点位</p>
                     <p className="mt-0.5 text-stone-400">当前图纸 {visibleDrawingItems.length} 项</p>
                   </div>
-                  <button className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={addDrawingItem} type="button">新增点位</button>
+                  <button className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit" || activeDrawingItemCategories.length === 0} onClick={addDrawingItem} type="button">新增点位</button>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <button className="rounded-lg bg-emerald-50 px-2 py-2 font-semibold text-emerald-800 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("floor")} type="button">从家具生成 · 本层</button>
                   <button className="rounded-lg bg-emerald-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("all")} type="button">从家具生成 · 全屋</button>
                   {(sheetMode === "lightingPlan" || sheetMode === "switchPlan") && <>
-                    <button className="rounded-lg bg-amber-50 px-2 py-2 font-semibold text-amber-900 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateLightingDesign("floor")} type="button">灯光专项 v1 · 本层</button>
-                    <button className="rounded-lg bg-amber-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateLightingDesign("all")} type="button">灯光专项 v1 · 全屋</button>
+                    <button className="rounded-lg bg-amber-50 px-2 py-2 font-semibold text-amber-900 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateLightingDesign("floor")} type="button">现代温暖灯光 · 本层</button>
+                    <button className="rounded-lg bg-amber-700 px-2 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateLightingDesign("all")} type="button">现代温暖灯光 · 全屋</button>
                   </>}
                 </div>
                 {selectedDrawingItem && (
@@ -6063,12 +6194,20 @@ export function PlanCanvas({
                     </div>
                     <label className="mt-2 flex items-center gap-2"><input checked={Boolean(selectedDrawingItem.smartControl ?? selectedDrawingItem.needsSmartControl)} type="checkbox" onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { smartControl: event.target.checked, needsSmartControl: event.target.checked })} />需要智能控制</label>
                     {selectedDrawingItem.category === "light" && <div className="mt-3 rounded-lg bg-amber-50 p-2">
-                      <p className="font-semibold text-amber-950">灯光专项 v1</p>
+                      <p className="font-semibold text-amber-950">现代温暖型灯光</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <label>灯光分层<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.lightingLayer ?? "ambient"} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightingLayer: event.target.value as DrawingItem["lightingLayer"] })}>{lightingLayers.map((layer) => <option key={layer} value={layer}>{lightingLayerLabels[layer]}</option>)}</select></label>
                         <label>安装方式<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.mountingType ?? "recessed"} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { mountingType: event.target.value as DrawingItem["mountingType"] })}>{lightMountingTypes.map((type) => <option key={type} value={type}>{lightMountingTypeLabels[type]}</option>)}</select></label>
                         <label>光束角 °<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" min="1" max="180" type="number" value={selectedDrawingItem.beamAngle ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { beamAngle: event.target.value ? Number(event.target.value) : null })} /></label>
                         <label>控制组 ID<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.controlGroupId ?? selectedDrawingItem.lightGroupId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { controlGroupId: event.target.value || null, lightGroupId: event.target.value || null })} /></label>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        <label>灯具家族<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.lightSpec?.fixtureFamily ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightSpec: { ...(selectedDrawingItem.lightSpec ?? {}), fixtureFamily: event.target.value } })} /></label>
+                        <label>方向 °<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" type="number" value={selectedDrawingItem.directionDeg ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { directionDeg: event.target.value ? Number(event.target.value) : null })} /></label>
+                        <label>功率 W<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" min="0" type="number" value={selectedDrawingItem.lightSpec?.powerW ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightSpec: { ...(selectedDrawingItem.lightSpec ?? {}), powerW: event.target.value ? Number(event.target.value) : undefined } })} /></label>
+                        <label>光通量 lm<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" min="0" type="number" value={selectedDrawingItem.lightSpec?.luminousFluxLm ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightSpec: { ...(selectedDrawingItem.lightSpec ?? {}), luminousFluxLm: event.target.value ? Number(event.target.value) : undefined } })} /></label>
+                        <label>CRI<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" min="80" max="100" type="number" value={selectedDrawingItem.lightSpec?.cri ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightSpec: { ...(selectedDrawingItem.lightSpec ?? {}), cri: event.target.value ? Number(event.target.value) : undefined } })} /></label>
+                        <label>防水等级<input className="mt-1 w-full rounded-lg border border-amber-100 p-2" placeholder="如 IP65" value={selectedDrawingItem.lightSpec?.waterproofRating ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { lightSpec: { ...(selectedDrawingItem.lightSpec ?? {}), waterproofRating: event.target.value || undefined } })} /></label>
                       </div>
                       <label className="mt-2 block">关联开关<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.relatedSwitchId ?? ""} onChange={(event) => updateLightSwitchRelation(selectedDrawingItem.id, event.target.value || null)}><option value="">未关联</option>{drawingItems.filter((item) => item.category === "switch").map((item) => <option key={item.id} value={item.id}>{item.label} · {item.controlGroupId ?? item.lightGroupId ?? "未分组"}</option>)}</select></label>
                       <label className="mt-2 block">承载吊顶区域<select className="mt-1 w-full rounded-lg border border-amber-100 p-2" value={selectedDrawingItem.hostCeilingAreaId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostCeilingAreaId: event.target.value || null })}><option value="">吊顶深化后绑定</option>{drawingItems.filter((item) => item.category === "ceiling").map((item) => <option key={item.id} value={item.id}>{item.label} · {item.id}</option>)}</select></label>
@@ -6098,7 +6237,20 @@ export function PlanCanvas({
                     <label className="mt-2 block">关联房间<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedRoomId ?? selectedDrawingItem.roomId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { roomId: event.target.value || null, relatedRoomId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.rooms, ...houseStructure.outdoors].map((room) => <option key={room.id} value={room.id}>{room.name} · {room.id}</option>)}</select></label>
                     <label className="mt-2 block">关联墙体<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.wallId ?? selectedDrawingItem.hostWallId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostWallId: event.target.value || null, wallId: selectedDrawingItem.category === "wallFinish" ? event.target.value || null : selectedDrawingItem.wallId })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions].map((wall) => <option key={wall.id} value={wall.id}>{wall.name} · {wall.id}</option>)}</select></label>
                     <label className="mt-2 block">承载对象<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.hostObjectId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { hostObjectId: event.target.value || null })}><option value="">未关联</option>{[...houseStructure.walls, ...houseStructure.partitions, ...houseStructure.columns].map((object) => <option key={object.id} value={object.id}>{object.name} · {object.id}</option>)}</select></label>
-                    <label className="mt-2 block">关联家具<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedFurnitureId ?? ""} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { relatedFurnitureId: event.target.value || null })}><option value="">未关联</option>{furniture.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.id}</option>)}</select></label>
+                    <label className="mt-2 block">关联家具<select className="mt-1 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.relatedFurnitureId ?? ""} onChange={(event) => {
+                      const relatedFurnitureId = event.target.value || null;
+                      const related = relatedFurnitureId ? furniture.find((item) => item.id === relatedFurnitureId) : null;
+                      updateDrawingItem(selectedDrawingItem.id, {
+                        relatedFurnitureId,
+                        relatedFurniturePositionMm: related ? getFurnitureCenterMm(related, houseStructure) : undefined
+                      });
+                    }}><option value="">未关联</option>{furniture.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.id}</option>)}</select></label>
+                    {selectedDrawingItem.relatedFurnitureId && furniture.some((item) => item.id === selectedDrawingItem.relatedFurnitureId) && (
+                      <button className="mt-2 w-full rounded-lg bg-violet-50 px-3 py-2 font-semibold text-violet-800" onClick={() => {
+                        const related = furniture.find((item) => item.id === selectedDrawingItem.relatedFurnitureId);
+                        if (related) onSelectFurniture(related);
+                      }} type="button">定位关联家具</button>
+                    )}
                     <label className="mt-2 block">备注<textarea className="mt-1 min-h-16 w-full rounded-lg border border-stone-200 p-2" value={selectedDrawingItem.notes} onChange={(event) => updateDrawingItem(selectedDrawingItem.id, { notes: event.target.value })} /></label>
                     <div className="mt-2 flex items-center justify-between gap-2"><span className="truncate text-stone-400">{selectedDrawingItem.id} · {selectedDrawingItem.source}</span><button className="rounded-lg bg-red-50 px-3 py-2 font-semibold text-red-700" onClick={() => deleteDrawingItem(selectedDrawingItem.id)} type="button">删除</button></div>
                   </div>
@@ -6109,6 +6261,16 @@ export function PlanCanvas({
             {!mobilePresentationMode && <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
               {planCanvasModeLabels[sheetMode]}：{planCanvasModeDescriptions[sheetMode]}
             </div>}
+            {visibleVerificationStatusLayer && !mobilePresentationMode && (
+              <div className="pointer-events-none absolute left-5 top-16 z-40 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-x-3 gap-y-1 rounded-lg border border-stone-200 bg-white/94 px-3 py-2 text-[11px] font-semibold text-stone-600 shadow-sm">
+                {(Object.keys(verificationDisplayStateLabels) as Array<keyof typeof verificationDisplayStateLabels>).map((state) => (
+                  <span key={state} className="flex items-center gap-1.5">
+                    <span className="size-2.5 rounded-sm" style={{ backgroundColor: verificationDisplayStyles[state].color }} />
+                    {verificationDisplayStateLabels[state]}
+                  </span>
+                ))}
+              </div>
+            )}
             {!mobilePresentationMode && <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
               {planCanvasModeFootnotes[sheetMode]}
             </div>}
@@ -6236,7 +6398,7 @@ export function PlanCanvas({
 
             {visibleFurnitureOverlay && (
               <div
-                className="absolute inset-0 z-30"
+                className={`absolute inset-0 ${isFurnitureSheetMode ? "z-50" : "z-30"}`}
                 data-layer="FurnitureOverlayLayer"
                 data-coordinate-system="percent-of-floor-plan"
                 style={{ pointerEvents: furniturePointerEventsEnabled ? "auto" : "none" }}
@@ -6252,6 +6414,11 @@ export function PlanCanvas({
 	                const displayPosition = getFurnitureDisplayPosition(item);
                 const displaySize = getFurnitureDisplaySize(item);
                 const renderAsset = resolve3DAsset(item);
+                const placementWarnings = furniturePlacementWarnings.filter((warning) => warning.furnitureId === item.id);
+                const clearance = item.clearanceMeta;
+                const clearanceFront = Math.max(clearance?.frontMm ?? 0, clearance?.serviceMm ?? 0, clearance?.doorSwingMm ?? 0);
+                const widthMm = Math.max(1, item.dimensions.width * 10);
+                const depthMm = Math.max(1, item.dimensions.depth * 10);
                 return (
                   <button
                     key={item.id}
@@ -6273,6 +6440,10 @@ export function PlanCanvas({
                     data-furniture-id={item.id}
                     onClick={(event) => {
                       event.stopPropagation();
+                      if (skipFurnitureClickRef.current === item.id) {
+                        skipFurnitureClickRef.current = "";
+                        return;
+                      }
                       if (furnitureDragRef.current?.moved) return;
                       setSelectedStructureId("");
                       onSelectFurniture(item);
@@ -6297,8 +6468,12 @@ export function PlanCanvas({
                       event.stopPropagation();
                       setSelectedStructureId("");
                       selectObject(item.id);
-                      if (mobilePresentationMode) {
+                      if (selectedFurnitureId !== item.id) {
+                        skipFurnitureClickRef.current = item.id;
                         onSelectFurniture(item);
+                      }
+                      if (mobilePresentationMode) {
+                        if (selectedFurnitureId === item.id) onSelectFurniture(item);
                         return;
                       }
                       if (!workspaceMutationAllowed || plannerMode !== "edit" || drawTool !== "select" || locked) {
@@ -6307,7 +6482,7 @@ export function PlanCanvas({
                       }
                       const position = getMmPosition(event);
                       if (!position) return;
-                      furnitureDragRef.current = { pointerId: event.pointerId, objectId: item.id, lastPosition: position, moved: false };
+                      furnitureDragRef.current = { pointerId: event.pointerId, objectId: item.id, lastPosition: position, moved: false, totalDelta: { x: 0, y: 0 }, latestFurniture: item };
                       event.currentTarget.setPointerCapture(event.pointerId);
                     }}
                     onPointerMove={(event) => {
@@ -6319,28 +6494,39 @@ export function PlanCanvas({
                       const usesSiteBounds = floor.id === "1F" || floor.id === "YARD";
                       const minY = usesSiteBounds ? SITE_PLAN_MIN_Y_MM / houseStructure.coordinateSystem.height * 100 : 0;
                       const maxY = usesSiteBounds ? SITE_PLAN_MAX_Y_MM / houseStructure.coordinateSystem.height * 100 : 100;
-                      onFurnitureChange(furniture.map((candidate) => candidate.id === item.id
-                        ? applyPlanDelta(candidate, delta, houseStructure.coordinateSystem, { minX: 0, maxX: 100, minY, maxY })
-                        : candidate));
+                      const latestFurniture = applyPlanDelta(drag.latestFurniture, delta, houseStructure.coordinateSystem, { minX: 0, maxX: 100, minY, maxY });
+                      drag.latestFurniture = latestFurniture;
+                      drag.totalDelta = { x: drag.totalDelta.x + delta.x, y: drag.totalDelta.y + delta.y };
+                      onFurnitureChange(furniture.map((candidate) => candidate.id === item.id ? latestFurniture : candidate));
                       drag.lastPosition = position;
                       drag.moved = true;
                     }}
-                    onPointerUp={(event) => {
-                      if (furnitureDragRef.current?.pointerId === event.pointerId) {
-                        window.setTimeout(() => {
-                          furnitureDragRef.current = null;
-                        }, 0);
-                      }
-                    }}
+                    onPointerUp={(event) => finishFurnitureDrag(event.pointerId)}
+                    onPointerCancel={(event) => finishFurnitureDrag(event.pointerId)}
                     type="button"
                     title={`${locked ? "已锁定 · " : ""}${item.name}${demandHint?.details.length ? ` · ${demandHint.details.join(" · ")}` : ""}`}
                   >
+                    {showFurnitureClearances && isFurnitureSheetMode && clearance && (
+                      <span
+                        className="pointer-events-none absolute z-0 border-2 border-dashed border-cyan-600/75 bg-cyan-300/10"
+                        data-clearance-for={item.id}
+                        style={{
+                          left: `${-((clearance.leftMm ?? 0) / widthMm) * 100}%`,
+                          top: `${-((clearance.rearMm ?? 0) / depthMm) * 100}%`,
+                          width: `${100 + (((clearance.leftMm ?? 0) + (clearance.rightMm ?? 0)) / widthMm) * 100}%`,
+                          height: `${100 + (((clearance.rearMm ?? 0) + clearanceFront) / depthMm) * 100}%`
+                        }}
+                      />
+                    )}
                     <div
-                      className="h-full w-full"
+                      className="relative z-10 h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-	                      <FurnitureTopView assetType={renderAsset.assetType} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furniturePlan")} stretchToFill type={item.type} />
+	                      <FurnitureTopView assetType={renderAsset.assetType} variantId={renderAsset.variantId} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furniturePlan")} stretchToFill type={item.type} />
 	                    </div>
+	                    {placementWarnings.length > 0 && (
+	                      <span className="pointer-events-none absolute -left-2 -top-2 z-20 grid min-h-6 min-w-6 place-items-center rounded-full border-2 border-white bg-amber-600 px-1 text-[10px] font-black text-white shadow-md" title={placementWarnings.map((warning) => warning.message).join("\n")}>{placementWarnings.length}</span>
+	                    )}
 	                    {demandHint && (
 	                      <>
 	                        <span
@@ -6596,18 +6782,22 @@ export function PlanCanvas({
           floor={floor}
           houseStructure={houseStructure}
           furniture={furniture}
+          drawingItems={drawingItems}
+          drawingSheetType={normalizeDrawingSheetType(sheetMode) ?? "sitePlan"}
           mobilePresentationMode={mobilePresentationMode}
           mobileQuality={mobileQuality}
           resetViewRequest={resetViewRequest}
           cameraViews={cameraViews}
           roomTourViews={roomTourViews}
+          lightingDesign={lightingDesign}
           cameraViewFloorIds={cameraViewFloorIds}
           cameraViewRequest={cameraViewRequest}
-          selectedObjectId={selectedInteractionObjectId}
+          selectedObjectId={selectedDrawingItemId || selectedInteractionObjectId}
           selectedFurnitureId={selectedFurnitureId}
           showObjectIds={showObjectIds}
           onShowObjectIdsChange={setShowObjectIds}
           onSelectStructure={(objectId) => {
+            setSelectedDrawingItemId("");
             setSelectedStructureId(objectId);
             selectObject(objectId);
             onSelectStructureObject?.(objectId);
@@ -6615,11 +6805,20 @@ export function PlanCanvas({
             setStructureMessage(`已在 3D 效果中选择 ${objectId}。`);
           }}
           onSelectFurniture={(item) => {
+            setSelectedDrawingItemId("");
             setSelectedStructureId("");
             setInteractionState((currentState) => ({ ...currentState, selectedObjectId: item.id, editingObjectId: item.id }));
             selectObject(item.id);
             onSelectFurniture(item);
           }}
+          onSelectDrawingItem={(drawingItemId) => {
+            setSelectedDrawingItemId(drawingItemId);
+            setSelectedStructureId("");
+            selectObject(drawingItemId);
+            onActiveObjectChange(drawingItemId);
+            setStructureMessage(`已在 3D 专项中选择 ${drawingItemId}。`);
+          }}
+          onDrawingSheetTypeChange={setSheetMode}
           onHoverObject={hoverObject}
           onClearHoverObject={clearHoverObject}
           onSelectCameraView={onSelectCameraView}

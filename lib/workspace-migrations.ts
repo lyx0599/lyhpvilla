@@ -1,8 +1,12 @@
 import type { DrawingItem, Floor, FloorId, HouseStructure, LightingLayer } from "@/types/space";
-import type { WorkspaceDataCategory, WorkspaceDataSourceReport, WorkspaceDocument } from "@/types/workspace";
+import type { LightingDesign, WorkspaceDataCategory, WorkspaceDataSourceReport, WorkspaceDocument } from "@/types/workspace";
+import { normalizeVerificationMeta, verificationTargetCollections } from "./dimension-verification.ts";
+import { getDrawingItemGeneratedFingerprint, getLegacyDrawingItemGeneratedFingerprintV13 } from "./drawing-items.ts";
+import { generateLightingDesignV1 } from "./lighting-design.ts";
+import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 9;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-12-lighting-design-v1";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 15;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-14-modern-natural-furniture-v1";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -13,9 +17,21 @@ const trackedCategories: WorkspaceDataCategory[] = [
   "semanticObjects",
   "cameraViews",
   "roomTourViews",
+  "lightingDesign",
   "visualSettingsByFloor",
   "cleanPatchesByFloor"
 ];
+
+function emptyLightingDesign(): LightingDesign {
+  return {
+    version: "modern-warm-v1",
+    style: "modern-warm",
+    generatedAt: "",
+    fixtureFamilies: [],
+    scenes: [],
+    pendingConfirmations: []
+  };
+}
 
 type WorkspaceMigrationOptions = {
   canonicalWorkspace?: WorkspaceDocument;
@@ -146,6 +162,58 @@ function migrateStairLaneConvention(workspace: Partial<WorkspaceDocument>) {
   return changed;
 }
 
+function migrateDimensionVerification(workspace: Partial<WorkspaceDocument>) {
+  const structures = workspace.houseStructuresByFloor;
+  if (!structures) return false;
+  let changed = false;
+  Object.values(structures).forEach((structure) => {
+    if (!structure) return;
+    verificationTargetCollections.forEach((collection) => {
+      structure[collection].forEach((object) => {
+        if (object.verificationMeta?.status && object.verificationMeta?.source) return;
+        object.verificationMeta = normalizeVerificationMeta(object.verificationMeta, collection);
+        changed = true;
+      });
+    });
+  });
+  return changed;
+}
+
+function migrateFurniturePlacement(workspace: Partial<WorkspaceDocument>) {
+  if (!workspace.furniture || !workspace.drawingItems || !workspace.houseStructuresByFloor) return false;
+  let changed = false;
+  const furnitureById = new Map(workspace.furniture.map((item) => [item.id, item]));
+  workspace.furniture.forEach((item) => {
+    if (!item.outdoorId && item.roomId.startsWith("OD-")) {
+      item.outdoorId = item.roomId;
+      changed = true;
+    }
+  });
+  workspace.drawingItems.forEach((item) => {
+    if (!item.relatedFurnitureId || item.relatedFurniturePositionMm) return;
+    const furniture = furnitureById.get(item.relatedFurnitureId);
+    const structure = furniture ? workspace.houseStructuresByFloor?.[furniture.floorId] : undefined;
+    if (!furniture || !structure) return;
+    item.relatedFurniturePositionMm = {
+      x: Math.round(structure.coordinateSystem.origin.x + furniture.position.x / 100 * structure.coordinateSystem.width),
+      y: Math.round(structure.coordinateSystem.origin.y + furniture.position.y / 100 * structure.coordinateSystem.height)
+    };
+    changed = true;
+  });
+  return changed;
+}
+
+function migrateFurnitureVariants(workspace: Partial<WorkspaceDocument>) {
+  if (!workspace.furniture) return false;
+  let changed = false;
+  workspace.furniture = workspace.furniture.map((item) => {
+    if (item.render3d?.variantId && Number.isInteger(item.render3d.variationSeed) && item.render3d.variationSeed! >= 0) return item;
+    changed = true;
+    return withFurnitureVariantDefaults(item);
+  });
+  return changed;
+}
+
 function inferLightingLayer(item: DrawingItem): LightingLayer {
   const text = `${item.type} ${item.label}`.toLowerCase();
   if (/cabinet|wardrobe|strip|柜|灯带/.test(text)) return "cabinetStrip";
@@ -204,6 +272,10 @@ export function applyWorkspaceMigrations(
   const workspace = cloneJson(input) as Partial<WorkspaceDocument>;
   const canMigrate = (input.schemaVersion ?? 0) < CURRENT_WORKSPACE_SCHEMA_VERSION
     || input.dataRevision !== CURRENT_WORKSPACE_DATA_REVISION;
+  const needsModernWarmLighting = (input.schemaVersion ?? 0) < 14
+    || !hasOwn(original, "lightingDesign")
+    || !input.lightingDesign?.fixtureFamilies?.length
+    || Boolean(input.drawingItems?.some((item) => item.generatedKey?.startsWith("lighting-design-v1:") && item.category === "light" && !item.lightSpec?.fixtureFamily));
 
   const migrateMissingCategory = <K extends WorkspaceDataCategory>(key: K, fallback: WorkspaceDocument[K]) => {
     if (hasOwn(original, key)) return;
@@ -225,6 +297,7 @@ export function applyWorkspaceMigrations(
   migrateMissingCategory("semanticObjects", canonical?.semanticObjects ?? []);
   migrateMissingCategory("cameraViews", canonical?.cameraViews ?? []);
   migrateMissingCategory("roomTourViews", canonical?.roomTourViews ?? []);
+  migrateMissingCategory("lightingDesign", canonical?.lightingDesign ?? emptyLightingDesign());
   migrateMissingCategory("visualSettingsByFloor", canonical?.visualSettingsByFloor ?? {} as WorkspaceDocument["visualSettingsByFloor"]);
   migrateMissingCategory("cleanPatchesByFloor", canonical?.cleanPatchesByFloor ?? {} as WorkspaceDocument["cleanPatchesByFloor"]);
 
@@ -238,7 +311,35 @@ export function applyWorkspaceMigrations(
     return [floor.id, result.structure];
   })) as WorkspaceDocument["houseStructuresByFloor"];
   if (canMigrate && migrateStairLaneConvention(workspace)) structureMigrated = true;
+  if (canMigrate && migrateDimensionVerification(workspace)) structureMigrated = true;
+  if (canMigrate && migrateFurniturePlacement(workspace)) {
+    sources.furniture = "migration";
+    sources.drawingItems = "migration";
+  }
+  if (canMigrate && migrateFurnitureVariants(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
+  if (canMigrate && needsModernWarmLighting && hasOwn(original, "drawingItems") && workspace.furniture && workspace.drawingItems && workspace.houseStructuresByFloor) {
+    workspace.drawingItems.forEach((item) => {
+      if (!item.generatedKey?.startsWith("lighting-design-v1:") || item.status === "confirmed" || !item.generatedFingerprint) return;
+      if (item.generatedFingerprint === getLegacyDrawingItemGeneratedFingerprintV13(item)) item.generatedFingerprint = getDrawingItemGeneratedFingerprint(item);
+    });
+    const lighting = generateLightingDesignV1({
+      structuresByFloor: workspace.houseStructuresByFloor,
+      furniture: workspace.furniture,
+      existingItems: workspace.drawingItems,
+      floorIds: (workspace.floors ?? []).map((floor) => floor.id),
+      now: "2026-07-14T08:00:00.000Z"
+    });
+    workspace.drawingItems = lighting.items;
+    workspace.lightingDesign = lighting.lightingDesign;
+    workspace.roomTourViews = [
+      ...(workspace.roomTourViews ?? []).filter((view) => !view.id.startsWith("lighting-view-")),
+      ...lighting.recommendedViews
+    ];
+    sources.drawingItems = "migration";
+    sources.lightingDesign = "migration";
+    sources.roomTourViews = "migration";
+  }
   if (structureMigrated) sources.houseStructuresByFloor = "migration";
 
   workspace.floors = floors.map((floor): Floor => {
@@ -254,6 +355,7 @@ export function applyWorkspaceMigrations(
     };
   });
   workspace.selectedFloorId = workspace.selectedFloorId ?? workspace.floors[0]?.id ?? "1F";
+  workspace.selectedDrawingSheetType = workspace.selectedDrawingSheetType ?? "sitePlan";
   workspace.wallSyncOverrides = workspace.wallSyncOverrides ?? {};
   workspace.schemaVersion = CURRENT_WORKSPACE_SCHEMA_VERSION;
   workspace.dataRevision = CURRENT_WORKSPACE_DATA_REVISION;

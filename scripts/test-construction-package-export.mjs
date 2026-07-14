@@ -19,7 +19,7 @@ for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆
   assert.ok(constructionPackageSheets.some((sheet) => sheet.title === title), `missing sheet ${title}`);
 }
 
-for (const table of ["socketAndNetwork", "switchControl", "lighting", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "yardFinish", "outdoorMep", "cabinet", "procurementAndMaterials", "annotationsAndTodos"]) {
+for (const table of ["socketAndNetwork", "switchControl", "lighting", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "yardFinish", "outdoorMep", "furniturePlacement", "cabinet", "procurementAndMaterials", "annotationsAndTodos", "dimensionVerification"]) {
   assert.ok(Array.isArray(data.tables[table]), `missing export table ${table}`);
 }
 for (const record of data.records) {
@@ -33,6 +33,9 @@ assert.match(html, /使用说明与复尺提醒/);
 assert.match(html, /施工包检查/);
 assert.match(html, /庭院专项/);
 assert.match(html, /柜体深化表/);
+assert.match(html, /家具定位复核表/);
+assert.match(html, /尺寸复核台账/);
+assert.match(html, /DimensionVerificationLayer/);
 assert.match(html, /版本 .*导出时间/);
 assert.doesNotMatch(html, /debug overlay|开发工具|对象调试字段/);
 for (const floor of workspace.floors) assert.ok(html.includes(floor.subtitle));
@@ -49,6 +52,20 @@ assert.equal(data.tables.yardFinish.length, workspace.houseStructuresByFloor.YAR
 assert.ok(data.tables.yardFinish.every((record) => ["YARD-SOUTH", "YARD-NORTH", "YARD-ALL"].includes(record.roomId)));
 assert.ok(data.tables.cabinet.length > 0, "cabinet schedule must include custom and built-in cabinets");
 assert.ok(data.tables.cabinet.every((record) => Object.hasOwn(record, "dimensions") && Object.hasOwn(record, "customMade") && Object.hasOwn(record, "installType") && Array.isArray(record.requirements)));
+assert.equal(data.tables.furniturePlacement.length, workspace.furniture.length);
+assert.ok(data.tables.furniturePlacement.every((record) => Object.hasOwn(record, "outdoorId") && Object.hasOwn(record, "roomAssignmentLocked") && Object.hasOwn(record, "wallAnchor") && Object.hasOwn(record, "clearanceMeta") && Array.isArray(record.placementWarnings)));
+assert.ok(data.records.filter((record) => record.relatedFurnitureId).every((record) => Object.hasOwn(record, "relatedFurniturePositionMm")), "Linked point exports must retain the furniture-position baseline field.");
+assert.ok(data.validation.warningCounts.furniturePlacement >= 0);
+assert.equal(data.validation.valid, true, "Unconfirmed dimensions must warn without blocking export or design work.");
+assert.equal(data.tables.dimensionVerification.length, data.validation.verificationEntries.length);
+assert.equal(data.validation.warningCounts.dimensionUnconfirmed, data.tables.dimensionVerification.length);
+assert.ok(data.validation.warningCounts.dimensionEstimated > 0);
+assert.ok(data.tables.dimensionVerification.every((record) => record.verificationStatus && record.verificationSource));
+assert.ok(data.tables.dimensionVerification.every((record) => Object.hasOwn(record, "verificationToleranceMm") && Object.hasOwn(record, "verificationNotes")));
+assert.ok(data.tables.dimensionVerification.every((record) => record.structureObject.verificationMeta), "JSON export must retain verification metadata with the structure snapshot.");
+assert.ok(csv.includes("drawing-derived") || csv.includes("estimated"));
+assert.ok(json.tables.dimensionVerification.some((record) => record.verificationSource === "developer-plan"));
+assert.deepEqual(json.tables.furniturePlacement.map((record) => record.objectId), workspace.furniture.map((item) => item.id));
 
 const broken = structuredClone(workspace);
 broken.drawingItems.push({
@@ -65,6 +82,7 @@ broken.drawingItems.push(
   { id: "DI-WARN-FINISH", floorId: "1F", roomId: null, category: "floorFinish", type: "roomFinish", positionMm: { x: 1600, y: 1600 }, hostObjectId: null, hostWallId: null, relatedFurnitureId: null, heightMm: null, circuitId: null, materialId: null, label: "缺材质铺装", notes: "", source: "manual", status: "draft", quantity: 1, createdAt: "2026-07-12T00:00:00.000Z", updatedAt: "2026-07-12T00:00:00.000Z" }
 );
 broken.drawingPackage.drawingItemIds.push("DI-EXPORT-ORPHAN");
+broken.houseStructuresByFloor["1F"].doors[0].hostId = "W-MISSING-VERIFICATION";
 const validation = validateConstructionPackage(broken);
 assert.equal(validation.valid, false);
 assert.equal(validation.orphanIssues.length > 0, true);
@@ -77,5 +95,6 @@ assert.equal(validation.warningCounts.drainageMissingType, 1);
 assert.equal(validation.warningCounts.finishMissingMaterial, 1);
 assert.ok(validation.warningCounts.todo >= 2);
 assert.ok(validation.warningCounts.yardNeedsReview >= 1);
+assert.ok(validation.warningCounts.dimensionConflicts >= 1);
 
 console.log("Construction communication package export checks passed.");
