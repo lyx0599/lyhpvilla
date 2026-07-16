@@ -6,8 +6,8 @@ import { generateLightingDesignV1 } from "./lighting-design.ts";
 import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
 import { buildManagedStairInfrastructure, normalizeManagedStairFlights } from "./stair-systems.ts";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 16;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-14-stair-systems-v1";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 17;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-15-stair-access-platform-v2";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -47,6 +47,11 @@ function hasOwn(value: object, key: PropertyKey) {
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function mergeManagedItems<T extends { id: string }>(existing: T[] | undefined, managed: T[]) {
+  const managedIds = new Set(managed.map((item) => item.id));
+  return [...(existing ?? []).filter((item) => !managedIds.has(item.id)), ...cloneJson(managed)];
 }
 
 function emptyStructure(floorId: FloorId): HouseStructure {
@@ -327,16 +332,18 @@ export function applyWorkspaceMigrations(
     const normalized = normalizeManagedStairFlights(workspace.houseStructuresByFloor);
     workspace.houseStructuresByFloor = normalized.structuresByFloor;
     structureMigrated = true;
-    if (!hasOwn(original, "stairSystems")) {
-      workspace.stairSystems = normalized.infrastructure.stairSystems;
+    const needsStairAccessMigration = (input.schemaVersion ?? 0) < 17
+      || input.dataRevision !== CURRENT_WORKSPACE_DATA_REVISION;
+    if (!hasOwn(original, "stairSystems") || needsStairAccessMigration) {
+      workspace.stairSystems = mergeManagedItems(workspace.stairSystems, normalized.infrastructure.stairSystems);
       sources.stairSystems = "migration";
     }
-    if (!hasOwn(original, "stairLandings")) {
-      workspace.stairLandings = normalized.infrastructure.stairLandings;
+    if (!hasOwn(original, "stairLandings") || needsStairAccessMigration) {
+      workspace.stairLandings = mergeManagedItems(workspace.stairLandings, normalized.infrastructure.stairLandings);
       sources.stairLandings = "migration";
     }
-    if (!hasOwn(original, "stairOpenings")) {
-      workspace.stairOpenings = normalized.infrastructure.stairOpenings;
+    if (!hasOwn(original, "stairOpenings") || needsStairAccessMigration) {
+      workspace.stairOpenings = mergeManagedItems(workspace.stairOpenings, normalized.infrastructure.stairOpenings);
       sources.stairOpenings = "migration";
     }
   }

@@ -94,8 +94,8 @@ export function getStairPlatformPlanPoint(stair: HouseStair, landingDepthMm: num
   const length = lineLength(stair.start, stair.end);
   const inset = Math.min(Math.max(0, landingDepthMm), length * 0.42);
   return {
-    x: stair.start.x + ((stair.end.x - stair.start.x) / length) * inset,
-    y: stair.start.y + ((stair.end.y - stair.start.y) / length) * inset
+    x: stair.end.x + ((stair.start.x - stair.end.x) / length) * inset,
+    y: stair.end.y + ((stair.start.y - stair.end.y) / length) * inset
   };
 }
 
@@ -139,15 +139,15 @@ function createFlight(input: {
   const currentFloorWorldY = getFloorWorldElevationMm(input.currentFloorId);
   const localHeights = getFlightLocalEndpointHeights(input.stair);
   const platformPoint = getStairPlatformPlanPoint(input.stair, input.landingDepthMm);
-  const worldPlatformElevationMm = sourceFloorWorldY + localHeights.startHeightMm;
-  const worldFloorElevationMm = sourceFloorWorldY + localHeights.endHeightMm;
+  const worldPlatformElevationMm = sourceFloorWorldY + localHeights.endHeightMm;
+  const worldFloorElevationMm = sourceFloorWorldY + localHeights.startHeightMm;
   return {
     systemId: input.system.id,
     stair: input.stair,
     role: input.role,
     sourceFloorId: input.stair.floorId,
     platformPlanPoint: platformPoint,
-    floorPlanPoint: clonePoint(input.stair.end),
+    floorPlanPoint: clonePoint(input.stair.start),
     worldPlatformElevationMm,
     worldFloorElevationMm,
     realPlatformYMm: worldPlatformElevationMm - currentFloorWorldY,
