@@ -8,12 +8,18 @@ import { DimensionVerificationEditor } from "@/components/dimension-verification
 import { MobileDetailsDrawer } from "@/components/mobile-details-drawer";
 import { PlanCanvas } from "@/components/plan-canvas";
 import { SemanticMapPanel } from "@/components/semantic-map-panel";
-import { ViewToggle } from "@/components/view-toggle";
+import { BottomStatusBar } from "@/components/editor/bottom-status-bar";
+import { ContextToolBar } from "@/components/editor/context-toolbar";
+import { DrawingDirectory } from "@/components/editor/drawing-directory";
+import { EditorUtilityDialog } from "@/components/editor/editor-utility-dialog";
+import { MoreMenu, type EditorDialogKey } from "@/components/editor/more-menu";
+import { RightPanelFrame, RightPanelRail, type EditorRightPanelKey } from "@/components/editor/right-panel-frame";
+import { TopNavigation } from "@/components/editor/top-navigation";
 import { interiorModuleCatalog, interiorModuleCategoryLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmptyStructure, createOutdoor, getLineLength, getPolygonArea } from "@/lib/house-geometry";
-import { getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
+import { applyFloorPlanPreset, floorPlanPresetLabels, getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
 import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
 import { drawingItemCategoryLabels, generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
@@ -27,6 +33,13 @@ import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator
 import { validateStairSystems } from "@/lib/stair-systems";
 import { deriveRoomTourViews } from "@/lib/room-tour";
 import { normalizeDrawingSheetType } from "@/lib/drawing-sheets";
+import {
+  getAdjacentDrawingWorkspace,
+  getDefaultDrawingWorkspace,
+  getDrawingWorkspace,
+  type DrawingWorkspaceConfig,
+  type DrawingWorkspaceTool
+} from "@/lib/drawing-workspaces";
 import {
   commitFurnitureSpaceAssignment,
   getRelatedDrawingItemSyncState,
@@ -49,7 +62,7 @@ import {
   verificationDisplayStateLabels
 } from "@/lib/dimension-verification";
 import type { VerificationDisplayState, VerificationTargetEntry } from "@/lib/dimension-verification";
-import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlanCanvasMode, PlannerMode, Render3DAssetType, RoomTourView, SpaceData, StairLanding, StairOpening, StairSystem, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanPreset, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlanCanvasMode, PlannerMode, Render3DAssetType, RoomTourView, SpaceData, StairLanding, StairOpening, StairSystem, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 import type { LightingDesign, WorkspaceDocument } from "@/types/workspace";
 
@@ -2305,6 +2318,22 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const initialDrawingSheetType = data.workspace.selectedDrawingSheetType ?? "sitePlan";
   const [selectedDrawingSheetType, setSelectedDrawingSheetType] = useState<DrawingSheetType>(initialDrawingSheetType);
   const [sharedPlanCanvasMode, setSharedPlanCanvasMode] = useState<PlanCanvasMode>(initialDrawingSheetType);
+  const [activeDrawingWorkspaceId, setActiveDrawingWorkspaceId] = useState(() => getDefaultDrawingWorkspace(initialDrawingSheetType).id);
+  const [activeEditorPanel, setActiveEditorPanel] = useState<EditorRightPanelKey | null>(null);
+  const [drawingDirectoryOpen, setDrawingDirectoryOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [editorDialog, setEditorDialog] = useState<EditorDialogKey>(null);
+  const [developerMode, setDeveloperMode] = useState(false);
+  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(false);
+  const [activeWorkspaceToolId, setActiveWorkspaceToolId] = useState("select");
+  const [showAdvancedCanvasControls, setShowAdvancedCanvasControls] = useState(false);
+  const [constructionPackageOpenRequest, setConstructionPackageOpenRequest] = useState(0);
+  const [drawingItemCreationRequest, setDrawingItemCreationRequest] = useState<{
+    category: DrawingItem["category"];
+    type: string;
+    label: string;
+    nonce: number;
+  } | null>(null);
   const [accessMode, setAccessMode] = useState<AccessMode>(DEFAULT_MOBILE_ACCESS_MODE);
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
   const [mobileDisplayLevel, setMobileDisplayLevel] = useState<MobileDisplayLevel>("simple");
@@ -2380,6 +2409,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const latestWorkspaceRef = useRef<PersistedWebWorkspace | null>(null);
   const workspaceImportInputRef = useRef<HTMLInputElement | null>(null);
   const wardrobeCanvasRef = useRef<HTMLDivElement | null>(null);
+  const activeDrawingWorkspace = getDrawingWorkspace(activeDrawingWorkspaceId);
   const initialFurnitureWith3DMeta = useMemo(() => enrichMissingFurnitureMetadata(data.workspace.furniture), [data.workspace.furniture]);
   const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
     Object.fromEntries(floors.map((floor) => [
@@ -2399,6 +2429,36 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     canUseExternalSync
   } = accessCapabilities;
   const canUseBrowserDrafts = IS_DEVELOPMENT && canPersistDraft;
+
+  useEffect(() => {
+    try {
+      setDeveloperMode(window.localStorage.getItem("lyhp-editor-developer-mode") === "true");
+      const rememberedPanel = window.localStorage.getItem("lyhp-editor-last-panel") as EditorRightPanelKey | null;
+      if (rememberedPanel && ["properties", "resources", "validation", "ai"].includes(rememberedPanel)) {
+        // Remember the last destination without reopening it on startup.
+        setActiveEditorPanel(null);
+      }
+    } catch {
+      // Storage can be unavailable in privacy mode; editor defaults remain safe.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeEditorPanel) return;
+    try {
+      window.localStorage.setItem("lyhp-editor-last-panel", activeEditorPanel);
+    } catch {
+      // Non-essential UI preference.
+    }
+  }, [activeEditorPanel]);
+
+  useEffect(() => {
+    if (activeObjectId) {
+      setActiveEditorPanel("properties");
+      return;
+    }
+    setActiveEditorPanel((currentPanel) => currentPanel === "properties" ? null : currentPanel);
+  }, [activeObjectId]);
 
   useEffect(() => {
     const { sources } = applyWorkspaceMigrations(data.workspace);
@@ -2527,6 +2587,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     activeStructureObject ? findVerificationTarget(floorHouseStructure, activeStructureObject.id) : null
   ), [activeStructureObject, floorHouseStructure]);
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+  const activeDrawingItem = floorDrawingItems.find((item) => item.id === activeObjectId) ?? null;
   const modernNaturalScope: ModernNaturalScope = modernNaturalScopeType === "house"
     ? { type: "house" }
     : modernNaturalScopeType === "room" && activeFurniture
@@ -2590,8 +2651,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const activeFurnitureArea = activeFurniture ? (activeFurniture.dimensions.width * activeFurniture.dimensions.depth / 10_000).toFixed(2) : "0.00";
   const activeObjectSummary = activeRoomObject
     ? `${activeRoomObject.roomNumber} · ${activeRoomObject.name}`
+    : activeDrawingItem
+      ? `${drawingItemCategoryLabels[activeDrawingItem.category]} · ${activeDrawingItem.label}`
     : activeFurniture
-      ? `${activeFurniture.code} · ${activeFurniture.name}`
+      ? developerMode ? `${activeFurniture.code} · ${activeFurniture.name}` : activeFurniture.name
       : activeStructureObject
         ? activeStructureObject.name
         : activeObjectId || "未选择对象";
@@ -2632,6 +2695,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setSelectedFloorId(nextSelectedFloorId);
     setSelectedDrawingSheetType(migratedWorkspace.selectedDrawingSheetType);
     setSharedPlanCanvasMode(migratedWorkspace.selectedDrawingSheetType);
+    setActiveDrawingWorkspaceId(getDefaultDrawingWorkspace(migratedWorkspace.selectedDrawingSheetType).id);
+    setActiveWorkspaceToolId("select");
     setFloors(nextFloors);
     setFurniture(nextFurniture);
     setDrawingItems(nextDrawingItems);
@@ -3091,12 +3156,110 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   function handleSharedPlanCanvasModeChange(nextMode: PlanCanvasMode) {
     setSharedPlanCanvasMode(nextMode);
+    setActiveDrawingWorkspaceId(getDefaultDrawingWorkspace(nextMode).id);
+    setActiveWorkspaceToolId("select");
     const officialType = normalizeDrawingSheetType(nextMode);
     if (!officialType) return;
     setSelectedDrawingSheetType(officialType);
     if (["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(officialType)) {
       setMobileProfessionalSheetMode(officialType as MobileProfessionalSheetMode);
     }
+  }
+
+  function applyDrawingWorkspaceLayers(workspace: DrawingWorkspaceConfig) {
+    const currentSettings = visualSettingsByFloor[selectedFloorId] ?? getDefaultVisualSettings();
+    setVisualSettingsByFloor((currentSettingsByFloor) => ({
+      ...currentSettingsByFloor,
+      [selectedFloorId]: {
+        ...currentSettings,
+        layerVisibility: {
+          ...currentSettings.layerVisibility,
+          ...workspace.visibleLayers,
+          semanticOverlay: developerMode ? Boolean(workspace.visibleLayers.semanticOverlay) : false,
+          debug: developerMode ? Boolean(workspace.visibleLayers.debug) : false
+        }
+      }
+    }));
+  }
+
+  function selectDrawingWorkspace(workspace: DrawingWorkspaceConfig) {
+    setActiveDrawingWorkspaceId(workspace.id);
+    setSharedPlanCanvasMode(workspace.mode);
+    setSelectedDrawingSheetType(workspace.persistedSheet);
+    setActiveWorkspaceToolId(workspace.tools[0]?.id ?? "select");
+    setDrawTool(workspace.tools[0]?.drawTool ?? "select");
+    setPlannerMode("edit");
+    setDrawingDirectoryOpen(false);
+    setMoreMenuOpen(false);
+    applyDrawingWorkspaceLayers(workspace);
+    if (["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(workspace.persistedSheet)) {
+      setMobileProfessionalSheetMode(workspace.persistedSheet as MobileProfessionalSheetMode);
+    }
+  }
+
+  function handleWorkspaceToolSelect(toolConfig: DrawingWorkspaceTool) {
+    if (toolConfig.id === "directory") {
+      setDrawingDirectoryOpen(true);
+      return;
+    }
+    setActiveWorkspaceToolId(toolConfig.id);
+    if (toolConfig.drawTool) {
+      setPlannerMode("edit");
+      setDrawTool(toolConfig.drawTool);
+      return;
+    }
+    if (toolConfig.drawingPreset) {
+      setPlannerMode("edit");
+      setDrawTool("select");
+      setDrawingItemCreationRequest({ ...toolConfig.drawingPreset, nonce: Date.now() });
+      setActiveEditorPanel("properties");
+      return;
+    }
+    if (toolConfig.action === "resources") {
+      setActiveEditorPanel("resources");
+      return;
+    }
+    if (toolConfig.action === "validation") {
+      setActiveEditorPanel("validation");
+      return;
+    }
+    if (toolConfig.action === "ai") {
+      setActiveEditorPanel("ai");
+      return;
+    }
+    if (toolConfig.action === "rotate") {
+      if (activeFurniture) handleRotateFurniture(activeFurniture.id);
+      return;
+    }
+    if (toolConfig.action === "more") {
+      if (activeDrawingWorkspace.id === "construction-package") {
+        setConstructionPackageOpenRequest(Date.now());
+      } else {
+        setMoreMenuOpen(true);
+      }
+    }
+  }
+
+  function toggleDeveloperMode() {
+    const nextDeveloperMode = !developerMode;
+    setDeveloperMode(nextDeveloperMode);
+    try {
+      window.localStorage.setItem("lyhp-editor-developer-mode", String(nextDeveloperMode));
+    } catch {
+      // Non-essential preference.
+    }
+    const currentSettings = visualSettingsByFloor[selectedFloorId] ?? getDefaultVisualSettings();
+    setVisualSettingsByFloor((currentSettingsByFloor) => ({
+      ...currentSettingsByFloor,
+      [selectedFloorId]: {
+        ...currentSettings,
+        layerVisibility: {
+          ...currentSettings.layerVisibility,
+          semanticOverlay: nextDeveloperMode ? Boolean(activeDrawingWorkspace.visibleLayers.semanticOverlay) : false,
+          debug: nextDeveloperMode ? Boolean(activeDrawingWorkspace.visibleLayers.debug) : false
+        }
+      }
+    }));
   }
 
   function finalizeWorkspace(workspace: PersistedWebWorkspace, saveMode: "manual" | "draft") {
@@ -4204,6 +4367,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   function updateActiveObject(patch: Record<string, unknown>) {
     if (!canMutateWorkspace) return;
+    if (activeDrawingItem) {
+      handleFloorDrawingItemsChange(floorDrawingItems.map((item) => item.id === activeDrawingItem.id
+        ? { ...item, ...patch, updatedAt: new Date().toISOString() } as DrawingItem
+        : item));
+      return;
+    }
     if (activeFurniture) {
       if (activeFurniture.locked) return;
       handleFloorFurnitureChange(floorFurniture.map((item) => item.id === activeFurniture.id ? { ...item, ...patch } as Furniture : item));
@@ -4837,6 +5006,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           ? "写入目标已绑定"
           : "绑定代码文件";
   const mobileShellActive = isPhoneDevice;
+  const editorErrorCount = houseValidation.errors.length + referenceReport.errors.length;
+  const editorWarningCount = houseValidation.warnings.length + referenceReport.warnings.length + stairValidationIssues.length;
+  const editorSaveTone: "saved" | "saving" | "dirty" | "error" = draftSaveState.status === "error" || codeSaveState.status === "error"
+    ? "error"
+    : draftSaveState.status === "saving" || codeSaveState.status === "saving"
+      ? "saving"
+      : isPublishedCodeWorkspace || isCurrentDraftSaved
+        ? "saved"
+        : "dirty";
+  const editorSaveLabel = editorSaveTone === "error" ? "保存失败" : editorSaveTone === "saving" ? "保存中" : editorSaveTone === "saved" ? "已保存" : "有未保存修改";
   const mobilePresentationActive = mobileShellActive && !canMutateWorkspace;
   const mobilePlannerMode: PlannerMode = canMutateWorkspace ? plannerMode : "view";
   const mobileFloorTabs = floors.filter((floor) => ["B2", "B1", "1F", "2F", "YARD"].includes(floor.id));
@@ -5083,7 +5262,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   return (
-    <main className={`box-border h-screen overflow-hidden ${isImmersiveWorkspace ? "p-0" : "p-3 sm:p-5 lg:p-6"}`}>
+    <main className="box-border h-[100dvh] overflow-hidden bg-[#f4f3ef]">
       {defaultWorkspacePayload ? (
         <pre className="hidden" data-testid="villa-default-workspace-payload">
           {defaultWorkspacePayload}
@@ -5175,87 +5354,48 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           <button aria-label="关闭导入错误" className="font-semibold" onClick={() => setWorkspaceImportError("")} type="button">关闭</button>
         </div>
       )}
-      <section className={`mx-auto flex h-full min-h-0 flex-col overflow-hidden border border-white/70 bg-white/72 shadow-soft backdrop-blur ${
-        isImmersiveWorkspace
-            ? "min-h-screen max-w-none rounded-none lg:grid lg:grid-cols-[minmax(0,1fr)_340px]"
-            : "max-w-7xl rounded-[2rem] lg:grid lg:grid-cols-[minmax(0,1fr)_320px]"
-      }`}>
+      <section className="grid h-full min-h-0 grid-rows-[56px_minmax(0,1fr)_28px] overflow-hidden bg-white">
+        <span className="sr-only">发布代码版本</span>
+        <TopNavigation
+          projectName="林屿湖畔"
+          floors={floors}
+          selectedFloorId={selectedFloorId}
+          drawingName={`${currentFloor.id} · ${activeDrawingWorkspace.name}`}
+          viewMode={viewMode}
+          saveLabel={editorSaveLabel}
+          saveTone={editorSaveTone}
+          canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
+          canRedo={floorHistory.future.length > 0}
+          moreOpen={moreMenuOpen}
+          onSelectFloor={handleFloorChange}
+          onOpenDirectory={() => setDrawingDirectoryOpen(true)}
+          onChangeView={setViewMode}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onToggleMore={() => setMoreMenuOpen((open) => !open)}
+        />
+        <section className={`relative grid min-h-0 ${contextToolbarExpanded
+          ? activeEditorPanel ? "lg:grid-cols-[176px_minmax(0,1fr)_336px_44px]" : "lg:grid-cols-[176px_minmax(0,1fr)_44px]"
+          : activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_336px_44px]" : "lg:grid-cols-[56px_minmax(0,1fr)_44px]"}`}>
+          <div className="relative z-30 hidden min-h-0 border-r border-stone-200/80 bg-white lg:block">
+            <ContextToolBar
+              workspace={activeDrawingWorkspace}
+              activeToolId={activeWorkspaceToolId}
+              expanded={contextToolbarExpanded}
+              onToggleExpanded={() => setContextToolbarExpanded((expanded) => !expanded)}
+              onSelectTool={handleWorkspaceToolSelect}
+            />
+          </div>
+          <div className="absolute bottom-3 left-3 z-[65] lg:hidden">
+            <ContextToolBar
+              workspace={activeDrawingWorkspace}
+              activeToolId={activeWorkspaceToolId}
+              expanded={contextToolbarExpanded}
+              onToggleExpanded={() => setContextToolbarExpanded((expanded) => !expanded)}
+              onSelectTool={handleWorkspaceToolSelect}
+            />
+          </div>
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {!focusMode && !isFurnitureWorkspace && <header className="flex flex-col gap-3 border-b border-stone-200/80 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-clay">LINYU LAKESIDE</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">林屿湖畔</h1>
-              <p className="mt-1 text-sm text-stone-500">{currentFloor.label} · {currentFloor.subtitle} · 一套模型，多种表达</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-stone-500 shadow-sm">
-                <span className={`size-2 rounded-full ${draftSaveState.status === "error" ? "bg-red-500" : isPublishedCodeWorkspace || isCurrentDraftSaved ? "bg-emerald-500" : "bg-amber-500"}`} />
-                <span>{draftSaveLabel}</span>
-                <span className={`rounded-md px-2 py-1 ${isCurrentCodeVerified ? "bg-emerald-50 text-emerald-700" : codeSaveState.status === "error" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{codeSaveLabel}</span>
-                {showSeparateCodeDirty && <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700">{unwrittenCodeLabel}</span>}
-                <span className="text-[11px] font-normal text-stone-400">{codeWriteTargetLabel}</span>
-                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={() => workspaceImportInputRef.current?.click()} type="button">导入方案</button>
-                <button className="rounded-lg px-2 py-1 text-stone-400 hover:bg-stone-100 hover:text-ink" onClick={downloadWorkspace} type="button">导出方案</button>
-                <button className="rounded-lg bg-ink px-2 py-1 text-white hover:bg-clay disabled:bg-stone-300" disabled={!hasLoadedWebWorkspace || codeSaveState.status === "saving" || Boolean(workspaceConflict)} onClick={solidifyDefaultWorkspace} type="button">保存到代码文件</button>
-                <button className="rounded-lg bg-stone-100 px-2 py-1 text-stone-600 hover:bg-stone-200 disabled:text-stone-300" disabled={localCodeFileStatus === "checking" || localCodeFileStatus === "syncing"} onClick={bindLocalCodeFile} type="button">{localCodeFileLabel}</button>
-                <label className={`flex items-center gap-1 rounded-lg px-2 py-1 ${localCodeFileReady ? "bg-emerald-50 text-emerald-800" : "bg-stone-50 text-stone-400"}`}>
-                  <input checked={localCodeAutoSync} disabled={!localCodeFileReady} onChange={toggleLocalCodeAutoSync} type="checkbox" />
-                  自动写代码
-                </label>
-              </div>
-              <div className="grid grid-cols-2 rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500 sm:flex">
-                <button
-                  className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
-                  onClick={() => {
-                    setFurnitureImmersiveMode(false);
-                    setFocusMode(true);
-                  }}
-                  type="button"
-                >
-                  户型沉浸
-                </button>
-                <button
-                  className="rounded-xl px-3 py-2 transition hover:bg-white hover:text-ink"
-                  onClick={() => {
-                    setFocusMode(false);
-                    setFurnitureImmersiveMode(true);
-                  }}
-                  type="button"
-                >
-                  家具沉浸
-                </button>
-              </div>
-              <label className="flex flex-1 items-center gap-2 rounded-2xl border border-stone-200 bg-white px-3 py-2 text-sm shadow-sm lg:hidden">
-                <span className="shrink-0 text-stone-500">楼层</span>
-                <select
-                  className="w-full bg-transparent font-semibold text-ink outline-none"
-                  value={selectedFloorId}
-                  onChange={(event) => handleFloorChange(event.target.value as FloorId)}
-                >
-                  {floors.map((floor) => (
-                    <option key={floor.id} value={floor.id}>{floor.label} · {floor.subtitle}</option>
-                  ))}
-                </select>
-              </label>
-              <ViewToggle viewMode={viewMode} onChange={setViewMode} />
-              <div className="hidden rounded-2xl bg-stone-100 p-1 text-sm font-semibold text-stone-500 lg:flex">
-                {(["view", "edit"] as PlannerMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    className={`rounded-xl px-3 py-2 transition ${plannerMode === mode ? "bg-white text-ink shadow-sm" : "hover:text-ink"}`}
-                    onClick={() => {
-                      setPlannerMode(mode);
-                      if (mode === "view") setDrawTool("select");
-                    }}
-                    type="button"
-                  >
-                    {mode === "view" ? "查看" : "绘制"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </header>}
-
           <PlanCanvas
               floor={currentFloor}
               floors={floors}
@@ -5278,6 +5418,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               cleanPatches={floorCleanPatches}
               focusMode={focusMode}
               furnitureImmersiveMode={isFurnitureWorkspace}
+              drawingDrivenMode
+              developerMode={developerMode}
+              showAdvancedCanvasControls={showAdvancedCanvasControls}
+              constructionPackageOpenRequest={constructionPackageOpenRequest}
+              drawingItemCreationRequest={drawingItemCreationRequest}
               workspaceMutationAllowed={canMutateWorkspace}
               showFurnitureLabels={showFurnitureLabels}
               activeFurnitureId={activeFurniture?.id ?? ""}
@@ -5318,12 +5463,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             />
         </section>
 
-        <aside className="hidden h-full min-h-0 overflow-y-auto overscroll-contain border-l border-stone-200/80 bg-slate-50/80 p-4 lg:block">
+        {activeEditorPanel && <aside className="fixed inset-y-0 right-0 z-[80] h-full min-h-0 w-[min(92vw,336px)] border-l border-stone-200 bg-white shadow-[-18px_0_48px_rgba(15,23,42,0.12)] lg:static lg:z-20 lg:w-auto lg:shadow-none">
+          <RightPanelFrame
+            activePanel={activeEditorPanel}
+            title={activeDrawingWorkspace.name}
+            onClose={() => setActiveEditorPanel(null)}
+            onSelect={setActiveEditorPanel}
+          >
           <div className="space-y-3">
-            <div className="px-1 pb-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">{isFurnitureWorkspace ? "Furniture" : focusMode ? "Focus" : "Inspector"}</p>
-              <h2 className="mt-1 text-lg font-semibold text-ink">{isFurnitureWorkspace ? "家具布置台" : focusMode ? "户型绘制台" : "结构检查器"}</h2>
-            </div>
             {focusMode && (
               <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3 text-xs leading-5 text-blue-900">
                 <div className="flex items-center justify-between gap-2">
@@ -5334,35 +5481,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 <button className="mt-3 w-full rounded-xl bg-blue-700 px-3 py-2 font-semibold text-white hover:bg-blue-800" onClick={() => setFocusMode(false)} type="button">退出户型沉浸</button>
               </div>
             )}
-            <RightPanelCard
+            {activeEditorPanel === "ai" && <RightPanelCard
               id="floors"
-              eyebrow="Floors"
-              title="楼层 / 院子"
-              summary={`${currentFloor.label} · ${currentFloor.subtitle}`}
+              eyebrow="AI"
+              title="AI 助手"
+              summary={`${currentFloor.label} · ${activeDrawingWorkspace.name}`}
               open={openRightPanels.floors}
               onToggle={toggleRightPanel}
             >
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {floors.map((floor) => {
-                    const isActive = floor.id === selectedFloorId;
-                    return (
-                      <button
-                        key={floor.id}
-                        className={`rounded-xl border px-3 py-2 text-left transition ${
-                          isActive
-                            ? "border-clay bg-clay/10 text-ink"
-                            : "border-stone-200 bg-white text-stone-500 hover:border-clay/40 hover:bg-stone-50"
-                        }`}
-                        onClick={() => handleFloorChange(floor.id)}
-                        type="button"
-                      >
-                        <span className="block text-sm font-semibold">{floor.label}</span>
-                        <span className="mt-0.5 block truncate text-[11px]">{floor.subtitle}</span>
-                      </button>
-                    );
-                  })}
-                </div>
                 {!isFurnitureWorkspace && (
                   <div className="border-t border-stone-100 pt-3">
                       <p className="text-xs font-semibold text-ink">自然语言操作</p>
@@ -5396,7 +5523,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   </div>
                 )}
               </div>
-            </RightPanelCard>
+            </RightPanelCard>}
 
             {isFurnitureWorkspace && (
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-900">
@@ -5430,7 +5557,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               </div>
             )}
 
-            {!isFurnitureWorkspace && <RightPanelCard
+            {activeEditorPanel === "validation" && !isFurnitureWorkspace && <RightPanelCard
               id="status"
               eyebrow="Validator"
               title="模型状态"
@@ -5438,7 +5565,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               open={openRightPanels.status}
               onToggle={toggleRightPanel}
             >
-              <div className="mb-3 border-b border-stone-100 pb-3 text-xs">
+              {developerMode && <div className="mb-3 border-b border-stone-100 pb-3 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className={draftSaveState.status === "error" ? "font-semibold text-red-700" : "font-semibold text-stone-600"}>{draftSaveLabel}</span>
                   <span className={isCurrentCodeVerified ? "font-semibold text-emerald-700" : codeSaveState.status === "error" ? "font-semibold text-red-700" : "font-semibold text-amber-700"}>{codeSaveLabel}</span>
@@ -5496,7 +5623,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     )}
                   </div>
                 )}
-              </div>
+              </div>}
               <div className="flex items-center justify-between gap-3">
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${houseValidation.valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
                   {houseValidation.valid && referenceReport.valid ? "结构与引用通过" : "需检查"}
@@ -5582,15 +5709,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               </section>
             )}
 
-            <RightPanelCard
+            {activeEditorPanel === "resources" && <RightPanelCard
               id="modules"
               eyebrow="Library"
-              title="物品模块库"
-              summary={`${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}`}
+              title={`${activeDrawingWorkspace.shortName}资源`}
+              summary={activeDrawingWorkspace.category === "furniture" ? `${interiorModuleCatalog.length} 个模块 · ${moduleTargetLabel}` : `${activeDrawingWorkspace.resourceGroups.length} 个资源组`}
               open={openRightPanels.modules}
               onToggle={toggleRightPanel}
             >
-              <div className="space-y-3">
+              {activeDrawingWorkspace.category === "furniture" ? <div className="space-y-3">
                 <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
                   <span className="font-semibold text-ink">目标</span>
                   <span className="ml-2">{moduleTargetLabel}</span>
@@ -5658,10 +5785,20 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     </div>
                   );
                 })}
-              </div>
-            </RightPanelCard>
+              </div> : <div className="space-y-3">
+                <p className="rounded-xl bg-stone-100 p-3 text-xs leading-5 text-stone-600">资源已按“{activeDrawingWorkspace.name}”过滤，只显示当前图纸需要的类型。</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {activeDrawingWorkspace.resourceGroups.map((group) => <button key={group} className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-left text-xs font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-stone-50" type="button"><span className="mb-3 grid size-8 place-items-center rounded-lg bg-stone-100 text-stone-500">▤</span>{group}</button>)}
+                </div>
+                {activeDrawingWorkspace.resourceGroups.length === 0 ? <p className="py-10 text-center text-xs text-stone-400">当前图纸没有独立资源库，可直接使用左侧工具。</p> : null}
+                <div className="border-t border-stone-200 pt-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">当前图纸工具</p>
+                  <div className="space-y-1">{activeDrawingWorkspace.tools.filter((toolConfig) => toolConfig.drawingPreset).map((toolConfig) => <button key={toolConfig.id} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-semibold text-stone-700 hover:bg-stone-100" onClick={() => handleWorkspaceToolSelect(toolConfig)} type="button"><span className="grid size-7 place-items-center rounded-md bg-stone-100">{toolConfig.icon}</span><span>{toolConfig.label}</span></button>)}</div>
+                </div>
+              </div>}
+            </RightPanelCard>}
 
-            <RightPanelCard
+            {activeEditorPanel === "properties" && <RightPanelCard
               id="object"
               eyebrow="Selection"
               title="当前对象"
@@ -5669,7 +5806,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               open={openRightPanels.object}
               onToggle={toggleRightPanel}
             >
-              {!isFurnitureWorkspace && (
+              {developerMode && !isFurnitureWorkspace && (
                 <div className="mb-4 border-b border-stone-200 pb-4">
                   <div className="flex items-end justify-between gap-3">
                     <label className="min-w-0 flex-1 text-xs text-stone-500">
@@ -5716,10 +5853,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   </div>
                 </div>
               )}
-              {(activeStructureObject || activeFurniture || (!isFurnitureWorkspace && floorStructureRooms.length > 0)) ? (
+              {(activeDrawingItem || activeStructureObject || activeFurniture || (!isFurnitureWorkspace && floorStructureRooms.length > 0)) ? (
                 <div>
-                  {activeObjectId && <p className="break-all rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{activeObjectId}</p>}
-                  {!isFurnitureWorkspace && floorStructureRooms.length > 0 && (
+                  {developerMode && activeObjectId && <p className="break-all rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">{activeObjectId}</p>}
+                  {!activeDrawingItem && !isFurnitureWorkspace && floorStructureRooms.length > 0 && (
                     <label className="mt-3 block text-xs text-stone-500">
                       房间快速选择
                       <select
@@ -5734,7 +5871,27 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                       </select>
                     </label>
                   )}
-                  {activeRoomObject ? (
+                  {activeDrawingItem ? (
+                    <div className="mt-3 space-y-3 rounded-xl border border-stone-200 bg-white p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">{drawingItemCategoryLabels[activeDrawingItem.category]}</p>
+                          <p className="mt-1 truncate text-sm font-semibold text-slate-900">{activeDrawingItem.label}</p>
+                        </div>
+                        <span className="rounded-full bg-stone-100 px-2 py-1 text-[10px] font-semibold text-stone-500">{activeDrawingItem.status === "confirmed" ? "已确认" : activeDrawingItem.status === "todo" ? "待确认" : activeDrawingItem.status === "deprecated" ? "已废弃" : "草稿"}</span>
+                      </div>
+                      <label className="block text-xs font-semibold text-stone-500">名称<input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" value={activeDrawingItem.label} onChange={(event) => updateActiveObject({ label: event.target.value })} /></label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block text-xs font-semibold text-stone-500">类型<input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" value={activeDrawingItem.type} onChange={(event) => updateActiveObject({ type: event.target.value, lightType: activeDrawingItem.category === "light" ? event.target.value : activeDrawingItem.lightType })} /></label>
+                        <label className="block text-xs font-semibold text-stone-500">数量<input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" min="1" type="number" value={activeDrawingItem.quantity} onChange={(event) => updateActiveObject({ quantity: Math.max(1, Number(event.target.value) || 1) })} /></label>
+                        <label className="block text-xs font-semibold text-stone-500">安装高度<input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" placeholder="mm" type="number" value={activeDrawingItem.heightMm ?? ""} onChange={(event) => updateActiveObject({ heightMm: event.target.value ? Number(event.target.value) : null })} /></label>
+                        <label className="block text-xs font-semibold text-stone-500">状态<select className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" value={activeDrawingItem.status} onChange={(event) => updateActiveObject({ status: event.target.value })}><option value="draft">草稿</option><option value="confirmed">已确认</option><option value="todo">待确认</option><option value="deprecated">已废弃</option></select></label>
+                      </div>
+                      <label className="block text-xs font-semibold text-stone-500">所属房间<select className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-slate-500" value={activeDrawingItem.roomId ?? ""} onChange={(event) => updateActiveObject({ roomId: event.target.value || null, relatedRoomId: event.target.value || null })}><option value="">未关联</option>{[...floorHouseStructure.rooms, ...floorHouseStructure.outdoors].map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label>
+                      {activeDrawingItem.category === "light" && <div className="grid grid-cols-2 gap-2 rounded-lg bg-amber-50 p-2"><label className="block text-xs font-semibold text-amber-800">色温<input className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-2 py-2 text-sm text-slate-900" value={activeDrawingItem.colorTemperature ?? activeDrawingItem.lightColorTemperature ?? ""} onChange={(event) => updateActiveObject({ colorTemperature: event.target.value || null, lightColorTemperature: event.target.value || null })} /></label><label className="block text-xs font-semibold text-amber-800">光束角<input className="mt-1 w-full rounded-lg border border-amber-200 bg-white px-2 py-2 text-sm text-slate-900" type="number" value={activeDrawingItem.beamAngle ?? ""} onChange={(event) => updateActiveObject({ beamAngle: event.target.value ? Number(event.target.value) : null })} /></label></div>}
+                      <label className="block text-xs font-semibold text-stone-500">施工备注<textarea className="mt-1 min-h-20 w-full resize-none rounded-lg border border-stone-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500" value={activeDrawingItem.notes} onChange={(event) => updateActiveObject({ notes: event.target.value })} /></label>
+                    </div>
+                  ) : activeRoomObject ? (
                     <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs font-semibold text-blue-900">房间命名</p>
@@ -5765,7 +5922,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 	                        <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-ink [&::-webkit-details-marker]:hidden">基础信息</summary>
 	                        <div className="border-t border-emerald-100 p-3">
 	                      <div className="flex items-center gap-3">
-		                        <FurnitureTopView className="size-16 shrink-0 border border-white shadow-sm" color={activeFurniture.color} imageSrc={activeFurniture.referenceImageDataUrl} label={activeFurniture.code} type={activeFurniture.type} />
+		                        <FurnitureTopView className="size-16 shrink-0 border border-white shadow-sm" color={activeFurniture.color} imageSrc={activeFurniture.referenceImageDataUrl} label={developerMode ? activeFurniture.code : activeFurniture.name.slice(0, 2)} type={activeFurniture.type} />
 	                        <div className="min-w-0">
 	                          <p className="text-xs font-semibold text-emerald-900">{activeFurniture.moduleCategory ? "物品模块" : "家具对象"}</p>
 	                          <p className="mt-1 truncate text-sm font-semibold text-ink">{activeFurniture.name}</p>
@@ -6188,9 +6345,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               ) : (
                 <p className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-stone-500">{isFurnitureWorkspace ? "从模块库添加家具，或在画布上选择已有家具后，这里会显示可编辑属性。" : "在画布或对象台账里选择一个结构对象后，这里会显示可编辑属性。"}</p>
               )}
-            </RightPanelCard>
+            </RightPanelCard>}
 
-            {!isFurnitureWorkspace && <RightPanelCard
+            {developerMode && activeEditorPanel === "properties" && !isFurnitureWorkspace && <RightPanelCard
               id="semantic"
               eyebrow="Map"
               title="语义对象"
@@ -6212,8 +6369,115 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </RightPanelCard>
             }
           </div>
-        </aside>
+          </RightPanelFrame>
+        </aside>}
+        <div className="relative z-40 hidden border-l border-stone-200/80 bg-white lg:block">
+          <RightPanelRail activePanel={activeEditorPanel} errorCount={editorErrorCount} onSelect={(panel) => setActiveEditorPanel((currentPanel) => currentPanel === panel ? null : panel)} />
+        </div>
+        <div className="absolute right-3 top-3 z-[65] lg:hidden">
+          <RightPanelRail activePanel={activeEditorPanel} errorCount={editorErrorCount} onSelect={(panel) => setActiveEditorPanel((currentPanel) => currentPanel === panel ? null : panel)} />
+        </div>
       </section>
+
+      <BottomStatusBar
+        toolLabel={activeDrawingWorkspace.tools.find((toolConfig) => toolConfig.id === activeWorkspaceToolId)?.label ?? "选择"}
+        selectionLabel={activeObjectId ? activeObjectSummary : "未选择对象"}
+        scale={floorPlanScale}
+        instruction={activeDrawingWorkspace.instruction}
+        developerMode={developerMode}
+        coordinateLabel={`原点 ${floorHouseStructure.coordinateSystem.origin.x},${floorHouseStructure.coordinateSystem.origin.y}`}
+        onPreviousDrawing={() => selectDrawingWorkspace(getAdjacentDrawingWorkspace(activeDrawingWorkspace.id, -1))}
+        onNextDrawing={() => selectDrawingWorkspace(getAdjacentDrawingWorkspace(activeDrawingWorkspace.id, 1))}
+      />
+      </section>
+
+      <MoreMenu
+        open={moreMenuOpen}
+        developerMode={developerMode}
+        onClose={() => setMoreMenuOpen(false)}
+        onImport={() => workspaceImportInputRef.current?.click()}
+        onExport={downloadWorkspace}
+        onOpen={(dialog) => {
+          if (dialog === "package") {
+            setConstructionPackageOpenRequest(Date.now());
+            return;
+          }
+          setEditorDialog(dialog);
+        }}
+      />
+      <DrawingDirectory
+        open={drawingDirectoryOpen}
+        activeWorkspaceId={activeDrawingWorkspace.id}
+        floors={floors}
+        selectedFloorId={selectedFloorId}
+        onClose={() => setDrawingDirectoryOpen(false)}
+        onSelect={selectDrawingWorkspace}
+      />
+
+      {editorDialog === "layers" && <EditorUtilityDialog title="图层" eyebrow="Drawing layers" description={`当前图纸：${activeDrawingWorkspace.name}。手动调整后可以随时恢复图纸默认图层。`} onClose={() => setEditorDialog(null)}>
+        <div className="space-y-2">
+          {([
+            ["baseFloorPlan", "原始底图", "作为定位参考的导入图纸"],
+            ["cleanupPatch", "底图清理", "显示底图清理与修补结果"],
+            ["furnitureOverlay", "家具与柜体", "根据当前图纸显示或弱化家具"],
+            ["semanticOverlay", "语义辅助", "仅在开发者模式可显示"],
+            ["debug", "调试信息", "仅在开发者模式可显示"]
+          ] as const).map(([key, label, detail]) => {
+            const developerLayer = key === "semanticOverlay" || key === "debug";
+            const checked = Boolean(floorPlanVisualSettings.layerVisibility[key]);
+            return <label key={key} className={`flex items-center gap-3 rounded-xl border border-stone-200 px-3 py-3 ${developerLayer && !developerMode ? "bg-stone-50 opacity-55" : "bg-white"}`}><input checked={checked} disabled={developerLayer && !developerMode} onChange={(event) => handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, layerVisibility: { ...floorPlanVisualSettings.layerVisibility, [key]: event.target.checked } })} type="checkbox" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">{label}</span><span className="mt-0.5 block text-xs text-stone-500">{detail}</span></span><span className="text-[10px] font-semibold text-stone-400">{checked ? "显示" : "隐藏"}</span></label>;
+          })}
+        </div>
+        <button className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800" onClick={() => applyDrawingWorkspaceLayers(activeDrawingWorkspace)} type="button">恢复当前图纸默认图层</button>
+      </EditorUtilityDialog>}
+
+      {editorDialog === "background" && <EditorUtilityDialog title="调整底图" eyebrow="Background image" description="底图设置只在面板打开时出现，不占用主画布。" onClose={() => setEditorDialog(null)}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-stone-600">预设<select className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-slate-900" value={floorPlanVisualSettings.preset} onChange={(event) => handleFloorPlanVisualSettingsChange(applyFloorPlanPreset(event.target.value as FloorPlanPreset, floorPlanVisualSettings))}>{(Object.entries(floorPlanPresetLabels) as Array<[FloorPlanPreset, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600"><span>显示底图</span><input checked={floorPlanVisualSettings.layerVisibility.baseFloorPlan} onChange={(event) => handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, layerVisibility: { ...floorPlanVisualSettings.layerVisibility, baseFloorPlan: event.target.checked } })} type="checkbox" /></label>
+          {([
+            ["opacity", "透明度", 0, 1, 0.05],
+            ["contrast", "对比度", 0.5, 2, 0.05],
+            ["brightness", "亮度", 0.5, 1.8, 0.05],
+            ["saturation", "饱和度", 0, 2, 0.05]
+          ] as const).map(([key, label, min, max, step]) => <label key={key} className="rounded-lg border border-stone-200 p-3 text-xs font-semibold text-stone-600"><span className="flex items-center justify-between"><span>{label}</span><span className="tabular-nums text-stone-400">{floorPlanVisualSettings[key].toFixed(2)}</span></span><input className="mt-2 w-full accent-slate-900" min={min} max={max} step={step} type="range" value={floorPlanVisualSettings[key]} onChange={(event) => handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, [key]: Number(event.target.value) })} /></label>)}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {([
+            ["grayscale", "灰度"],
+            ["lineEnhance", "线条增强"],
+            ["cleanWhiteBackground", "干净白底"],
+            ["removeWhiteBorder", "去除白边"]
+          ] as const).map(([key, label]) => <label key={key} className="flex items-center justify-between rounded-lg bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600"><span>{label}</span><input checked={Boolean(floorPlanVisualSettings[key])} onChange={(event) => handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, [key]: event.target.checked })} type="checkbox" /></label>)}
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button className="rounded-xl bg-stone-100 px-4 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-200" onClick={() => handleFloorPlanVisualSettingsChange(getDefaultVisualSettings())} type="button">重置</button>
+          <button className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800" onClick={() => { setShowAdvancedCanvasControls(true); setEditorDialog(null); }} type="button">高级编辑</button>
+        </div>
+      </EditorUtilityDialog>}
+
+      {editorDialog === "ledger" && <EditorUtilityDialog title="对象台账" eyebrow="Object ledger" description={`${currentFloor.label} 的结构、家具与图纸对象。技术 ID 仅在开发者模式显示。`} onClose={() => setEditorDialog(null)}>
+        <div className="mb-3 grid grid-cols-3 gap-2 text-center text-xs"><div className="rounded-xl bg-stone-100 p-3"><p className="text-lg font-semibold text-slate-900">{verificationEntries.filter((entry) => entry.floorId === selectedFloorId).length}</p><p className="text-stone-500">结构对象</p></div><div className="rounded-xl bg-stone-100 p-3"><p className="text-lg font-semibold text-slate-900">{floorFurniture.length}</p><p className="text-stone-500">家具柜体</p></div><div className="rounded-xl bg-stone-100 p-3"><p className="text-lg font-semibold text-slate-900">{floorDrawingItems.length}</p><p className="text-stone-500">图纸对象</p></div></div>
+        <div className="max-h-[28rem] space-y-1 overflow-y-auto pr-1">{[
+          ...verificationEntries.filter((entry) => entry.floorId === selectedFloorId).map((entry) => ({ id: entry.object.id, name: entry.object.name, kind: verificationCollectionLabels[entry.collection] })),
+          ...floorFurniture.map((item) => ({ id: item.id, name: item.name, kind: item.moduleCategory ? "柜体 / 模块" : "家具" })),
+          ...floorDrawingItems.map((item) => ({ id: item.id, name: item.label, kind: drawingItemCategoryLabels[item.category] }))
+        ].map((item) => <button key={item.id} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-stone-100" onClick={() => { locateValidationObject(item.id); setEditorDialog(null); }} type="button"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-stone-100 text-[10px] font-bold text-stone-500">{item.kind.slice(0, 1)}</span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-900">{item.name}</span><span className="mt-0.5 block truncate text-[10px] text-stone-500">{item.kind}{developerMode ? ` · ${item.id}` : ""}</span></span><span className="text-stone-300">→</span></button>)}</div>
+      </EditorUtilityDialog>}
+
+      {editorDialog === "settings" && <EditorUtilityDialog title="项目设置" eyebrow="Project settings" description="数据与代码同步等低频项目能力集中在这里。" onClose={() => setEditorDialog(null)}>
+        <section className="rounded-xl border border-stone-200 p-4"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900">数据与代码同步</h3><p className="mt-1 text-xs text-stone-500">保留原有草稿、代码文件和验证逻辑。</p></div><span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${isCurrentCodeVerified ? "bg-emerald-50 text-emerald-700" : codeSaveState.status === "error" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{codeSaveLabel}</span></div><div className="mt-3 rounded-lg bg-stone-100 p-3 text-xs leading-5 text-stone-600"><p>{draftSaveLabel}</p><p>{codeWriteTargetLabel}</p>{showSeparateCodeDirty ? <p className="font-semibold text-amber-700">{unwrittenCodeLabel}</p> : null}</div><div className="mt-3 grid gap-2 sm:grid-cols-2"><button className="rounded-lg bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-200" disabled={localCodeFileStatus === "checking" || localCodeFileStatus === "syncing"} onClick={bindLocalCodeFile} type="button">{localCodeFileLabel}</button><button className={`rounded-lg px-3 py-2 text-xs font-semibold ${localCodeAutoSync ? "bg-emerald-700 text-white" : "bg-stone-100 text-stone-700"}`} disabled={!localCodeFileReady} onClick={toggleLocalCodeAutoSync} type="button">自动写代码：{localCodeAutoSync ? "开" : "关"}</button><button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:bg-stone-300 sm:col-span-2" disabled={!hasLoadedWebWorkspace || codeSaveState.status === "saving" || Boolean(workspaceConflict)} onClick={solidifyDefaultWorkspace} type="button">保存到代码文件并验证</button></div></section>
+        <section className="mt-3 rounded-xl border border-stone-200 p-4"><h3 className="text-sm font-semibold text-slate-900">编辑器偏好</h3><label className="mt-3 flex items-center justify-between rounded-lg bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600"><span>显示家具标签</span><input checked={showFurnitureLabels} onChange={(event) => setShowFurnitureLabels(event.target.checked)} type="checkbox" /></label></section>
+      </EditorUtilityDialog>}
+
+      {editorDialog === "developer" && <EditorUtilityDialog title="开发者模式" eyebrow="Developer settings" description="默认关闭。开启后才显示技术 ID、语义叠层、调试边界和底层坐标。" onClose={() => setEditorDialog(null)}>
+        <label className="flex items-center justify-between rounded-xl border border-stone-200 p-4"><span><span className="block text-sm font-semibold text-slate-900">开发者模式</span><span className="mt-1 block text-xs text-stone-500">面向数据检查与代码调试，不影响模型内容。</span></span><input checked={developerMode} onChange={toggleDeveloperMode} type="checkbox" /></label>
+        <label className={`mt-3 flex items-center justify-between rounded-xl border border-stone-200 p-4 ${developerMode ? "" : "opacity-50"}`}><span><span className="block text-sm font-semibold text-slate-900">画布高级控制台</span><span className="mt-1 block text-xs text-stone-500">显示结构工具参数、统一坐标和对象台账兼容入口。</span></span><input checked={showAdvancedCanvasControls} disabled={!developerMode} onChange={(event) => setShowAdvancedCanvasControls(event.target.checked)} type="checkbox" /></label>
+      </EditorUtilityDialog>}
+
+      {editorDialog === "shortcuts" && <EditorUtilityDialog title="快捷键" eyebrow="Keyboard" onClose={() => setEditorDialog(null)}><div className="divide-y divide-stone-100 rounded-xl border border-stone-200">{[["V", "选择工具"], ["Esc", "取消当前操作"], ["Delete", "删除选中对象"], ["⌘ Z", "撤销"], ["⌘ ⇧ Z", "重做"], ["滚轮", "平移或缩放画布"]].map(([key, label]) => <div key={key} className="flex items-center justify-between px-4 py-3 text-sm"><span className="text-stone-600">{label}</span><kbd className="rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold text-slate-700">{key}</kbd></div>)}</div></EditorUtilityDialog>}
+
+      {editorDialog === "help" && <EditorUtilityDialog title="主要操作路径" eyebrow="Help" onClose={() => setEditorDialog(null)}><ol className="space-y-3">{["在顶部选择楼层。", "点击当前图纸，按专业选择要编辑的图纸。", "使用左侧当前图纸工具创建或编辑对象。", "选中对象后在右侧属性面板修改；资源、检查与 AI 各自独立。", "在检查与交付中完成综合检查，最后从更多打开施工图纸包。"].map((item, index) => <li key={item} className="flex gap-3 rounded-xl bg-stone-100 p-3 text-sm leading-6 text-stone-700"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-slate-900 text-[10px] font-bold text-white">{index + 1}</span><span>{item}</span></li>)}</ol></EditorUtilityDialog>}
 
       {designPageData && (
         <section className="fixed inset-3 z-[75] overflow-hidden rounded-2xl border border-white/80 bg-white shadow-soft lg:inset-6">
@@ -6658,21 +6922,6 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         </section>
       )}
 
-      {viewMode !== "3d" && (
-        <MobileDetailsDrawer
-          floor={currentFloor}
-          floorPlanScale={floorPlanScale}
-          furniture={selectedFurniture}
-          semanticObject={activeFurniture ? null : selectedSemanticObject}
-          semanticObjects={floorSemanticObjects}
-          moduleCatalogGroups={moduleCatalogGroups}
-          moduleTargetLabel={moduleTargetLabel}
-          onAddModule={addModuleFromCatalog}
-          onFurnitureChange={handleFurnitureUpdate}
-          onDeleteFurniture={handleDeleteFurniture}
-          onRotateFurniture={handleRotateFurniture}
-        />
-      )}
     </main>
   );
 }

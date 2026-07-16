@@ -135,6 +135,16 @@ type Props = {
   mobileProfessionalSheetMode?: DrawingSheetType | PlanCanvasMode | string;
   mobileQuality?: MobileQuality;
   resetViewRequest?: number;
+  drawingDrivenMode?: boolean;
+  developerMode?: boolean;
+  showAdvancedCanvasControls?: boolean;
+  constructionPackageOpenRequest?: number;
+  drawingItemCreationRequest?: {
+    category: DrawingItemCategory;
+    type: string;
+    label: string;
+    nonce: number;
+  } | null;
   showFurnitureLabels?: boolean;
   activeFurnitureId?: string;
   cameraViews?: FixedCameraView[];
@@ -608,6 +618,11 @@ export function PlanCanvas({
   mobileProfessionalSheetMode = "socketPlan",
   mobileQuality = "balanced",
   resetViewRequest = 0,
+  drawingDrivenMode = false,
+  developerMode = false,
+  showAdvancedCanvasControls = false,
+  constructionPackageOpenRequest = 0,
+  drawingItemCreationRequest = null,
   showFurnitureLabels,
   activeFurnitureId = "",
   cameraViews = [],
@@ -826,6 +841,21 @@ export function PlanCanvas({
     onDrawToolChange("select");
     setLabelFilter("all");
   }, [focusMode, onDrawToolChange, onPlannerModeChange]);
+
+  useEffect(() => {
+    if (!constructionPackageOpenRequest) return;
+    setIsConstructionPackageOpen(true);
+  }, [constructionPackageOpenRequest]);
+
+  useEffect(() => {
+    if (developerMode) return;
+    setShowObjectIds(false);
+  }, [developerMode]);
+
+  useEffect(() => {
+    if (!drawingDrivenMode || !showAdvancedCanvasControls) return;
+    setIsCleanupPanelOpen(true);
+  }, [drawingDrivenMode, showAdvancedCanvasControls]);
 
   useEffect(() => {
     if (sheetMode !== "structureSyncCheck") return;
@@ -3435,8 +3465,8 @@ export function PlanCanvas({
   const visibleCleanupPatch = false;
   const visibleStructureProjection = isProfessionalDrawingSheetMode;
   const visibleFurnitureOverlay = (yardImmersiveMode || isSiteSheetMode || isDemolitionBuildSheetMode || isAnnotationSheetMode || isFurnitureSheetMode || sheetMode === "presentationView" || isProfessionalDrawingSheetMode) && layerVisibility.furnitureOverlay;
-  const visibleSemanticOverlay = (sheetMode === "presentationView" || isMobileAnnotatedPlan) && layerVisibility.semanticOverlay;
-  const visibleDebugLayer = !mobilePresentationMode && isSyncSheetMode && layerVisibility.debug;
+  const visibleSemanticOverlay = developerMode && (sheetMode === "presentationView" || isMobileAnnotatedPlan) && layerVisibility.semanticOverlay;
+  const visibleDebugLayer = developerMode && !mobilePresentationMode && isSyncSheetMode && layerVisibility.debug;
   const visibleStructureLabels = !furnitureImmersiveMode && (!mobilePresentationMode || mobileDisplayLevel === "professional");
   const showDimensionLayer = !yardImmersiveMode && (mobilePresentationMode ? mobileDisplayLevel !== "simple" : (isStructureSheetMode || isDemolitionBuildSheetMode || isSiteSheetMode));
   const structurePointerEventsEnabled = drawingItemLayerActive || isSiteSheetMode || isStructureSheetMode || isSyncSheetMode || isDemolitionBuildSheetMode || (plannerMode === "edit" && Boolean(getDrawToolStructureKind(drawTool)) && canDrawStructureTool(drawTool));
@@ -3485,8 +3515,8 @@ export function PlanCanvas({
     }));
   }
 
-  function addDrawingItem() {
-    const category = activeDrawingItemCategories[0];
+  function addDrawingItem(preset?: { category: DrawingItemCategory; type: string; label: string }) {
+    const category = preset?.category ?? activeDrawingItemCategories[0];
     if (!category) return;
     const id = `DI-${floor.id}-${Date.now().toString(36).toUpperCase()}`;
     const baseItem = createDrawingItem({
@@ -3496,16 +3526,30 @@ export function PlanCanvas({
       positionMm: { x: Math.round(planBounds.x + planBounds.width / 2), y: Math.round(planBounds.y + planBounds.height / 2) },
       roomId: houseStructure.rooms[0]?.id ?? houseStructure.outdoors[0]?.id ?? null
     });
-    const item: DrawingItem = category === "ceiling" ? { ...baseItem, type: "flatCeiling", ceilingHeightMm: 2800, relatedLightIds: [], inspectionAccess: false, airVent: false, returnAir: false, maintenanceOpening: false }
+    const defaultItem: DrawingItem = category === "ceiling" ? { ...baseItem, type: "flatCeiling", ceilingHeightMm: 2800, relatedLightIds: [], inspectionAccess: false, airVent: false, returnAir: false, maintenanceOpening: false }
       : category === "floorFinish" ? { ...baseItem, type: "roomFinish", material: null, pattern: null, directionDeg: 0, startPoint: null, seamWidthMm: null, threshold: null, transition: null }
       : category === "wallFinish" ? { ...baseItem, type: "wallFinish", wallId: null, material: null, heightRange: { minMm: 0, maxMm: 2800 }, area: null, waterproofHeightMm: null, specialTreatment: null }
       : category === "switch" ? { ...baseItem, type: "switchControl", switchControl: [], relatedCircuit: null, controlledLightIds: [], lightGroupId: null, controlGroupId: null, smartControl: false, dimming: false }
       : category === "light" ? { ...baseItem, type: "recessedDownlight", lightType: "recessedDownlight", lightingLayer: "ambient", colorTemperature: "3000K", lightColorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", relatedSwitchId: null, controlGroupId: null, lightGroupId: null, smartControl: false, needsSmartControl: false, dimming: false, relatedRoomId: baseItem.roomId, hostCeilingAreaId: null }
       : baseItem;
+    const item: DrawingItem = preset ? {
+      ...defaultItem,
+      type: preset.type,
+      label: preset.label,
+      lightType: category === "light" ? preset.type : defaultItem.lightType,
+      updatedAt: new Date().toISOString()
+    } : defaultItem;
     onDrawingItemsChange([...drawingItems, item]);
     setSelectedDrawingItemId(id);
     onActiveObjectChange(id);
   }
+
+  useEffect(() => {
+    if (!drawingItemCreationRequest || !workspaceMutationAllowed) return;
+    addDrawingItem(drawingItemCreationRequest);
+    // A nonce represents one explicit toolbar action; the current model is read at execution time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawingItemCreationRequest?.nonce]);
 
   function deleteDrawingItem(itemId: string) {
     onDrawingItemsChange(drawingItems.filter((item) => item.id !== itemId));
@@ -3525,7 +3569,7 @@ export function PlanCanvas({
     updateDrawingItem(item.id, { polygon, area: Number(area.toFixed(2)), startPoint: polygon[0] });
   }
   const repairOverlayStyles = getRepairOverlayStyles(floorPlanVisualSettings);
-  const showStructureDrawingPanel = !mobilePresentationMode && plannerMode === "edit" && !isFurnitureSheetMode;
+  const showStructureDrawingPanel = !mobilePresentationMode && plannerMode === "edit" && !isFurnitureSheetMode && (!drawingDrivenMode || showAdvancedCanvasControls);
   const yardObjectMatchesFocus = (id: string, name = "") => !yardImmersiveMode || id.includes(`-${yardToken}-`) || name.includes(yardFocus === "north" ? "北院" : "南院");
   const visibleOutdoors = houseStructure.outdoors
     .filter((outdoor) => resolveVisibility(outdoor).visible2d)
@@ -4197,7 +4241,7 @@ export function PlanCanvas({
               overflow="visible"
             >
               <div className={`${responsiveClass} mx-auto w-max max-w-[2800px] rounded-md border-2 px-4 py-3 text-center shadow-[0_12px_28px_rgba(15,23,42,0.38)] ${toneClass}`}>
-                <div className="whitespace-nowrap text-[240px] font-extrabold leading-none">{label.id}</div>
+                <div className="whitespace-nowrap text-[240px] font-extrabold leading-none">{developerMode ? label.id : label.name}</div>
                 {(mode !== "debug" || selected) && <div className="mt-2 max-w-[2700px] truncate text-[175px] font-semibold leading-none opacity-95">{label.name}</div>}
                 {mode === "hover" && <div className="mt-2 text-[145px] font-semibold uppercase leading-none opacity-75">{label.type}</div>}
               </div>
@@ -4239,7 +4283,7 @@ export function PlanCanvas({
                 marginTop: placement === "below" ? "8px" : "-8px"
               }}
             >
-              <div className={`${mode === "selected" ? "text-base" : "text-sm"} whitespace-nowrap font-extrabold leading-none`}>{label.id}</div>
+              <div className={`${mode === "selected" ? "text-base" : "text-sm"} whitespace-nowrap font-extrabold leading-none`}>{developerMode ? label.id : label.name}</div>
               {(mode !== "debug" || selected) && <div className="mt-1 max-w-56 truncate text-xs font-semibold leading-tight opacity-95">{label.name}</div>}
               {mode === "hover" && <div className="mt-1 text-[10px] font-semibold uppercase leading-none opacity-70">{label.type}</div>}
             </div>
@@ -4475,10 +4519,10 @@ export function PlanCanvas({
 
   return (
     <div
-      className={`relative min-h-0 flex-1 overscroll-contain ${mobilePresentationMode ? "h-full overflow-hidden bg-[#f7f3ec] p-0" : `overflow-auto bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}`}
+      className={`relative min-h-0 flex-1 overscroll-contain ${mobilePresentationMode ? "h-full overflow-hidden bg-[#f7f3ec] p-0" : drawingDrivenMode ? "overflow-hidden bg-[#f2f1ed] p-2" : `overflow-auto bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}`}
       data-mobile-presentation={mobilePresentationMode ? "true" : "false"}
     >
-      <div className={`${furnitureImmersiveMode || yardImmersiveMode || mobilePresentationMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
+      <div className={`${furnitureImmersiveMode || yardImmersiveMode || mobilePresentationMode || drawingDrivenMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
         {viewMode === "2d" ? `当前图纸 · ${planCanvasModeLabels[sheetMode]}` : `${floor.label} · 楼层 3D`}
       </div>
 
@@ -4487,7 +4531,7 @@ export function PlanCanvas({
           className={`relative grid h-full items-start ${
             mobilePresentationMode
               ? "min-h-0 touch-none overflow-hidden bg-[#f8f4ec] p-0"
-              : `min-h-[calc(100vh-15rem)] overflow-auto rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:min-h-[560px] sm:pt-16 ${
+              : `min-h-[calc(100vh-5.25rem)] overflow-auto border border-white/70 bg-white/60 shadow-inner sm:min-h-[560px] ${drawingDrivenMode ? "p-2" : "rounded-[1.75rem] p-3 pt-20 sm:pt-16"} ${
             showStructureDrawingPanel ? `gap-4 lg:justify-items-stretch ${focusMode ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "lg:grid-cols-[260px_minmax(0,1fr)]"}` : "justify-items-center"
           }`
           }`}
@@ -4503,7 +4547,7 @@ export function PlanCanvas({
           onTouchCancel={handleTouchEnd}
           onWheel={handleWheel}
         >
-          {!furnitureImmersiveMode && !mobilePresentationMode && <div
+          {!drawingDrivenMode && !furnitureImmersiveMode && !mobilePresentationMode && <div
             className="absolute right-5 top-5 z-[60] flex max-w-[calc(100%-2.5rem)] items-center gap-1 overflow-x-auto rounded-2xl border border-white/80 bg-white/95 p-1 text-sm font-semibold text-stone-600 shadow-sm backdrop-blur"
             onPointerDown={(event) => event.stopPropagation()}
           >
@@ -4578,10 +4622,8 @@ export function PlanCanvas({
             </div>
           )}
 
-          {!mobilePresentationMode && <div
-            className={`absolute left-5 top-16 z-[70] max-h-[calc(100%-5.5rem)] w-[min(760px,calc(100%-2.5rem))] overflow-auto rounded-2xl border border-white/80 bg-white/96 p-4 text-xs text-stone-600 shadow-soft backdrop-blur transition ${
-              isConstructionPackageOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
-            }`}
+          {!mobilePresentationMode && isConstructionPackageOpen && <div
+            className="absolute left-5 top-5 z-[70] max-h-[calc(100%-2.5rem)] w-[min(760px,calc(100%-2.5rem))] overflow-auto rounded-2xl border border-white/80 bg-white/96 p-4 text-xs text-stone-600 shadow-soft backdrop-blur"
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex flex-col gap-3 border-b border-stone-200 pb-3 sm:flex-row sm:items-start sm:justify-between">
@@ -4662,10 +4704,8 @@ export function PlanCanvas({
             </div>
           </div>}
 
-          {!mobilePresentationMode && <div
-            className={`absolute left-5 top-16 z-30 max-h-[calc(100%-5.5rem)] w-72 overflow-auto rounded-2xl border border-white/80 bg-white/95 p-3 text-xs text-stone-600 shadow-sm backdrop-blur transition ${
-              isCleanupPanelOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0"
-            }`}
+          {!mobilePresentationMode && isCleanupPanelOpen && <div
+            className="absolute left-5 top-5 z-30 max-h-[calc(100%-2.5rem)] w-72 overflow-auto rounded-2xl border border-white/80 bg-white/95 p-3 text-xs text-stone-600 shadow-sm backdrop-blur"
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between">
@@ -6209,14 +6249,14 @@ export function PlanCanvas({
               )}
             </svg>
 
-            {drawingItemLayerActive && !isFurnitureSheetMode && !mobilePresentationMode && (
+            {!drawingDrivenMode && drawingItemLayerActive && !isFurnitureSheetMode && !mobilePresentationMode && (
               <div className="absolute right-5 top-16 z-[58] max-h-[calc(100%-5rem)] w-[min(360px,calc(100%-2.5rem))] overflow-y-auto rounded-xl border border-stone-200 bg-white/95 p-3 text-xs text-stone-600 shadow-lg backdrop-blur" onPointerDown={(event) => event.stopPropagation()}>
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="font-semibold text-ink">图纸点位</p>
                     <p className="mt-0.5 text-stone-400">当前图纸 {visibleDrawingItems.length} 项</p>
                   </div>
-                  <button className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit" || activeDrawingItemCategories.length === 0} onClick={addDrawingItem} type="button">新增点位</button>
+                  <button className="rounded-lg bg-slate-900 px-3 py-2 font-semibold text-white disabled:bg-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit" || activeDrawingItemCategories.length === 0} onClick={() => addDrawingItem()} type="button">新增点位</button>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <button className="rounded-lg bg-emerald-50 px-2 py-2 font-semibold text-emerald-800 disabled:text-stone-300" disabled={!workspaceMutationAllowed || plannerMode !== "edit"} onClick={() => onGenerateDrawingItems("floor")} type="button">从家具生成 · 本层</button>
@@ -6304,10 +6344,10 @@ export function PlanCanvas({
               </div>
             )}
 
-            {!mobilePresentationMode && <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
+            {!drawingDrivenMode && !mobilePresentationMode && <div className="pointer-events-none absolute left-5 top-5 z-40 max-w-[min(72%,720px)] truncate rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-stone-500 shadow-sm">
               {planCanvasModeLabels[sheetMode]}：{planCanvasModeDescriptions[sheetMode]}
             </div>}
-            {visibleVerificationStatusLayer && !mobilePresentationMode && (
+            {visibleVerificationStatusLayer && !drawingDrivenMode && !mobilePresentationMode && (
               <div className="pointer-events-none absolute left-5 top-16 z-40 flex max-w-[calc(100%-2.5rem)] flex-wrap gap-x-3 gap-y-1 rounded-lg border border-stone-200 bg-white/94 px-3 py-2 text-[11px] font-semibold text-stone-600 shadow-sm">
                 {(Object.keys(verificationDisplayStateLabels) as Array<keyof typeof verificationDisplayStateLabels>).map((state) => (
                   <span key={state} className="flex items-center gap-1.5">
@@ -6317,7 +6357,7 @@ export function PlanCanvas({
                 ))}
               </div>
             )}
-            {!mobilePresentationMode && <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+            {!drawingDrivenMode && !mobilePresentationMode && <div className="pointer-events-none absolute right-5 bottom-5 z-40 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white shadow-sm">
               {planCanvasModeFootnotes[sheetMode]}
             </div>}
             {isFurnitureSheetMode && plannerMode === "edit" && (
@@ -6568,7 +6608,7 @@ export function PlanCanvas({
                       className="relative z-10 h-full w-full"
                       style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-	                      <FurnitureTopView assetType={renderAsset.assetType} variantId={renderAsset.variantId} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : item.code} showLabel={(!furnitureImmersiveMode || furnitureLabelsVisible) && (locked || sheetMode !== "furniturePlan")} stretchToFill type={item.type} />
+	                      <FurnitureTopView assetType={renderAsset.assetType} variantId={renderAsset.variantId} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : developerMode ? item.code : undefined} showLabel={locked || (developerMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && sheetMode !== "furniturePlan")} stretchToFill type={item.type} />
 	                    </div>
 	                    {placementWarnings.length > 0 && (
 	                      <span className="pointer-events-none absolute -left-2 -top-2 z-20 grid min-h-6 min-w-6 place-items-center rounded-full border-2 border-white bg-amber-600 px-1 text-[10px] font-black text-white shadow-md" title={placementWarnings.map((warning) => warning.message).join("\n")}>{placementWarnings.length}</span>
@@ -6632,8 +6672,8 @@ export function PlanCanvas({
                         marginTop: "-8px"
                       }}
                     >
-                      <div className="font-extrabold">{item.id}</div>
-                      {(mode !== "debug" || selected) && <div className="mt-1 max-w-56 whitespace-normal break-words text-xs font-semibold opacity-95">{item.name}</div>}
+                      <div className="font-extrabold">{developerMode ? item.id : item.name}</div>
+                      {developerMode && (mode !== "debug" || selected) && <div className="mt-1 max-w-56 whitespace-normal break-words text-xs font-semibold opacity-95">{item.name}</div>}
                       {mode === "hover" && <div className="mt-1 text-[10px] font-semibold uppercase opacity-70">Furniture</div>}
                     </div>
                   );
@@ -6846,8 +6886,8 @@ export function PlanCanvas({
           cameraViewRequest={cameraViewRequest}
           selectedObjectId={selectedDrawingItemId || selectedInteractionObjectId}
           selectedFurnitureId={selectedFurnitureId}
-          showObjectIds={showObjectIds}
-          onShowObjectIdsChange={setShowObjectIds}
+          showObjectIds={developerMode && showObjectIds}
+          onShowObjectIdsChange={(visible) => { if (developerMode) setShowObjectIds(visible); }}
           onSelectStructure={(objectId) => {
             setSelectedDrawingItemId("");
             setSelectedStructureId(objectId);

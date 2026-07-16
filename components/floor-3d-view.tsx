@@ -7449,7 +7449,7 @@ export function Floor3DView({
   const villaFurniture = allFurniture ?? furniture;
   const villaDrawingItems = allDrawingItems ?? drawingItems;
   const drawingProfile = getDrawing3DPresentationProfile(drawingSheetType);
-  const [villaExperienceEnabled, setVillaExperienceEnabled] = useState(true);
+  const [villaExperienceEnabled, setVillaExperienceEnabled] = useState(() => !mobilePresentationMode);
   const [villaOverviewMode, setVillaOverviewMode] = useState<VillaOverviewMode>("wholeVilla");
   const [roomCeilingMode, setRoomCeilingMode] = useState<RoomCeilingMode>("hidden");
   const [cameraRequest, setCameraRequest] = useState<{ preset: CameraPreset; fixedView: FixedCameraView | null; version: number }>(() => ({
