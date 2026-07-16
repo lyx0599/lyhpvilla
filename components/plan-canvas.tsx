@@ -2126,23 +2126,23 @@ export function PlanCanvas({
     const fullUy = (stair.end.y - stair.start.y) / fullLength;
     const landingDepth = constructionExportWorkspace.stairLandings.find((landing) => landing.id === stair.landingId)?.depth ?? 0;
     const runInset = Math.min(Math.max(0, landingDepth), fullLength * 0.42);
-    const renderStart = { x: stair.start.x + fullUx * runInset, y: stair.start.y + fullUy * runInset };
-    const length = Math.max(1, getLineLength(renderStart, stair.end));
-    const ux = (stair.end.x - renderStart.x) / length;
-    const uy = (stair.end.y - renderStart.y) / length;
+    const renderEnd = { x: stair.end.x - fullUx * runInset, y: stair.end.y - fullUy * runInset };
+    const length = Math.max(1, getLineLength(stair.start, renderEnd));
+    const ux = (renderEnd.x - stair.start.x) / length;
+    const uy = (renderEnd.y - stair.start.y) / length;
     const normal = { x: -uy, y: ux };
     const steps = Array.from({ length: Math.max(2, stair.stepCount) }, (_, index) => {
       const ratio = (index + 1) / (Math.max(2, stair.stepCount) + 1);
       const center = {
-        x: renderStart.x + (stair.end.x - renderStart.x) * ratio,
-        y: renderStart.y + (stair.end.y - renderStart.y) * ratio
+        x: stair.start.x + (renderEnd.x - stair.start.x) * ratio,
+        y: stair.start.y + (renderEnd.y - stair.start.y) * ratio
       };
       return {
         start: { x: center.x - normal.x * stair.width * 0.42, y: center.y - normal.y * stair.width * 0.42 },
         end: { x: center.x + normal.x * stair.width * 0.42, y: center.y + normal.y * stair.width * 0.42 }
       };
     });
-    return { length, ux, uy, normal, steps, renderStart };
+    return { length, ux, uy, normal, steps, renderStart: stair.start, renderEnd };
   }
 
   function getStairLandingConnections(stairs: HouseStructure["stairs"]) {
@@ -5679,17 +5679,17 @@ export function PlanCanvas({
                     y: point.y + stairGeometry.normal.y * arrivalVisualOffset
                   });
                   const visualStart = shiftArrivalPoint(stairGeometry.renderStart);
-                  const visualEnd = shiftArrivalPoint(stair.end);
+                  const visualEnd = shiftArrivalPoint(stairGeometry.renderEnd);
                   const arrowStart = {
-                    x: visualEnd.x - stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
-                    y: visualEnd.y - stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
-                  };
-                  const arrowEnd = {
                     x: visualStart.x + stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
                     y: visualStart.y + stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
                   };
-                  const arrowUx = -stairGeometry.ux;
-                  const arrowUy = -stairGeometry.uy;
+                  const arrowEnd = {
+                    x: visualEnd.x - stairGeometry.ux * Math.min(360, stairGeometry.length * 0.2),
+                    y: visualEnd.y - stairGeometry.uy * Math.min(360, stairGeometry.length * 0.2)
+                  };
+                  const arrowUx = stairGeometry.ux;
+                  const arrowUy = stairGeometry.uy;
                   const headLeft = {
                     x: arrowEnd.x - arrowUx * 210 + stairGeometry.normal.x * 150,
                     y: arrowEnd.y - arrowUy * 210 + stairGeometry.normal.y * 150
@@ -6832,7 +6832,9 @@ export function PlanCanvas({
           stairLandings={constructionExportWorkspace.stairLandings}
           stairOpenings={constructionExportWorkspace.stairOpenings}
           furniture={furniture}
+          allFurniture={constructionExportWorkspace.furniture}
           drawingItems={drawingItems}
+          allDrawingItems={constructionExportWorkspace.drawingItems}
           drawingSheetType={normalizeDrawingSheetType(sheetMode) ?? "sitePlan"}
           mobilePresentationMode={mobilePresentationMode}
           mobileQuality={mobileQuality}
@@ -6869,6 +6871,7 @@ export function PlanCanvas({
             setStructureMessage(`已在 3D 专项中选择 ${drawingItemId}。`);
           }}
           onDrawingSheetTypeChange={setSheetMode}
+          onSelectFloor={onSelectFloor}
           onHoverObject={hoverObject}
           onClearHoverObject={clearHoverObject}
           onSelectCameraView={onSelectCameraView}

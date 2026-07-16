@@ -204,6 +204,23 @@ assert.equal(migratedStairSystems.sources.stairSystems, "migration");
 assert.equal(migratedStairSystems.sources.stairLandings, "migration");
 assert.equal(migratedStairSystems.sources.stairOpenings, "migration");
 
+const legacyNearLivingLanding = structuredClone(canonical);
+legacyNearLivingLanding.schemaVersion = 16;
+legacyNearLivingLanding.dataRevision = "2026-07-14-stair-systems-v1";
+for (const landing of legacyNearLivingLanding.stairLandings) {
+  landing.polygon = [
+    { x: 4146, y: 3050 },
+    { x: 4146, y: 5150 },
+    { x: 3096, y: 5150 },
+    { x: 3096, y: 3050 }
+  ];
+  landing.centerLine = { start: { x: 4146, y: 3575 }, end: { x: 4146, y: 4625 } };
+}
+const migratedFarLanding = applyWorkspaceMigrations(legacyNearLivingLanding, { canonicalWorkspace: canonical });
+assert.ok(migratedFarLanding.workspace.stairLandings.every((landing) => landing.centerLine.start.x === 950 && landing.centerLine.end.x === 950), "Schema 16 workspaces must move the half landing away from the living-room access side.");
+assert.ok(migratedFarLanding.workspace.stairLandings.every((landing) => Math.max(...landing.polygon.map((point) => point.x)) === 2000), "Migrated landings must connect at the far ends of both runs.");
+assert.equal(migratedFarLanding.sources.stairLandings, "migration");
+
 const invalidCurrent = structuredClone(canonical);
 delete invalidCurrent.floors;
 assert.throws(

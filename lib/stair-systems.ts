@@ -89,12 +89,12 @@ export function getStairSystemGeometryFingerprint(system: Pick<StairSystem, "id"
 function landingFromPair(pair: StairPairDefinition, lower: HouseStair, upper: HouseStair): StairLanding {
   const runLength = Math.max(1, lineLength(lower.start, lower.end));
   const runUnit = { x: (lower.end.x - lower.start.x) / runLength, y: (lower.end.y - lower.start.y) / runLength };
-  const laneLength = Math.max(1, lineLength(lower.start, upper.start));
-  const laneUnit = { x: (upper.start.x - lower.start.x) / laneLength, y: (upper.start.y - lower.start.y) / laneLength };
+  const laneLength = Math.max(1, lineLength(lower.end, upper.end));
+  const laneUnit = { x: (upper.end.x - lower.end.x) / laneLength, y: (upper.end.y - lower.end.y) / laneLength };
   const halfWidth = Math.min(lower.width, upper.width) / 2;
   const depth = Math.max(Math.min(lower.width, upper.width), 900);
-  const firstOuter = roundPoint({ x: lower.start.x - laneUnit.x * halfWidth, y: lower.start.y - laneUnit.y * halfWidth });
-  const secondOuter = roundPoint({ x: upper.start.x + laneUnit.x * halfWidth, y: upper.start.y + laneUnit.y * halfWidth });
+  const firstOuter = roundPoint({ x: lower.end.x - laneUnit.x * halfWidth, y: lower.end.y - laneUnit.y * halfWidth });
+  const secondOuter = roundPoint({ x: upper.end.x + laneUnit.x * halfWidth, y: upper.end.y + laneUnit.y * halfWidth });
   return {
     id: `LANDING-${pair.lowerFloorId}-${pair.upperFloorId}`,
     stairSystemId: pair.id,
@@ -103,10 +103,10 @@ function landingFromPair(pair: StairPairDefinition, lower: HouseStair, upper: Ho
     polygon: [
       firstOuter,
       secondOuter,
-      roundPoint({ x: secondOuter.x + runUnit.x * depth, y: secondOuter.y + runUnit.y * depth }),
-      roundPoint({ x: firstOuter.x + runUnit.x * depth, y: firstOuter.y + runUnit.y * depth })
+      roundPoint({ x: secondOuter.x - runUnit.x * depth, y: secondOuter.y - runUnit.y * depth }),
+      roundPoint({ x: firstOuter.x - runUnit.x * depth, y: firstOuter.y - runUnit.y * depth })
     ],
-    centerLine: { start: clone(lower.start), end: clone(upper.start) },
+    centerLine: { start: clone(lower.end), end: clone(upper.end) },
     elevationFromLowerFloorMm: STAIR_FLIGHT_RISE_MM,
     width: Math.round(laneLength + halfWidth * 2),
     depth: Math.round(depth),
@@ -127,8 +127,8 @@ function openingFromPair(pair: StairPairDefinition, lower: HouseStair, upper: Ho
   const accessSetback = Math.min(480, lineLength(lower.start, lower.end) * 0.15);
   const bounds = runAlongX
     ? {
-        minX: Math.round(minX + accessSetback),
-        maxX: Math.round(maxX - inset),
+        minX: Math.round(minX + inset),
+        maxX: Math.round(maxX - accessSetback),
         minY: Math.round(minY + inset),
         maxY: Math.round(maxY - inset)
       }
@@ -244,8 +244,8 @@ export function normalizeManagedStairFlights(structuresByFloor: Record<FloorId, 
 export function getFlightLocalEndpointHeights(stair: HouseStair) {
   const floorHeight = (stair.baseHeight ?? 0);
   const rise = stair.height;
-  if (stair.flightRole === "lower-flight") return { startHeightMm: floorHeight + rise, endHeightMm: floorHeight };
-  if (stair.flightRole === "upper-flight") return { startHeightMm: floorHeight - rise, endHeightMm: floorHeight };
+  if (stair.flightRole === "lower-flight") return { startHeightMm: floorHeight, endHeightMm: floorHeight + rise };
+  if (stair.flightRole === "upper-flight") return { startHeightMm: floorHeight, endHeightMm: floorHeight - rise };
   return stair.direction === "down"
     ? { startHeightMm: floorHeight, endHeightMm: floorHeight - rise }
     : { startHeightMm: floorHeight, endHeightMm: floorHeight + rise };
@@ -328,10 +328,10 @@ export function validateStairSystems(input: {
     }
     const lowerLength = lineLength(lower.start, lower.end);
     const upperLength = lineLength(upper.start, upper.end);
-    const lowerTravel = { x: (lower.start.x - lower.end.x) / Math.max(1, lowerLength), y: (lower.start.y - lower.end.y) / Math.max(1, lowerLength) };
-    const upperTravel = { x: (upper.end.x - upper.start.x) / Math.max(1, upperLength), y: (upper.end.y - upper.start.y) / Math.max(1, upperLength) };
+    const lowerTravel = { x: (lower.end.x - lower.start.x) / Math.max(1, lowerLength), y: (lower.end.y - lower.start.y) / Math.max(1, lowerLength) };
+    const upperTravel = { x: (upper.start.x - upper.end.x) / Math.max(1, upperLength), y: (upper.start.y - upper.end.y) / Math.max(1, upperLength) };
     const travelDot = lowerTravel.x * upperTravel.x + lowerTravel.y * upperTravel.y;
-    const laneDistance = pointToSegmentDistance(upper.start, lower.start, lower.end);
+    const laneDistance = pointToSegmentDistance(upper.end, lower.start, lower.end);
     if (travelDot > -0.98 || laneDistance < Math.max(lower.width, upper.width) * 0.95) {
       warn(system.lowerFloorId, system.id, "FLIGHT_GEOMETRY_CONFLICT", `${system.id} 两跑必须平行反向并保留不重叠的梯段间距。`, system.id);
     }
@@ -342,7 +342,7 @@ export function validateStairSystems(input: {
     if (landing && (landing.polygon.length < 4 || landing.width < Math.max(lower.width, upper.width) || landing.supportKind === undefined)) {
       warn(system.lowerFloorId, landing.id, "UNSUPPORTED_LANDING", `平台 ${landing.id} 尺寸不足或缺少支承关系。`, system.id);
     }
-    if (landing && (lineLength(landing.centerLine.start, lower.start) > 5 || lineLength(landing.centerLine.end, upper.start) > 5 || landing.elevationFromLowerFloorMm !== STAIR_FLIGHT_RISE_MM || lowerLength <= landing.depth || upperLength <= landing.depth)) {
+    if (landing && (lineLength(landing.centerLine.start, lower.end) > 5 || lineLength(landing.centerLine.end, upper.end) > 5 || landing.elevationFromLowerFloorMm !== STAIR_FLIGHT_RISE_MM || lowerLength <= landing.depth || upperLength <= landing.depth)) {
       warn(system.lowerFloorId, landing.id, "LANDING_CONNECTION_MISMATCH", `平台 ${landing.id} 未与两跑在同一半层标高连续收口。`, system.id);
     }
     const opening = openingById.get(system.openingId);
@@ -350,8 +350,8 @@ export function validateStairSystems(input: {
       warn(system.upperFloorId, system.openingId, "MISSING_OPENING", `${system.id} 缺少明确楼板洞口。`, system.id);
     } else {
       const nearLanding = (stair: HouseStair) => ({
-        x: stair.start.x + (stair.end.x - stair.start.x) * 0.05,
-        y: stair.start.y + (stair.end.y - stair.start.y) * 0.05
+        x: stair.end.x + (stair.start.x - stair.end.x) * 0.05,
+        y: stair.end.y + (stair.start.y - stair.end.y) * 0.05
       });
       const samplePoints = [midpoint(lower.start, lower.end), midpoint(upper.start, upper.end), nearLanding(lower), nearLanding(upper)];
       if (!samplePoints.every((point) => pointInPolygon(point, opening.polygon))) {
@@ -361,7 +361,7 @@ export function validateStairSystems(input: {
       if (![system.lowerFlightId, system.upperFlightId].every((id) => opening.clearAccessFlightIds.includes(id))) {
         warn(system.upperFloorId, opening.id, "OPENING_ACCESS_MISMATCH", `洞口 ${opening.id} 未声明两跑的完整通行口。`, system.id);
       }
-      const accessPoints = [lower.end, upper.end];
+      const accessPoints = [lower.start, upper.start];
       if (opening.guardEdges.some((edge) => accessPoints.some((point) => pointToSegmentDistance(point, edge.start, edge.end) < Math.max(lower.width, upper.width) * 0.45))) {
         warn(system.upperFloorId, opening.id, "GUARD_BLOCKS_ACCESS", `洞口 ${opening.id} 的栏杆封堵了梯段入口或出口。`, system.id);
       }
