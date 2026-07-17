@@ -44,10 +44,12 @@ function drawFurnitureTexture(layer: ResolvedRender3DMaterialLayer, role: Render
       context.stroke();
     }
   } else if (role === "fabric") {
-    context.globalAlpha = 0.16;
-    context.strokeStyle = tone(layer.color, -0.18);
-    context.lineWidth = 0.7;
-    for (let offset = 0; offset < 256; offset += 8) {
+    // Keep the weave intentionally legible at normal room-view distance. Thin
+    // single-pixel lines disappear after tone mapping and read as a colour block.
+    context.globalAlpha = 0.2;
+    context.strokeStyle = tone(layer.color, -0.2);
+    context.lineWidth = 1.15;
+    for (let offset = 0; offset < 256; offset += 6) {
       context.beginPath();
       context.moveTo(offset, 0);
       context.lineTo(offset, 256);
@@ -57,14 +59,37 @@ function drawFurnitureTexture(layer: ResolvedRender3DMaterialLayer, role: Render
       context.lineTo(256, offset);
       context.stroke();
     }
+    context.globalAlpha = 0.12;
+    context.fillStyle = tone(layer.color, 0.18);
+    for (let y = 2; y < 256; y += 12) {
+      for (let x = (Math.floor(y / 12) % 2) * 6; x < 256; x += 12) context.fillRect(x, y, 5, 2);
+    }
+  } else if (role === "leather") {
+    context.globalAlpha = 0.14;
+    context.strokeStyle = tone(layer.color, -0.18);
+    context.lineWidth = 0.9;
+    for (let y = 5; y < 256; y += 11) {
+      context.beginPath();
+      for (let x = 0; x <= 256; x += 8) {
+        const py = y + Math.sin((x + y * 1.7) * 0.07) * 1.8;
+        if (x === 0) context.moveTo(x, py);
+        else context.lineTo(x, py);
+      }
+      context.stroke();
+    }
+    context.globalAlpha = 0.09;
+    context.fillStyle = tone(layer.color, 0.2);
+    for (let y = 7; y < 256; y += 17) {
+      for (let x = (y % 3) * 5; x < 256; x += 19) context.fillRect(x, y, 3, 1.5);
+    }
   } else if (role === "stone") {
-    context.globalAlpha = 0.2;
-    for (let index = 0; index < 7; index += 1) {
+    context.globalAlpha = 0.24;
+    for (let index = 0; index < 9; index += 1) {
       context.strokeStyle = index % 2 ? tone(layer.color, -0.15) : tone(layer.color, 0.12);
-      context.lineWidth = index % 3 === 0 ? 2 : 1;
+      context.lineWidth = index % 3 === 0 ? 2.4 : 1.15;
       context.beginPath();
       for (let x = -10; x <= 266; x += 10) {
-        const y = 30 + index * 31 + Math.sin((x + index * 43) * 0.045) * (8 + index);
+        const y = 18 + index * 28 + Math.sin((x + index * 43) * 0.045) * (8 + index);
         if (x === -10) context.moveTo(x, y);
         else context.lineTo(x, y);
       }

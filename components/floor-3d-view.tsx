@@ -467,7 +467,7 @@ const walkthroughStops = [
 ];
 const walkthroughSegmentSeconds = 4.6;
 
-type ProceduralTextureKind = "wood" | "stone" | "fabric" | "wall";
+type ProceduralTextureKind = "wood" | "stone" | "fabric" | "wall" | "microcement";
 type Vec3Tuple = [number, number, number];
 
 function RoundedBoxMesh({
@@ -1423,6 +1423,32 @@ function makeProceduralTexture(kind: ProceduralTextureKind, baseColor: string, a
     }
   }
 
+  if (kind === "microcement") {
+    // Low-contrast clouds, fine aggregate and long trowel marks keep the finish
+    // recognisable as hand-trowelled microcement instead of a flat colour block.
+    for (let index = 0; index < 22; index += 1) {
+      const x = (index * 47) % canvas.width - 38;
+      const y = (index * 71) % canvas.height - 26;
+      ctx.fillStyle = index % 2 ? "rgba(255,255,255,0.075)" : "rgba(70,63,56,0.055)";
+      ctx.beginPath();
+      ctx.ellipse(x, y, 54 + (index % 4) * 13, 20 + (index % 3) * 9, (index % 5) * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (let index = 0; index < 14; index += 1) {
+      ctx.strokeStyle = index % 3 ? "rgba(255,255,255,0.09)" : "rgba(72,65,58,0.07)";
+      ctx.lineWidth = index % 4 === 0 ? 2.2 : 0.8;
+      ctx.beginPath();
+      const y = 12 + index * 19;
+      ctx.moveTo(-12, y);
+      for (let x = 0; x <= canvas.width + 12; x += 28) ctx.lineTo(x, y + Math.sin((x + index * 27) * 0.045) * 3);
+      ctx.stroke();
+    }
+    for (let index = 0; index < 190; index += 1) {
+      ctx.fillStyle = index % 2 ? "rgba(255,255,255,0.08)" : "rgba(72,65,58,0.055)";
+      ctx.fillRect((index * 37) % canvas.width, (index * 83) % canvas.height, 1, 1);
+    }
+  }
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
@@ -1510,8 +1536,19 @@ function isBathroomRoom(room: HouseStructure["rooms"][number]) {
   return room.name.includes("卫");
 }
 
-function getRoomFloorStyle(room: HouseStructure["rooms"][number], designStyle: DesignStylePreset) {
+function getRoomFloorStyle(room: HouseStructure["rooms"][number], structure: HouseStructure, designStyle: DesignStylePreset) {
   const palette = designStylePalettes[designStyle];
+  const isBasement = structure.floorId === "B1" || structure.floorId === "B2";
+  if (isBasement) {
+    const isWetArea = isBathroomRoom(room);
+    return {
+      base: isWetArea ? "#9f978d" : structure.floorId === "B2" ? "#b8afa4" : "#c5bcb1",
+      joint: isWetArea ? "#756d65" : "#a79e94",
+      vein: isWetArea ? "#d2c9bd" : "#e2d9ce",
+      roughness: isWetArea ? 0.88 : 0.82,
+      kind: "microcement" as const
+    };
+  }
   if (isBathroomRoom(room)) {
     return {
       base: isMasterBathRoom(room) ? masterBathPalette.floor : "#d7d0c5",
@@ -1958,13 +1995,13 @@ function RoomFloorMesh({
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  const floorStyle = getRoomFloorStyle(room, designStyle);
+  const floorStyle = getRoomFloorStyle(room, structure, designStyle);
   const floorTexture = useProceduralTexture(
-    floorStyle.kind === "wood" ? "wood" : "stone",
+    floorStyle.kind === "wood" ? "wood" : floorStyle.kind === "microcement" ? "microcement" : "stone",
     floorStyle.base,
     floorStyle.joint,
-    floorStyle.kind === "wood" ? 4.8 : 3.2,
-    floorStyle.kind === "wood" ? 1.5 : 3.2
+    floorStyle.kind === "wood" ? 4.8 : floorStyle.kind === "microcement" ? 2.2 : 3.2,
+    floorStyle.kind === "wood" ? 1.5 : floorStyle.kind === "microcement" ? 2.2 : 3.2
   );
   return (
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018 + index * 0.002, 0]}>
@@ -1995,8 +2032,9 @@ function RoomFloorFinishOverlay({
   const depth = Math.max(0.1, bounds.maxZ - bounds.minZ);
   const centerX = bounds.minX + width / 2;
   const centerZ = bounds.minZ + depth / 2;
-  const floorStyle = getRoomFloorStyle(room, designStyle);
+  const floorStyle = getRoomFloorStyle(room, structure, designStyle);
   const isWood = floorStyle.kind === "wood";
+  if (floorStyle.kind === "microcement") return null;
   const tileSize = floorStyle.kind === "stone" ? 0.72 : 0.9;
   const plankSize = 0.26;
   if (isWood) {
@@ -2818,6 +2856,8 @@ function SolidWallSegment({
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
+  const isBasementWall = structure.floorId === "B1" || structure.floorId === "B2";
+  const wallSurfaceColor = !selected && isBasementWall ? "#c6beb3" : color;
   const capHeightMm = Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18));
   const bodyHeightMm = Math.max(42, heightMm - capHeightMm);
   const bodyOpacity = wallOpacity == null
@@ -2838,10 +2878,10 @@ function SolidWallSegment({
         widthMm={widthMm}
         heightMm={bodyHeightMm}
         structure={structure}
-        color={selected ? "#bfdbfe" : color}
+        color={selected ? "#bfdbfe" : wallSurfaceColor}
         opacity={bodyOpacity}
-        textureKind="wall"
-        textureAccent={effectMaterialCatalog.wallPaint.color}
+        textureKind={isBasementWall ? "microcement" : "wall"}
+        textureAccent={isBasementWall ? "#e0d8ce" : effectMaterialCatalog.wallPaint.color}
         selected={selected}
         clippingPlanes={clippingPlanes}
         onSelect={onSelect}
@@ -2941,6 +2981,8 @@ function CutWallPanel({
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
+  const isBasementWall = structure.floorId === "B1" || structure.floorId === "B2";
+  const wallSurfaceColor = !selected && isBasementWall ? "#c6beb3" : color;
   const capHeightMm = reachesTop ? Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18)) : 0;
   const bodyHeightMm = Math.max(1, heightMm - capHeightMm);
   const bodyOpacity = wallOpacity == null
@@ -2961,11 +3003,11 @@ function CutWallPanel({
         widthMm={widthMm}
         heightMm={bodyHeightMm}
         structure={structure}
-        color={selected ? "#bfdbfe" : color}
+        color={selected ? "#bfdbfe" : wallSurfaceColor}
         opacity={bodyOpacity}
         yOffset={bottomMm * MM_TO_M}
-        textureKind="wall"
-        textureAccent={effectMaterialCatalog.wallPaint.color}
+        textureKind={isBasementWall ? "microcement" : "wall"}
+        textureAccent={isBasementWall ? "#e0d8ce" : effectMaterialCatalog.wallPaint.color}
         selected={selected}
         clippingPlanes={clippingPlanes}
         onSelect={onSelect}
@@ -6518,7 +6560,7 @@ function SpecialtyCeilingLayer({
           points={surface.points}
           structure={structure}
           y={surface.y}
-          color="#eee8dc"
+          color="#f4f0e8"
           roughness={0.76}
           opacity={solid ? 0.94 : 0.24}
           side={THREE.DoubleSide}

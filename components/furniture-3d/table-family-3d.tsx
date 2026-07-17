@@ -2,6 +2,7 @@
 
 import { resolveFurnitureVariant, stableVariationValue } from "@/lib/furniture-variants";
 import { DiningChair3D } from "./chair-family-3d";
+import { FurnitureMaterial } from "./materials";
 import { CylinderPart, RoundedPart, SpherePart } from "./primitives";
 import type { FurnitureFamily3DProps } from "./types";
 
@@ -33,7 +34,12 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
       {round ? (
         <mesh castShadow receiveShadow position={[0, topY, 0]}>
           <cylinderGeometry args={[Math.min(tableWidth, tableDepth) / 2, Math.min(tableWidth, tableDepth) / 2, topThickness, asset.detailLevel === "presentation" ? 64 : 36]} />
-          <meshStandardMaterial color={topMaterial.color} roughness={topMaterial.roughness} metalness={topMaterial.metalness} />
+          <FurnitureMaterial
+            layer={topMaterial}
+            role="wood"
+            repeat={[4.6, 4.6]}
+            roughness={topMaterial.roughness}
+          />
         </mesh>
       ) : oval ? (
         <SpherePart radius={1} scale={[tableWidth / 2, topThickness / 2, tableDepth / 2]} position={[0, topY, 0]} material={topMaterial} role={variant === "stoneTop" ? "stone" : "wood"} segments={asset.detailLevel === "presentation" ? 48 : 30} />
@@ -82,6 +88,18 @@ export function CoffeeTableFamily3D(props: FurnitureFamily3DProps) {
   const variant = resolved.variant.id;
   const floorY = -height / 2;
   const topY = floorY + Math.max(0.27, height * 0.72);
+  if (variant === "clearGlassTop") {
+    const frameHeight = topY - floorY;
+    return (
+      <group name="clear-glass-coffee-table">
+        <RoundedPart size={[width * 0.9, 0.035, depth * 0.78]} position={[0, topY, 0]} radius={0.018} detailLevel={asset.detailLevel} material={asset.materials.primary} role="glass" />
+        <RoundedPart size={[width * 0.82, 0.025, depth * 0.68]} position={[0, floorY + frameHeight * 0.42, 0]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="glass" />
+        {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => (
+          <CylinderPart key={`${sx}-${sz}`} radiusTop={0.018} height={frameHeight} position={[sx * width * 0.38, floorY + frameHeight / 2, sz * depth * 0.31]} material={asset.materials.accent} role="metal" sides={12} />
+        )))}
+      </group>
+    );
+  }
   if (variant === "nestedDouble") {
     return (
       <group>
