@@ -39,7 +39,7 @@ const AGGREGATE_SEMANTIC_ROOM_BINDINGS: Record<string, string[]> = {
 
 const STRUCTURE_COLLECTIONS = [
   "walls", "rooms", "partitions", "stairs", "columns", "fences", "outdoorSurfaces",
-  "doors", "windows", "bayWindows", "skylights", "outdoors"
+  "doors", "windows", "bayWindows", "skylights", "outdoors", "outdoorZones"
 ] as const;
 
 const NOTE_FIELDS = new Set(["note", "notes", "constructionNote"]);

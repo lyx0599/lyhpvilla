@@ -39,7 +39,13 @@ assert.match(floor3dSource, /DrawingItems3DLayer/);
 assert.match(floor3dSource, /lightingSceneModeLabels/);
 assert.doesNotMatch(floor3dSource, /onDrawingSheetTypeChange/, "3D must follow the selected workspace instead of exposing a professional switcher in its top bar.");
 assert.doesNotMatch(floor3dSource, /3D 图纸专项/, "Professional drawing selection must stay in the workspace selector.");
-assert.match(floor3dSource, /场景灯光预览/, "Scene-lighting controls must be named as a visual preview, not a drawing specialty.");
+assert.match(floor3dSource, /灯具实体近看/, "Scene-lighting controls must expose a physical-fixture close-up, not a drawing specialty.");
+assert.match(floor3dSource, /灯具盘点/, "Room lighting must expose a dedicated oblique inventory view.");
+assert.match(floor3dSource, /selected-light-location-beacon/, "A selected light must receive an unmistakable 3D location beacon.");
+assert.match(floor3dSource, /toggleLightingItem/, "Lighting experience must support individual fixture switching.");
+assert.match(floor3dSource, /已开 \{selectedLightingSpace\.enabledLightCount\} \/ \{selectedLightingSpace\.totalLightCount\} 盏/, "Room view must show enabled and total fixture counts together.");
+assert.match(floor3dSource, /data-testid="lighting-blackout-overlay"/, "Night mode with every scoped fixture off must render a perceptible blackout state.");
+assert.match(floor3dSource, /lightingSummary\.enabledLights === 0/, "The blackout state must derive from the shared per-light runtime state.");
 assert.match(floor3dSource, /data-testid="lighting-free-browse-minimap"/, "Lighting free browse must expose the draggable floor-plan minimap.");
 assert.match(floor3dSource, /cameraMode === "orbit" && !activeCameraViewId/, "The lighting minimap must only appear in free browse.");
 assert.match(floor3dSource, /navigationRequest\.targetX - controls\.target\.x/, "Dragging the minimap must translate the camera focus without changing its relative view.");
@@ -49,7 +55,11 @@ assert.match(floor3dSource, /sceneLod=\{sceneVisibility\.lod\}/, "Current-floor 
 assert.match(floor3dSource, /notifySelection && view\.fixedView/, "A selected fixed camera view must notify the shared workspace state.");
 
 const spacePlannerSource = await readFile(new URL("../components/space-planner.tsx", import.meta.url), "utf8");
+const objectListSource = await readFile(new URL("../components/editor/unified-object-list.tsx", import.meta.url), "utf8");
 assert.match(spacePlannerSource, /view\.scope === "courtyard"/, "Courtyard camera views must be recognized as unified site overviews.");
 assert.match(spacePlannerSource, /setSharedPlanCanvasMode\("sitePlan"\)/, "Opening the courtyard overview must activate the site-plan scene profile.");
+assert.match(spacePlannerSource, /action: "locate"/, "Selecting a light in the object list must send a 3D locate request.");
+assert.match(spacePlannerSource, /action: "toggle"/, "The object list must send an individual light toggle request.");
+assert.match(objectListSource, /灯光开关/, "Every light row in the unified object list must expose a direct on/off control.");
 
 console.log("Shared drawing 3D profile checks passed.");

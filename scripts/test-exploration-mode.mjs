@@ -81,7 +81,8 @@ const structure = {
   windows: [],
   bayWindows: [],
   skylights: [],
-  outdoors: []
+  outdoors: [],
+  outdoorZones: []
 };
 
 const furniture = [{
@@ -226,6 +227,23 @@ for (const floor of workspace.floors) {
     });
     assert.equal(isExplorationPositionSafe(targetWorld, targetArrival.position), true, `${stair.id} must arrive at a collision-safe point on ${targetStructure.floorId}.`);
   }
+}
+
+const canonicalB2 = workspace.houseStructuresByFloor.B2;
+const canonicalB2World = buildExplorationCollisionWorld({
+  structure: canonicalB2,
+  furniture: workspace.furniture.filter((item) => item.floorId === "B2"),
+  doorStates: canonicalDoorStates
+});
+const canonicalB2Stair = canonicalB2World.stairs.find((stair) => stair.id === "ST-B2-001");
+assert.ok(canonicalB2Stair, "B2 must retain its upward stair flight.");
+for (let step = 0; step <= 18; step += 1) {
+  const t = step * 0.05;
+  const point = {
+    x: canonicalB2Stair.start.x + (canonicalB2Stair.end.x - canonicalB2Stair.start.x) * t,
+    z: canonicalB2Stair.start.z + (canonicalB2Stair.end.z - canonicalB2Stair.start.z) * t
+  };
+  assert.equal(isExplorationPositionSafe(canonicalB2World, point), true, `B2 stair path must stay open at t=${t.toFixed(2)} even with the under-stair storage door closed.`);
 }
 
 console.log("Exploration mode checks passed.");

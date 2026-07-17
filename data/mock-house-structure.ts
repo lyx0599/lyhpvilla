@@ -1,6 +1,6 @@
 import { createColumn, createFence, createFloorCoordinateSystem, createOutdoor, createOutdoorSurface, createStair, createStraightWall, generateRoomsFromWalls, getPolygonArea } from "@/lib/house-geometry";
 import { syncHouseStructuresToReference } from "@/lib/villa-structure-sync";
-import type { FloorId, HouseBayWindow, HouseColumn, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow } from "@/types/space";
+import type { FloorId, HouseBayWindow, HouseColumn, HouseDoor, HouseFence, HouseOutdoor, HouseOutdoorSurface, HousePartition, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, OutdoorZone } from "@/types/space";
 
 function wall(id: string, floorId: FloorId, start: { x: number; y: number }, end: { x: number; y: number }): HouseWall {
   return createStraightWall(id, floorId, start, end);
@@ -27,6 +27,7 @@ type StructureAddons = {
   outdoors?: HouseOutdoor[];
   fences?: HouseFence[];
   outdoorSurfaces?: HouseOutdoorSurface[];
+  outdoorZones?: OutdoorZone[];
   stairs?: HouseStair[];
   columns?: HouseColumn[];
   rooms?: HouseRoom[];
@@ -134,20 +135,22 @@ function stair(id: string, floorId: FloorId, start: { x: number; y: number }, en
 
 const stairStackRuns = {
   upper: {
-    start: { x: 4146, y: 3575 },
+    start: { x: 3676, y: 3575 },
     end: { x: 950, y: 3575 },
-    width: 1050
+    width: 1050,
+    landingDepthMm: 600
   },
   lower: {
-    start: { x: 4146, y: 4625 },
+    start: { x: 3676, y: 4625 },
     end: { x: 950, y: 4625 },
-    width: 1050
+    width: 1050,
+    landingDepthMm: 600
   }
 } as const;
 
 function stairStackStair(id: string, floorId: FloorId, lane: keyof typeof stairStackRuns): HouseStair {
   const run = stairStackRuns[lane];
-  return stair(id, floorId, run.start, run.end, run.width);
+  return { ...stair(id, floorId, run.start, run.end, run.width), landingDepthMm: run.landingDepthMm };
 }
 
 function column(id: string, floorId: FloorId, center: { x: number; y: number }, radius = 360): HouseColumn {
@@ -313,7 +316,8 @@ function structure(floorId: FloorId, walls: HouseWall[], partitions: HousePartit
     windows: addons.windows ?? [],
     bayWindows: addons.bayWindows ?? [],
     skylights: addons.skylights ?? [],
-    outdoors: addons.outdoors ?? []
+    outdoors: addons.outdoors ?? [],
+    outdoorZones: addons.outdoorZones ?? []
   };
 }
 
@@ -337,7 +341,17 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
   ], [], {
     doors: [door("D-1F-001", "1F", "W-1F-007", 0.78, 900), door("D-1F-002", "1F", "W-1F-015", 0.1, 900)],
     windows: [windowObject("WIN-1F-001", "1F", "W-1F-001", 0.5, 1200), windowObject("WIN-1F-002", "1F", "W-1F-002", 0.72, 1200)],
-    bayWindows: [bayWindow("BW-1F-001", "1F", "W-1F-015", 0.78, 1200)],
+    bayWindows: [
+      bayWindow("BW-1F-001", "1F", "W-1F-015", 0.78, 1200),
+      {
+        ...bayWindow("BW-1F-003", "1F", "W-1F-014", 0.539, 1200),
+        name: "1F 卧室内开飘窗",
+        depth: 550,
+        height: 1400,
+        operation: "casement",
+        openDirection: "inward"
+      }
+    ],
     outdoors: [
       outdoor("OD-1F-NORTH-001", "1F", "北院 / 入户庭院 · 2m", [{ x: 950, y: -1650 }, { x: 9495, y: -1650 }, { x: 9495, y: 350 }, { x: 950, y: 350 }]),
       outdoor("OD-1F-SOUTH-001", "1F", "南院 / 生活庭院 · 4m", [{ x: 950, y: 7800 }, { x: 9495, y: 7800 }, { x: 9495, y: 11800 }, { x: 950, y: 11800 }])

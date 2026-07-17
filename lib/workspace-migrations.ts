@@ -6,8 +6,8 @@ import { generateLightingDesignV1 } from "./lighting-design.ts";
 import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
 import { buildManagedStairInfrastructure, normalizeManagedStairFlights } from "./stair-systems.ts";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 17;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-15-stair-access-platform-v2";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 18;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-18-yard-skylight-clearance-v7";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -77,7 +77,8 @@ function emptyStructure(floorId: FloorId): HouseStructure {
     windows: [],
     bayWindows: [],
     skylights: [],
-    outdoors: []
+    outdoors: [],
+    outdoorZones: []
   };
 }
 
@@ -111,7 +112,8 @@ function migrateFloorStructure(
     "windows",
     "bayWindows",
     "skylights",
-    "outdoors"
+    "outdoors",
+    "outdoorZones"
   ];
   const migrated = { ...current, floorId } as HouseStructure;
   let changed = false;
@@ -212,6 +214,122 @@ function migrateFurniturePlacement(workspace: Partial<WorkspaceDocument>) {
   return changed;
 }
 
+/** Reconciles old browser drafts against the real north/south yard boundary. */
+function migrateOutdoorObjectBoundaries(workspace: Partial<WorkspaceDocument>) {
+  const yard = workspace.houseStructuresByFloor?.YARD;
+  if (!yard || !workspace.furniture) return false;
+  let changed = false;
+  workspace.furniture.forEach((item) => {
+    if (item.floorId !== "YARD" || !item.outdoorObjectType) return;
+    const outdoor = yard.outdoors.find((candidate) => candidate.id === (item.outdoorId ?? item.roomId));
+    if (!outdoor?.polygon.length) return;
+    const minX = Math.min(...outdoor.polygon.map((point) => point.x));
+    const maxX = Math.max(...outdoor.polygon.map((point) => point.x));
+    const minY = Math.min(...outdoor.polygon.map((point) => point.y));
+    const maxY = Math.max(...outdoor.polygon.map((point) => point.y));
+    const halfWidth = item.dimensions.width * 5;
+    const halfDepth = item.dimensions.depth * 5;
+    const currentX = yard.coordinateSystem.width * item.position.x / 100;
+    const currentY = yard.coordinateSystem.height * item.position.y / 100;
+    const nextX = Math.min(maxX - halfWidth, Math.max(minX + halfWidth, currentX));
+    const nextY = Math.min(maxY - halfDepth, Math.max(minY + halfDepth, currentY));
+    const nextPosition = { ...item.position, x: Number((nextX / yard.coordinateSystem.width * 100).toFixed(3)), y: Number((nextY / yard.coordinateSystem.height * 100).toFixed(3)) };
+    if (nextPosition.x === item.position.x && nextPosition.y === item.position.y) return;
+    item.position = nextPosition;
+    changed = true;
+  });
+  return changed;
+}
+
+/** Gives legacy drafts the same edge planting layout as the canonical yard. */
+function migrateOutdoorLandscapeEdgeLayout(workspace: Partial<WorkspaceDocument>) {
+  if (!workspace.furniture) return false;
+  const positions: Record<string, { x: number; y: number }> = {
+    "furn-plant-001": { x: 37.5, y: -11.5 },
+    "OUT-N-PLANTER": { x: 72, y: -14 },
+    "OUT-S-GARDEN-BED": { x: 52, y: 125 }
+  };
+  let changed = false;
+  workspace.furniture.forEach((item) => {
+    const position = positions[item.id];
+    if (!position || item.floorId !== "YARD" || (item.position.x === position.x && item.position.y === position.y)) return;
+    item.position = { ...item.position, ...position };
+    changed = true;
+  });
+  return changed;
+}
+
+/** Aligns the north-yard buildable edge with 1F wall W-003 and repacks its program. */
+function migrateNorthYardW003Alignment(workspace: Partial<WorkspaceDocument>) {
+  const yard = workspace.houseStructuresByFloor?.YARD;
+  if (!yard || !workspace.furniture) return false;
+  let changed = false;
+  const polygon = (coordinates: Array<[number, number]>) => coordinates.map(([x, y]) => ({ x, y }));
+  const area = (points: Array<{ x: number; y: number }>) => Math.abs(points.reduce((sum, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return sum + point.x * next.y - next.x * point.y;
+  }, 0)) / 2;
+  const replacePolygon = (items: Array<{ id: string; polygon: Array<{ x: number; y: number }>; area: number }> | undefined, id: string, coordinates: Array<[number, number]>) => {
+    const item = items?.find((candidate) => candidate.id === id);
+    if (!item) return;
+    const next = polygon(coordinates);
+    if (JSON.stringify(item.polygon) === JSON.stringify(next)) return;
+    item.polygon = next;
+    item.area = area(next);
+    changed = true;
+  };
+  replacePolygon(yard.outdoors, "OD-YARD-NORTH-001", [[3676, -1650], [9495, -1650], [9495, 350], [3676, 350]]);
+  replacePolygon(yard.outdoorZones, "OZ-NORTH-KITCHEN-001", [[5400, -1550], [7900, -1550], [7900, 120], [5400, 120]]);
+  replacePolygon(yard.outdoorZones, "OZ-NORTH-PLANT-001", [[8050, -1550], [9400, -1550], [9400, 220], [8050, 220]]);
+  replacePolygon(yard.outdoorZones, "OZ-NORTH-STORAGE-001", [[3800, -1500], [5050, -1500], [5050, 120], [3800, 120]]);
+  replacePolygon(yard.outdoorSurfaces, "OS-YARD-NORTH-KITCHEN-DECK", [[5400, -1550], [7900, -1550], [7900, 120], [5400, 120]]);
+  replacePolygon(yard.outdoorSurfaces, "OS-YARD-NORTH-PLANT", [[8050, -1550], [9400, -1550], [9400, 220], [8050, 220]]);
+  replacePolygon(yard.outdoorSurfaces, "OS-YARD-NORTH-STORAGE", [[3800, -1500], [5050, -1500], [5050, 120], [3800, 120]]);
+  const yardSkylight = (id: string, sourceId: string, name: string, x: number, y: number) => ({
+    id, floorId: "YARD" as const, name, geometryType: "polygon" as const, center: { x, y }, width: 800, depth: 560, height: 120,
+    rotation: 0, operation: "electricOperable" as const, openable: true, motorized: true,
+    note: `地下室天窗地面投影，对应 ${sourceId}；四周预留 600mm 检修、开启与排水净空，禁止布置家具或种植箱。`,
+    editable: true as const, removable: true as const, verificationMeta: { status: "drawing-derived" as const, source: "developer-plan" as const, toleranceMm: 80 }
+  });
+  const skylights = [
+    yardSkylight("SKY-YARD-B1-N-001", "SKY-B1-W002-001", "北院 · 地下室采光天窗 1", 6100, 70),
+    yardSkylight("SKY-YARD-B1-N-002", "SKY-B1-W002-002", "北院 · 地下室采光天窗 2", 7350, 70),
+    yardSkylight("SKY-YARD-B1-N-003", "SKY-B1-W002-003", "北院 · 地下室采光天窗 3", 8600, 70),
+    yardSkylight("SKY-YARD-B1-S-001", "SKY-B1-W009-001", "南院 · 地下室采光天窗 1", 1850, 8080),
+    yardSkylight("SKY-YARD-B1-S-002", "SKY-B1-W009-002", "南院 · 地下室采光天窗 2", 3000, 8080)
+  ];
+  if (JSON.stringify(yard.skylights) !== JSON.stringify(skylights)) {
+    yard.skylights = skylights;
+    changed = true;
+  }
+  const positions: Record<string, { x: number; y: number }> = {
+    "ph-1f-north-outdoor-socket": { x: 32, y: -9 },
+    "OUT-N-KITCHEN-ISLAND": { x: 54, y: -13.6 },
+    "OUT-N-BBQ": { x: 60, y: -13 },
+    "OUT-N-TAP": { x: 48, y: -12.2 },
+    "OUT-N-STORAGE": { x: 37, y: -9.1 },
+    "OUT-N-HOSE": { x: 38, y: -9.2 },
+    "OUT-S-LAUNDRY": { x: 23, y: 103.2 }
+  };
+  const depths: Record<string, number> = {
+    "OUT-N-KITCHEN-ISLAND": 80,
+    "OUT-N-PLANTER": 50
+  };
+  workspace.furniture.forEach((item) => {
+    const position = positions[item.id];
+    if (item.floorId !== "YARD") return;
+    if (position && (item.position.x !== position.x || item.position.y !== position.y)) {
+      item.position = { ...item.position, ...position };
+      changed = true;
+    }
+    if (depths[item.id] !== undefined && item.dimensions.depth !== depths[item.id]) {
+      item.dimensions = { ...item.dimensions, depth: depths[item.id] };
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 function migrateFurnitureVariants(workspace: Partial<WorkspaceDocument>) {
   if (!workspace.furniture) return false;
   let changed = false;
@@ -264,6 +382,79 @@ function migrateLightingDrawingItemsV1(workspace: Partial<WorkspaceDocument>) {
       changed = true;
     }
   });
+  return changed;
+}
+
+function migrateLightingSemanticCorrections(workspace: Partial<WorkspaceDocument>) {
+  if (!workspace.drawingItems || !workspace.houseStructuresByFloor) return false;
+  let changed = false;
+  const kitchenRoomIds = new Set(Object.values(workspace.houseStructuresByFloor)
+    .flatMap((structure) => structure?.rooms ?? [])
+    .filter((room) => /厨房/.test(room.name))
+    .map((room) => room.id));
+  const invalidKitchenLights = workspace.drawingItems.filter((item) => (
+    item.category === "light"
+    && kitchenRoomIds.has(item.relatedRoomId ?? item.roomId ?? "")
+    && (item.lightingLayer === "mirrorLight" || /镜前灯|镜柜灯|马桶夜灯/.test(item.label))
+  ));
+  const removedLightIds = new Set(invalidKitchenLights.map((item) => item.id));
+  const removedControlGroupIds = new Set(invalidKitchenLights.map((item) => item.controlGroupId).filter((id): id is string => Boolean(id)));
+  if (removedLightIds.size > 0) {
+    workspace.drawingItems = workspace.drawingItems.filter((item) => (
+      !removedLightIds.has(item.id)
+      && !(item.category === "switch" && Boolean(item.controlGroupId && removedControlGroupIds.has(item.controlGroupId)))
+    ));
+    changed = true;
+  }
+
+  const ambientGroupIds = new Set(workspace.drawingItems
+    .filter((item) => item.category === "light" && item.lightingLayer === "ambient")
+    .map((item) => item.controlGroupId)
+    .filter((id): id is string => Boolean(id)));
+  workspace.drawingItems.forEach((item) => {
+    let itemChanged = false;
+    if (item.controlledLightIds?.some((id) => removedLightIds.has(id))) {
+      item.controlledLightIds = item.controlledLightIds.filter((id) => !removedLightIds.has(id));
+      itemChanged = true;
+    }
+    if (item.relatedLightIds?.some((id) => removedLightIds.has(id))) {
+      item.relatedLightIds = item.relatedLightIds.filter((id) => !removedLightIds.has(id));
+      itemChanged = true;
+    }
+    if (item.category === "light" && item.lightingLayer === "ambient") {
+      const currentSpec = item.lightSpec ?? {};
+      if ((currentSpec.luminousFluxLm ?? 0) < 950 || (currentSpec.powerW ?? 0) < 11) {
+        item.lightSpec = { ...currentSpec, luminousFluxLm: Math.max(currentSpec.luminousFluxLm ?? 0, 950), powerW: Math.max(currentSpec.powerW ?? 0, 11) };
+        itemChanged = true;
+      }
+    }
+    if (itemChanged) {
+      if (item.generatedKey) item.generatedFingerprint = getDrawingItemGeneratedFingerprint(item);
+      changed = true;
+    }
+  });
+
+  const sceneAmbientMinimum = new Map([
+    ["日常", 85],
+    ["会客", 75],
+    ["烹饪", 85],
+    ["1F 客厅日常会客", 80]
+  ]);
+  workspace.lightingDesign?.scenes.forEach((scene) => {
+    const minimum = sceneAmbientMinimum.get(scene.name);
+    const previousStates = scene.groupStates;
+    scene.groupStates = previousStates
+      .filter((state) => !removedControlGroupIds.has(state.controlGroupId))
+      .map((state) => minimum && state.on && ambientGroupIds.has(state.controlGroupId) && state.brightness < minimum
+        ? { ...state, brightness: minimum }
+        : state);
+    if (JSON.stringify(previousStates) !== JSON.stringify(scene.groupStates)) changed = true;
+  });
+  const validDrawingItemIds = new Set(workspace.drawingItems.map((item) => item.id));
+  if (workspace.drawingPackage?.drawingItemIds.some((id) => !validDrawingItemIds.has(id))) {
+    workspace.drawingPackage.drawingItemIds = workspace.drawingPackage.drawingItemIds.filter((id) => validDrawingItemIds.has(id));
+    changed = true;
+  }
   return changed;
 }
 
@@ -358,8 +549,18 @@ export function applyWorkspaceMigrations(
     sources.furniture = "migration";
     sources.drawingItems = "migration";
   }
+  if (canMigrate && migrateNorthYardW003Alignment(workspace)) {
+    sources.houseStructuresByFloor = "migration";
+    sources.furniture = "migration";
+  }
+  if (canMigrate && migrateOutdoorObjectBoundaries(workspace)) sources.furniture = "migration";
+  if (canMigrate && migrateOutdoorLandscapeEdgeLayout(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateFurnitureVariants(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
+  if (canMigrate && migrateLightingSemanticCorrections(workspace)) {
+    sources.drawingItems = "migration";
+    sources.lightingDesign = "migration";
+  }
   if (canMigrate && needsModernWarmLighting && hasOwn(original, "drawingItems") && workspace.furniture && workspace.drawingItems && workspace.houseStructuresByFloor) {
     workspace.drawingItems.forEach((item) => {
       if (!item.generatedKey?.startsWith("lighting-design-v1:") || item.status === "confirmed" || !item.generatedFingerprint) return;

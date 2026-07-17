@@ -610,6 +610,7 @@ export function createEmptyStructure(floorId: FloorId): HouseStructure {
     windows: [],
     bayWindows: [],
     skylights: [],
-    outdoors: []
+    outdoors: [],
+    outdoorZones: []
   };
 }

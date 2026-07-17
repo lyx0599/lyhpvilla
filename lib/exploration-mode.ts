@@ -40,6 +40,7 @@ type CollisionSegment = {
   start: { x: number; z: number };
   end: { x: number; z: number };
   halfThickness: number;
+  ignoreOnStair: boolean;
 };
 
 type CollisionBox = {
@@ -49,6 +50,7 @@ type CollisionBox = {
   halfWidth: number;
   halfDepth: number;
   rotation: number;
+  ignoreOnStair: boolean;
 };
 
 export type ExplorationStairSurface = {
@@ -216,6 +218,7 @@ function addHostedLineCollision(input: {
   structure: HouseStructure;
   doors: HouseDoor[];
   doorStates: ExplorationDoorStates;
+  ignoreOnStair?: boolean;
   output: CollisionSegment[];
 }) {
   const start = explorationScenePoint(input.startMm, input.structure);
@@ -236,7 +239,8 @@ function addHostedLineCollision(input: {
         kind: input.kind,
         start: interpolateSegment(start, end, cursor),
         end: interpolateSegment(start, end, startT),
-        halfThickness: Math.max(0.035, input.thicknessMm * MM_TO_M / 2)
+        halfThickness: Math.max(0.035, input.thicknessMm * MM_TO_M / 2),
+        ignoreOnStair: Boolean(input.ignoreOnStair)
       });
     }
     if (!input.doorStates[door.id]?.open) {
@@ -245,7 +249,8 @@ function addHostedLineCollision(input: {
         kind: "door",
         start: interpolateSegment(start, end, startT),
         end: interpolateSegment(start, end, endT),
-        halfThickness: Math.max(0.035, input.thicknessMm * MM_TO_M / 2)
+        halfThickness: Math.max(0.035, input.thicknessMm * MM_TO_M / 2),
+        ignoreOnStair: Boolean(input.ignoreOnStair)
       });
     }
     cursor = Math.max(cursor, endT);
@@ -256,7 +261,8 @@ function addHostedLineCollision(input: {
       kind: input.kind,
       start: interpolateSegment(start, end, cursor),
       end,
-      halfThickness: Math.max(0.035, input.thicknessMm * MM_TO_M / 2)
+      halfThickness: Math.max(0.035, input.thicknessMm * MM_TO_M / 2),
+      ignoreOnStair: Boolean(input.ignoreOnStair)
     });
   }
 }
@@ -298,7 +304,8 @@ export function buildExplorationCollisionWorld(input: {
         kind: "wall",
         start,
         end: points[index + 1],
-        halfThickness: Math.max(0.035, wall.thickness * MM_TO_M / 2)
+        halfThickness: Math.max(0.035, wall.thickness * MM_TO_M / 2),
+        ignoreOnStair: /楼梯下.*(?:储物|储藏)|(?:储物|储藏).*楼梯下/.test(wall.name)
       }));
       return;
     }
@@ -311,6 +318,7 @@ export function buildExplorationCollisionWorld(input: {
       structure,
       doors: structure.doors.filter((door) => door.hostId === wall.id),
       doorStates,
+      ignoreOnStair: /楼梯下.*(?:储物|储藏)|(?:储物|储藏).*楼梯下/.test(wall.name),
       output: segments
     });
   });
@@ -325,6 +333,7 @@ export function buildExplorationCollisionWorld(input: {
       structure,
       doors: structure.doors.filter((door) => door.hostId === partition.id),
       doorStates,
+      ignoreOnStair: /楼梯下.*(?:储物|储藏)|(?:储物|储藏).*楼梯下/.test(partition.name),
       output: segments
     });
   });
@@ -335,7 +344,8 @@ export function buildExplorationCollisionWorld(input: {
       kind: "fence",
       start: explorationScenePoint(fence.start, structure),
       end: explorationScenePoint(fence.end, structure),
-      halfThickness: Math.max(0.04, fence.thickness * MM_TO_M / 2)
+      halfThickness: Math.max(0.04, fence.thickness * MM_TO_M / 2),
+      ignoreOnStair: false
     });
   });
 
@@ -345,7 +355,10 @@ export function buildExplorationCollisionWorld(input: {
     center: sceneFurnitureCenter(item, structure),
     halfWidth: Math.max(0.06, item.dimensions.width / 200),
     halfDepth: Math.max(0.04, item.dimensions.depth / 200),
-    rotation: -(item.position.rotation || 0) * Math.PI / 180
+    rotation: -(item.position.rotation || 0) * Math.PI / 180,
+    // The navigation model gives the stair walking surface priority over the
+    // lower storage layer when two vertical levels share one plan footprint.
+    ignoreOnStair: /楼梯下|楼梯斜底/.test(`${item.name} ${item.note} ${item.constructionMeta?.ceilingDependency ?? ""}`)
   }));
   structure.columns.filter((column) => !column.hidden && column.visible !== false).forEach((column) => {
     boxes.push({
@@ -354,7 +367,8 @@ export function buildExplorationCollisionWorld(input: {
       center: explorationScenePoint(column.center, structure),
       halfWidth: Math.max(0.05, column.radius * MM_TO_M),
       halfDepth: Math.max(0.05, column.radius * MM_TO_M),
-      rotation: 0
+      rotation: 0,
+      ignoreOnStair: false
     });
   });
 
@@ -423,8 +437,8 @@ export function isExplorationPositionSafe(world: ExplorationCollisionWorld, poin
   const onStair = world.stairs.some((stair) => distanceToSegment(point, stair.start, stair.end).distance <= stair.width / 2);
   const inOpenDoorway = world.doors.some((door) => door.open && Math.hypot(door.center.x - point.x, door.center.z - point.z) <= door.door.width * MM_TO_M / 2 + radius);
   if (world.walkablePolygons.length > 0 && !onStair && !inOpenDoorway && !world.walkablePolygons.some((polygon) => pointInPolygon(point, polygon))) return false;
-  if (world.segments.some((segment) => distanceToSegment(point, segment.start, segment.end).distance < segment.halfThickness + radius)) return false;
-  if (world.boxes.some((box) => hitsBox(point, box, radius))) return false;
+  if (world.segments.some((segment) => !(onStair && segment.ignoreOnStair) && distanceToSegment(point, segment.start, segment.end).distance < segment.halfThickness + radius)) return false;
+  if (world.boxes.some((box) => !(onStair && box.ignoreOnStair) && hitsBox(point, box, radius))) return false;
   return true;
 }
 

@@ -51,7 +51,8 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
     { id: "slimLegSofa", label: "细腿轻盈沙发", description: "薄扶手、高离地和细金属脚", planShape: "open" },
     { id: "deepLounge", label: "深坐休闲沙发", description: "深坐面、厚靠包和松弛比例", planShape: "rect" },
     { id: "sectionalLShape", label: "L 型组合沙发", description: "带单侧贵妃位的组合结构", planShape: "lShape" },
-    { id: "compactLoveseat", label: "紧凑双人沙发", description: "两座尺度和轻量扶手", planShape: "rect" }
+    { id: "compactLoveseat", label: "紧凑双人沙发", description: "两座尺度和轻量扶手", planShape: "rect" },
+    { id: "beanBag", label: "舒适懒人沙发", description: "低重心软体座包、包裹靠背与可移动落位", planShape: "curve" }
   ],
   diningTable: [
     { id: "roundPedestal", label: "圆形中柱桌", description: "圆桌面和收分中柱底座", planShape: "round" },
@@ -62,6 +63,7 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
     { id: "lightMetalFrame", label: "轻型金属框架桌", description: "薄台面和纤细框架桌腿", planShape: "rect" }
   ],
   coffeeTable: [
+    { id: "clearGlassTop", label: "透明玻璃茶几", description: "通透低铁玻璃台面和纤细金属框架", planShape: "glass" },
     { id: "lowRound", label: "低矮圆茶几", description: "低圆台面和内收底座", planShape: "round" },
     { id: "nestedDouble", label: "双层组合茶几", description: "两只错位圆几形成层次", planShape: "curve" },
     { id: "travertineBlock", label: "洞石方几", description: "圆角洞石体块和轻薄底座", planShape: "rect" },

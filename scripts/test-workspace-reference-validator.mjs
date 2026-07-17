@@ -18,7 +18,7 @@ broken.drawingItems.push({
 });
 broken.drawingPackage.drawingItemIds.push("DI-MISSING");
 broken.furniture.find((item) => item.id === "furn-plant-001").roomId = "room-yard";
-broken.houseStructuresByFloor.B2.walls = broken.houseStructuresByFloor.B2.walls.filter((wall) => wall.id !== "W-B2-009");
+broken.houseStructuresByFloor.B2.walls = broken.houseStructuresByFloor.B2.walls.filter((wall) => wall.id !== "W-B2-STORAGE-002");
 broken.semanticObjects.find((item) => item.id === "R-B1-LAUNDRY").details.structureRoomId = "ROOM-MISSING";
 const brokenReport = validateWorkspaceReferences(broken);
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_FURNITURE_ROOM"));
@@ -44,9 +44,9 @@ assert.equal(repaired.workspace.furniture.find((item) => item.id === "furn-plant
 assert.deepEqual(repaired.workspace.houseStructuresByFloor["1F"].walls[0].verificationMeta, verificationSnapshot, "Reference repair must preserve verification metadata.");
 assert.equal(repairWorkspaceReferences(repaired.workspace).repairs.length, 0, "repair must be idempotent");
 
-const renamed = renameWorkspaceObjectId(workspace, "W-B2-009", "W-B2-009-RENAMED");
+const renamed = renameWorkspaceObjectId(workspace, "W-B2-STORAGE-002", "W-B2-STORAGE-002-RENAMED");
 assert.ok(renamed.updatedPaths.length >= 3);
 assert.equal(validateWorkspaceReferences(renamed.workspace).errors.length, 0);
-assert.deepEqual(renamed.workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === "W-B2-009-RENAMED").verificationMeta, workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === "W-B2-009").verificationMeta, "ID rename must preserve verification metadata.");
+assert.deepEqual(renamed.workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === "W-B2-STORAGE-002-RENAMED").verificationMeta, workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === "W-B2-STORAGE-002").verificationMeta, "ID rename must preserve verification metadata.");
 
 console.log("workspace reference validation tests passed");

@@ -73,7 +73,7 @@ for (const family of ["bed", "sofa", "diningTable", "coffeeTable", "chair", "cab
 assert.equal(resolve3DAsset({ ...source, render3d: { ...source.render3d, detailLevel: "draft" } }).detailLevel, "draft");
 
 const rendererSources = Object.fromEntries(await Promise.all([
-  "bed-family-3d.tsx", "sofa-family-3d.tsx", "table-family-3d.tsx", "chair-family-3d.tsx", "cabinet-family-3d.tsx", "media-wall-3d.tsx"
+  "bed-family-3d.tsx", "sofa-family-3d.tsx", "table-family-3d.tsx", "chair-family-3d.tsx", "cabinet-family-3d.tsx", "media-wall-3d.tsx", "wet-area-family-3d.tsx"
 ].map(async (file) => [file, await readFile(new URL(`../components/furniture-3d/${file}`, import.meta.url), "utf8")])));
 const floor3dSource = await readFile(new URL("../components/floor-3d-view.tsx", import.meta.url), "utf8");
 const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
@@ -114,5 +114,28 @@ assert.match(rendererSources["chair-family-3d.tsx"], /wovenDining/);
 assert.match(rendererSources["cabinet-family-3d.tsx"], /openClosedMix/);
 assert.match(rendererSources["media-wall-3d.tsx"], /consoleHeight/);
 assert.match(rendererSources["media-wall-3d.tsx"], /integrated-fireplace-flames/);
+assert.match(rendererSources["bed-family-3d.tsx"], /integrated-storage-headboard/);
+assert.match(rendererSources["sofa-family-3d.tsx"], /bean-bag-lounge-sofa/);
+assert.match(rendererSources["cabinet-family-3d.tsx"], /forceGlassDoors/);
+assert.match(rendererSources["wet-area-family-3d.tsx"], /square-mirror-cabinet/);
+assert.match(floor3dSource, /function RealisticLightFixture/);
+for (const physicalFixtureName of ["realistic-recessed-downlight", "realistic-surface-downlight", "realistic-adjustable-spotlight", "realistic-round-pendant", "realistic-mirror-light", "realistic-linear-strip", "realistic-wall-reading-light"]) assert.match(floor3dSource, new RegExp(physicalFixtureName));
+assert.match(floor3dSource, /实体灯具（隐藏点位）/);
+assert.match(floor3dSource, /lightingActive && showFixtureModels && !selected/);
+assert.match(floor3dSource, /physical-fixture-closeup-/);
+
+assert.equal(workspace.furniture.find((item) => item.id === "furn-fridge-001")?.position.rotation, 90);
+assert.equal(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.dimensions.width, 180);
+assert.ok(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.position.y > workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001")?.position.y);
+assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-master-bedroom-large-wardrobe-001")?.dimensions.width, 220);
+assert.equal(workspace.furniture.filter((item) => item.id.startsWith("furn-2f-master-nightstand-")).length, 2);
+for (const id of ["furn-2f-bedroom1-bed-001", "furn-2f-bedroom2-bed-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.bedVisual?.headboardStyle, "storageShelf");
+for (const id of ["module-2f-cloak-left", "module-2f-cloak-right"]) assert.deepEqual(workspace.furniture.find((item) => item.id === id)?.render3d?.cabinetVisual, { frontStyle: "glass", handleStyle: "edgePull", glassTone: "gray", allDoorPanels: true });
+assert.equal(workspace.furniture.find((item) => item.id === "furn-b1-bath-vanity-001")?.render3d?.wetAreaVisual?.mirrorStyle, "none");
+for (const id of ["furn-bath-vanity-001", "furn-2f-guest-vanity-001", "furn-2f-master-vanity-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.wetAreaVisual?.mirrorStyle, "cabinet");
+assert.equal(workspace.furniture.find((item) => item.id === "furn-b1-activity-beanbag-001")?.render3d?.variantId, "beanBag");
+assert.equal(workspace.furniture.find((item) => item.id === "furn-b2-living-coffee-table-001")?.render3d?.variantId, "clearGlassTop");
+assert.deepEqual(workspace.furniture.find((item) => item.id === "furn-b2-study-slab-table-001")?.dimensions, { width: 230, depth: 80, height: 80, unit: "cm" });
+assert.equal(workspace.furniture.find((item) => item.id === "furn-b2-study-slab-table-001")?.position.rotation, 90);
 
 console.log("Furniture variant, stable seed, style protection and snapshot checks passed.");

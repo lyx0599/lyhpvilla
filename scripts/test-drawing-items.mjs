@@ -33,7 +33,7 @@ const furniture = [{
 }];
 const structure = {
   floorId: "1F", coordinateSystem: { floorId: "1F", origin: { x: 0, y: 0 }, unit: "mm", width: 12000, height: 10000, scale: 100, note: "test" },
-  walls: [], rooms: [], partitions: [], stairs: [], columns: [], fences: [], outdoorSurfaces: [], doors: [], windows: [], bayWindows: [], skylights: [], outdoors: []
+  walls: [], rooms: [], partitions: [], stairs: [], columns: [], fences: [], outdoorSurfaces: [], doors: [], windows: [], bayWindows: [], skylights: [], outdoors: [], outdoorZones: []
 };
 const generated = generateDrawingItemsFromFurniture({ furniture, structuresByFloor: { "1F": structure }, existingItems: [], now: "2026-07-12T01:00:00.000Z" });
 assert.equal(generated.created, 8);

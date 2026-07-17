@@ -64,7 +64,7 @@ function Basin({
 }
 
 export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
-  const { asset, width, depth, height } = props;
+  const { asset, width, depth, height, openAmount = 0 } = props;
   const config = wetConfig(props);
   const wood = layerFor(props, ["wood"], asset.materials.primary);
   const stone = layerFor(props, ["stone", "ceramic"], asset.materials.secondary);
@@ -81,6 +81,12 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
   const bayWidth = width / bayCount;
   const basinCount = config.basinCount ?? (width >= 1.25 ? 2 : 1);
   const mirrorStyle = config.mirrorStyle ?? (width < 1 ? "round" : "roundedRect");
+  const mirrorHeight = mirrorStyle === "cabinet"
+    ? Math.min(1.15, Math.max(0.78, (config.mirrorHeightMm ?? 950) / 1000))
+    : Math.min(0.62, height * 0.7);
+  const mirrorCabinetDepth = Math.min(0.16, Math.max(0.08, (config.mirrorCabinetDepthMm ?? 110) / 1000));
+  const mirrorDoorCount = width >= 1.1 ? 3 : 2;
+  const mirrorCenterY = mirrorStyle === "cabinet" ? height * 0.95 : height * 0.72;
   const frontZ = depth / 2 + 0.025;
   return (
     <group name="parametric-bathroom-vanity">
@@ -105,20 +111,37 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
           <MetalBar material={metal} position={[0, floorY + lift + bodyHeight * 0.48, -depth * 0.49]} length={width * 0.7} axis="x" />
         </>
       )}
-      <group position={[0, height * 0.72, frontZ + 0.045]}>
+      {mirrorStyle !== "none" && <group position={[0, mirrorCenterY, frontZ + 0.045]}>
         {mirrorStyle === "round" ? (
           <>
             <CylinderPart radiusTop={Math.min(0.38, width * 0.4)} height={0.028} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]} material={metal} role="metal" sides={48} />
             <CylinderPart radiusTop={Math.min(0.35, width * 0.37)} height={0.03} position={[0, 0, 0.018]} rotation={[Math.PI / 2, 0, 0]} material={glass} role="glass" color="#aeb8b5" opacity={0.72} sides={48} />
           </>
+        ) : mirrorStyle === "cabinet" ? (
+          <group name="square-mirror-cabinet">
+            <RoundedPart size={[width * 0.94, mirrorHeight, mirrorCabinetDepth]} position={[0, 0, -mirrorCabinetDepth * 0.42]} radius={0.014} detailLevel={asset.detailLevel} material={wood} role="wood" color="#d5c6b4" />
+            {Array.from({ length: mirrorDoorCount }, (_, index) => {
+              const doorWidth = width * 0.9 / mirrorDoorCount;
+              const x = -width * 0.45 + doorWidth * (index + 0.5);
+              const doorOpenAngle = index === 0 ? -Math.min(1, Math.max(0, openAmount)) * Math.PI * 0.42 : 0;
+              return (
+                <group key={index} position={[x, 0, mirrorCabinetDepth * 0.12]} rotation={[0, doorOpenAngle, 0]}>
+                  <RoundedPart size={[doorWidth - 0.012, mirrorHeight * 0.96, 0.026]} radius={0.01} detailLevel={asset.detailLevel} material={metal} role="metal" color="#777f81" />
+                  <RoundedPart size={[doorWidth - 0.024, mirrorHeight * 0.94, 0.016]} position={[0, 0, 0.022]} radius={0.008} detailLevel={asset.detailLevel} material={glass} role="glass" color="#d9e3e5" opacity={0.94} roughness={0.08} metalness={0.72} />
+                  <RoundedPart size={[0.012, mirrorHeight * 0.15, 0.016]} position={[doorWidth * 0.38, 0, 0.042]} radius={0.004} detailLevel={asset.detailLevel} material={metal} role="metal" color="#a98556" />
+                </group>
+              );
+            })}
+            <RoundedPart size={[width * 0.82, 0.026, 0.03]} position={[0, mirrorHeight * 0.52, mirrorCabinetDepth * 0.17]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="light" color="#ffe4ad" emissiveIntensity={0.82} />
+          </group>
         ) : (
           <>
-            <RoundedPart size={[width * 0.9, Math.min(0.62, height * 0.7), 0.04]} radius={0.035} detailLevel={asset.detailLevel} material={metal} role="metal" />
-            <RoundedPart size={[width * 0.86, Math.min(0.58, height * 0.66), 0.022]} position={[0, 0, 0.026]} radius={0.03} detailLevel={asset.detailLevel} material={glass} role="glass" color="#aeb8b5" opacity={0.72} />
+            <RoundedPart size={[width * 0.9, mirrorHeight, 0.04]} radius={0.035} detailLevel={asset.detailLevel} material={metal} role="metal" />
+            <RoundedPart size={[width * 0.86, mirrorHeight * 0.94, 0.022]} position={[0, 0, 0.026]} radius={0.03} detailLevel={asset.detailLevel} material={glass} role="glass" color="#aeb8b5" opacity={0.72} />
           </>
         )}
-        <RoundedPart size={[width * 0.78, 0.022, 0.026]} position={[0, Math.min(0.36, height * 0.41), 0.045]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="light" color="#ffe4ad" emissiveIntensity={0.82} />
-      </group>
+        {mirrorStyle !== "cabinet" && <RoundedPart size={[width * 0.78, 0.022, 0.026]} position={[0, Math.min(0.36, height * 0.41), 0.045]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="light" color="#ffe4ad" emissiveIntensity={0.82} />}
+      </group>}
     </group>
   );
 }

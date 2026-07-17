@@ -19,7 +19,7 @@ import { WorkspaceTabs } from "@/components/editor/workspace-tabs";
 import { UnifiedObjectList, type UnifiedObjectListItem } from "@/components/editor/unified-object-list";
 import { DrawingPackageManager } from "@/components/editor/drawing-package-manager";
 import { ExplorationMode } from "@/components/exploration-mode";
-import type { Shared3DSceneSettings } from "@/components/floor-3d-view";
+import type { LightingObjectControlRequest, LightingRuntimeState, Shared3DSceneSettings } from "@/components/floor-3d-view";
 import { interiorModuleCatalog, interiorModuleCategoryLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
@@ -30,6 +30,7 @@ import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
 import { drawingItemCategoryLabels, generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
 import { generateLightingDesignV1, modernWarmFixtureFamilies } from "@/lib/lighting-design";
 import { createUnifiedCourtyardModel, courtyardViewFloorIds } from "@/lib/courtyard-model";
+import { validateOutdoorLivingSystem } from "@/lib/outdoor-living-system";
 import { buildUnifiedSceneGraph, resolveUnifiedSceneScope } from "@/lib/unified-scene-graph";
 import { createSyncSelfCheckReport, resolveSelection } from "@/lib/object-sync-adapter";
 import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspaceAccessCapabilities } from "@/lib/workspace-access";
@@ -1343,7 +1344,7 @@ const oneFloorBathroomFurnitureOverrides: Record<string, Partial<Furniture>> = {
     note: "放在卫生间右下方，靠近进门但不挡门，洗手和泡茶区补水动线都更短。",
     constructionNote: "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。",
     serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
-    position: { x: 76.6, y: 27.5, rotation: 270 },
+    position: { x: 76.6, y: 27.5, rotation: 90 },
     color: "#d6d9d7"
   }
 };
@@ -1519,21 +1520,21 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
   },
   "furn-entry-slim-hanging-001": {
     code: "EH-1F-01",
-    name: "W-1F-004 超薄外衣挂区",
-    type: "pegboard",
-    catalogId: "storage-pegboard",
+    name: "W-1F-004 超薄木饰面挂衣区",
+    type: "entryCabinet",
+    catalogId: "storage-entry-cabinet",
     moduleCategory: "storage",
-    moduleType: "pegboard",
+    moduleType: "entryCabinet",
     roomId: "ROOM-1F-001",
-    dimensions: { width: 120, depth: 10, height: 180, unit: "cm" },
-    material: "超薄长条挂板 + 折叠挂钩 + 上方窄搁板",
+    dimensions: { width: 120, depth: 12, height: 200, unit: "cm" },
+    material: "浅木竖向饰面 + 拉丝黄铜挂杆 + 折叠挂钩 + 弧角窄搁板",
     note: "固定在 W-1F-004 玄关侧墙面，做成扁平狭长的外穿衣服临时挂放区，平时尽量不挡路。",
     constructionNote: "贴 W-1F-004 墙固定到基层，挂钩避开入户门扇、厨房推拉门和转身动线；下方悬空，方便清洁。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
     position: { x: 44.35, y: 18.8, rotation: 90 },
     color: "#bfd7c9",
     cabinetDesign: {
-      template: "pegboard",
+      template: "entryCabinet",
       title: "W-1F-004 超薄外衣挂区设计",
       designThinking: "玄关墙面小，就不要做厚衣柜。沿 W-1F-004 做一条很浅的长挂板，用折叠挂钩和高处窄搁板把外套临时挂放需求压在墙面上，保持地面和通道空出来。",
       recommendedPlacement: "贴 W-1F-004 的玄关侧墙面，避开入户门和厨房推拉门通行线。",
@@ -1617,10 +1618,11 @@ const twoFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
     position: { x: 61.51, y: 18.89, rotation: 90 }
   },
   "module-2f-window-desk": {
+    name: "2F 窗边标准梳妆台",
     roomId: "ROOM-2F-002",
-    dimensions: { width: 100, depth: 45, height: 76, unit: "cm" },
-    note: "保留在衣帽间靠窗位置，作为窄整理台 / 梳妆台，避开两侧衣柜通道。",
-    constructionNote: "靠窗预留双插、网络/充电位和化妆镜灯电源，桌下留腿部空间。",
+    dimensions: { width: 120, depth: 50, height: 80, unit: "cm" },
+    note: "采用正常梳妆台尺度并增加醒目的大镜面；台面可高于窗下沿。",
+    constructionNote: "靠窗预留双插、充电位和化妆镜灯电源，复核窗扇开启。",
     position: { x: 54.95, y: 7.15, rotation: 0 }
   }
 };
@@ -1711,7 +1713,7 @@ const twoFloorDefaultFurniture: Furniture[] = [
     note: "参考 1F 卫生间，台盆靠近进门但不挡门，和马桶、淋浴形成三件套。",
     constructionNote: "预留台盆给排水、镜柜灯、吹风机插座和防溅安全距离。",
     serviceRequirements: twoFloorBathService,
-    position: { x: 42.45, y: 27.5, rotation: 270 },
+    position: { x: 42.45, y: 27.5, rotation: 90 },
     color: "#d6d9d7"
   },
   {
@@ -1916,76 +1918,83 @@ const twoFloorDefaultFurniture: Furniture[] = [
 
 const b2NoService = { water: false, drainage: false, power: false, exhaust: false };
 const b2PowerOnly = { water: false, drainage: false, power: true, exhaust: false };
+const b2WetService = { water: true, drainage: true, power: true, exhaust: false };
 
 const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-living-tv-console-001",
     code: "TV-B2-01",
-    name: "B2 客厅 W-B2-001 电视柜",
+    name: "B2 W-B2-001 带收纳电视墙",
     type: "cabinet",
-    catalogId: "living-tv-console",
+    catalogId: "living-storage-tv-wall",
     moduleCategory: "living",
     moduleType: "cabinet",
     floorId: "B2",
     roomId: "ROOM-B2-001",
-    dimensions: { width: 360, depth: 42, height: 45, unit: "cm" },
-    material: "悬浮木色电视柜 + 游戏主机抽屉 + 隐藏弱电",
-    note: "沿 B2 客厅上方 W-B2-001 做一整条低电视柜，电视、游戏主机、音响和手柄收纳都集中在这面墙。",
-    constructionNote: "贴 W-B2-001 预留电视电源、网络、影音线管、主机散热和音响线；柜体下方可悬空便于清洁。",
+    dimensions: { width: 360, depth: 42, height: 240, unit: "cm" },
+    material: "暖橡木高柜 + 暖白电视背板 + 悬浮影音低柜 + 玻璃展示格",
+    note: "中央留出完整 100 寸电视位，左右高柜和下方悬浮低柜承担影音与杂物收纳。",
+    constructionNote: "中央净空按 100 寸屏幕约 2214x1245mm 控制，预留影音散热、隐藏线管和检修口。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 47, y: 7.4, rotation: 0 },
-    color: "#d8c2a4"
+    position: { x: 47, y: 6.44, rotation: 0 },
+    color: "#d8c2a4",
+    hostWallId: "W-B2-001",
+    render3d: { assetType: "cabinet", variantId: "b2StorageTvWall", detailLevel: "presentation", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped" }
   },
   {
     id: "furn-b2-living-large-tv-001",
     code: "TV-B2-02",
-    name: "B2 客厅 W-B2-001 大电视",
+    name: "B2 客厅 100寸大屏幕电视",
     type: "custom",
     moduleCategory: "living",
     floorId: "B2",
     roomId: "ROOM-B2-001",
-    dimensions: { width: 320, depth: 8, height: 185, unit: "cm" },
-    material: "超大屏电视 / 激光电视预留",
-    note: "放在电视柜上方，面向长沙发和可移动游戏区，作为 B2 看电视、游戏和观赛的核心屏幕。",
-    constructionNote: "电视中心线、插座、网口和音响线预埋需与 W-B2-001 立面一起定位。",
+    dimensions: { width: 221.4, depth: 6, height: 124.5, unit: "cm" },
+    material: "100 寸 16:9 超薄黑色电视 + 窄边金属框",
+    note: "真实独立大屏幕电视，居中安装在收纳电视墙中央，正对长沙发。",
+    constructionNote: "屏幕底边标高约 800mm，预留安装基层、隐藏插座、网口和影音线管。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 47, y: 5.6, rotation: 0 },
-    color: "#111827"
+    position: { x: 47, y: 9.06, rotation: 0 },
+    color: "#111827",
+    hostWallId: "W-B2-001",
+    render3d: { assetType: "generic", variantId: "tv100InchDisplay", detailLevel: "presentation", elevationMm: 800, visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped" }
   },
   {
     id: "furn-b2-living-long-sofa-001",
     code: "SF-B2-01",
-    name: "B2 客厅长沙发",
+    name: "B2 客厅棕色真皮贵妃沙发",
     type: "sofa",
     catalogId: "living-sofa",
     moduleCategory: "living",
     moduleType: "sofa",
     floorId: "B2",
     roomId: "ROOM-B2-001",
-    dimensions: { width: 360, depth: 105, height: 78, unit: "cm" },
-    material: "深灰/米灰布艺长沙发",
+    dimensions: { width: 360, depth: 105, height: 80, unit: "cm" },
+    material: "棕色头层真皮 + 单侧贵妃榻 + 深棕皮革滚边",
     note: "沙发对齐 W-B2-001 电视墙中心线，后方仍保留去书房、楼梯间和活动区的通行。",
     constructionNote: "沙发侧边预留五孔插座和落地灯电源；正前方保留体感游戏和多人观影的净距。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 48.5, y: 39.5, rotation: 0 },
-    color: "#b8b2aa"
+    position: { x: 47.92, y: 42.22, rotation: 180 },
+    color: "#7b4428",
+    render3d: { assetType: "sofa", variantId: "sectionalLShape", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "cognacLeather", secondaryMaterial: "cognacLeather", accentMaterial: "darkBrownLeather", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-living-coffee-table-001",
     code: "CT-B2-01",
-    name: "B2 客厅可移动茶几",
+    name: "B2 客厅透明玻璃茶几",
     type: "table",
     moduleCategory: "living",
     moduleType: "table",
     floorId: "B2",
     roomId: "ROOM-B2-001",
     dimensions: { width: 120, depth: 70, height: 38, unit: "cm" },
-    material: "深木色轻量茶几 + 可移动托盘",
-    note: "茶几缩小为可移动款，平时放饮品和遥控器，玩体感游戏时可以推到侧边。",
+    material: "双层低铁透明玻璃 + 黑钛金属细框",
+    note: "位于真皮沙发与 100 寸电视之间，通透材质减轻大尺度客厅的体量感。",
     constructionNote: "茶几到沙发前沿预留约 400mm，避免挡住客厅去楼梯间和活动区的动线。",
     serviceRequirements: b2NoService,
-    position: { x: 48.5, y: 25.3, rotation: 0 },
-    color: "#9b7653"
+    position: { x: 47.92, y: 28.33, rotation: 0 },
+    color: "#c9e7e8",
+    render3d: { assetType: "coffeeTable", variantId: "clearGlassTop", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "clearGlass", secondaryMaterial: "smokedGlass", accentMaterial: "blackTitanium", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-activity-outdoor-pegboard-001",
@@ -2002,7 +2011,7 @@ const b2DefaultFurniture: Furniture[] = [
     note: "沿 W-B2-011 做一整面户外用品挂墙，未来收纳自行车、头盔、球拍和运动小件。",
     constructionNote: "固定在 W-B2-011 实墙基层；自行车挂架位置必须加固，地面预留防污垫，旁边可预留充电插座。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 63.6, y: 85.8, rotation: 0 },
+    position: { x: 63.6, y: 85.8, rotation: 180 },
     color: "#334155",
     cabinetDesign: {
       template: "pegboard",
@@ -2068,19 +2077,76 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-study-slab-table-001",
     code: "DT-B2-01",
-    name: "B2 书房大板桌",
+    name: "B2 书房 2.3m 实木大板桌",
     type: "table",
     moduleCategory: "decor",
     moduleType: "table",
     floorId: "B2",
     roomId: "ROOM-B2-005",
-    dimensions: { width: 300, depth: 95, height: 75, unit: "cm" },
+    dimensions: { width: 230, depth: 80, height: 80, unit: "cm" },
     material: "长方形原木大板桌 + 黑色金属桌脚",
-    note: "这是一张横向长方形的大木桌，不是方桌；放在书房中央偏右，用于阅读、整理旅行纪念品和多人讨论。",
-    constructionNote: "桌边预留地插或墙插，椅后保持通行；桌面按整块木板 3000mm 左右控制，右侧避开圆柱。",
+    note: "按真实 2300×800×800mm 落位的整块实木大板桌，用于阅读、整理旅行纪念品和多人讨论。",
+    constructionNote: "桌边预留地插或墙插，椅后保持通行；南端避开新增酒水墙操作区。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 31, y: 71.7, rotation: 0 },
-    color: "#b9824d"
+    position: { x: 25, y: 68.61, rotation: 90 },
+    color: "#b9824d",
+    render3d: { assetType: "slabTable", variantId: "rectTimber", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+  },
+  {
+    id: "furn-b2-study-wine-cabinet-001",
+    code: "WC-B2-01",
+    name: "B2 书房酒收纳柜",
+    type: "cabinet",
+    moduleCategory: "storage",
+    moduleType: "cabinet",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 80, depth: 40, height: 210, unit: "cm" },
+    material: "深胡桃木酒格 + 玻璃展示面 + 暖光层板",
+    note: "布置在书房南侧空墙最左端，方格横放酒瓶，下部封闭柜收纳酒具与备品。",
+    constructionNote: "柜体固定防倾倒，避开地漏；内部预留低压灯带电源并保持通风。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 35.83, y: 84.22, rotation: 180 },
+    color: "#6b4935",
+    hostWallId: "W-B2-011",
+    render3d: { assetType: "cabinet", variantId: "b2WineStorageCabinet", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+  },
+  {
+    id: "furn-b2-study-handwash-001",
+    code: "HW-B2-01",
+    name: "B2 书房迷你洗手台",
+    type: "vanity",
+    moduleCategory: "bath",
+    moduleType: "vanity",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 55, depth: 40, height: 85, unit: "cm" },
+    material: "暖木悬浮柜 + 一体式小台盆 + 古铜龙头",
+    note: "紧邻酒柜设置，供洗手、洗杯和简单清洁使用，不设置镜柜。",
+    constructionNote: "预留冷热水与墙排，台面和墙面交接处做防水收口。",
+    serviceRequirements: b2WetService,
+    position: { x: 41.5, y: 84.22, rotation: 180 },
+    color: "#d8d1c6",
+    hostWallId: "W-B2-011",
+    render3d: { assetType: "bathroomVanity", variantId: "floating", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true, wetAreaVisual: { fixtureKind: "vanity", basinCount: 1, floating: true, mirrorStyle: "none", frameFinish: "bronze", mirrorHeightMm: 0, mirrorCabinetDepthMm: 0 } }
+  },
+  {
+    id: "furn-b2-study-water-dispenser-001",
+    code: "WD-B2-01",
+    name: "B2 书房直饮水机",
+    type: "custom",
+    moduleCategory: "decor",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 40, depth: 36, height: 125, unit: "cm" },
+    material: "暖白机身 + 黑色触控面板 + 冷热直饮龙头",
+    note: "位于洗手台右侧，提供常温、冷水与热水，形成完整的书房酒水角。",
+    constructionNote: "预留净水进水、排水和独立五孔插座，设备两侧保留散热检修缝。",
+    serviceRequirements: b2WetService,
+    position: { x: 45.92, y: 84.22, rotation: 180 },
+    color: "#f2efe8",
+    hostWallId: "W-B2-011",
+    render3d: { assetType: "generic", variantId: "b2DrinkingWaterStation", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmWhiteCeramic", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   }
 ];
 
@@ -2420,6 +2486,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [wardrobeDesignFurnitureId, setWardrobeDesignFurnitureId] = useState("");
   const [designPageRequest, setDesignPageRequest] = useState<DesignPageRequest | null>(null);
   const [locateObjectRequest, setLocateObjectRequest] = useState<{ id: string; nonce: number } | null>(null);
+  const [lightingObjectControlRequest, setLightingObjectControlRequest] = useState<LightingObjectControlRequest | null>(null);
+  const [lightingRuntimeState, setLightingRuntimeState] = useState<LightingRuntimeState>({});
   const [hasLoadedWebWorkspace, setHasLoadedWebWorkspace] = useState(false);
   const [draftSaveState, setDraftSaveState] = useState<DraftSaveState>({ status: "idle" });
   const [codeSaveState, setCodeSaveState] = useState<CodeSaveState>({ status: "idle", target: "none" });
@@ -2509,11 +2577,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
   useEffect(() => {
     if (activeObjectId) {
+      const selectedLightIn3D = viewMode === "3d" && activeDrawingWorkspace.activeTabId === "lighting" && drawingItems.some((item) => item.id === activeObjectId && item.category === "light");
+      if (selectedLightIn3D) {
+        setActiveEditorPanel((currentPanel) => currentPanel === "properties" ? null : currentPanel);
+        return;
+      }
       setActiveEditorPanel("properties");
       return;
     }
     setActiveEditorPanel((currentPanel) => currentPanel === "properties" ? null : currentPanel);
-  }, [activeObjectId]);
+  }, [activeDrawingWorkspace.activeTabId, activeObjectId, drawingItems, viewMode]);
 
   useEffect(() => {
     const { sources } = applyWorkspaceMigrations(data.workspace);
@@ -2647,6 +2720,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       addSimple(structure.columns ?? [], "column", "梁柱");
       addSimple(structure.fences, "fence", "围栏");
       addSimple(structure.outdoors, "outdoor", "庭院");
+      addSimple(structure.outdoorZones ?? [], "outdoorZone", "庭院功能区");
       addSimple(structure.outdoorSurfaces, "outdoorSurface", "室外铺装");
       furniture.filter((item) => item.floorId === floor.id).forEach((item) => items.push({ id: item.id, name: item.name, code: item.code, floorId: floor.id, roomId: item.roomId || undefined, roomName: roomNames.get(item.roomId), type: item.moduleType ?? item.type, typeLabel: item.moduleType?.includes("Cabinet") || /柜/.test(item.name) ? "柜体" : "家具", dimensions: `${item.dimensions.width}×${item.dimensions.depth}×${item.dimensions.height} cm`, locked: item.locked, hidden: item.hidden || item.visible === false, conflict: verificationConflictIds.has(item.id), verificationStatus: item.verificationMeta?.status ?? "unverified" }));
       drawingItems.filter((item) => item.floorId === floor.id).forEach((item) => items.push({ id: item.id, name: item.label, floorId: floor.id, roomId: item.roomId ?? undefined, roomName: item.roomId ? roomNames.get(item.roomId) : undefined, type: item.category, typeLabel: drawingItemCategoryLabels[item.category], dimensions: item.heightMm ? `安装高 ${item.heightMm} mm` : undefined, conflict: verificationConflictIds.has(item.id), verificationStatus: item.verificationMeta?.status ?? (item.status === "confirmed" ? "confirmed" : "unverified") }));
@@ -2654,7 +2728,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     return items;
   }, [drawingItems, floors, furniture, houseStructuresByFloor, verificationConflictIds]);
   const workspaceObjectItems = useMemo(() => {
-    const structureTypes = new Set(["wall", "partition", "room", "door", "window", "bayWindow", "skylight", "stair", "column", "fence", "outdoor", "outdoorSurface"]);
+    const structureTypes = new Set(["wall", "partition", "room", "door", "window", "bayWindow", "skylight", "stair", "column", "fence", "outdoor", "outdoorSurface", "outdoorZone"]);
     const drawingTypes = new Set(Object.keys(drawingItemCategoryLabels));
     if (activeDrawingWorkspace.id === "overview") return unifiedObjectItems;
     if (activeDrawingWorkspace.id === "space" || activeDrawingWorkspace.id === "renovation") return unifiedObjectItems.filter((item) => structureTypes.has(item.type));
@@ -2687,6 +2761,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     floorHouseStructure.bayWindows.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.skylights.find((item) => item.id === activeObjectId) ??
     floorHouseStructure.outdoors.find((item) => item.id === activeObjectId) ??
+    (floorHouseStructure.outdoorZones ?? []).find((item) => item.id === activeObjectId) ??
     null
   ), [activeObjectId, floorHouseStructure]);
   const activeVerificationTarget = useMemo(() => (
@@ -2722,6 +2797,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     () => validateSceneHeightSystem(floorHouseStructure, furniture),
     [floorHouseStructure, furniture]
   );
+  const outdoorLivingValidationFindings = useMemo(
+    () => validateOutdoorLivingSystem({ structure: yardHouseStructure, furniture: furniture.filter((item) => item.floorId === "YARD"), drawingItems: drawingItems.filter((item) => item.floorId === "YARD") }),
+    [drawingItems, furniture, yardHouseStructure]
+  );
   useEffect(() => {
     setFurniture((current) => {
       const synchronized = synchronizeFurnitureHeights(current, houseStructuresByFloor);
@@ -2750,8 +2829,9 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     if (activeDrawingWorkspace.id === "space") stairValidationIssues.filter((issue) => issue.floorId === selectedFloorId).forEach((issue) => findings.push({ ruleId: issue.code, severity: issue.severity, category: "geometry", title: "楼梯系统检查", message: issue.message, floorId: issue.floorId, objectId: issue.objectId, rootCauseKey: `STAIR:${issue.objectId}:${issue.code}` }));
     floorFurniturePlacementWarnings.forEach((issue) => findings.push({ ruleId: issue.ruleId ?? issue.code, severity: issue.severity ?? "warning", category: issue.category ?? "geometry", title: issue.code === "PASSAGE_TOO_NARROW" ? "操作净空不足" : issue.category === "metadata" ? "对象资料不完整" : "家具布置检查", message: issue.message, floorId: selectedFloorId, roomId: floorFurniture.find((item) => item.id === issue.furnitureId)?.roomId, objectId: issue.furnitureId, objectName: floorFurniture.find((item) => item.id === issue.furnitureId)?.name, relatedObjectIds: issue.relatedObjectId ? [issue.relatedObjectId] : [], actualValue: issue.actualValue, requiredValue: issue.requiredValue, checkPosition: issue.checkPosition, suggestion: issue.suggestion, canAutoFix: issue.canAutoFix, rootCauseKey: issue.rootCauseKey }));
     findings.push(...sceneHeightValidationFindings);
+    if (selectedFloorId === "YARD") findings.push(...outdoorLivingValidationFindings);
     return groupValidationFindings(findings);
-  }, [activeDrawingWorkspace.id, floorFurniture, floorFurniturePlacementWarnings, houseValidation, referenceReport, sceneHeightValidationFindings, selectedFloorId, stairValidationIssues]);
+  }, [activeDrawingWorkspace.id, floorFurniture, floorFurniturePlacementWarnings, houseValidation, outdoorLivingValidationFindings, referenceReport, sceneHeightValidationFindings, selectedFloorId, stairValidationIssues]);
   const activeFurniturePlacementWarnings = activeFurniture
     ? floorFurniturePlacementWarnings.filter((warning) => warning.furnitureId === activeFurniture.id)
     : [];
@@ -4221,6 +4301,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     const drawingItem = drawingItems.find((candidate) => candidate.id === item.id);
     if (drawingItem) {
       if (drawingItem.floorId !== selectedFloorId) setSelectedFloorId(drawingItem.floorId);
+      if (drawingItem.category === "light" && viewMode === "3d") {
+        setFurnitureImmersiveMode(false);
+        setActiveObjectId(drawingItem.id);
+        const nonce = Date.now();
+        setLocateObjectRequest({ id: drawingItem.id, nonce });
+        setLightingObjectControlRequest({ id: drawingItem.id, action: "locate", nonce });
+        setActiveEditorPanel(null);
+        return;
+      }
       handleLocateDrawingItem(drawingItem);
       setActiveEditorPanel("properties");
       return;
@@ -4234,6 +4323,29 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setLocateObjectRequest({ id: item.id, nonce: Date.now() });
     setActiveEditorPanel("properties");
   }
+
+  function handleUnifiedLightToggle(item: UnifiedObjectListItem) {
+    const light = drawingItems.find((candidate) => candidate.id === item.id && candidate.category === "light");
+    if (!light) return;
+    if (light.floorId !== selectedFloorId) setSelectedFloorId(light.floorId);
+    setFurnitureImmersiveMode(false);
+    setViewMode("3d");
+    setActiveObjectId(light.id);
+    const nonce = Date.now();
+    setLocateObjectRequest({ id: light.id, nonce });
+    setLightingObjectControlRequest({ id: light.id, action: "toggle", nonce });
+    setActiveEditorPanel(null);
+  }
+
+  const handleLightingRuntimeStateChange = useCallback((nextFloorState: LightingRuntimeState) => {
+    setLightingRuntimeState((current) => {
+      const next = { ...current, ...nextFloorState };
+      const currentKeys = Object.keys(current);
+      const nextKeys = Object.keys(next);
+      if (currentKeys.length === nextKeys.length && nextKeys.every((id) => current[id]?.on === next[id]?.on && current[id]?.brightness === next[id]?.brightness)) return current;
+      return next;
+    });
+  }, []);
 
   function setDisplayMode(mode: "edit" | "presentation") {
     setEditorDisplayMode(mode);
@@ -5550,6 +5662,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               cameraViewFloorIds={usesUnifiedCourtyard3D ? courtyardViewFloorIds : undefined}
               cameraViewRequest={fixedCameraViewRequest}
               locateObjectRequest={locateObjectRequest}
+              lightingObjectControlRequest={lightingObjectControlRequest}
               canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
               canRedo={floorHistory.future.length > 0}
               onScaleChange={handleScaleChange}
@@ -5583,6 +5696,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onMoveSemanticObject={handleMoveSemanticObject}
               onSelectCameraView={handleSelectFixedCameraView}
               onSceneSettingsChange={setShared3DSceneSettings}
+              onLightingRuntimeStateChange={handleLightingRuntimeStateChange}
             />
             {mobileSheetTarget && (
               <MobileDetailsDrawer
@@ -5747,7 +5861,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               <button className={`rounded-md text-[11px] font-semibold ${leftSidebarMode === "tools" ? "bg-slate-900 text-white" : "text-stone-500 hover:bg-stone-100"}`} onClick={() => setLeftSidebarMode("tools")} type="button">创建工具</button>
             </div>
             <div className="h-[calc(100%-40px)] min-h-0">
-              {leftSidebarMode === "objects" ? <UnifiedObjectList items={workspaceObjectItems} selectedObjectId={activeObjectId} selectedFloorId={selectedFloorId} onSelect={handleUnifiedObjectListSelect} /> : <ContextToolBar
+              {leftSidebarMode === "objects" ? <UnifiedObjectList items={workspaceObjectItems} selectedObjectId={activeObjectId} selectedFloorId={selectedFloorId} lightRuntimeState={lightingRuntimeState} onSelect={handleUnifiedObjectListSelect} onToggleLight={handleUnifiedLightToggle} /> : <ContextToolBar
                 workspace={activeDrawingWorkspace}
                 activeToolId={activeWorkspaceToolId}
                 expanded={contextToolbarExpanded}
@@ -5816,6 +5930,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               cameraViewFloorIds={usesUnifiedCourtyard3D ? courtyardViewFloorIds : undefined}
               cameraViewRequest={fixedCameraViewRequest}
               locateObjectRequest={locateObjectRequest}
+              lightingObjectControlRequest={lightingObjectControlRequest}
               canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
               canRedo={floorHistory.future.length > 0}
               onScaleChange={handleScaleChange}
@@ -5845,6 +5960,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onMoveSemanticObject={handleMoveSemanticObject}
               onSelectCameraView={handleSelectFixedCameraView}
               onSceneSettingsChange={setShared3DSceneSettings}
+              onLightingRuntimeStateChange={handleLightingRuntimeStateChange}
             />
         </section>
 

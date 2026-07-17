@@ -82,7 +82,7 @@ export function getStairSystemGeometryFingerprint(system: Pick<StairSystem, "id"
   const index = getStairFlightIndex(structuresByFloor);
   const values = [system.lowerFlightId, system.upperFlightId].map((id) => {
     const stair = index.get(id)?.stair;
-    return stair ? [stair.id, stair.floorId, stair.start.x, stair.start.y, stair.end.x, stair.end.y, stair.width, stair.height, stair.stepCount] : [id, "missing"];
+    return stair ? [stair.id, stair.floorId, stair.start.x, stair.start.y, stair.end.x, stair.end.y, stair.width, stair.height, stair.stepCount, stair.landingDepthMm ?? null] : [id, "missing"];
   });
   return JSON.stringify([system.id, system.floorToFloorHeightMm, system.totalStepCount, values]);
 }
@@ -93,7 +93,10 @@ function landingFromPair(pair: StairPairDefinition, lower: HouseStair, upper: Ho
   const laneLength = Math.max(1, lineLength(lower.end, upper.end));
   const laneUnit = { x: (upper.end.x - lower.end.x) / laneLength, y: (upper.end.y - lower.end.y) / laneLength };
   const halfWidth = Math.min(lower.width, upper.width) / 2;
-  const depth = Math.max(Math.min(lower.width, upper.width), 900);
+  const requestedDepth = lower.landingDepthMm ?? upper.landingDepthMm;
+  const depth = requestedDepth === undefined
+    ? Math.max(Math.min(lower.width, upper.width), 900)
+    : Math.max(300, Math.min(2000, requestedDepth));
   const firstOuter = roundPoint({ x: lower.end.x - laneUnit.x * halfWidth, y: lower.end.y - laneUnit.y * halfWidth });
   const secondOuter = roundPoint({ x: upper.end.x + laneUnit.x * halfWidth, y: upper.end.y + laneUnit.y * halfWidth });
   return {

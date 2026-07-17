@@ -44,6 +44,8 @@ export const interiorModuleTypeLabels: Record<InteriorModuleType, string> = {
   cooktop: "灶台",
   sink: "水槽",
   fridge: "冰箱",
+  washingMachine: "洗烘机组",
+  instrumentRack: "乐器架",
   tallCabinet: "高柜",
   toilet: "马桶",
   bathtub: "浴缸",

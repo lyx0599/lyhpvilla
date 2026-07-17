@@ -242,6 +242,8 @@ export type InteriorModuleType =
   | "cooktop"
   | "sink"
   | "fridge"
+  | "washingMachine"
+  | "instrumentRack"
   | "tallCabinet"
   | "toilet"
   | "bathtub"
@@ -336,7 +338,28 @@ export type Render3DMeta = {
   /** Bottom elevation of the visual asset above finished floor. */
   elevationMm?: number;
   kitchenVisual?: KitchenVisualConfig;
+  cabinetVisual?: CabinetVisualConfig;
+  bedVisual?: BedVisualConfig;
   wetAreaVisual?: WetAreaVisualConfig;
+};
+
+export type CabinetVisualConfig = {
+  frontStyle?: "slab" | "shaker" | "fluted" | "glass";
+  handleStyle?: "bar" | "edgePull" | "groove" | "knob";
+  glassTone?: "clear" | "gray" | "smoked";
+  allDoorPanels?: boolean;
+  layout?: "panels" | "squareGrid";
+  gridColumns?: number;
+  gridRows?: number;
+  displayContents?: boolean;
+  interiorLighting?: boolean;
+};
+
+export type BedVisualConfig = {
+  headboardStyle?: "standard" | "storageShelf";
+  shelfDepthMm?: number;
+  shelfHeightMm?: number;
+  chargingNiche?: boolean;
 };
 
 export type KitchenVisualConfig = {
@@ -350,6 +373,8 @@ export type KitchenVisualConfig = {
   showUpperCabinets?: boolean;
   showRangeHood?: boolean;
   sinkBowls?: 1 | 2;
+  faucetPlacement?: "offset" | "center";
+  fridgeSurround?: "cabinet" | "none";
   appliancePanel?: "none" | "dishwasher" | "oven" | "steamOven";
   frontStyle?: "slab" | "shaker" | "fluted" | "glass";
   handleStyle?: "bar" | "edgePull" | "groove" | "knob";
@@ -364,7 +389,9 @@ export type WetAreaVisualConfig = {
   fixtureKind?: "vanity" | "toilet" | "shower" | "bathtub";
   basinCount?: 1 | 2;
   floating?: boolean;
-  mirrorStyle?: "round" | "roundedRect" | "cabinet";
+  mirrorStyle?: "none" | "round" | "roundedRect" | "cabinet";
+  mirrorHeightMm?: number;
+  mirrorCabinetDepthMm?: number;
   showerDoor?: "fixed" | "sliding" | "swing";
   frameFinish?: "black" | "bronze" | "minimal";
   toiletType?: "smart" | "closeCoupled" | "wallHung";
@@ -701,6 +728,8 @@ export type HouseBayWindow = SyncObjectState & VerificationState & {
   width: number;
   depth: number;
   height: number;
+  operation?: "fixed" | "casement";
+  openDirection?: "inward" | "outward";
 };
 
 export type HouseSkylight = SyncObjectState & VerificationState & {
@@ -734,6 +763,25 @@ export type HouseOutdoor = SyncObjectState & VerificationState & {
   polygon: MmPoint[];
   area: number;
 };
+
+/** A functional exterior room. Kept with the building structure so 2D, 3D,
+ * drawings, checks and exploration all reference the same boundary. */
+export type OutdoorZoneType = "outdoorKitchen" | "relax" | "laundry" | "drying" | "pet" | "garden" | "storage" | "plant";
+export type OutdoorZone = SyncObjectState & VerificationState & {
+  id: string;
+  floorId: FloorId;
+  outdoorId: string;
+  name: string;
+  zoneType: OutdoorZoneType;
+  geometryType: "polygon";
+  polygon: MmPoint[];
+  area: number;
+  activityClearanceMm?: number;
+  weatherProtection?: "open" | "shade" | "covered" | "rainproof";
+  notes?: string;
+};
+
+export type OutdoorObjectType = "bbq" | "outdoorIsland" | "outdoorCabinet" | "waterTap" | "dryingRack" | "dogHouse" | "planter" | "pathwayLight" | "raisedGardenBed" | "shadeUmbrella" | "petWash" | "hoseReel" | "toolRack" | "outdoorLaundry" | "landscapeRock";
 
 export type HouseFence = SyncObjectState & {
   id: string;
@@ -786,6 +834,8 @@ export type HouseStair = SyncObjectState & VerificationState & {
   connectedFromFloorId?: FloorId;
   connectedToFloorId?: FloorId;
   landingId?: string;
+  /** Requested clear landing depth; defaults to the stair width when omitted. */
+  landingDepthMm?: number;
   editable: true;
   removable: true;
 };
@@ -876,7 +926,8 @@ export type HouseStructureObject =
   | HouseWindow
   | HouseBayWindow
   | HouseSkylight
-  | HouseOutdoor;
+  | HouseOutdoor
+  | OutdoorZone;
 
 export type HouseStructure = {
   floorId: FloorId;
@@ -895,6 +946,7 @@ export type HouseStructure = {
   bayWindows: HouseBayWindow[];
   skylights: HouseSkylight[];
   outdoors: HouseOutdoor[];
+  outdoorZones: OutdoorZone[];
 };
 
 export type Room = {
@@ -930,6 +982,10 @@ export type Furniture = {
   floorId: FloorId;
   roomId: string;
   outdoorId?: string;
+  /** Outdoor equipment remains a normal unified furniture object, with an
+   * explicit zone binding instead of a detached courtyard display model. */
+  outdoorZoneId?: string;
+  outdoorObjectType?: OutdoorObjectType;
   roomAssignmentLocked?: boolean;
   hostWallId?: string;
   wallAnchor?: FurnitureWallAnchor;
@@ -958,11 +1014,19 @@ export type Furniture = {
   constructionMeta?: ConstructionMeta;
   /** Lightweight hidden construction points bound to this editable object. */
   constructionAnchors?: ConstructionAnchorLayer;
+  /** Persisted user decision that prevents automatic lighting regeneration for this object. */
+  lightingDesignExcluded?: boolean;
   locked?: boolean;
   visible?: boolean;
   hidden?: boolean;
   interaction?: ObjectInteractionFlags;
   verificationMeta?: VerificationMeta;
+};
+
+export type OutdoorObject = Furniture & {
+  outdoorId: string;
+  outdoorZoneId: string;
+  outdoorObjectType: OutdoorObjectType;
 };
 
 export type Floor = {

@@ -62,7 +62,8 @@ const structureCollections = (structure: HouseStructure): HouseStructureObject[]
   structure.windows,
   structure.bayWindows,
   structure.skylights,
-  structure.outdoors
+  structure.outdoors,
+  structure.outdoorZones ?? []
 ];
 
 const overviewSpecialtyCategories: DrawingItemCategory[] = [

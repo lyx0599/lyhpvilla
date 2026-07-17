@@ -38,6 +38,28 @@ function TimberHeadboard({ width, height, depth, props }: { width: number; heigh
   );
 }
 
+function StorageShelfHeadboard({ width, height, depth, props }: { width: number; height: number; depth: number; props: FurnitureFamily3DProps }) {
+  const { asset, item } = props;
+  const config = item.render3d?.bedVisual;
+  const floorY = -props.height / 2;
+  const shelfDepth = Math.min(0.24, Math.max(0.12, (config?.shelfDepthMm ?? 180) / 1000));
+  const shelfY = floorY + Math.min(0.78, Math.max(0.5, (config?.shelfHeightMm ?? 640) / 1000));
+  return (
+    <group name="integrated-storage-headboard">
+      <RoundedPart size={[width * 0.98, height * 0.9, 0.12]} position={[0, floorY + height * 0.46, -depth * 0.47]} radius={0.045} detailLevel={asset.detailLevel} material={asset.materials.primary} role="fabric" repeat={[4, 3]} />
+      <RoundedPart size={[width * 0.96, 0.065, shelfDepth]} position={[0, shelfY, -depth * 0.42]} radius={0.018} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="wood" repeat={[5, 1]} />
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * width * 0.36, shelfY - 0.13, -depth * 0.405]}>
+          <RoundedPart size={[width * 0.2, 0.22, shelfDepth * 0.9]} radius={0.025} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="wood" repeat={[2, 2]} />
+          <RoundedPart size={[width * 0.15, 0.13, shelfDepth * 0.45]} position={[0, 0.015, shelfDepth * 0.25]} radius={0.018} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#615950" />
+          {config?.chargingNiche !== false && <CylinderPart radiusTop={0.018} height={0.012} position={[0, 0.12, 0]} material={asset.materials.accent} role="metal" color="#343331" sides={18} />}
+        </group>
+      ))}
+      <RoundedPart size={[width * 0.72, 0.016, 0.022]} position={[0, shelfY - 0.045, -depth * 0.31]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="light" color="#ffe0a3" emissiveIntensity={0.64} />
+    </group>
+  );
+}
+
 export function BedFamily3D(props: FurnitureFamily3DProps) {
   const { item, asset, width, depth, height } = props;
   const resolved = resolveFurnitureVariant(item, asset.assetType);
@@ -49,6 +71,7 @@ export function BedFamily3D(props: FurnitureFamily3DProps) {
   const tall = variant === "tallPanelHeadboard";
   const low = variant === "lowUpholstered";
   const child = variant === "childBed";
+  const storageHeadboard = item.render3d?.bedVisual?.headboardStyle === "storageShelf";
   const frameHeight = child ? 0.16 : floating ? 0.11 : timber ? 0.18 : 0.24;
   const frameY = floorY + (floating ? 0.2 : 0.1) + frameHeight / 2;
   const mattressHeight = child ? 0.15 : 0.2;
@@ -73,7 +96,9 @@ export function BedFamily3D(props: FurnitureFamily3DProps) {
       {[-1, 1].map((side) => (
         <RoundedPart key={side} size={[0.022, frameHeight * 0.64, depth * 0.78]} position={[side * width * 0.475, frameY, depth * 0.03]} radius={0.007} detailLevel={asset.detailLevel} material={asset.materials.accent} role={timber || floating ? "wood" : "fabric"} color="#665f57" />
       ))}
-      {!noHeadboard && (timber
+      {storageHeadboard
+        ? <StorageShelfHeadboard width={width} height={headboardHeight} depth={depth} props={props} />
+        : !noHeadboard && (timber
         ? <TimberHeadboard width={width * 0.98} height={headboardHeight} depth={depth} props={props} />
         : <UpholsteredHeadboard width={width} height={headboardHeight} depth={depth} tall={tall} props={props} />)}
       {child && <RoundedPart size={[0.075, 0.25, depth * 0.62]} position={[width * 0.47 * resolved.variation.openSide, mattressY + 0.06, 0.04]} radius={0.035} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" />}

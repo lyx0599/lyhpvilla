@@ -237,10 +237,10 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
   structure.rooms.forEach((room) => {
     const center = centerOf(room);
     const roomItems = spaceFurniture(room.id, furniture);
-    const isBathroom = /卫生间|客卫|主卫|洗衣房/.test(room.name) || Boolean(pickFurniture(roomItems, /马桶|淋浴|台盆|浴室柜/));
+    const isKitchen = /厨房/.test(room.name);
+    const isBathroom = !isKitchen && (/卫生间|客卫|主卫|洗衣房/.test(room.name) || Boolean(pickFurniture(roomItems, /马桶|淋浴|浴室柜|洗手池/)));
     const isBedroom = /卧室|房间/.test(room.name) && !isBathroom;
     const isLiving = /客厅/.test(room.name);
-    const isKitchen = /厨房/.test(room.name);
     const isStudy = /书房/.test(room.name);
     const isActivity = /活动区/.test(room.name);
     const isStair = /楼梯/.test(room.name);
@@ -254,7 +254,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       key: `AMBIENT-${index + 1}`, name: `${room.name}边缘基础照明 ${index + 1}`, lightType: isStair || isCorridor ? "antiGlareLinearDownlight" : "wideBeamDownlight",
       layer: "ambient", colorTemperature: ambientTemperature, beamAngle: 60, mountingType: "recessed", heightMm: 2800,
       position, roomId: room.id, smartControl: isLiving || isBedroom || isActivity, dimming: isLiving || isBedroom || isActivity,
-      lightSpec: spec("wide-downlight", { cri: isKitchen || isLaundry ? 95 : 90 }),
+      lightSpec: spec("wide-downlight", { powerW: 11, luminousFluxLm: 950, cri: isKitchen || isLaundry ? 95 : 90 }),
       notes: "沿空间边缘与通道布置，不压在主要坐席或床头正上方；避开风口、检修口、梁位及柜门开启范围，施工前现场复核。"
     }));
 
@@ -336,7 +336,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
   if (floorId === "1F") {
     const addSpecial = (pattern: RegExp, intent: Omit<LightIntent, "position" | "roomId" | "furnitureId">) => {
       const item = pickFurniture(furniture, pattern);
-      if (!item) return;
+      if (!item || item.lightingDesignExcluded) return;
       intents.push({ ...intent, position: furniturePoint(item, structure), roomId: item.roomId, furnitureId: item.id, hostWallId: intent.hostWallId ?? inferHostWallId(item, structure) });
     };
     addSpecial(/module-1f-table|六人圆餐桌/, { key: "DINING", name: "餐桌吊灯 / 六人圆桌装饰灯", lightType: "roundTablePendant", layer: "accent", colorTemperature: "2700K", beamAngle: 40, mountingType: "pendant", heightMm: 1700, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("round-table-pendant", { cri: 95 }), notes: "灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。" });
@@ -364,6 +364,29 @@ function collectYardIntents(structure: HouseStructure, furniture: Furniture[]) {
     if (cabinet) add(outdoor, { key: "CABINET", name: `${outdoor.name}户外柜照明 / 操作灯`, lightType: "outdoorTaskLight", layer: "outdoor", colorTemperature: "3500K", beamAngle: 100, mountingType: "cabinetIntegrated", heightMm: 1450, position: furniturePoint(cabinet, structure), furnitureId: cabinet.id, smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("yard-task", { cri: 95 }), notes: "驱动置于柜内干区并可检修，柜体厂家同步深化。" });
     if (table) add(outdoor, { key: "DINING", name: `${outdoor.name}户外餐桌照明`, lightType: "outdoorDiningPendant", layer: "outdoor", colorTemperature: "2700K", beamAngle: 60, mountingType: "pendant", heightMm: 2100, position: furniturePoint(table, structure), furnitureId: table.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("outdoor-wall", { waterproofRating: "IP65", cri: 90 }), notes: "以户外桌面为中心，控制眩光和溢出光；若无固定顶棚则改用便携低压灯具。" });
     if (gate) add(outdoor, { key: "WELCOME", name: `${outdoor.name}院门迎宾灯`, lightType: "outdoorWallLight", layer: "outdoor", colorTemperature: "3000K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1800, position: furniturePoint(gate, structure), furnitureId: gate.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("outdoor-wall"), notes: "与门磁、人体感应或归家场景联动；不常亮高亮。" });
+  });
+  (structure.outdoorZones ?? []).forEach((zone) => {
+    const items = furniture.filter((item) => item.outdoorZoneId === zone.id);
+    const at = (item?: Furniture) => item ? furniturePoint(item, structure) : centerOf(zone);
+    const push = (key: string, name: string, lightType: string, mountingType: LightMountingType, heightMm: number, furnitureId?: string, options: Partial<LightIntent> = {}) => intents.push({
+      key: `ZONE-${zone.id}-${key}`, name: `${zone.name}${name}`, lightType, layer: "outdoor", colorTemperature: options.colorTemperature ?? "3000K", beamAngle: options.beamAngle ?? 60, mountingType, heightMm, position: at(furnitureId ? items.find((item) => item.id === furnitureId) : undefined), roomId: zone.outdoorId, furnitureId, smartControl: true, dimming: options.dimming ?? true, source: furnitureId ? "generated-from-furniture" : "generated-from-room", lightSpec: options.lightSpec ?? spec(mountingType === "groundSpike" ? "tree-uplight" : mountingType === "bollard" ? "bollard" : "outdoor-wall"), notes: options.notes ?? "归入既有庭院灯光控制系统；实际出线、回路和防水节点施工前复核。"
+    });
+    if (zone.zoneType === "outdoorKitchen") {
+      const island = items.find((item) => item.outdoorObjectType === "outdoorIsland");
+      push("TASK", " · 岛台顶部与操作面功能灯", "outdoorTaskLight", "cabinetIntegrated", 1850, island?.id, { colorTemperature: "3500K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }), notes: "覆盖 BBQ、操作台与水槽；柜下灯和台面灯同组，晚间可真实操作。" });
+      push("UNDER", " · 柜下工作灯", "outdoorTaskLight", "cabinetIntegrated", 980, island?.id, { colorTemperature: "3500K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }) });
+    }
+    if (zone.zoneType === "plant" || zone.zoneType === "garden") push("PLANT", " · 植物层次上照", "plantUplight", "groundSpike", 150, items.find((item) => item.outdoorObjectType === "planter" || item.outdoorObjectType === "raisedGardenBed")?.id, { colorTemperature: "2700K", beamAngle: 24, lightSpec: spec("tree-uplight"), notes: "地插射灯洗亮乔木、灌木与背景墙，控制眩光并避开根系。" });
+    if (zone.zoneType === "relax") {
+      const seating = items.find((item) => /桌椅|休闲/.test(item.name));
+      push("TABLE", " · 桌面氛围灯", "outdoorDiningPendant", "pendant", 2100, seating?.id, { colorTemperature: "2700K", notes: "休闲区第一层桌面照明；无固定遮棚时改为低压便携灯具。" });
+      push("BACKGROUND", " · 环境背景灯", "outdoorWallLight", "wallMounted", 1800, undefined, { colorTemperature: "2700K", beamAngle: 80, notes: "休闲区第三层背景光，不以高亮环境灯取代分层照明。" });
+    }
+    if (zone.zoneType === "laundry") {
+      const laundry = items.find((item) => item.outdoorObjectType === "outdoorLaundry");
+      push("TASK", " · 洗衣顶部功能灯", "outdoorTaskLight", "surfaceMounted", 2200, laundry?.id, { colorTemperature: "3500K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }), notes: "遮棚内顶部与柜下工作灯，独立于休闲氛围灯。" });
+    }
+    if (zone.zoneType === "pet") push("SAFETY", " · 宠物低位安全灯", "bollardPathLight", "bollard", 450, undefined, { colorTemperature: "2700K", beamAngle: 90, lightSpec: spec("bollard"), notes: "宠物区低位安全照明，便于夜间查看且避免直射犬只。" });
   });
   return intents;
 }
@@ -401,20 +424,22 @@ function createLightingScenes(items: DrawingItem[]): LightingScene[] {
   const layer = (target: LightingLayer) => (group: typeof groups[number]) => group.lights.some((light) => light.lightingLayer === target);
   const common: LightingScene[] = [
     make("all-clean", "全开清洁", "whole-house", all, () => 100, { notes: "全屋人工灯光 100%；卫生间可选 4000K 清洁模式不作为默认状态。" }),
-    make("daily", "日常", "whole-house", all, (group) => layer("ambient")(group) ? 70 : layer("task")(group) ? 80 : layer("accent")(group) ? 45 : 25),
-    make("gathering", "会客", "whole-house", has(/客厅|餐桌|玄关|壁炉|背景/), (group) => layer("ambient")(group) ? 55 : layer("accent")(group) ? 65 : 35),
+    make("daily", "日常", "whole-house", all, (group) => layer("ambient")(group) ? 85 : layer("task")(group) ? 80 : layer("accent")(group) ? 45 : 25),
+    make("gathering", "会客", "whole-house", has(/客厅|餐桌|玄关|壁炉|背景/), (group) => layer("ambient")(group) ? 75 : layer("accent")(group) ? 65 : 35),
     make("dining", "用餐", "room", has(/餐桌|餐边|圆桌|水吧/), (group) => /圆桌|吊灯/.test(group.text) ? 85 : 40, { floorId: "1F" }),
-    make("cooking", "烹饪", "room", has(/厨房|中岛|水槽|灶台|台面/), (group) => layer("task")(group) ? 100 : 65, { floorId: "1F" }),
+    make("cooking", "烹饪", "room", has(/厨房|中岛|水槽|灶台|台面/), (group) => layer("task")(group) ? 100 : 85, { floorId: "1F" }),
     make("movie", "观影", "room", has(/客厅|壁炉|背景|窗帘|阅读/), (group) => layer("ambient")(group) ? 0 : layer("accent")(group) ? 15 : 20, { floorId: "1F" }),
     make("reading", "阅读", "room", (group) => /阅读|书桌|书房|床头/.test(group.text), () => 80),
     make("bedtime", "睡前", "room", (group) => /卧室|主卧|床头|窗帘盒/.test(group.text), (group) => layer("ambient")(group) ? 15 : 35, { floorId: "2F" }),
     make("night", "起夜", "whole-house", (group) => /起夜|夜灯|踏步|楼梯/.test(group.text), () => 15, { automation: ["23:00–06:00 人体感应", "感应后延时关闭", "不联动基础顶灯"] }),
     make("welcome", "迎宾", "whole-house", (group) => /玄关|院门|北院|路径|庭院壁灯/.test(group.text), () => 60, { automation: ["门磁或人体感应", "日落后生效", "回家后延时切换日常场景"] }),
     make("yard-relax", "庭院休闲", "outdoor", (group) => /南院|照树|户外餐桌|庭院壁灯/.test(group.text), (group) => /路径|围栏/.test(group.text) ? 25 : 50, { floorId: "YARD" }),
+    make("yard-bbq", "北院烧烤", "outdoor", (group) => /北院.*(厨房|岛台|BBQ|操作|植物|路径)/.test(group.text), (group) => /操作|柜下/.test(group.text) ? 100 : /植物|路径/.test(group.text) ? 35 : 55, { floorId: "YARD", notes: "北院 BBQ 工作场景：操作面明亮，路径与植物保持低亮层次。" }),
+    make("yard-laundry", "庭院洗衣", "outdoor", (group) => /洗衣/.test(group.text), (group) => /功能|工作/.test(group.text) ? 100 : 45, { floorId: "YARD", notes: "南院洗衣场景：功能灯全开，其他庭院灯保持低亮。" }),
     make("away", "离家", "whole-house", all, () => 0, { automation: ["关闭室内非安全灯组", "保留院门、围栏及必要安防低亮组", "可联动安防系统"] })
   ];
   const roomScenes: LightingScene[] = [
-    make("1f-living-daily", "1F 客厅日常会客", "room", has(/客厅|壁炉|背景|窗帘|阅读/), (group) => layer("ambient")(group) ? 60 : layer("accent")(group) ? 55 : 30, { floorId: "1F", roomId: "ROOM-1F-005" }),
+    make("1f-living-daily", "1F 客厅日常会客", "room", has(/客厅|壁炉|背景|窗帘|阅读/), (group) => layer("ambient")(group) ? 80 : layer("accent")(group) ? 55 : 30, { floorId: "1F", roomId: "ROOM-1F-005" }),
     make("1f-living-movie", "1F 客厅观影", "room", has(/客厅|壁炉|背景|窗帘|阅读/), (group) => layer("ambient")(group) ? 0 : 15, { floorId: "1F", roomId: "ROOM-1F-005" }),
     make("1f-living-clean", "1F 客厅清洁全开", "room", has(/客厅|壁炉|背景|窗帘|阅读/), () => 100, { floorId: "1F", roomId: "ROOM-1F-005" }),
     make("1f-living-night", "1F 客厅夜间氛围", "room", has(/客厅|壁炉|背景|窗帘/), (group) => layer("ambient")(group) ? 0 : 20, { floorId: "1F", roomId: "ROOM-1F-005" }),
@@ -447,7 +472,9 @@ function createRecommendedLightingViews(structuresByFloor: Partial<Record<FloorI
     { id: "b2-relax", name: "地下室休闲", floorId: "B2", roomPattern: /客厅|活动区/, furniturePattern: /沙发|软垫/, scene: "daily" },
     { id: "1f-stair-night", name: "楼梯起夜", floorId: "1F", roomPattern: /楼梯/, scene: "night" },
     { id: "yard-south-relax", name: "南院休闲", floorId: "YARD", outdoorPattern: /南院/, furniturePattern: /桌椅|休闲/, scene: "yard-relax" },
-    { id: "yard-north-welcome", name: "北院迎宾", floorId: "YARD", outdoorPattern: /北院/, furniturePattern: /院门/, scene: "yard-welcome" }
+    { id: "yard-north-welcome", name: "北院迎宾", floorId: "YARD", outdoorPattern: /北院/, furniturePattern: /院门/, scene: "yard-welcome" },
+    { id: "yard-north-bbq", name: "北院烧烤", floorId: "YARD", outdoorPattern: /北院/, furniturePattern: /BBQ|厨房岛台/, scene: "yard-bbq" },
+    { id: "yard-south-laundry", name: "南院洗衣", floorId: "YARD", outdoorPattern: /南院/, furniturePattern: /洗衣柜/, scene: "yard-laundry" }
   ];
   return definitions.flatMap((definition): RoomTourView[] => {
     const structure = structuresByFloor[definition.floorId];
@@ -505,20 +532,39 @@ export function generateLightingDesignV1(input: {
     const floorFurniture = input.furniture.filter((item) => item.floorId === floorId);
     const intents = floorId === "YARD" ? collectYardIntents(structure, floorFurniture) : collectIndoorIntents(floorId, structure, floorFurniture);
     const intentsByGroup = new Map<string, LightIntent[]>();
-    let floorLightIndex = 0;
+    const usedLightIds = new Set(input.existingItems.filter((item) => item.floorId === floorId && item.category === "light").map((item) => item.id));
+    const usedSwitchIds = new Set(input.existingItems.filter((item) => item.floorId === floorId && item.category === "switch").map((item) => item.id));
+    let nextLightIndex = 1;
+    let nextSwitchIndex = 1;
+    const allocateId = (category: "light" | "switch") => {
+      const usedIds = category === "light" ? usedLightIds : usedSwitchIds;
+      const prefix = category === "light" ? "L" : "SW";
+      let index = category === "light" ? nextLightIndex : nextSwitchIndex;
+      let id = `${prefix}-${floorId}-V1-${String(index).padStart(2, "0")}`;
+      while (usedIds.has(id)) {
+        index += 1;
+        id = `${prefix}-${floorId}-V1-${String(index).padStart(2, "0")}`;
+      }
+      usedIds.add(id);
+      if (category === "light") nextLightIndex = index + 1;
+      else nextSwitchIndex = index + 1;
+      return id;
+    };
     intents.forEach((intent) => {
       const group = groupId(floorId, intent.roomId, intent.key.replace(/-\d+$/, ""));
       intentsByGroup.set(group, [...(intentsByGroup.get(group) ?? []), intent]);
     });
 
     const desired: DrawingItem[] = [];
-    Array.from(intentsByGroup.entries()).forEach(([controlGroupId, groupIntents], groupIndex) => {
+    Array.from(intentsByGroup.entries()).forEach(([controlGroupId, groupIntents]) => {
       const roomId = groupIntents[0].roomId;
-      const switchId = `SW-${floorId}-V1-${String(groupIndex + 1).padStart(2, "0")}`;
-      const lightIds = groupIntents.map((_, lightIndex) => `L-${floorId}-V1-${String(floorLightIndex + lightIndex + 1).padStart(2, "0")}`);
+      const switchKey = `${generatedPrefix}${floorId}:${controlGroupId}:switch`;
+      const switchId = existingGenerated.get(switchKey)?.id ?? allocateId("switch");
+      const lightKeys = groupIntents.map((_, lightIndex) => `${generatedPrefix}${floorId}:${controlGroupId}:light:${lightIndex + 1}`);
+      const lightIds = lightKeys.map((key) => existingGenerated.get(key)?.id ?? allocateId("light"));
       groupIntents.forEach((intent, lightIndex) => {
         const id = lightIds[lightIndex];
-        const key = `${generatedPrefix}${floorId}:${controlGroupId}:light:${lightIndex + 1}`;
+        const key = lightKeys[lightIndex];
         const base = createDrawingItem({ id, floorId, category: "light", positionMm: intent.position, roomId, now });
         const relatedFurniture = intent.furnitureId ? floorFurniture.find((item) => item.id === intent.furnitureId) : null;
         const ceilingHost = intent.hostCeilingAreaId ?? input.existingItems.find((item) => item.floorId === floorId && item.category === "ceiling" && (item.roomId === roomId || item.relatedRoomId === roomId))?.id ?? null;
@@ -538,10 +584,8 @@ export function generateLightingDesignV1(input: {
           source: intent.source ?? (intent.furnitureId ? "generated-from-furniture" : "generated-from-room"), status: intent.optional ? "todo" : "draft", generatedKey: key
         });
       });
-      floorLightIndex += groupIntents.length;
       lightCount += groupIntents.length;
       const switchPosition = offset(groupIntents[0].position, -420, 420, structure);
-      const switchKey = `${generatedPrefix}${floorId}:${controlGroupId}:switch`;
       const switchBase = createDrawingItem({ id: switchId, floorId, category: "switch", positionMm: switchPosition, roomId, now });
       desired.push({
         ...switchBase, id: switchId, type: groupIntents[0].smartControl ? "switchAndSceneControl" : "switchControl",

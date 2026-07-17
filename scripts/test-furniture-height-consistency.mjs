@@ -19,7 +19,7 @@ for (const floorId of indoorFloorIds) {
   assert.ok(structure, `${floorId} should have a house structure`);
   assert.ok(structure.walls.length > 0, `${floorId} should have walls`);
   assert.ok(structure.walls.some((wall) => wall.height >= 2600 && wall.height <= 3200), `${floorId} should retain full-height residential walls`);
-  assert.ok(structure.walls.every((wall) => (wall.height >= 900 && wall.height <= 1400) || (wall.height >= 2600 && wall.height <= 3200)), `${floorId} walls should be either low partitions or full-height walls`);
+  assert.ok(structure.walls.every((wall) => (wall.height >= 900 && wall.height <= 1400) || (wall.id.startsWith("W-B2-STORAGE-") && wall.height === 2100) || (wall.height >= 2600 && wall.height <= 3200)), `${floorId} walls should be low partitions, under-stair partitions or full-height walls`);
 }
 
 for (const item of workspace.furniture.filter((candidate) => indoorFloorIds.has(candidate.floorId))) {

@@ -69,7 +69,7 @@ import {
 } from "@/lib/object-sync-adapter";
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
-import { Floor3DView, type Shared3DSceneSettings } from "@/components/floor-3d-view";
+import { Floor3DView, type LightingObjectControlRequest, type LightingRuntimeState, type Shared3DSceneSettings } from "@/components/floor-3d-view";
 import type { LightingDesign } from "@/types/workspace";
 import type {
   CleanPatch,
@@ -155,6 +155,7 @@ type Props = {
   cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   locateObjectRequest: { id: string; nonce: number } | null;
+  lightingObjectControlRequest?: LightingObjectControlRequest | null;
   canUndo: boolean;
   canRedo: boolean;
   onScaleChange: (scale: number) => void;
@@ -184,6 +185,7 @@ type Props = {
   onMoveSemanticObject: (objectId: string, position: { x: number; y: number }) => void;
   onSelectCameraView?: (view: FixedCameraView) => void;
   onSceneSettingsChange?: (settings: Shared3DSceneSettings) => void;
+  onLightingRuntimeStateChange?: (state: LightingRuntimeState) => void;
 };
 
 const MIN_SCALE = 0.6;
@@ -635,6 +637,7 @@ export function PlanCanvas({
   cameraViewFloorIds,
   cameraViewRequest = null,
   locateObjectRequest,
+  lightingObjectControlRequest = null,
   canUndo,
   canRedo,
   onScaleChange,
@@ -663,7 +666,8 @@ export function PlanCanvas({
   onSelectSemanticObject,
   onMoveSemanticObject: requestMoveSemanticObject,
   onSelectCameraView,
-  onSceneSettingsChange
+  onSceneSettingsChange,
+  onLightingRuntimeStateChange
 }: Props) {
   const onUndo = () => {
     if (workspaceMutationAllowed) requestUndo();
@@ -2672,14 +2676,16 @@ export function PlanCanvas({
   const furnitureLabelOffsets = useMemo(() => {
     const placed: Array<{ x: number; y: number }> = [];
     return new Map(furniture.map((item) => {
+      const displayPosition = getFurnitureDisplayPosition(item);
+      const placement = displayPosition.y < 16 ? "below" : "above";
       let offset = 0;
-      while (placed.some((point) => Math.abs(point.x - item.position.x) < 13 && Math.abs(point.y - (item.position.y + offset)) < 7) && offset > -28) {
-        offset -= 7;
+      while (placed.some((point) => Math.abs(point.x - displayPosition.x) < 13 && Math.abs(point.y - (displayPosition.y + offset)) < 7) && Math.abs(offset) < 28) {
+        offset += placement === "below" ? 7 : -7;
       }
-      placed.push({ x: item.position.x, y: item.position.y + offset });
-      return [item.id, offset] as const;
+      placed.push({ x: displayPosition.x, y: displayPosition.y + offset });
+      return [item.id, { offset, placement }] as const;
     }));
-  }, [furniture]);
+  }, [furniture, houseStructure, interactionState, planBounds]);
   const drawToolLabels: Record<DrawTool, string> = {
     select: "选择",
     "wall-straight": "直墙",
@@ -3584,6 +3590,9 @@ export function PlanCanvas({
   const visibleOutdoorSurfaces = houseStructure.outdoorSurfaces
     .filter((surface) => resolveVisibility(surface).visible2d)
     .filter((surface) => !yardImmersiveMode || yardObjectMatchesFocus(surface.id, surface.name) || polygonIntersectsBounds(surface.polygon, planBounds));
+  const visibleOutdoorZones = (houseStructure.outdoorZones ?? [])
+    .filter((zone) => resolveVisibility(zone).visible2d)
+    .filter((zone) => !yardImmersiveMode || yardObjectMatchesFocus(zone.id, zone.name) || polygonIntersectsBounds(zone.polygon, planBounds));
   const visibleFences = houseStructure.fences
     .filter((fence) => resolveVisibility(fence).visible2d)
     .filter((fence) => !yardImmersiveMode || yardObjectMatchesFocus(fence.id, fence.name) || pointInBounds(fence.start, planBounds) || pointInBounds(fence.end, planBounds));
@@ -5374,6 +5383,16 @@ export function PlanCanvas({
                     </g>
                   );
                 })}
+                <g data-layer="OutdoorZoneLayer" pointerEvents="none">
+                  {visibleOutdoorZones.map((zone) => {
+                    const centroid = zone.polygon.reduce((sum, point) => ({ x: sum.x + point.x / zone.polygon.length, y: sum.y + point.y / zone.polygon.length }), { x: 0, y: 0 });
+                    const color = zone.zoneType === "outdoorKitchen" ? "#b45309" : zone.zoneType === "relax" ? "#7c3aed" : zone.zoneType === "laundry" ? "#0369a1" : zone.zoneType === "pet" ? "#be123c" : zone.zoneType === "garden" || zone.zoneType === "plant" ? "#15803d" : "#475569";
+                    return <g key={zone.id}>
+                      <polygon points={zone.polygon.map((point) => `${point.x},${point.y}`).join(" ")} fill={color} fillOpacity={0.08} stroke={color} strokeDasharray="110 70" strokeWidth={30} />
+                      <text x={centroid.x} y={centroid.y} textAnchor="middle" fill={color} fontSize={116} fontWeight={900} paintOrder="stroke" stroke="#ffffff" strokeWidth={38}>{zone.name}</text>
+                    </g>;
+                  })}
+                </g>
                 {outdoorDraft.length > 0 && (
                   <polyline
                     points={outdoorDraft.map((point) => `${point.x},${point.y}`).join(" ")}
@@ -6675,6 +6694,7 @@ export function PlanCanvas({
                   const selected = selectedInteractionObjectId === item.id;
                   const hovered = isObjectHovered(item.id);
                   const displayPosition = getFurnitureDisplayPosition(item);
+                  const labelLayout = furnitureLabelOffsets.get(item.id) ?? { offset: 0, placement: displayPosition.y < 16 ? "below" : "above" };
                   const debugVisible = showObjectIds && (labelFilter === "all" || labelFilter === "furniture");
                   if (furnitureImmersiveMode && !furnitureLabelsVisible) return null;
                   if (!selected && !hovered && !debugVisible) return null;
@@ -6692,11 +6712,11 @@ export function PlanCanvas({
                   return (
                     <div
                       key={`furniture-label-${item.id}`}
-                      className={`${responsiveClass} absolute w-max max-w-60 -translate-x-1/2 -translate-y-full rounded-md border-2 px-3 py-2 text-center text-sm leading-tight shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${toneClass}`}
+                      className={`${responsiveClass} absolute w-max max-w-60 -translate-x-1/2 ${labelLayout.placement === "below" ? "translate-y-0" : "-translate-y-full"} rounded-md border-2 px-3 py-2 text-center text-sm leading-tight shadow-[0_8px_20px_rgba(15,23,42,0.34)] ${toneClass}`}
                       style={{
                         left: `${displayPosition.x}%`,
-                        top: `${displayPosition.y + (furnitureLabelOffsets.get(item.id) ?? 0)}%`,
-                        marginTop: "-8px"
+                        top: `${displayPosition.y + labelLayout.offset}%`,
+                        marginTop: labelLayout.placement === "below" ? "8px" : "-8px"
                       }}
                     >
                       <div className="font-extrabold">{developerMode ? item.id : item.name}</div>
@@ -6912,6 +6932,7 @@ export function PlanCanvas({
           lightingDesign={lightingDesign}
           cameraViewFloorIds={cameraViewFloorIds}
           cameraViewRequest={cameraViewRequest}
+          lightingObjectControlRequest={lightingObjectControlRequest}
           selectedObjectId={selectedDrawingItemId || selectedInteractionObjectId}
           selectedFurnitureId={selectedFurnitureId}
           showObjectIds={developerMode && showObjectIds}
@@ -6944,6 +6965,7 @@ export function PlanCanvas({
           onClearHoverObject={clearHoverObject}
           onSelectCameraView={onSelectCameraView}
           onSceneSettingsChange={onSceneSettingsChange}
+          onLightingRuntimeStateChange={onLightingRuntimeStateChange}
         />
       )}
     </div>

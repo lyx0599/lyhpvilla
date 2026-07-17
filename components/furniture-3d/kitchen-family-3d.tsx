@@ -287,6 +287,7 @@ export function ParametricSink(props: FurnitureFamily3DProps) {
   const bowlDepth = depth * 0.72;
   const bowlHeight = Math.max(0.1, height * 0.72);
   const bowlCount = config.sinkBowls ?? 1;
+  const faucetX = config.faucetPlacement === "center" || bowlCount === 2 ? 0 : width * 0.32;
   const bowlGap = bowlCount === 2 ? 0.028 : 0;
   const eachBowlWidth = bowlCount === 2 ? (bowlWidth - bowlGap) / 2 : bowlWidth;
   return (
@@ -305,10 +306,12 @@ export function ParametricSink(props: FurnitureFamily3DProps) {
           </group>
         );
       })}
-      <CylinderPart radiusTop={0.018} height={0.29} position={[width * 0.32, topY + 0.145, -depth * 0.3]} material={metal} role="metal" sides={16} />
-      <CylinderPart radiusTop={0.018} height={0.24} position={[width * 0.22, topY + 0.282, -depth * 0.3]} rotation={[0, 0, Math.PI / 2]} material={metal} role="metal" sides={16} />
-      <CylinderPart radiusTop={0.021} radiusBottom={0.018} height={0.055} position={[width * 0.105, topY + 0.255, -depth * 0.3]} material={metal} role="metal" sides={16} />
-      <RoundedPart size={[0.065, 0.014, 0.014]} position={[width * 0.35, topY + 0.22, -depth * 0.295]} rotation={[0, 0, -0.18]} radius={0.004} detailLevel={asset.detailLevel} material={metal} role="metal" />
+      <group position={[faucetX, 0, 0]} name="single-centered-faucet">
+        <CylinderPart radiusTop={0.018} height={0.29} position={[0, topY + 0.145, -depth * 0.32]} material={metal} role="metal" sides={16} />
+        <CylinderPart radiusTop={0.018} height={0.24} position={[0, topY + 0.282, -depth * 0.2]} rotation={[Math.PI / 2, 0, 0]} material={metal} role="metal" sides={16} />
+        <CylinderPart radiusTop={0.021} radiusBottom={0.018} height={0.055} position={[0, topY + 0.255, -depth * 0.08]} material={metal} role="metal" sides={16} />
+        <RoundedPart size={[0.065, 0.014, 0.014]} position={[0.055, topY + 0.22, -depth * 0.315]} rotation={[0, 0, -0.18]} radius={0.004} detailLevel={asset.detailLevel} material={metal} role="metal" />
+      </group>
       <CylinderPart radiusTop={0.022} radiusBottom={0.026} height={0.075} position={[-width * 0.34, topY + 0.038, -depth * 0.28]} material={asset.materials.accent} role="metal" color="#b89b72" sides={18} />
     </group>
   );
@@ -361,8 +364,10 @@ export function ParametricCooktop(props: FurnitureFamily3DProps) {
 
 export function ParametricFridge(props: FurnitureFamily3DProps) {
   const { asset, width, depth, height } = props;
+  const config = kitchenConfig(props);
   const metal = layerFor(props, ["metal"], asset.materials.secondary);
   const wood = layerFor(props, ["wood"], asset.materials.accent);
+  const showCabinetSurround = config.fridgeSurround !== "none";
   const frontZ = depth / 2 + 0.018;
   const doorGap = 0.018;
   const topDoorHeight = height * 0.63;
@@ -378,8 +383,8 @@ export function ParametricFridge(props: FurnitureFamily3DProps) {
       ))}
       <RoundedPart size={[width * 0.91, lowerDoorHeight, 0.045]} position={[0, -height * 0.35, frontZ]} radius={0.014} detailLevel={asset.detailLevel} material={metal} role="metal" color="#646968" roughness={0.28} metalness={0.52} />
       <RoundedPart size={[width * 0.42, 0.022, 0.025]} position={[0, -height * 0.25, frontZ + 0.035]} radius={0.006} detailLevel={asset.detailLevel} material={metal} role="metal" color="#c5c9c7" />
-      <RoundedPart size={[width + 0.11, 0.06, depth + 0.1]} position={[0, height / 2 + 0.015, -0.015]} radius={0.014} detailLevel={asset.detailLevel} material={wood} role="wood" />
-      {[-1, 1].map((side) => <RoundedPart key={side} size={[0.055, height + 0.05, depth + 0.08]} position={[side * (width / 2 + 0.028), 0, -0.015]} radius={0.012} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[1, 5]} />)}
+      {showCabinetSurround && <RoundedPart size={[width + 0.11, 0.06, depth + 0.1]} position={[0, height / 2 + 0.015, -0.015]} radius={0.014} detailLevel={asset.detailLevel} material={wood} role="wood" />}
+      {showCabinetSurround && [-1, 1].map((side) => <RoundedPart key={side} size={[0.055, height + 0.05, depth + 0.08]} position={[side * (width / 2 + 0.028), 0, -0.015]} radius={0.012} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[1, 5]} />)}
       <RoundedPart size={[width * 0.76, 0.055, depth * 0.7]} position={[0, -height / 2 + 0.028, -depth * 0.03]} radius={0.01} detailLevel={asset.detailLevel} material={metal} role="metal" color="#323433" />
       <group position={[0, height * 0.47, frontZ + 0.026]}>
         {Array.from({ length: 8 }, (_, index) => <RoundedPart key={index} size={[width * 0.055, 0.01, 0.012]} position={[(-0.245 + index * 0.07) * width, 0, 0]} radius={0.002} detailLevel={asset.detailLevel} material={metal} role="metal" color="#292c2b" />)}

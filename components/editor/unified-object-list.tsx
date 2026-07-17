@@ -22,6 +22,8 @@ type Props = {
   selectedObjectId: string;
   selectedFloorId: FloorId;
   onSelect: (item: UnifiedObjectListItem) => void;
+  lightRuntimeState?: Record<string, { on: boolean; brightness: number }>;
+  onToggleLight?: (item: UnifiedObjectListItem) => void;
 };
 
 type FilterKey = "all" | "unconfirmed" | "conflict" | "unbound" | "hidden";
@@ -35,7 +37,7 @@ const filterLabels: Record<FilterKey, string> = {
   hidden: "已隐藏"
 };
 
-export function UnifiedObjectList({ items, selectedObjectId, selectedFloorId, onSelect }: Props) {
+export function UnifiedObjectList({ items, selectedObjectId, selectedFloorId, onSelect, lightRuntimeState = {}, onToggleLight }: Props) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [groupBy, setGroupBy] = useState<GroupKey>("room");
@@ -95,11 +97,22 @@ export function UnifiedObjectList({ items, selectedObjectId, selectedFloorId, on
           <div className="sticky top-0 z-10 flex items-center justify-between bg-white/95 px-2 py-1 text-[10px] font-semibold text-stone-400 backdrop-blur"><span>{group}</span><span>{groupItems.length}</span></div>
           <div className="space-y-1">{groupItems.map((item) => {
             const selected = item.id === selectedObjectId;
-            return <button ref={selected ? selectedRef : undefined} key={item.id} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition ${selected ? "bg-blue-50 ring-1 ring-blue-200" : item.floorId === selectedFloorId ? "hover:bg-stone-100" : "opacity-65 hover:bg-stone-100"}`} onClick={() => onSelect(item)} type="button">
-              <span className={`grid size-7 shrink-0 place-items-center rounded-md text-[10px] font-bold ${item.hidden ? "bg-stone-200 text-stone-500" : selected ? "bg-blue-600 text-white" : "bg-stone-100 text-stone-500"}`}>{item.typeLabel.slice(0, 1)}</span>
-              <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-800">{item.name}</span><span className="mt-0.5 block truncate text-[10px] text-stone-400">{item.code ?? item.id}{item.dimensions ? ` · ${item.dimensions}` : ""}</span></span>
-              <span className="flex shrink-0 gap-1 text-[9px] text-stone-400">{item.locked ? <span title="已锁定">锁</span> : null}{item.hidden ? <span title="已隐藏">隐</span> : null}{item.conflict ? <span className="text-red-600" title="存在冲突">!</span> : null}</span>
-            </button>;
+            const lightState = item.type === "light" ? lightRuntimeState[item.id] : undefined;
+            return <div key={item.id} className={`flex w-full items-center gap-1 rounded-lg px-1 py-1 transition ${selected ? "bg-blue-50 ring-1 ring-blue-200" : item.floorId === selectedFloorId ? "hover:bg-stone-100" : "opacity-65 hover:bg-stone-100"}`}>
+              <button ref={selected ? selectedRef : undefined} className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left" onClick={() => onSelect(item)} type="button">
+                <span className={`grid size-7 shrink-0 place-items-center rounded-md text-[10px] font-bold ${item.hidden ? "bg-stone-200 text-stone-500" : selected ? "bg-blue-600 text-white" : "bg-stone-100 text-stone-500"}`}>{item.typeLabel.slice(0, 1)}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-slate-800">{item.name}</span><span className="mt-0.5 block truncate text-[10px] text-stone-400">{item.code ?? item.id}{item.dimensions ? ` · ${item.dimensions}` : ""}</span></span>
+                <span className="flex shrink-0 gap-1 text-[9px] text-stone-400">{item.locked ? <span title="已锁定">锁</span> : null}{item.hidden ? <span title="已隐藏">隐</span> : null}{item.conflict ? <span className="text-red-600" title="存在冲突">!</span> : null}</span>
+              </button>
+              {item.type === "light" && onToggleLight ? <button
+                aria-label={`${item.name} 灯光开关`}
+                aria-pressed={lightState?.on ?? false}
+                className={`mr-1 min-w-10 rounded-full px-2 py-1 text-[10px] font-black ${lightState?.on ? "bg-emerald-600 text-white" : "bg-stone-200 text-stone-500"}`}
+                onClick={() => onToggleLight(item)}
+                title={lightState ? `当前${lightState.on ? "开启" : "关闭"} · ${Math.round(lightState.brightness)}%` : "切换这盏灯"}
+                type="button"
+              >{lightState?.on ? "开" : "关"}</button> : null}
+            </div>;
           })}</div>
         </section>)}
         {filteredItems.length === 0 ? <p className="py-10 text-center text-xs text-stone-400">没有符合条件的对象</p> : null}

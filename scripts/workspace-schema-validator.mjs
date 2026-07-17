@@ -5,7 +5,7 @@ import { getVerificationMetaIssues, verificationTargetCollections } from "../lib
 export const REQUIRED_FLOOR_IDS = ["B2", "B1", "1F", "2F", "YARD"];
 const STRUCTURE_COLLECTIONS = [
   "walls", "rooms", "partitions", "stairs", "columns", "fences", "outdoorSurfaces",
-  "doors", "windows", "bayWindows", "skylights", "outdoors"
+  "doors", "windows", "bayWindows", "skylights", "outdoors", "outdoorZones"
 ];
 const DRAWING_ITEM_CATEGORIES = new Set(["socket", "switch", "light", "waterSupply", "drainage", "ceiling", "floorFinish", "wallFinish", "cabinet", "annotation", "network", "ventilation"]);
 const DRAWING_ITEM_SOURCES = new Set(["manual", "generated-from-furniture", "generated-from-room"]);
@@ -16,6 +16,8 @@ const TOUR_NODE_STATUSES = new Set(["active", "draft", "disabled"]);
 const LIGHTING_LAYERS = new Set(["ambient", "task", "accent", "decorative", "cabinetStrip", "mirrorLight", "outdoor"]);
 const LIGHT_COLOR_TEMPERATURES = new Set(["2700K", "3000K", "3500K", "4000K"]);
 const LIGHT_MOUNTING_TYPES = new Set(["recessed", "surfaceMounted", "pendant", "wallMounted", "concealed", "cabinetIntegrated", "mirrorIntegrated", "stepMounted", "floorMounted", "bollard", "groundSpike"]);
+const OUTDOOR_ZONE_TYPES = new Set(["outdoorKitchen", "relax", "laundry", "drying", "pet", "garden", "storage", "plant"]);
+const OUTDOOR_OBJECT_TYPES = new Set(["bbq", "outdoorIsland", "outdoorCabinet", "waterTap", "dryingRack", "dogHouse", "planter", "pathwayLight", "raisedGardenBed", "shadeUmbrella", "petWash", "hoseReel", "toolRack", "outdoorLaundry", "landscapeRock"]);
 
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -209,6 +211,10 @@ export function validateWorkspaceDocument(workspace) {
             for (const key of ["modelAssetId", "assetUrl"]) if (item.render3d[key] !== undefined && typeof item.render3d[key] !== "string") issues.push(issue(`${path}.render3d.${key}`, "must be a string", id || path));
           }
         }
+        if (workspace.schemaVersion >= 18 && item.outdoorObjectType !== undefined) {
+          if (!OUTDOOR_OBJECT_TYPES.has(item.outdoorObjectType)) issues.push(issue(`${path}.outdoorObjectType`, "must be a supported OutdoorObjectType", id || path));
+          if (typeof item.outdoorId !== "string" || typeof item.outdoorZoneId !== "string") issues.push(issue(`${path}.outdoorZoneId`, "outdoor objects must identify outdoorId and outdoorZoneId", id || path));
+        }
       }
       if (label === "roomTourViews") {
         if (!TOUR_NODE_TYPES.has(item.type)) issues.push(issue(`${path}.type`, "must be a supported tour node type", id || path));
@@ -221,6 +227,17 @@ export function validateWorkspaceDocument(workspace) {
         if (!Array.isArray(item.linkedNodeIds) || item.linkedNodeIds.some((value) => typeof value !== "string")) issues.push(issue(`${path}.linkedNodeIds`, "must be a string array", id || path));
         for (const key of ["name", "description"]) if (typeof item[key] !== "string") issues.push(issue(`${path}.${key}`, "must be a string", id || path));
       }
+    });
+  }
+
+  const yardStructure = structures?.YARD;
+  if (workspace.schemaVersion >= 18) {
+    if (!Array.isArray(yardStructure?.outdoorZones) || yardStructure.outdoorZones.length === 0) issues.push(issue("workspace.houseStructuresByFloor.YARD.outdoorZones", "must contain outdoor functional zones", "YARD"));
+    else yardStructure.outdoorZones.forEach((zone, index) => {
+      const path = `workspace.houseStructuresByFloor.YARD.outdoorZones[${index}]`;
+      if (!OUTDOOR_ZONE_TYPES.has(zone.zoneType)) issues.push(issue(`${path}.zoneType`, "must be a supported OutdoorZoneType", zone.id || path));
+      if (!Array.isArray(zone.polygon) || zone.polygon.length < 3) issues.push(issue(`${path}.polygon`, "must contain at least three points", zone.id || path));
+      if (typeof zone.outdoorId !== "string" || !yardStructure.outdoors?.some((yard) => yard.id === zone.outdoorId)) issues.push(issue(`${path}.outdoorId`, "must reference a YARD outdoor boundary", zone.id || path));
     });
   }
 

@@ -38,6 +38,61 @@ function AnimatedCabinetLeaf({
   );
 }
 
+function SquareGridDisplayCabinet3D(props: FurnitureFamily3DProps) {
+  const { asset, width, depth, height, item } = props;
+  const config = item.render3d?.cabinetVisual;
+  const columns = Math.max(3, Math.min(7, Math.round(config?.gridColumns ?? 5)));
+  const rows = Math.max(3, Math.min(6, Math.round(config?.gridRows ?? 4)));
+  const floorY = -height / 2;
+  const frame = Math.min(0.055, Math.max(0.032, width * 0.018));
+  const usableWidth = width - frame * 2;
+  const usableHeight = height - frame * 2;
+  const cellWidth = usableWidth / columns;
+  const cellHeight = usableHeight / rows;
+  const frontZ = depth / 2 + 0.012;
+  const glassColor = config?.glassTone === "smoked" ? "#889295" : config?.glassTone === "gray" ? "#a8b1b3" : "#d8eef0";
+  return (
+    <group name="square-grid-glass-display-cabinet">
+      <RoundedPart size={[width * 0.98, height * 0.98, 0.035]} position={[0, 0, -depth * 0.46]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="wood" color="#b99b78" repeat={[6, 6]} />
+      {[-1, 1].map((side) => <RoundedPart key={`side-${side}`} size={[frame, height, depth]} position={[side * (width / 2 - frame / 2), 0, 0]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[1, 6]} />)}
+      {[-1, 1].map((side) => <RoundedPart key={`cap-${side}`} size={[width, frame, depth]} position={[0, side * (height / 2 - frame / 2), 0]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[6, 1]} />)}
+      {Array.from({ length: columns - 1 }, (_, index) => {
+        const x = -usableWidth / 2 + cellWidth * (index + 1);
+        return <RoundedPart key={`divider-v-${index}`} size={[frame * 0.58, usableHeight, depth * 0.9]} position={[x, 0, -depth * 0.02]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[1, rows]} />;
+      })}
+      {Array.from({ length: rows - 1 }, (_, index) => {
+        const y = floorY + frame + cellHeight * (index + 1);
+        return <RoundedPart key={`divider-h-${index}`} size={[usableWidth, frame * 0.58, depth * 0.9]} position={[0, y, -depth * 0.02]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[columns, 1]} />;
+      })}
+      {Array.from({ length: columns * rows }, (_, index) => {
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const x = -usableWidth / 2 + cellWidth * (column + 0.5);
+        const y = floorY + frame + cellHeight * (row + 0.5);
+        const showObject = config?.displayContents !== false && (index % 3 !== 1 || row === rows - 1);
+        return (
+          <group key={`cell-${column}-${row}`} position={[x, y, 0]}>
+            {showObject && (index % 4 === 0 ? (
+              <group position={[0, -cellHeight * 0.18, depth * 0.08]}>
+                <CylinderPart radiusTop={Math.min(cellWidth, cellHeight) * 0.13} radiusBottom={Math.min(cellWidth, cellHeight) * 0.16} height={cellHeight * 0.3} position={[0, 0, 0]} material={asset.materials.secondary} role="ceramic" color={index % 8 === 0 ? "#b8735a" : "#d2bd9f"} sides={24} />
+              </group>
+            ) : (
+              <RoundedPart size={[cellWidth * 0.42, cellHeight * 0.42, depth * 0.26]} position={[0, -cellHeight * 0.17, depth * 0.02]} rotation={[0, 0, index % 2 ? 0.08 : -0.08]} radius={0.025} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color={index % 2 ? "#8eaa9b" : "#c4a47d"} />
+            ))}
+            <RoundedPart size={[cellWidth - frame * 0.72, cellHeight - frame * 0.72, 0.028]} position={[0, 0, frontZ]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="glass" color={glassColor} opacity={0.22} />
+            <CylinderPart radiusTop={0.009} height={0.018} position={[cellWidth * 0.34, 0, frontZ + 0.025]} rotation={[Math.PI / 2, 0, 0]} material={asset.materials.accent} role="metal" sides={14} />
+          </group>
+        );
+      })}
+      {config?.interiorLighting !== false && Array.from({ length: rows }, (_, row) => {
+        const y = floorY + frame + cellHeight * (row + 1) - frame * 0.45;
+        return <WarmStrip key={`grid-light-${row}`} width={usableWidth * 0.94} position={[0, y, depth * 0.31]} />;
+      })}
+      <RoundedPart size={[width * 0.88, 0.08, depth * 0.78]} position={[0, floorY + 0.04, -depth * 0.03]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#554b42" />
+    </group>
+  );
+}
+
 function TallCabinet3D(props: FurnitureFamily3DProps) {
   const { asset, width, depth, height, item } = props;
   const runtimeOpenAmount = Math.max(0, Math.min(1, props.openAmount ?? 0));
@@ -45,8 +100,11 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
   const variant = resolved.variant.id;
   const sliding = variant === "slidingPanels";
   const floorY = -height / 2;
-  const glass = variant === "glassDisplay" || variant === "slimGlassFrame";
+  const cabinetVisual = item.render3d?.cabinetVisual;
+  const forceGlassDoors = cabinetVisual?.frontStyle === "glass" && cabinetVisual.allDoorPanels !== false;
+  const glass = forceGlassDoors || variant === "glassDisplay" || variant === "slimGlassFrame";
   const open = variant === "openClosedMix" || variant === "woodWarmWhite";
+  const glassColor = cabinetVisual?.glassTone === "gray" ? "#a4adb0" : undefined;
   const panelCount = Math.max(3, Math.min(6, Math.round(width / 0.58)));
   const gap = 0.018;
   const panelWidth = (width - gap * (panelCount + 1)) / panelCount;
@@ -70,8 +128,8 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
       {sliding && [-1, 1].map((side) => <RoundedPart key={`track-${side}`} size={[width * 0.94, 0.018, 0.045]} position={[0, floorY + height * (side > 0 ? 0.945 : 0.055), depth * 0.47]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
       {Array.from({ length: panelCount }, (_, index) => {
         const x = -width / 2 + gap + panelWidth / 2 + index * (panelWidth + gap);
-        const openBay = open && index === openIndex;
-        const glassBay = glass && (index === openIndex || (panelCount > 4 && index === openIndex - 1));
+        const openBay = !forceGlassDoors && open && index === openIndex;
+        const glassBay = forceGlassDoors || (glass && (index === openIndex || (panelCount > 4 && index === openIndex - 1)));
         if (openBay) {
           return (
             <group key={index} position={[x, floorY + height * 0.5, depth * 0.49]}>
@@ -84,7 +142,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
           );
         }
         const panel = <>
-            <RoundedPart size={[panelWidth, height * 0.91, 0.045]} radius={0.012} detailLevel={asset.detailLevel} material={glassBay ? asset.materials.secondary : index % 3 === 1 && variant === "woodWarmWhite" ? asset.materials.secondary : asset.materials.primary} role={glassBay ? "glass" : index % 3 === 1 && variant === "woodWarmWhite" ? "ceramic" : "wood"} opacity={glassBay ? 0.36 : 1} repeat={[2, 6]} />
+            <RoundedPart size={[panelWidth, height * 0.91, 0.045]} radius={0.012} detailLevel={asset.detailLevel} material={glassBay ? asset.materials.secondary : index % 3 === 1 && variant === "woodWarmWhite" ? asset.materials.secondary : asset.materials.primary} role={glassBay ? "glass" : index % 3 === 1 && variant === "woodWarmWhite" ? "ceramic" : "wood"} color={glassBay ? glassColor : undefined} opacity={glassBay ? 0.3 : 1} repeat={[2, 6]} />
             {glassBay && (
               <group>
                 {[-1, 1].map((side) => <RoundedPart key={side} size={[0.025, height * 0.89, 0.055]} position={[side * panelWidth * 0.47, 0, 0.018]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
@@ -214,6 +272,7 @@ function BathroomVanity3D(props: FurnitureFamily3DProps) {
 
 export function CabinetFamily3D(props: FurnitureFamily3DProps) {
   const type = props.asset.assetType;
+  if (props.item.render3d?.cabinetVisual?.layout === "squareGrid") return <SquareGridDisplayCabinet3D {...props} />;
   if (type === "wardrobe" || type === "walkInCloset" || props.height > 1.45) return <TallCabinet3D {...props} />;
   if (type === "island" || type === "kitchenCabinet") return <IslandCabinet3D {...props} />;
   if (type === "bathroomVanity") return <BathroomVanity3D {...props} />;

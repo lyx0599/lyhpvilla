@@ -1,7 +1,7 @@
 "use client";
 
 import { resolveFurnitureVariant } from "@/lib/furniture-variants";
-import { CylinderPart, RoundedPart } from "./primitives";
+import { CylinderPart, RoundedPart, SpherePart } from "./primitives";
 import type { FurnitureFamily3DProps, Vec3 } from "./types";
 
 type ModuleLayout = {
@@ -12,6 +12,19 @@ type ModuleLayout = {
   seatDepth: number;
   chaise: boolean;
 };
+
+function BeanBagSofa3D(props: FurnitureFamily3DProps) {
+  const { asset, width, depth, height } = props;
+  const floorY = -height / 2;
+  return (
+    <group name="bean-bag-lounge-sofa">
+      <SpherePart radius={0.5} position={[0, floorY + height * 0.36, depth * 0.06]} scale={[width * 0.96, height * 0.62, depth * 0.9]} segments={36} material={asset.materials.primary} role="fabric" color="#c8b9aa" roughness={0.96} />
+      <SpherePart radius={0.5} position={[0, floorY + height * 0.72, -depth * 0.22]} rotation={[0.2, 0, 0]} scale={[width * 0.82, height * 0.68, depth * 0.42]} segments={34} material={asset.materials.secondary} role="fabric" color="#b6a492" roughness={0.94} />
+      <RoundedPart size={[width * 0.58, 0.045, depth * 0.48]} position={[0, floorY + height * 0.46, depth * 0.15]} radius={0.022} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" color="#9f8e7e" />
+      <RoundedPart size={[width * 0.7, 0.018, depth * 0.025]} position={[0, floorY + height * 0.67, -depth * 0.41]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" color="#8f7d6d" />
+    </group>
+  );
+}
 
 function getModuleLayout(props: FurnitureFamily3DProps) {
   const { item, asset, width, depth } = props;
@@ -43,6 +56,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
   const { item, asset, width, depth, height } = props;
   const resolved = resolveFurnitureVariant(item, asset.assetType);
   const variant = resolved.variant.id;
+  if (variant === "beanBag") return <BeanBagSofa3D {...props} />;
   const floorY = -height / 2;
   const slim = variant === "slimLegSofa";
   const deep = variant === "deepLounge";
@@ -57,6 +71,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
   const backHeight = height * (deep ? 0.55 : slim ? 0.46 : 0.48);
   const armWidth = compact ? 0.11 : slim ? 0.09 : deep ? 0.2 : 0.14;
   const baseDepth = depth * (deep ? 0.75 : 0.62);
+  const upholsteryRole = asset.materials.primary.role === "leather" ? "leather" : "fabric";
 
   return (
     <group>
@@ -78,7 +93,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
             radius={deep ? 0.095 : 0.075}
             detailLevel={asset.detailLevel}
             material={index % 2 === 1 && modular ? asset.materials.secondary : asset.materials.primary}
-            role="fabric"
+            role={upholsteryRole}
             repeat={[2, 3]}
           />
           <RoundedPart
@@ -87,7 +102,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
             radius={0.006}
             detailLevel={asset.detailLevel}
             material={asset.materials.accent}
-            role="fabric"
+            role={upholsteryRole}
             color="#8b8177"
           />
           {!module.chaise && (
@@ -99,7 +114,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
                 radius={0.07}
                 detailLevel={asset.detailLevel}
                 material={asset.materials.primary}
-                role="fabric"
+                role={upholsteryRole}
                 repeat={[2, 2]}
               />
               <RoundedPart size={[module.width * 0.78, 0.012, 0.012]} position={[0, seatY + backHeight * 0.5, -depth * (deep ? 0.425 : 0.38)]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" color="#81776e" />
@@ -118,7 +133,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
             radius={curved ? 0.11 : slim ? 0.035 : 0.07}
             detailLevel={asset.detailLevel}
             material={asset.materials.primary}
-            role="fabric"
+            role={upholsteryRole}
             repeat={[1, 3]}
           />
         );
@@ -131,7 +146,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
           radius={0.055}
           detailLevel={asset.detailLevel}
           material={asset.materials.primary}
-          role="fabric"
+          role={upholsteryRole}
         />
       ))}
       {slim ? [-1, 1].flatMap((x) => [-1, 1].map((z) => (

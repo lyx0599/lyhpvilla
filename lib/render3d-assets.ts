@@ -32,7 +32,7 @@ export type Resolved3DAsset = {
   complexGroup: boolean;
 };
 
-export type Render3DMaterialRole = "wood" | "fabric" | "stone" | "metal" | "glass" | "ceramic" | "light" | "plant" | "generic";
+export type Render3DMaterialRole = "wood" | "fabric" | "leather" | "stone" | "metal" | "glass" | "ceramic" | "light" | "plant" | "generic";
 
 export type Render3DMaterialDefinition = {
   label: string;
@@ -68,6 +68,8 @@ export const render3DMaterialTokenCatalog = {
   beigeFabric: { label: "米灰布艺", role: "fabric", color: "#d8cabc", roughness: 0.94, metalness: 0 },
   taupeFabric: { label: "灰褐布艺", role: "fabric", color: "#aa9786", roughness: 0.93, metalness: 0 },
   camelFabric: { label: "浅驼软装", role: "fabric", color: "#b99876", roughness: 0.9, metalness: 0 },
+  cognacLeather: { label: "棕色头层真皮", role: "leather", color: "#7b4428", roughness: 0.46, metalness: 0.01 },
+  darkBrownLeather: { label: "深棕真皮", role: "leather", color: "#4f2d20", roughness: 0.5, metalness: 0.01 },
   warmGreyStone: { label: "暖灰石材", role: "stone", color: "#d8d1c6", roughness: 0.34, metalness: 0.04 },
   travertine: { label: "米色洞石", role: "stone", color: "#ded2bd", roughness: 0.38, metalness: 0.03 },
   microCement: { label: "暖灰微水泥", role: "stone", color: "#cbc3b8", roughness: 0.72, metalness: 0.02 },
@@ -76,6 +78,7 @@ export const render3DMaterialTokenCatalog = {
   brushedBronze: { label: "拉丝古铜", role: "metal", color: "#a17f5b", roughness: 0.26, metalness: 0.72 },
   clearGlass: { label: "低铁玻璃", role: "glass", color: "#c9e7e8", roughness: 0.04, metalness: 0.02, opacity: 0.34 },
   smokedGlass: { label: "茶色玻璃", role: "glass", color: "#8f8379", roughness: 0.08, metalness: 0.04, opacity: 0.38 },
+  graySmokedGlass: { label: "灰色透明玻璃", role: "glass", color: "#9ca5a8", roughness: 0.07, metalness: 0.05, opacity: 0.3 },
   mirror: { label: "镜面", role: "glass", color: "#b9c4c4", roughness: 0.06, metalness: 0.82, opacity: 0.68 },
   warmLightEmissive: { label: "2700K-3000K 暖光", role: "light", color: "#ffe7b0", roughness: 0.18, metalness: 0, emissive: "#ffe7b0", emissiveIntensity: 0.74 },
   plantSoftGreen: { label: "低饱和绿植", role: "plant", color: "#7f936c", roughness: 0.72, metalness: 0 }
