@@ -19437,6 +19437,16 @@
         "needsSmartControl": false,
         "relatedCircuit": "防溅/防水回路",
         "notes": "供洗手和洗杯使用，墙排优先，不设置镜柜。"
+      },
+      "constructionAnchors": {
+        "points": [
+          { "id": "furn-b2-study-handwash-001-cold", "type": "coldWater", "label": "小台盆冷水", "positionMm": { "x": -55, "y": 550, "z": -185 }, "installationHeightMm": 550 },
+          { "id": "furn-b2-study-handwash-001-hot", "type": "hotWater", "label": "小台盆热水", "positionMm": { "x": 55, "y": 550, "z": -185 }, "installationHeightMm": 550 },
+          { "id": "furn-b2-study-handwash-001-drain", "type": "drain", "label": "小台盆墙排", "positionMm": { "x": 0, "y": 500, "z": -172 }, "installationHeightMm": 500 }
+        ],
+        "openingSizeMm": { "width": 180, "depth": 160 },
+        "installationHeightMm": 850,
+        "notes": "冷热水与墙排随小台盆移动同步，墙面交接处做防水收口。"
       }
     },
     {

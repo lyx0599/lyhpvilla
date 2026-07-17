@@ -6,7 +6,7 @@ const wetTypes = new Set(["vanity", "toilet", "shower", "bathtub"]);
 const storageTypes = new Set(["wardrobe", "cabinet", "bookshelf", "snackCabinet"]);
 const wetItems = workspace.furniture.filter((item) => wetTypes.has(item.moduleType ?? item.type));
 
-assert.equal(wetItems.length, 12, "the confirmed B1 no-shower layout should keep the remaining wet-area fixtures");
+assert.equal(wetItems.length, 13, "the confirmed B1 no-shower layout plus B2 study handwash should keep the wet-area fixture set");
 assert.equal(workspace.furniture.some((item) => item.id === "furn-b1-bath-shower-001"), false, "B1 must not restore the removed shower.");
 assert.ok(workspace.furniture.some((item) => item.id === "furn-b1-laundry-washer-001"), "B1 laundry must keep its washing machine.");
 for (const item of wetItems) {

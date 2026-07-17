@@ -611,7 +611,9 @@ export function generateLightingDesignV1(input: {
         created += 1;
         return;
       }
-      const manuallyAdjusted = !current.generatedFingerprint || getDrawingItemGeneratedFingerprint(current) !== current.generatedFingerprint;
+      // A confirmed fixture is an explicit human decision even when its legacy
+      // generated fingerprint predates a newer lighting schema.
+      const manuallyAdjusted = current.status === "confirmed" || !current.generatedFingerprint || getDrawingItemGeneratedFingerprint(current) !== current.generatedFingerprint;
       if (manuallyAdjusted && !input.overwriteConflicts) {
         conflicts.push(current);
         outputByKey.set(key, current);

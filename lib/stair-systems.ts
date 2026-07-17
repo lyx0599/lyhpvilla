@@ -94,9 +94,14 @@ function landingFromPair(pair: StairPairDefinition, lower: HouseStair, upper: Ho
   const laneUnit = { x: (upper.end.x - lower.end.x) / laneLength, y: (upper.end.y - lower.end.y) / laneLength };
   const halfWidth = Math.min(lower.width, upper.width) / 2;
   const requestedDepth = lower.landingDepthMm ?? upper.landingDepthMm;
-  const depth = requestedDepth === undefined
-    ? Math.max(Math.min(lower.width, upper.width), 900)
-    : Math.max(300, Math.min(2000, requestedDepth));
+  // A turning landing must span the full stair width so both runs terminate on
+  // the far side of the core. Older drawings may carry a smaller clearance
+  // value here; it is not a valid structural landing depth.
+  const depth = Math.max(
+    Math.min(lower.width, upper.width),
+    900,
+    Math.max(300, Math.min(2000, requestedDepth ?? 0))
+  );
   const firstOuter = roundPoint({ x: lower.end.x - laneUnit.x * halfWidth, y: lower.end.y - laneUnit.y * halfWidth });
   const secondOuter = roundPoint({ x: upper.end.x + laneUnit.x * halfWidth, y: upper.end.y + laneUnit.y * halfWidth });
   return {

@@ -434,10 +434,18 @@ function hitsBox(point: { x: number; z: number }, box: CollisionBox, radius: num
 }
 
 export function isExplorationPositionSafe(world: ExplorationCollisionWorld, point: { x: number; z: number }, radius = EXPLORATION_CHARACTER_RADIUS) {
-  const onStair = world.stairs.some((stair) => distanceToSegment(point, stair.start, stair.end).distance <= stair.width / 2);
+  // Include the avatar radius at the edge of a flight so an under-stair door or
+  // partition marked as non-blocking cannot clip the walkable stair approach.
+  const stairContact = world.stairs.map((stair) => ({ stair, hit: distanceToSegment(point, stair.start, stair.end) }))
+    .find(({ stair, hit }) => hit.distance <= stair.width / 2 + radius);
+  const onStair = Boolean(stairContact);
+  // The final tread joins the half-landing at the core wall. Give that small
+  // arrival zone priority, otherwise the collision wall blocks the staircase
+  // before the floor-transition logic can take over.
+  const atStairArrival = Boolean(stairContact && stairContact.hit.t >= 0.82);
   const inOpenDoorway = world.doors.some((door) => door.open && Math.hypot(door.center.x - point.x, door.center.z - point.z) <= door.door.width * MM_TO_M / 2 + radius);
   if (world.walkablePolygons.length > 0 && !onStair && !inOpenDoorway && !world.walkablePolygons.some((polygon) => pointInPolygon(point, polygon))) return false;
-  if (world.segments.some((segment) => !(onStair && segment.ignoreOnStair) && distanceToSegment(point, segment.start, segment.end).distance < segment.halfThickness + radius)) return false;
+  if (world.segments.some((segment) => !(onStair && (segment.ignoreOnStair || (atStairArrival && segment.kind === "wall"))) && distanceToSegment(point, segment.start, segment.end).distance < segment.halfThickness + radius)) return false;
   if (world.boxes.some((box) => !(onStair && box.ignoreOnStair) && hitsBox(point, box, radius))) return false;
   return true;
 }

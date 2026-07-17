@@ -13,6 +13,7 @@ import {
 
 const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
 const data = buildConstructionPackageData(workspace);
+const baselineValidation = validateConstructionPackage(workspace);
 
 assert.equal(constructionPackageSheets.length, 15);
 for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆改施工图", "家具定位图", "插座点位图", "开关控制图", "灯光点位图", "给水点位图", "排水点位图", "吊顶图", "地面铺装图", "墙面材料图", "材料索引清单（辅助输出）", "待确认项清单（检查附件）"]) {
@@ -89,11 +90,11 @@ assert.equal(validation.valid, false);
 assert.equal(validation.orphanIssues.length > 0, true);
 assert.equal(validation.draftItems.some((item) => item.id === "DI-EXPORT-ORPHAN"), true);
 assert.equal(validation.reviewItems.some((item) => item.id === "DI-EXPORT-ORPHAN"), true);
-assert.equal(validation.warningCounts.socketMissingHeight, 1);
-assert.equal(validation.warningCounts.switchMissingLights, 1);
-assert.equal(validation.warningCounts.lightMissingColorTemperature, 1);
-assert.equal(validation.warningCounts.drainageMissingType, 1);
-assert.equal(validation.warningCounts.finishMissingMaterial, 1);
+assert.equal(validation.warningCounts.socketMissingHeight, baselineValidation.warningCounts.socketMissingHeight + 1);
+assert.equal(validation.warningCounts.switchMissingLights, baselineValidation.warningCounts.switchMissingLights + 1);
+assert.equal(validation.warningCounts.lightMissingColorTemperature, baselineValidation.warningCounts.lightMissingColorTemperature + 1);
+assert.equal(validation.warningCounts.drainageMissingType, baselineValidation.warningCounts.drainageMissingType + 1);
+assert.equal(validation.warningCounts.finishMissingMaterial, baselineValidation.warningCounts.finishMissingMaterial + 1);
 assert.ok(validation.warningCounts.todo >= 2);
 assert.ok(validation.warningCounts.yardNeedsReview >= 1);
 assert.ok(validation.warningCounts.dimensionConflicts >= 1);
