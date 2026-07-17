@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { resolveFurnitureVariant } from "@/lib/furniture-variants";
 import { CylinderPart, RoundedPart } from "./primitives";
 import type { FurnitureFamily3DProps } from "./types";
@@ -13,8 +14,33 @@ function WarmStrip({ width, position }: { width: number; position: [number, numb
   );
 }
 
+function AnimatedCabinetLeaf({
+  children,
+  position,
+  width,
+  hingeSide,
+  openAmount
+}: {
+  children: ReactNode;
+  position: [number, number, number];
+  width: number;
+  hingeSide: -1 | 1;
+  openAmount: number;
+}) {
+  const hingeOffset = hingeSide * width / 2;
+  return (
+    <group
+      position={[position[0] + hingeOffset, position[1], position[2]]}
+      rotation={[0, -hingeSide * openAmount * Math.PI * 0.48, 0]}
+    >
+      <group position={[-hingeOffset, 0, 0]}>{children}</group>
+    </group>
+  );
+}
+
 function TallCabinet3D(props: FurnitureFamily3DProps) {
   const { asset, width, depth, height, item } = props;
+  const runtimeOpenAmount = Math.max(0, Math.min(1, props.openAmount ?? 0));
   const resolved = resolveFurnitureVariant(item, asset.assetType);
   const variant = resolved.variant.id;
   const sliding = variant === "slidingPanels";
@@ -40,6 +66,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
         <RoundedPart key={index} size={[0.018, height * 0.89, depth * 0.76]} position={[-width / 2 + (index + 1) * (width / panelCount), carcassY, -depth * 0.05]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" />
       ))}
       <RoundedPart size={[width * 0.94, 0.08, depth * 0.76]} position={[0, floorY + 0.04, -depth * 0.04]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#574f47" />
+      {runtimeOpenAmount > 0.01 && <RoundedPart size={[width * 0.94, height * 0.88, 0.024]} position={[0, carcassY, depth * 0.455]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#3d342c" />}
       {sliding && [-1, 1].map((side) => <RoundedPart key={`track-${side}`} size={[width * 0.94, 0.018, 0.045]} position={[0, floorY + height * (side > 0 ? 0.945 : 0.055), depth * 0.47]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
       {Array.from({ length: panelCount }, (_, index) => {
         const x = -width / 2 + gap + panelWidth / 2 + index * (panelWidth + gap);
@@ -56,8 +83,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
             </group>
           );
         }
-        return (
-          <group key={index} position={[x, floorY + height * 0.5, depth * (sliding && index % 2 ? 0.46 : 0.495)]}>
+        const panel = <>
             <RoundedPart size={[panelWidth, height * 0.91, 0.045]} radius={0.012} detailLevel={asset.detailLevel} material={glassBay ? asset.materials.secondary : index % 3 === 1 && variant === "woodWarmWhite" ? asset.materials.secondary : asset.materials.primary} role={glassBay ? "glass" : index % 3 === 1 && variant === "woodWarmWhite" ? "ceramic" : "wood"} opacity={glassBay ? 0.36 : 1} repeat={[2, 6]} />
             {glassBay && (
               <group>
@@ -66,7 +92,16 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
               </group>
             )}
             {!glassBay && variant !== "fullHeightFlat" && !sliding && <RoundedPart size={[0.018, Math.min(0.22, height * 0.13), 0.025]} position={[panelWidth * 0.34 * (index % 2 ? -1 : 1), 0, 0.035]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />}
-          </group>
+          </>;
+        const panelPosition: [number, number, number] = [x, floorY + height * 0.5, depth * (sliding && index % 2 ? 0.46 : 0.495)];
+        if (sliding) {
+          const slideDirection = index % 2 ? -1 : 1;
+          return <group key={index} position={[panelPosition[0] + slideDirection * runtimeOpenAmount * panelWidth * 0.72, panelPosition[1], panelPosition[2]]}>{panel}</group>;
+        }
+        return (
+          <AnimatedCabinetLeaf key={index} position={panelPosition} width={panelWidth} hingeSide={index % 2 ? 1 : -1} openAmount={runtimeOpenAmount}>
+            {panel}
+          </AnimatedCabinetLeaf>
         );
       })}
     </group>
@@ -75,6 +110,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
 
 function LowStorageCabinet3D(props: FurnitureFamily3DProps) {
   const { asset, width, depth, height, item } = props;
+  const runtimeOpenAmount = Math.max(0, Math.min(1, props.openAmount ?? 0));
   const resolved = resolveFurnitureVariant(item, asset.assetType);
   const variant = resolved.variant.id;
   const floorY = -height / 2;
@@ -90,6 +126,7 @@ function LowStorageCabinet3D(props: FurnitureFamily3DProps) {
   return (
     <group>
       <RoundedPart size={[width, bodyHeight, depth]} position={[0, bodyY, 0]} radius={0.025} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[Math.max(3, bayCount), 3]} />
+      {runtimeOpenAmount > 0.01 && <RoundedPart size={[width * 0.94, bodyHeight * 0.84, 0.024]} position={[0, bodyY, depth * 0.505]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#3d342c" />}
       {Array.from({ length: bayCount }, (_, index) => {
         const x = -width / 2 + bayWidth * (index + 0.5);
         const openBay = open && index === openIndex;
@@ -104,11 +141,18 @@ function LowStorageCabinet3D(props: FurnitureFamily3DProps) {
           );
         }
         const drawer = index < Math.ceil(bayCount / 2);
-        return (
-          <group key={index} position={[x, bodyY, depth * 0.515]}>
+        const panel = <>
             {drawer ? [-0.23, 0.08, 0.35].map((ratio) => <RoundedPart key={ratio} size={[bayWidth * 0.9, bodyHeight * 0.27, 0.045]} position={[0, ratio * bodyHeight, 0]} radius={0.012} detailLevel={asset.detailLevel} material={index % 2 ? asset.materials.secondary : asset.materials.primary} role={index % 2 ? "ceramic" : "wood"} />) : <RoundedPart size={[bayWidth * 0.9, bodyHeight * 0.88, 0.045]} radius={0.012} detailLevel={asset.detailLevel} material={index % 2 ? asset.materials.secondary : asset.materials.primary} role={index % 2 ? "ceramic" : "wood"} />}
             {variant !== "handleless" && <RoundedPart size={[Math.min(0.14, bayWidth * 0.45), 0.014, 0.02]} position={[0, drawer ? bodyHeight * 0.08 : 0, 0.035]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />}
-          </group>
+          </>;
+        const panelPosition: [number, number, number] = [x, bodyY, depth * 0.515];
+        if (drawer) {
+          return <group key={index} position={[panelPosition[0], panelPosition[1], panelPosition[2] + runtimeOpenAmount * Math.min(0.36, depth * 0.66)]}>{panel}</group>;
+        }
+        return (
+          <AnimatedCabinetLeaf key={index} position={panelPosition} width={bayWidth * 0.9} hingeSide={index % 2 ? 1 : -1} openAmount={runtimeOpenAmount}>
+            {panel}
+          </AnimatedCabinetLeaf>
         );
       })}
       {Array.from({ length: bayCount - 1 }, (_, index) => (

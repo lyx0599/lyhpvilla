@@ -3,6 +3,7 @@ import type { FloorId } from "../types/space";
 
 export type ValidationSeverity = "blocking" | "error" | "warning" | "info";
 export type ValidationCategory = "blocking" | "geometry" | "relation" | "metadata" | "drawing";
+export type ValidationProductGroup = "confirmed-conflict" | "high-risk" | "pending-data" | "suggestion" | "system-error";
 
 export type ValidationRuleDefinition = {
   id: string;
@@ -43,6 +44,11 @@ export const validationRules: ValidationRuleDefinition[] = [
   { id: "FURNITURE_OUTSIDE_SPACE", name: "家具有效边界", category: "geometry", severity: "error", applicableWorkspaces: ["furniture"], applicableObjectTypes: ["solidFurniture"], excludedObjectTypes: ["rug"] },
   { id: "FURNITURE_CROSSES_STRUCTURE", name: "家具穿越实体结构", category: "geometry", severity: "error", applicableWorkspaces: ["furniture"], applicableObjectTypes: ["solidFurniture"], excludedObjectTypes: ["rug", "wallMounted"] },
   { id: "FURNITURE_OVERLAP_3D", name: "实体家具三维重叠", category: "geometry", severity: "error", applicableWorkspaces: ["furniture"], applicableObjectTypes: ["solidFurniture"], excludedObjectTypes: ["rug", "integrated"], requires3D: true },
+  { id: "WALL_STORY_HEIGHT", name: "真实墙高与层高一致", category: "geometry", severity: "warning", applicableWorkspaces: ["space"], applicableObjectTypes: ["wall"], requires3D: true },
+  { id: "FULL_HEIGHT_CABINET_CEILING", name: "通顶柜绑定完成天花", category: "geometry", severity: "error", applicableWorkspaces: ["furniture"], applicableObjectTypes: ["cabinet"], requires3D: true },
+  { id: "CABINET_CEILING_PENETRATION", name: "柜体不得穿出天花", category: "geometry", severity: "error", applicableWorkspaces: ["furniture"], applicableObjectTypes: ["cabinet"], requires3D: true },
+  { id: "FURNITURE_SCENE_BOUNDS", name: "跨视图家具包围盒一致", category: "geometry", severity: "error", applicableWorkspaces: ["furniture", "space"], applicableObjectTypes: ["furniture"], requires3D: true },
+  { id: "WALL_MODE_FURNITURE_INVARIANCE", name: "墙体模式不改变家具尺寸", category: "geometry", severity: "error", applicableWorkspaces: ["furniture", "space"], applicableObjectTypes: ["furniture"], requires3D: true },
   { id: "OPERATION_CLEARANCE", name: "操作面净空", category: "geometry", severity: "warning", applicableWorkspaces: ["furniture"], applicableObjectTypes: ["cabinet", "appliance", "sanitary", "bed", "dining"] },
   { id: "DOOR_CLEARANCE", name: "门洞及门扇开启", category: "geometry", severity: "error", applicableWorkspaces: ["furniture", "space"], applicableObjectTypes: ["door", "solidFurniture"], requires3D: true },
   { id: "WINDOW_OPERATION", name: "窗户操作空间", category: "geometry", severity: "warning", applicableWorkspaces: ["furniture", "space"], applicableObjectTypes: ["window", "solidFurniture"], requires3D: true },
@@ -87,4 +93,13 @@ export function getValidationGroup(severity: ValidationSeverity, category: Valid
   if (category === "metadata") return "metadata" as const;
   if (severity === "warning") return "confirm" as const;
   return "repair" as const;
+}
+
+/** Product-facing grouping: separates design conflicts from missing evidence and system integrity errors. */
+export function getValidationProductGroup(finding: Pick<ValidationFinding, "severity" | "category">): ValidationProductGroup {
+  if (finding.severity === "blocking" || finding.category === "blocking") return "system-error";
+  if (finding.category === "metadata" || finding.category === "drawing") return "pending-data";
+  if (finding.severity === "error") return "confirmed-conflict";
+  if (finding.severity === "warning") return "high-risk";
+  return "suggestion";
 }

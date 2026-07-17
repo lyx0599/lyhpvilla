@@ -18,19 +18,15 @@ export type StraightHostPanel = {
   reachesTop: boolean;
 };
 
-export const DOOR_3D_DISPLAY_HEIGHT_MM = 1320;
-export const WINDOW_3D_DISPLAY_HEIGHT_MM = 680;
-export const WINDOW_3D_SILL_HEIGHT_MM = 340;
-
 export function getDoor3DDisplayHeight(openingHeightMm: number) {
-  return Math.min(openingHeightMm, DOOR_3D_DISPLAY_HEIGHT_MM);
+  return Math.max(0, openingHeightMm);
 }
 
-export function getWindow3DDisplayMetrics(hostHeightMm: number, openingHeightMm: number) {
-  const heightMm = Math.min(openingHeightMm, WINDOW_3D_DISPLAY_HEIGHT_MM);
+export function getWindow3DDisplayMetrics(hostHeightMm: number, openingHeightMm: number, explicitSillHeightMm?: number) {
+  const heightMm = Math.max(0, openingHeightMm);
   return {
     heightMm,
-    sillHeightMm: Math.min(WINDOW_3D_SILL_HEIGHT_MM, Math.max(0, hostHeightMm - heightMm))
+    sillHeightMm: explicitSillHeightMm ?? getOpeningSillHeight(hostHeightMm, heightMm)
   };
 }
 
@@ -67,7 +63,7 @@ export function getHostedOpeningCuts(
   const windows = structure.windows
     .filter((windowObject) => windowObject.hostId === hostId && windowObject.hostType === hostType)
     .map((windowObject) => {
-      const { heightMm, sillHeightMm } = getWindow3DDisplayMetrics(hostHeightMm, windowObject.height);
+      const { heightMm, sillHeightMm } = getWindow3DDisplayMetrics(hostHeightMm, windowObject.height, windowObject.sillHeightMm);
       return toCut(
         windowObject.id,
         "window",

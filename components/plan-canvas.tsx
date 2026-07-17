@@ -131,6 +131,7 @@ type Props = {
   yardImmersiveMode?: boolean;
   yardFocus?: YardFocus;
   mobilePresentationMode?: boolean;
+  editorPresentationMode?: boolean;
   workspaceMutationAllowed?: boolean;
   mobileDisplayLevel?: MobileDisplayLevel;
   mobileProfessionalSheetMode?: DrawingSheetType | PlanCanvasMode | string;
@@ -615,6 +616,7 @@ export function PlanCanvas({
   yardImmersiveMode = false,
   yardFocus = "south",
   mobilePresentationMode = false,
+  editorPresentationMode = false,
   workspaceMutationAllowed = true,
   mobileDisplayLevel = "simple",
   mobileProfessionalSheetMode = "socketPlan",
@@ -6902,6 +6904,7 @@ export function PlanCanvas({
           allDrawingItems={constructionExportWorkspace.drawingItems}
           drawingSheetType={normalizeDrawingSheetType(sheetMode) ?? "sitePlan"}
           mobilePresentationMode={mobilePresentationMode}
+          externalPresentationMode={editorPresentationMode}
           mobileQuality={mobileQuality}
           resetViewRequest={resetViewRequest}
           cameraViews={cameraViews}
@@ -6912,6 +6915,7 @@ export function PlanCanvas({
           selectedObjectId={selectedDrawingItemId || selectedInteractionObjectId}
           selectedFurnitureId={selectedFurnitureId}
           showObjectIds={developerMode && showObjectIds}
+          showDebugTools={developerMode}
           onShowObjectIdsChange={(visible) => { if (developerMode) setShowObjectIds(visible); }}
           onSelectStructure={(objectId) => {
             setSelectedDrawingItemId("");

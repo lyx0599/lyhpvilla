@@ -4,8 +4,14 @@ import { drawingWorkspaces, legacyDrawingEntryAudit, resolveDrawingWorkspace } f
 import { evaluateOutputDrawings, outputDrawingDefinitions } from "../lib/output-drawings.ts";
 
 const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
-assert.deepEqual(drawingWorkspaces.map((item) => item.name), ["空间布局", "拆改", "家具与设备", "水电与照明", "顶面与饰面"]);
-assert.equal(drawingWorkspaces.length, 5);
+assert.deepEqual(drawingWorkspaces.map((item) => item.name), ["总平面", "空间布局", "拆改", "家具与设备", "水电与照明", "顶面与饰面"]);
+assert.equal(drawingWorkspaces.length, 6);
+const overview = drawingWorkspaces.find((item) => item.id === "overview");
+assert.equal(overview?.mode, "sitePlan");
+assert.equal(overview?.persistedSheet, "sitePlan");
+assert.equal(overview?.visibleLayers.furnitureOverlay, true);
+assert.equal(overview?.visibleLayers.semanticOverlay, false);
+assert.equal(resolveDrawingWorkspace("overview").tabs, undefined);
 assert.deepEqual(drawingWorkspaces.find((item) => item.id === "mep")?.tabs?.map((tab) => tab.name), ["插座", "开关", "灯光", "给水", "排水"]);
 assert.deepEqual(drawingWorkspaces.find((item) => item.id === "finishes")?.tabs?.map((tab) => tab.name), ["吊顶", "地面", "墙面", "材料"]);
 assert.equal(drawingWorkspaces.some((item) => item.id.includes("stair") || item.name === "楼梯图"), false);

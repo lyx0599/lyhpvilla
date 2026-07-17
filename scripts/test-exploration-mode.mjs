@@ -3,14 +3,17 @@ import { readFile } from "node:fs/promises";
 import {
   buildExplorationCollisionWorld,
   canExecuteEditorCommand,
+  createExplorationCabinetStates,
   createExplorationDoorStates,
   EXPLORATION_CHARACTER_RADIUS,
   findExplorationStairTransition,
+  findNearestExplorationCabinet,
   findNearestExplorationDoor,
   findNearestSafeExplorationPosition,
   getConnectedStairArrival,
   getExplorationGroundHeight,
   isExplorationPositionSafe,
+  reconcileExplorationCabinetStates,
   reconcileExplorationDoorStates,
   resolveExplorationCameraPlanPosition,
   resolveExplorationThirdPersonCameraPlanPosition,
@@ -96,6 +99,7 @@ const furniture = [{
 }];
 
 assert.equal(canExecuteEditorCommand("exploration", "move"), true);
+assert.equal(canExecuteEditorCommand("exploration", "toggle-cabinet"), true);
 for (const blocked of ["create", "delete", "transform", "edit-property", "change-material", "undo", "redo", "copy", "paste", "import", "ai-edit"]) {
   assert.equal(canExecuteEditorCommand("exploration", blocked), false, `${blocked} must be blocked in exploration mode`);
 }
@@ -118,6 +122,14 @@ const stopped = resolveExplorationMovement(openWorld, { x: 0, y: 0, z: 0.45 }, {
 assert.notDeepEqual(stopped, { x: 1, y: 0, z: 1 }, "Movement must not enter a furniture blocker.");
 assert.ok(findNearestSafeExplorationPosition(openWorld, { x: 1, z: 1 }), "Invalid positions must resolve to a nearby safe point.");
 assert.ok(resolveExplorationSpawn(structure, openWorld), "A safe entrance spawn must be derived from unified room data.");
+
+const interactiveCabinet = { ...furniture[0], position: { x: 50, y: 50, rotation: 0 } };
+const cabinetStates = createExplorationCabinetStates([interactiveCabinet]);
+assert.deepEqual(cabinetStates[interactiveCabinet.id], { open: false, currentAmount: 0 });
+const lookedAtCabinet = findNearestExplorationCabinet([interactiveCabinet], structure, { x: 0, y: 0, z: 1.2 }, 0, -0.55);
+assert.equal(lookedAtCabinet?.item.id, interactiveCabinet.id, "A nearby cabinet in the center of the gaze must become interactive.");
+assert.equal(findNearestExplorationCabinet([interactiveCabinet], structure, { x: 0, y: 0, z: 1.2 }, Math.PI, -0.55), null, "A cabinet behind the gaze must not steal the interaction target.");
+assert.equal(Object.keys(reconcileExplorationCabinetStates(cabinetStates, [])).length, 0, "Removed cabinets must not remain in exploration runtime state.");
 
 const stairStructure = structuredClone(structure);
 stairStructure.walls = [];
@@ -180,11 +192,12 @@ assert.equal(explorationRendererSource.includes('drawingSheetType="materialPlan"
 assert.equal(explorationRendererSource.includes('designStyle="warmJapandi"'), false, "Exploration must inherit the active 3D design style.");
 assert.equal(explorationRendererSource.includes('drawingViewPreset={viewMode'), false, "First/third person must not change scene geometry presets.");
 assert.equal(explorationRendererSource.includes("furnitureHeightModeOverride={sceneSettings.furnitureHeightMode}"), true, "Exploration must reuse the ordinary 3D furniture height mode.");
-assert.equal(explorationRendererSource.includes("wallDisplayModeOverride={sceneSettings.wallDisplayMode}"), true, "Exploration must reuse the ordinary 3D wall display mode.");
+assert.equal(explorationRendererSource.includes('const explorationWallDisplayMode: Drawing3DWallMode = "full"'), true, "Exploration must use complete real-height walls.");
+assert.equal(explorationRendererSource.includes("wallDisplayModeOverride={explorationWallDisplayMode}"), true, "Exploration must not inherit a drawing workspace cutaway wall mode.");
 assert.equal(explorationRendererSource.includes("allDrawingItems={allDrawingItems}"), true, "Exploration must retain the same finish and technical drawing data.");
 assert.equal(explorationEntrySource.includes('drawingSheetType: "sitePlan"'), false, "The exploration entry must not replace the active workspace sheet.");
 assert.equal(explorationEntrySource.includes('furnitureHeightMode: "actual"'), false, "The exploration entry must not replace the active furniture height mode.");
-assert.equal(explorationEntrySource.includes('wallDisplayMode: "full"'), false, "The exploration entry must not replace the active wall mode.");
+assert.equal(explorationEntrySource.includes('wallDisplayMode: "full"'), false, "The exploration entry must preserve the editor wall mode for the return trip; the renderer owns the exploration display policy.");
 const canonicalDoorStates = createExplorationDoorStates(workspace.houseStructuresByFloor);
 for (const floor of workspace.floors) {
   const canonicalStructure = workspace.houseStructuresByFloor[floor.id];

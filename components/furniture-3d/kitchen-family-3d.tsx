@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { ResolvedRender3DMaterialLayer, Render3DMaterialRole } from "@/lib/render3d-assets";
 import type { KitchenVisualConfig } from "@/types/space";
 import { FurnitureMaterial } from "./materials";
@@ -21,6 +22,27 @@ function WarmTaskStrip({ width, y, z, material }: { width: number; y: number; z:
       <boxGeometry args={[width, 0.016, 0.022]} />
       <FurnitureMaterial layer={material} role="light" color="#ffe4ad" emissiveIntensity={0.82} roughness={0.18} />
     </mesh>
+  );
+}
+
+function AnimatedKitchenLeaf({
+  children,
+  position,
+  width,
+  hingeSide,
+  openAmount
+}: {
+  children: ReactNode;
+  position: [number, number, number];
+  width: number;
+  hingeSide: -1 | 1;
+  openAmount: number;
+}) {
+  const hingeOffset = hingeSide * width / 2;
+  return (
+    <group position={[position[0] + hingeOffset, position[1], position[2]]} rotation={[0, -hingeSide * openAmount * Math.PI * 0.48, 0]}>
+      <group position={[-hingeOffset, 0, 0]}>{children}</group>
+    </group>
   );
 }
 
@@ -90,7 +112,10 @@ function CabinetFrontPanel({
   y,
   z,
   drawerRows = 0,
-  appliance = false
+  appliance = false,
+  openAmount = 0,
+  openDistance = 0.3,
+  hingeSide = -1
 }: {
   props: FurnitureFamily3DProps;
   width: number;
@@ -100,6 +125,9 @@ function CabinetFrontPanel({
   z: number;
   drawerRows?: number;
   appliance?: boolean;
+  openAmount?: number;
+  openDistance?: number;
+  hingeSide?: -1 | 1;
 }) {
   const wood = layerFor(props, ["wood"], props.asset.materials.primary);
   const panel = layerFor(props, ["ceramic", "wood"], props.asset.materials.secondary);
@@ -126,8 +154,7 @@ function CabinetFrontPanel({
     <group>
       {Array.from({ length: rows }, (_, index) => {
         const rowY = y - height / 2 + rowHeight / 2 + index * (rowHeight + gap);
-        return (
-          <group key={index} position={[x, rowY, z]}>
+        const face = <>
             <RoundedPart
               size={[width, rowHeight, 0.04]}
               radius={0.009}
@@ -150,7 +177,14 @@ function CabinetFrontPanel({
             {handleStyle === "edgePull" && <RoundedPart size={[width * 0.68, 0.018, 0.014]} position={[0, rowHeight * 0.43, 0.034]} radius={0.003} detailLevel={props.asset.detailLevel} material={metal} role="metal" color="#6f655b" />}
             {handleStyle === "groove" && <RoundedPart size={[width * 0.58, 0.016, 0.01]} position={[0, rowHeight * 0.34, 0.031]} radius={0.006} detailLevel={props.asset.detailLevel} material={metal} role="metal" color="#4a423a" />}
             {handleStyle === "knob" && <CylinderPart radiusTop={0.018} height={0.026} position={[width * 0.31, 0, 0.04]} rotation={[Math.PI / 2, 0, 0]} material={metal} role="metal" sides={16} />}
-          </group>
+          </>;
+        if (drawerRows > 0) {
+          return <group key={index} position={[x, rowY, z + openAmount * openDistance]}>{face}</group>;
+        }
+        return (
+          <AnimatedKitchenLeaf key={index} position={[x, rowY, z]} width={width} hingeSide={hingeSide} openAmount={openAmount}>
+            {face}
+          </AnimatedKitchenLeaf>
         );
       })}
     </group>
@@ -159,6 +193,7 @@ function CabinetFrontPanel({
 
 export function ParametricCabinet(props: FurnitureFamily3DProps) {
   const { asset, item, width, depth, height } = props;
+  const runtimeOpenAmount = Math.max(0, Math.min(1, props.openAmount ?? 0));
   const config = kitchenConfig(props);
   const kind = config.cabinetKind ?? (asset.assetType === "wallCabinet" ? "wall" : asset.assetType === "island" ? "island" : "base");
   const wallMounted = kind === "wall";
@@ -180,6 +215,7 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
   return (
     <group name="parametric-cabinet">
       <RoundedPart size={[width, bodyHeight, depth * 0.92]} position={[0, bodyY, -depth * 0.02]} radius={0.016} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[Math.max(3, bayCount), 3]} />
+      {runtimeOpenAmount > 0.01 && <RoundedPart size={[width * 0.95, bodyHeight * 0.88, 0.022]} position={[0, bodyY, frontZ - 0.035]} radius={0.005} detailLevel={asset.detailLevel} material={metal} role="wood" color="#39322c" />}
       {[-1, 1].map((side) => <RoundedPart key={side} size={[Math.max(0.02, (config.endPanelThicknessMm ?? 22) / 1000), bodyHeight * 1.02, depth * 0.96]} position={[side * (width / 2 - 0.012), bodyY, -depth * 0.01]} radius={0.009} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[1, 3]} />)}
       {Array.from({ length: bayCount }, (_, index) => {
         const x = -width / 2 + gap + bayWidth / 2 + index * (bayWidth + gap);
@@ -195,6 +231,9 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
             z={frontZ}
             drawerRows={!appliance && (index === bayCount - 1 || (island && index === 0)) ? drawerRows : 0}
             appliance={appliance}
+            openAmount={appliance ? 0 : runtimeOpenAmount}
+            openDistance={Math.min(0.36, depth * 0.66)}
+            hingeSide={index % 2 ? 1 : -1}
           />
         );
       })}
@@ -224,7 +263,12 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
           <RoundedPart size={[width * 0.92, 0.72, depth * 0.54]} radius={0.014} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[Math.max(3, bayCount), 2]} />
           {Array.from({ length: bayCount }, (_, index) => {
             const upperBayWidth = width * 0.86 / bayCount;
-            return <RoundedPart key={index} size={[upperBayWidth - 0.012, 0.64, 0.035]} position={[-width * 0.43 + upperBayWidth * (index + 0.5), 0, depth * 0.285]} radius={0.008} detailLevel={asset.detailLevel} material={index % 3 === 1 ? asset.materials.secondary : wood} role={index % 3 === 1 ? "ceramic" : "wood"} />;
+            const x = -width * 0.43 + upperBayWidth * (index + 0.5);
+            return (
+              <AnimatedKitchenLeaf key={index} position={[x, 0, depth * 0.285]} width={upperBayWidth - 0.012} hingeSide={index % 2 ? 1 : -1} openAmount={runtimeOpenAmount}>
+                <RoundedPart size={[upperBayWidth - 0.012, 0.64, 0.035]} radius={0.008} detailLevel={asset.detailLevel} material={index % 3 === 1 ? asset.materials.secondary : wood} role={index % 3 === 1 ? "ceramic" : "wood"} />
+              </AnimatedKitchenLeaf>
+            );
           })}
           <WarmTaskStrip width={width * 0.82} y={-0.37} z={depth * 0.25} material={asset.materials.accent} />
         </group>

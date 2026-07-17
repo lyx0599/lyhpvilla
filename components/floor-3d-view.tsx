@@ -22,6 +22,7 @@ import {
   getDrawing3DPresentationProfile
 } from "@/lib/drawing-3d-profiles";
 import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
+import { getWallRenderPolicy, resolveStructureStoryHeightMm, WALL_CUT_RATIO } from "@/lib/scene-height-system";
 import {
   filterSceneDrawingItems,
   filterSceneFurniture,
@@ -31,12 +32,14 @@ import {
 } from "@/lib/unified-scene-graph";
 import {
   findExplorationStairTransition,
+  findNearestExplorationCabinet,
   findNearestExplorationDoor,
   findNearestSafeExplorationPosition,
   getConnectedStairArrival,
   getExplorationGroundHeight,
   isExplorationPositionSafe,
   resolveExplorationMovement,
+  type ExplorationCabinetStates,
   type ExplorationCollisionWorld,
   type ExplorationDoorStates,
   type ExplorationLightingMode,
@@ -102,6 +105,7 @@ type Floor3DViewProps = {
   selectedObjectId: string;
   selectedFurnitureId: string;
   showObjectIds: boolean;
+  showDebugTools?: boolean;
   onShowObjectIdsChange: (visible: boolean) => void;
   onSelectStructure: (objectId: string) => void;
   onSelectFurniture: (furniture: Furniture) => void;
@@ -115,6 +119,7 @@ type Floor3DViewProps = {
   cameraViewFloorIds?: Floor["id"][];
   cameraViewRequest?: { view: FixedCameraView; nonce: number } | null;
   mobilePresentationMode?: boolean;
+  externalPresentationMode?: boolean;
   mobileQuality?: MobileQuality;
   resetViewRequest?: number;
   onSelectCameraView?: (view: FixedCameraView) => void;
@@ -206,14 +211,11 @@ type DesignStylePalette = {
 const MM_TO_M = 1 / 1000;
 const DEFAULT_STRUCTURE_WIDTH_MM = 12000;
 const DEFAULT_STRUCTURE_HEIGHT_MM = 9000;
-const WALL_PREVIEW_HEIGHT_MM = 1180;
-const WALL_SELECTED_HEIGHT_MM = 2250;
 const WALL_PREVIEW_OPACITY = 0.94;
 const WALL_SELECTED_OPACITY = 0.78;
 const WALL_CAP_HEIGHT_MM = 86;
 const WALL_CAP_COLOR = "#2f3538";
 const WALL_CAP_SELECTED_COLOR = "#1d4ed8";
-const CUTAWAY_OBJECT_MAX_HEIGHT_M = (WALL_PREVIEW_HEIGHT_MM - 90) * MM_TO_M;
 const RAILING_SELECTED_COLOR = "#2563eb";
 const DEFAULT_CEILING_HEIGHT_MM = 2800;
 const CAMERA_TARGET = new THREE.Vector3(0.12, 0.42, 0.32);
@@ -543,8 +545,8 @@ function RoundedBoxMesh({
   );
 }
 
-function shouldUseFineAsset({ materialPreview, resolvedAsset }: FurnitureAssetGroupProps) {
-  return materialPreview && resolvedAsset.detailLevel !== "draft";
+function shouldUseFineAsset({ materialPreview, resolvedAsset, cabinetOpenAmount }: FurnitureAssetGroupProps) {
+  return cabinetOpenAmount !== undefined || (materialPreview && resolvedAsset.detailLevel !== "draft");
 }
 
 function isClosetFurnitureModule(item: Furniture, structure: HouseStructure) {
@@ -556,11 +558,9 @@ function useFineAssetMetrics({ item, structure, designStyle, resolvedAsset, heig
   const position = getFurnitureScenePosition(item, structure);
   const width = Math.max(0.12, item.dimensions.width / 100);
   const depth = Math.max(0.08, item.dimensions.depth / 100);
-  const height = resolvedAsset.detailLevel === "draft" || heightMode === "cutaway"
-    ? getFurnitureVisualHeight(item, heightMode)
-    : getFurnitureActualHeight(item);
+  const height = getFurnitureActualHeight(item);
   const rotation = -(item.position.rotation || 0) * Math.PI / 180;
-  const groupY = getFurnitureVisualElevation(item, height, heightMode) + height / 2 + 0.035;
+  const groupY = getFurnitureActualElevation(item) + height / 2 + 0.035;
   const palette = designStylePalettes[designStyle];
   const materials = resolvedAsset.materials;
   const renderVariant = getFurnitureRenderVariant(item, palette, materials);
@@ -1638,28 +1638,11 @@ function getFurnitureScenePosition(item: Furniture, structure: HouseStructure): 
 function getFurnitureActualHeight(item: Furniture) {
   const height = item.dimensions.height / 100;
   if (isRugLike(item)) return 0.024;
-  return Math.max(0.024, Math.min(height, 2.8));
+  return Math.max(0.024, height);
 }
 
-function getFurnitureCutawayHeight(item: Furniture) {
-  const height = getFurnitureActualHeight(item);
-  if (item.moduleType === "pegboard" || item.moduleType === "fireplace") return Math.max(0.08, Math.min(height, CUTAWAY_OBJECT_MAX_HEIGHT_M));
-  if (item.moduleType === "shower") return Math.max(0.86, Math.min(height * 0.46, CUTAWAY_OBJECT_MAX_HEIGHT_M));
-  if (item.moduleType === "wardrobe") return Math.max(0.88, Math.min(height * 0.42, CUTAWAY_OBJECT_MAX_HEIGHT_M - 0.04));
-  if (item.moduleType === "tallCabinet" || item.moduleType === "fridge" || item.moduleType === "bookshelf") return Math.max(0.92, Math.min(height * 0.44, CUTAWAY_OBJECT_MAX_HEIGHT_M - 0.02));
-  if (item.moduleType === "cabinet" || item.moduleType === "sideboard" || item.moduleType === "entryCabinet" || item.moduleType === "snackCabinet") return Math.max(0.68, Math.min(height * 0.86, 0.92));
-  if (item.floorId !== "YARD") return Math.max(0.12, Math.min(height, CUTAWAY_OBJECT_MAX_HEIGHT_M));
-  return Math.max(0.12, Math.min(height, 2.8));
-}
-
-function getFurnitureVisualHeight(item: Furniture, mode: FurnitureAssetGroupProps["heightMode"]) {
-  return mode === "cutaway" ? getFurnitureCutawayHeight(item) : getFurnitureActualHeight(item);
-}
-
-function getFurnitureVisualElevation(item: Furniture, visualHeight: number, mode: FurnitureAssetGroupProps["heightMode"]) {
-  const actualElevation = Math.max(0, (item.render3d?.elevationMm ?? 0) * MM_TO_M);
-  if (mode === "actual") return actualElevation;
-  return Math.min(actualElevation, Math.max(0, CUTAWAY_OBJECT_MAX_HEIGHT_M - visualHeight));
+function getFurnitureActualElevation(item: Furniture) {
+  return Math.max(0, (item.render3d?.elevationMm ?? 0) * MM_TO_M);
 }
 
 function getFurnitureColor(item: Furniture) {
@@ -2629,6 +2612,7 @@ function LineBox({
   selected = false,
   textureKind = null,
   textureAccent,
+  clippingPlanes,
   onSelect,
   onHover,
   onClearHover
@@ -2645,6 +2629,7 @@ function LineBox({
   selected?: boolean;
   textureKind?: ProceduralTextureKind | null;
   textureAccent?: string;
+  clippingPlanes?: THREE.Plane[];
   onSelect?: (id: string) => void;
   onHover?: (id: string) => void;
   onClearHover?: (id: string) => void;
@@ -2680,6 +2665,7 @@ function LineBox({
         transparent={opacity < 1}
         opacity={opacity}
         roughness={0.7}
+        clippingPlanes={clippingPlanes ?? null}
       />
     </mesh>
   );
@@ -2812,6 +2798,7 @@ function SolidWallSegment({
   heightMm,
   color,
   wallOpacity,
+  clippingPlanes,
   selected,
   onSelect,
   onHover,
@@ -2825,6 +2812,7 @@ function SolidWallSegment({
   heightMm: number;
   color: string;
   wallOpacity?: number;
+  clippingPlanes?: THREE.Plane[];
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2846,6 +2834,7 @@ function SolidWallSegment({
         textureKind="wall"
         textureAccent={effectMaterialCatalog.wallPaint.color}
         selected={selected}
+        clippingPlanes={clippingPlanes}
         onSelect={onSelect}
         onHover={onHover}
         onClearHover={onClearHover}
@@ -2863,6 +2852,7 @@ function SolidWallSegment({
         textureKind="wood"
         textureAccent="#5d3d26"
         selected={selected}
+        clippingPlanes={clippingPlanes}
         onSelect={onSelect}
         onHover={onHover}
         onClearHover={onClearHover}
@@ -2878,6 +2868,7 @@ function SolidWallSegment({
         opacity={selected ? 1 : wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
         yOffset={bodyHeightMm * MM_TO_M}
         selected={selected}
+        clippingPlanes={clippingPlanes}
         onSelect={onSelect}
         onHover={onHover}
         onClearHover={onClearHover}
@@ -2896,6 +2887,7 @@ function SolidWallSegment({
           textureKind="wood"
           textureAccent="#6f4c34"
           selected={false}
+          clippingPlanes={clippingPlanes}
           onSelect={onSelect}
           onHover={onHover}
           onClearHover={onClearHover}
@@ -2917,6 +2909,7 @@ function CutWallPanel({
   widthMm,
   color,
   wallOpacity,
+  clippingPlanes,
   selected,
   onSelect,
   onHover,
@@ -2933,6 +2926,7 @@ function CutWallPanel({
   widthMm: number;
   color: string;
   wallOpacity?: number;
+  clippingPlanes?: THREE.Plane[];
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -2955,6 +2949,7 @@ function CutWallPanel({
         textureKind="wall"
         textureAccent={effectMaterialCatalog.wallPaint.color}
         selected={selected}
+        clippingPlanes={clippingPlanes}
         onSelect={onSelect}
         onHover={onHover}
         onClearHover={onClearHover}
@@ -2971,6 +2966,7 @@ function CutWallPanel({
           opacity={selected ? 1 : wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
           yOffset={(bottomMm + bodyHeightMm) * MM_TO_M}
           selected={selected}
+          clippingPlanes={clippingPlanes}
           onSelect={onSelect}
           onHover={onHover}
           onClearHover={onClearHover}
@@ -2991,6 +2987,7 @@ function CutWallPanel({
             textureKind="wood"
             textureAccent="#5d3d26"
             selected={selected}
+            clippingPlanes={clippingPlanes}
             onSelect={onSelect}
             onHover={onHover}
             onClearHover={onClearHover}
@@ -3007,6 +3004,7 @@ function CutWallPanel({
               yOffset={0.018}
               textureKind="wood"
               textureAccent="#6f4c34"
+              clippingPlanes={clippingPlanes}
               onSelect={onSelect}
               onHover={onHover}
               onClearHover={onClearHover}
@@ -3018,10 +3016,9 @@ function CutWallPanel({
   );
 }
 
-function getWallDisplayHeightMm(heightMm: number, selected: boolean, wallMode: Drawing3DWallMode) {
-  if (wallMode === "full") return heightMm;
-  if (wallMode === "low") return Math.min(heightMm, selected ? 1450 : 820);
-  return Math.min(heightMm, selected ? WALL_SELECTED_HEIGHT_MM : WALL_PREVIEW_HEIGHT_MM);
+function getWallClippingPlanes(structure: HouseStructure, wallMode: Drawing3DWallMode) {
+  if (wallMode !== "cutaway") return undefined;
+  return [new THREE.Plane(new THREE.Vector3(0, -1, 0), resolveStructureStoryHeightMm(structure) * WALL_CUT_RATIO * MM_TO_M)];
 }
 
 function StraightWallWithOpenings({
@@ -3045,10 +3042,10 @@ function StraightWallWithOpenings({
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
-  const displayHeightMm = getWallDisplayHeightMm(wall.height, selected, wallMode);
+  const clippingPlanes = getWallClippingPlanes(structure, wallMode);
   const lengthMm = Math.max(1, Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y));
   const cuts = getHostedOpeningCuts(structure, wall.id, "wall", lengthMm, wall.height);
-  const panels = getStraightHostPanels(wall.start, wall.end, displayHeightMm, cuts);
+  const panels = getStraightHostPanels(wall.start, wall.end, wall.height, cuts);
   return (
     <group>
       {panels.map((panel, index) => (
@@ -3066,6 +3063,7 @@ function StraightWallWithOpenings({
           color={wallColor}
           selected={selected}
           wallOpacity={wallOpacity}
+          clippingPlanes={clippingPlanes}
           onSelect={onSelect}
           onHover={onHover}
           onClearHover={onClearHover}
@@ -3140,7 +3138,7 @@ function WallMesh({
 
   if (wall.kind === "arc") {
     const points = getArcWallPoints(wall);
-    const heightMm = getWallDisplayHeightMm(wall.height, selected, wallMode);
+    const clippingPlanes = getWallClippingPlanes(structure, wallMode);
     return (
       <group>
         {points.slice(0, -1).map((point, index) => (
@@ -3150,11 +3148,12 @@ function WallMesh({
             start={point}
             end={points[index + 1]}
             widthMm={wall.thickness}
-            heightMm={heightMm}
+            heightMm={wall.height}
             structure={structure}
             color={wallColor}
             selected={selected}
             wallOpacity={wallOpacity}
+            clippingPlanes={clippingPlanes}
             onSelect={onSelect}
             onHover={onHover}
             onClearHover={onClearHover}
@@ -3188,11 +3187,12 @@ function WallMesh({
       start={wall.start}
       end={wall.end}
       widthMm={wall.thickness}
-      heightMm={getWallDisplayHeightMm(wall.height, selected, wallMode)}
+      heightMm={wall.height}
       structure={structure}
       color={wallColor}
       selected={selected}
       wallOpacity={wallOpacity}
+      clippingPlanes={getWallClippingPlanes(structure, wallMode)}
       onSelect={onSelect}
       onHover={onHover}
       onClearHover={onClearHover}
@@ -3223,11 +3223,12 @@ function PartitionMesh({
       start={partition.start}
       end={partition.end}
       widthMm={partition.thickness}
-      heightMm={getWallDisplayHeightMm(partition.height, selected, wallMode)}
+      heightMm={partition.height}
       structure={structure}
       color={partition.material === "glass" ? "#bae6fd" : "#ddd6c8"}
       opacity={partition.transparency ? Math.max(0.28, 1 - partition.transparency) : 0.82}
       selected={selected}
+      clippingPlanes={getWallClippingPlanes(structure, wallMode)}
       onSelect={onSelect}
       onHover={onHover}
       onClearHover={onClearHover}
@@ -3308,7 +3309,7 @@ function OpeningMesh({
   };
   const isDoor = "openDirection" in opening;
   const width = Math.max(0.2, opening.width * MM_TO_M);
-  const windowDisplayMetrics = isDoor ? null : getWindow3DDisplayMetrics(host.height, opening.height);
+  const windowDisplayMetrics = isDoor ? null : getWindow3DDisplayMetrics(host.height, opening.height, opening.sillHeightMm);
   const displayHeightMm = isDoor ? getDoor3DDisplayHeight(opening.height) : windowDisplayMetrics!.heightMm;
   const height = Math.max(0.3, displayHeightMm * MM_TO_M);
   const sillHeight = isDoor ? 0 : windowDisplayMetrics!.sillHeightMm * MM_TO_M;
@@ -3496,7 +3497,7 @@ function SkylightMesh({
   const frameColor = selected ? "#2563eb" : effectMaterialCatalog.blackMetal.color;
   return (
     <group
-      position={[center.x, (wallMode === "full" ? Math.max(DEFAULT_CEILING_HEIGHT_MM, ...structure.walls.map((wall) => wall.height)) : WALL_PREVIEW_HEIGHT_MM) * MM_TO_M + 0.04, center.z]}
+      position={[center.x, resolveStructureStoryHeightMm(structure) * MM_TO_M + 0.04, center.z]}
       rotation={[0, -skylight.rotation * Math.PI / 180, 0]}
       onClick={(event) => {
         event.stopPropagation();
@@ -4033,6 +4034,7 @@ type FurnitureAssetGroupProps = {
   structure: HouseStructure;
   heightMode: "actual" | "cutaway";
   sceneLod: UnifiedSceneLod;
+  cabinetOpenAmount?: number;
   materialPreview: boolean;
   designStyle: DesignStylePreset;
   selected: boolean;
@@ -4057,7 +4059,7 @@ function FurnitureBlock({
   const position = getFurnitureScenePosition(item, structure);
   const width = Math.max(0.12, item.dimensions.width / 100);
   const depth = Math.max(0.08, item.dimensions.depth / 100);
-  const height = getFurnitureVisualHeight(item, heightMode);
+  const height = getFurnitureActualHeight(item);
   const rotation = -(item.position.rotation || 0) * Math.PI / 180;
   const palette = designStylePalettes[designStyle];
   const assetType = resolvedAsset.assetType;
@@ -4106,7 +4108,7 @@ function FurnitureBlock({
   const frontZ = depth / 2 + 0.01;
   const fireplaceVisualWidth = fireplaceLike && materialPreview ? Math.max(width, 1.65) : width;
   const floorLift = rugLike ? 0.012 : 0.035;
-  const groupY = getFurnitureVisualElevation(item, height, heightMode) + height / 2 + floorLift;
+  const groupY = getFurnitureActualElevation(item) + height / 2 + floorLift;
   const topLocalY = height / 2 + 0.025;
   const ceilingLocalY = 2.28 - groupY;
   const furnitureColor = useSelectionTint ? "#2563eb" : cabinetLike
@@ -5458,6 +5460,7 @@ function FineVariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
         width={metrics.width}
         depth={metrics.depth}
         height={metrics.height}
+        openAmount={props.cabinetOpenAmount}
       />
     </SelectableFurnitureGroup>
   );
@@ -6982,9 +6985,22 @@ function resolveSceneWallDisplayMode({
       ? "cutaway"
       : drawingProfile.wallMode;
   if (!lightingActive) return presetWallDisplayMode;
-  if (lightingWallMode === "full" || lightingWallMode === "transparent") return "full";
-  if (lightingWallMode === "hideOccluding") return "low";
+  if (lightingWallMode === "full") return "full";
+  if (lightingWallMode === "transparent") return "exteriorTransparent";
+  if (lightingWallMode === "hideOccluding") return "exteriorHidden";
   return "cutaway";
+}
+
+function LocalClippingController() {
+  const { gl } = useThree();
+  useEffect(() => {
+    const previous = gl.localClippingEnabled;
+    gl.localClippingEnabled = true;
+    return () => {
+      gl.localClippingEnabled = previous;
+    };
+  }, [gl]);
+  return null;
 }
 
 function Floor3DScene({
@@ -7024,6 +7040,7 @@ function Floor3DScene({
   onCameraPlanPoseChange = () => undefined,
   sceneController,
   explorationDoorStates,
+  explorationCabinetStates,
   explorationLightingMode,
   wallDisplayModeOverride,
   furnitureHeightModeOverride,
@@ -7086,6 +7103,7 @@ function Floor3DScene({
   onCameraPlanPoseChange?: (pose: CameraPlanPose) => void;
   sceneController?: ReactNode;
   explorationDoorStates?: ExplorationDoorStates;
+  explorationCabinetStates?: ExplorationCabinetStates;
   explorationLightingMode?: ExplorationLightingMode;
   wallDisplayModeOverride?: Drawing3DWallMode;
   furnitureHeightModeOverride?: FurnitureHeightMode;
@@ -7235,6 +7253,7 @@ function Floor3DScene({
   const relatedWallIds = new Set(visibleDrawingItems.flatMap((item) => [item.hostWallId, item.wallId]).filter((id): id is string => Boolean(id)));
   return (
     <>
+      <LocalClippingController />
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} />
       {sceneController ?? <CameraRig
         preset={cameraPreset}
@@ -7341,7 +7360,7 @@ function Floor3DScene({
             id={`room-ceiling-${currentRoom.id}`}
             points={currentRoom.boundary}
             structure={houseStructure}
-            y={DEFAULT_CEILING_HEIGHT_MM * MM_TO_M}
+            y={(currentRoom.finishedCeilingHeightMm ?? resolveStructureStoryHeightMm(houseStructure)) * MM_TO_M}
             color="#eee8dc"
             roughness={0.76}
             opacity={roomCeilingMode === "solid" ? 0.94 : 0.2}
@@ -7363,20 +7382,24 @@ function Floor3DScene({
           onHover={onHoverObject}
           onClearHover={onClearHoverObject}
         />
-      ) : materialPlanShowsStructure && houseStructure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => (
-        <WallMesh
-          key={wall.id}
-          wall={wall}
-          structure={houseStructure}
-          wallColor={drawingSheetType === "wallFinishPlan" && relatedWallIds.has(wall.id) ? "#f0a5c7" : isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : palette.wall}
-          wallMode={lightingWallDisplayMode}
-          wallOpacity={lightingWallOpacity}
-          selected={selectedObjectId === wall.id}
-          onSelect={onSelectStructure}
-          onHover={onHoverObject}
-          onClearHover={onClearHoverObject}
-        />
-      ))}
+      ) : materialPlanShowsStructure && houseStructure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => {
+        const policy = getWallRenderPolicy(wall, houseStructure, lightingWallDisplayMode);
+        if (!policy.visible) return null;
+        return (
+          <WallMesh
+            key={wall.id}
+            wall={wall}
+            structure={houseStructure}
+            wallColor={drawingSheetType === "wallFinishPlan" && relatedWallIds.has(wall.id) ? "#f0a5c7" : isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : palette.wall}
+            wallMode={lightingWallDisplayMode}
+            wallOpacity={policy.opacity ?? lightingWallOpacity}
+            selected={selectedObjectId === wall.id}
+            onSelect={onSelectStructure}
+            onHover={onHoverObject}
+            onClearHover={onClearHoverObject}
+          />
+        );
+      })}
 
       {!currentRoomActive && houseStructure.fences.filter((fence) => resolveVisibility(fence).visible3d).map((fence) => (
         <FenceMesh
@@ -7531,6 +7554,7 @@ function Floor3DScene({
           structure={houseStructure}
           heightMode={furnitureHeightMode}
           sceneLod={sceneVisibility.lod}
+          cabinetOpenAmount={explorationCabinetStates?.[item.id]?.currentAmount}
           materialPreview={materialPreview}
           designStyle={designStyle}
           selected={selectedFurnitureId === item.id || selectedObjectId === item.id || Boolean(selectedFurnitureMaterialText && materialText(item) === selectedFurnitureMaterialText)}
@@ -7617,15 +7641,18 @@ type Exploration3DViewProps = {
   collisionWorld: ExplorationCollisionWorld;
   spawnPosition: ExplorationPoint;
   doorStates: ExplorationDoorStates;
+  cabinetStates: ExplorationCabinetStates;
   viewMode: ExplorationViewMode;
   lightingMode: ExplorationLightingMode;
   resetRequest: number;
   onToggleDoor: (doorId: string) => void;
+  onToggleCabinet: (cabinetId: string) => void;
   onToggleView: () => void;
   onExit: () => void;
   onFloorTransition: (floorId: Floor["id"]) => void;
   onPositionChange: (position: ExplorationPoint, walking: boolean) => void;
   onNearbyDoorChange: (doorId: string | null) => void;
+  onNearbyCabinetChange: (cabinetId: string | null) => void;
   onPointerLockChange: (locked: boolean) => void;
 };
 
@@ -7634,32 +7661,44 @@ const EXPLORATION_THIRD_PERSON_DISTANCE = 6.2;
 const EXPLORATION_THIRD_PERSON_HEIGHT = 5.3;
 const EXPLORATION_THIRD_PERSON_LOOK_AHEAD = 1.2;
 const EXPLORATION_THIRD_PERSON_SIDE_ANGLE = 0.38;
+const EXPLORATION_FIRST_PERSON_FOV = 74;
+const EXPLORATION_FIRST_PERSON_EYE_HEIGHT = 1.62;
+const EXPLORATION_FIRST_PERSON_MIN_PITCH = -1.02;
+const EXPLORATION_FIRST_PERSON_MAX_PITCH = 0.88;
 
 function ExplorationCharacterController({
   world,
+  structure,
+  furniture,
   structuresByFloor,
   spawnPosition,
   viewMode,
   resetRequest,
   onToggleDoor,
+  onToggleCabinet,
   onToggleView,
   onExit,
   onFloorTransition,
   onPositionChange,
   onNearbyDoorChange,
+  onNearbyCabinetChange,
   onPointerLockChange
 }: {
   world: ExplorationCollisionWorld;
+  structure: HouseStructure;
+  furniture: Furniture[];
   structuresByFloor: Partial<Record<Floor["id"], HouseStructure>>;
   spawnPosition: ExplorationPoint;
   viewMode: ExplorationViewMode;
   resetRequest: number;
   onToggleDoor: (doorId: string) => void;
+  onToggleCabinet: (cabinetId: string) => void;
   onToggleView: () => void;
   onExit: () => void;
   onFloorTransition: (floorId: Floor["id"]) => void;
   onPositionChange: (position: ExplorationPoint, walking: boolean) => void;
   onNearbyDoorChange: (doorId: string | null) => void;
+  onNearbyCabinetChange: (cabinetId: string | null) => void;
   onPointerLockChange: (locked: boolean) => void;
 }) {
   const { camera, gl } = useThree();
@@ -7674,10 +7713,13 @@ function ExplorationCharacterController({
   const pitchRef = useRef(-0.12);
   const walkingRef = useRef(false);
   const nearbyDoorIdRef = useRef<string | null>(null);
+  const nearbyCabinetIdRef = useRef<string | null>(null);
   const transitionCooldownRef = useRef(0);
   const reportElapsedRef = useRef(0);
   const gaitElapsedRef = useRef(0);
   const worldRef = useRef(world);
+  const structureRef = useRef(structure);
+  const furnitureRef = useRef(furniture);
   const forwardRef = useRef(new THREE.Vector3());
   const rightRef = useRef(new THREE.Vector3());
   const moveRef = useRef(new THREE.Vector3());
@@ -7686,22 +7728,28 @@ function ExplorationCharacterController({
   const spawnRef = useRef(spawnPosition);
   const callbacksRef = useRef({
     onToggleDoor,
+    onToggleCabinet,
     onToggleView,
     onExit,
     onFloorTransition,
     onPositionChange,
     onNearbyDoorChange,
+    onNearbyCabinetChange,
     onPointerLockChange
   });
   worldRef.current = world;
+  structureRef.current = structure;
+  furnitureRef.current = furniture;
   spawnRef.current = spawnPosition;
   callbacksRef.current = {
     onToggleDoor,
+    onToggleCabinet,
     onToggleView,
     onExit,
     onFloorTransition,
     onPositionChange,
     onNearbyDoorChange,
+    onNearbyCabinetChange,
     onPointerLockChange
   };
 
@@ -7719,7 +7767,7 @@ function ExplorationCharacterController({
 
   useEffect(() => {
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
-    camera.fov = viewMode === "firstPerson" ? 62 : EXPLORATION_THIRD_PERSON_FOV;
+    camera.fov = viewMode === "firstPerson" ? EXPLORATION_FIRST_PERSON_FOV : EXPLORATION_THIRD_PERSON_FOV;
     camera.updateProjectionMatrix();
   }, [camera, viewMode]);
 
@@ -7743,7 +7791,11 @@ function ExplorationCharacterController({
     const handleMouseMove = (event: MouseEvent) => {
       if (document.pointerLockElement !== canvas) return;
       yawRef.current -= event.movementX * 0.0025;
-      pitchRef.current = THREE.MathUtils.clamp(pitchRef.current - event.movementY * 0.002, -0.5, 0.32);
+      pitchRef.current = THREE.MathUtils.clamp(
+        pitchRef.current - event.movementY * 0.00225,
+        EXPLORATION_FIRST_PERSON_MIN_PITCH,
+        EXPLORATION_FIRST_PERSON_MAX_PITCH
+      );
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -7769,6 +7821,17 @@ function ExplorationCharacterController({
       }
       if (event.code === "KeyE") {
         event.preventDefault();
+        const cabinet = findNearestExplorationCabinet(
+          furnitureRef.current,
+          structureRef.current,
+          positionRef.current,
+          yawRef.current,
+          pitchRef.current
+        );
+        if (cabinet) {
+          callbacksRef.current.onToggleCabinet(cabinet.item.id);
+          return;
+        }
         const nearest = findNearestExplorationDoor(worldRef.current, positionRef.current);
         if (nearest) callbacksRef.current.onToggleDoor(nearest.door.id);
         return;
@@ -7855,10 +7918,10 @@ function ExplorationCharacterController({
     if (characterRef.current) characterRef.current.position.y += walkingRef.current ? Math.abs(Math.sin(gaitElapsedRef.current * 2)) * 0.018 : Math.sin(gaitElapsedRef.current) * 0.008;
 
     if (viewMode === "firstPerson") {
-      camera.position.set(position.x, position.y + 1.46, position.z);
+      camera.position.set(position.x, position.y + EXPLORATION_FIRST_PERSON_EYE_HEIGHT, position.z);
       lookTargetRef.current.set(
         position.x + Math.sin(yawRef.current) * Math.cos(pitchRef.current),
-        position.y + 1.46 + Math.sin(pitchRef.current),
+        position.y + EXPLORATION_FIRST_PERSON_EYE_HEIGHT + Math.sin(pitchRef.current),
         position.z - Math.cos(yawRef.current) * Math.cos(pitchRef.current)
       );
       camera.lookAt(lookTargetRef.current);
@@ -7886,6 +7949,18 @@ function ExplorationCharacterController({
     if (nearbyDoorIdRef.current !== nextNearbyDoorId) {
       nearbyDoorIdRef.current = nextNearbyDoorId;
       callbacksRef.current.onNearbyDoorChange(nextNearbyDoorId);
+    }
+    const nearestCabinet = findNearestExplorationCabinet(
+      furnitureRef.current,
+      structureRef.current,
+      position,
+      yawRef.current,
+      pitchRef.current
+    );
+    const nextNearbyCabinetId = nearestCabinet?.item.id ?? null;
+    if (nearbyCabinetIdRef.current !== nextNearbyCabinetId) {
+      nearbyCabinetIdRef.current = nextNearbyCabinetId;
+      callbacksRef.current.onNearbyCabinetChange(nextNearbyCabinetId);
     }
     reportElapsedRef.current += safeDelta;
     if (reportElapsedRef.current >= 0.14) {
@@ -8045,18 +8120,25 @@ export function Exploration3DView({
   collisionWorld,
   spawnPosition,
   doorStates,
+  cabinetStates,
   viewMode,
   lightingMode,
   resetRequest,
   onToggleDoor,
+  onToggleCabinet,
   onToggleView,
   onExit,
   onFloorTransition,
   onPositionChange,
   onNearbyDoorChange,
+  onNearbyCabinetChange,
   onPointerLockChange
 }: Exploration3DViewProps) {
   const noop = () => undefined;
+  // Exploration is a real-scale walkthrough. It must never inherit a drawing
+  // workspace's cutaway wall presentation, otherwise full-height openings are
+  // rendered against clipped walls and appear detached from their hosts.
+  const explorationWallDisplayMode: Drawing3DWallMode = "full";
   return (
     <div
       className="h-full w-full bg-[#e8e1d4]"
@@ -8064,7 +8146,7 @@ export function Exploration3DView({
       data-drawing-sheet-type={sceneSettings.drawingSheetType}
       data-drawing-3d-preset={sceneSettings.drawingViewPreset}
       data-furniture-height-mode={sceneSettings.furnitureHeightMode}
-      data-wall-display-mode={sceneSettings.wallDisplayMode}
+      data-wall-display-mode={explorationWallDisplayMode}
       data-material-preview={sceneSettings.materialPreview ? "true" : "false"}
       data-design-style={sceneSettings.designStyle}
       data-scene-furniture-count={furniture.length}
@@ -8074,7 +8156,7 @@ export function Exploration3DView({
       <Canvas
         shadows
         dpr={[1, 1.75]}
-        camera={{ fov: viewMode === "firstPerson" ? 62 : EXPLORATION_THIRD_PERSON_FOV, near: 0.08, far: 70, position: [0, 5.3, 6.2] }}
+        camera={{ fov: viewMode === "firstPerson" ? EXPLORATION_FIRST_PERSON_FOV : EXPLORATION_THIRD_PERSON_FOV, near: 0.055, far: 70, position: [0, 5.3, 6.2] }}
         gl={{ antialias: true, powerPreference: "high-performance" }}
       >
         <Floor3DScene
@@ -8112,21 +8194,26 @@ export function Exploration3DView({
           mobilePresentationMode={false}
           sceneController={<ExplorationCharacterController
             world={collisionWorld}
+            structure={houseStructure}
+            furniture={furniture}
             structuresByFloor={houseStructuresByFloor}
             spawnPosition={spawnPosition}
             viewMode={viewMode}
             resetRequest={resetRequest}
             onToggleDoor={onToggleDoor}
+            onToggleCabinet={onToggleCabinet}
             onToggleView={onToggleView}
             onExit={onExit}
             onFloorTransition={onFloorTransition}
             onPositionChange={onPositionChange}
             onNearbyDoorChange={onNearbyDoorChange}
+            onNearbyCabinetChange={onNearbyCabinetChange}
             onPointerLockChange={onPointerLockChange}
           />}
           explorationDoorStates={doorStates}
+          explorationCabinetStates={cabinetStates}
           explorationLightingMode={lightingMode}
-          wallDisplayModeOverride={sceneSettings.wallDisplayMode}
+          wallDisplayModeOverride={explorationWallDisplayMode}
           furnitureHeightModeOverride={sceneSettings.furnitureHeightMode}
           materialPreview={sceneSettings.materialPreview}
           designStyle={sceneSettings.designStyle}
@@ -8173,11 +8260,13 @@ export function Floor3DView({
   lightingDesign,
   cameraViewRequest = null,
   mobilePresentationMode = false,
+  externalPresentationMode = false,
   mobileQuality = "balanced",
   resetViewRequest = 0,
   selectedObjectId,
   selectedFurnitureId,
   showObjectIds,
+  showDebugTools = false,
   onShowObjectIdsChange,
   onSelectStructure,
   onSelectFurniture,
@@ -8204,7 +8293,7 @@ export function Floor3DView({
   const [showServicePoints, setShowServicePoints] = useState(false);
   const [showStairDebug, setShowStairDebug] = useState(false);
   const [designStyle, setDesignStyle] = useState<DesignStylePreset>("warmJapandi");
-  const [presentationMode, setPresentationMode] = useState(mobilePresentationMode);
+  const [presentationMode, setPresentationMode] = useState(mobilePresentationMode || externalPresentationMode);
   const [tourPanelOpen, setTourPanelOpen] = useState(false);
   const [activeTourNode, setActiveTourNode] = useState<RoomTourView | null>(null);
   const [activeCameraViewId, setActiveCameraViewId] = useState<string | null>(null);
@@ -8227,6 +8316,9 @@ export function Floor3DView({
   const [lightingRoomPanelOpen, setLightingRoomPanelOpen] = useState(false);
   const [lightingGroupOverrides, setLightingGroupOverrides] = useState<Record<string, number>>({});
   const [lightingPanelCollapsed, setLightingPanelCollapsed] = useState(true);
+  useEffect(() => {
+    setPresentationMode(mobilePresentationMode || externalPresentationMode);
+  }, [externalPresentationMode, mobilePresentationMode]);
   const [lightingRoomViewMode, setLightingRoomViewMode] = useState<LightingRoomViewMode>("full");
   const [lightingSelectedGroupId, setLightingSelectedGroupId] = useState<string | null>(null);
   const [lightingSoloGroupId, setLightingSoloGroupId] = useState<string | null>(null);
@@ -8263,9 +8355,7 @@ export function Floor3DView({
     villaExperienceEnabled,
     lightingWallMode
   });
-  const effectiveFurnitureHeightMode: FurnitureHeightMode = drawingSheetType === "sitePlan"
-    ? "actual"
-    : !villaExperienceEnabled && effectiveWallDisplayMode !== "full" ? "cutaway" : "actual";
+  const effectiveFurnitureHeightMode: FurnitureHeightMode = "actual";
   useEffect(() => {
     onSceneSettingsChange?.({
       drawingSheetType,
@@ -9354,7 +9444,7 @@ export function Floor3DView({
           {specialtyFallback && <div className="mt-2 max-w-[26rem] rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-semibold text-amber-900">{drawingProfile.emptyDataHint}</div>}
         </div>
       </div>}
-      {showStairDebug && !mobilePresentationMode && (
+      {showDebugTools && showStairDebug && !mobilePresentationMode && (
         <aside className="pointer-events-auto absolute bottom-20 left-4 z-[93] max-h-[42vh] w-[min(34rem,calc(100%-2rem))] overflow-y-auto rounded-xl border border-amber-200 bg-stone-950/88 p-3 text-[10px] font-semibold leading-4 text-amber-50 shadow-2xl backdrop-blur" data-testid="stair-system-debug-panel">
           <div className="mb-2 text-xs font-black text-amber-200">楼梯系统调试 · {floor.id}</div>
           <div className="space-y-3 whitespace-pre-wrap font-mono">
@@ -9468,7 +9558,7 @@ export function Floor3DView({
               家具机电关联 / 净空
             </button>
           )}
-          <button
+          {showDebugTools && <button
             aria-pressed={showStairDebug}
             className={`rounded-md px-3 py-2 text-xs font-bold transition ${showStairDebug ? "bg-amber-600 text-white" : "text-stone-600 hover:bg-stone-100"}`}
             data-testid="stair-system-debug-toggle"
@@ -9476,7 +9566,7 @@ export function Floor3DView({
             type="button"
           >
             楼梯系统调试
-          </button>
+          </button>}
           {drawingSheetType === "switchPlan" && (
             <button
               aria-pressed={showControlRelations}

@@ -34,6 +34,7 @@
     "test:object-sync": "node --experimental-strip-types scripts/test-object-sync.mjs",
     "test:unified-scene": "node --experimental-strip-types scripts/test-unified-scene-graph.mjs",
     "test:3d-structure": "node --experimental-strip-types scripts/test-3d-structure-rendering.mjs",
+    "test:scene-heights": "node --experimental-strip-types scripts/test-scene-height-system.mjs",
     "test:drawing-3d": "node --experimental-strip-types scripts/test-drawing-3d-profiles.mjs",
     "test:room-tour": "node --experimental-strip-types scripts/test-room-tour.mjs",
     "test:exploration": "node --experimental-strip-types scripts/test-exploration-mode.mjs",
@@ -41,7 +42,7 @@
     "test:stair-systems": "node --experimental-strip-types scripts/test-stair-systems.mjs",
     "test:mobile": "playwright test tests/mobile-presentation.spec.ts --workers=1",
     "audit:schema-coverage": "python3 scripts/schema-coverage-report.py",
-    "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:dimension-verification && pnpm test:furniture-placement && pnpm test:furniture-variants && pnpm test:furniture-heights && pnpm test:construction-anchors && pnpm test:reusable-room-visuals && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:lighting-design && pnpm test:construction-export && pnpm test:save-service && pnpm test:object-sync && pnpm test:unified-scene && pnpm test:3d-structure && pnpm test:drawing-3d && pnpm test:room-tour && pnpm test:exploration && pnpm test:floor-camera && pnpm test:stair-systems",
+    "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:dimension-verification && pnpm test:furniture-placement && pnpm test:furniture-variants && pnpm test:furniture-heights && pnpm test:construction-anchors && pnpm test:reusable-room-visuals && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:lighting-design && pnpm test:construction-export && pnpm test:save-service && pnpm test:object-sync && pnpm test:unified-scene && pnpm test:3d-structure && pnpm test:scene-heights && pnpm test:drawing-3d && pnpm test:room-tour && pnpm test:exploration && pnpm test:floor-camera && pnpm test:stair-systems",
     "test:ci": "pnpm test && pnpm test:mobile && pnpm build",
     "start": "next start"
   },

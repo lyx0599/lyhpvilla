@@ -67,6 +67,7 @@ export type DrawingItem = {
   source: DrawingItemSource;
   status: DrawingItemStatus;
   quantity: number;
+  verificationMeta?: VerificationMeta;
   generatedKey?: string;
   generatedFingerprint?: string;
   /** Furniture center when this point was last positioned or reviewed. */
@@ -636,6 +637,8 @@ export type HouseRoom = SyncObjectState & VerificationState & {
   boundary: MmPoint[];
   area: number;
   sourceWallIds: string[];
+  /** Finished ceiling elevation above finished floor, used by ceiling-bound furniture. */
+  finishedCeilingHeightMm?: number;
 };
 
 export type HousePartition = SyncObjectState & VerificationState & {
@@ -877,6 +880,8 @@ export type HouseStructureObject =
 
 export type HouseStructure = {
   floorId: FloorId;
+  /** Canonical storey height. Falls back to the dominant real wall height for legacy data. */
+  storyHeightMm?: number;
   coordinateSystem: FloorCoordinateSystem;
   walls: HouseWall[];
   rooms: HouseRoom[];
@@ -930,6 +935,12 @@ export type Furniture = {
   wallAnchor?: FurnitureWallAnchor;
   clearanceMeta?: FurnitureClearanceMeta;
   dimensions: Dimension;
+  cabinetHeight?: {
+    kind: "base" | "wall" | "tall" | "fullHeight" | "halfHeight";
+    /** Required shadow-gap/closure between a full-height cabinet and finished ceiling. */
+    topClosureMm?: number;
+    source?: "explicit" | "roomCeiling" | "storyHeight" | "inferred";
+  };
   material: string;
   note: string;
   serviceRequirements?: ModuleServiceRequirements;
@@ -951,6 +962,7 @@ export type Furniture = {
   visible?: boolean;
   hidden?: boolean;
   interaction?: ObjectInteractionFlags;
+  verificationMeta?: VerificationMeta;
 };
 
 export type Floor = {

@@ -9,4 +9,6 @@ export type FurnitureFamily3DProps = {
   width: number;
   depth: number;
   height: number;
+  /** Exploration-only runtime openness from 0 (closed) to 1 (fully open). */
+  openAmount?: number;
 };

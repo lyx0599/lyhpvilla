@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
-  DOOR_3D_DISPLAY_HEIGHT_MM,
-  WINDOW_3D_DISPLAY_HEIGHT_MM,
-  WINDOW_3D_SILL_HEIGHT_MM,
   getDoor3DDisplayHeight,
   getHostedOpeningCuts,
   getStraightHostPanels,
@@ -18,12 +15,12 @@ for (const structure of Object.values(workspace.houseStructuresByFloor)) {
   for (const wall of structure.walls.filter((item) => item.kind === "straight")) {
     const length = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y);
     const cuts = getHostedOpeningCuts(structure, wall.id, "wall", length, wall.height);
-    const panels = getStraightHostPanels(wall.start, wall.end, Math.min(wall.height, 1180), cuts);
+    const panels = getStraightHostPanels(wall.start, wall.end, wall.height, cuts);
     renderedOpeningIds.push(...cuts.map((cut) => cut.id));
 
     for (const cut of cuts) {
       const sampleOffset = (cut.startMm + cut.endMm) / 2;
-      const sampleHeight = Math.min(1179, Math.max(1, (cut.bottomMm + Math.min(cut.topMm, 1180)) / 2));
+      const sampleHeight = Math.max(1, (cut.bottomMm + cut.topMm) / 2);
       const panelCoversOpening = panels.some((panel) => {
         const panelStart = Math.hypot(panel.start.x - wall.start.x, panel.start.y - wall.start.y);
         const panelEnd = Math.hypot(panel.end.x - wall.start.x, panel.end.y - wall.start.y);
@@ -49,11 +46,11 @@ assert.match(rendererSource, /function StraightWallWithOpenings\(/, "3D walls mu
 assert.match(rendererSource, /houseStructure\.skylights\.filter[\s\S]*?<SkylightMesh/, "Skylights must be rendered from the structure collection.");
 assert.match(rendererSource, /houseStructure\.doors\.filter[\s\S]*?<OpeningMesh/, "Doors must be rendered from the structure collection.");
 assert.match(rendererSource, /houseStructure\.windows\.filter[\s\S]*?<OpeningMesh/, "Windows must be rendered from the structure collection.");
-assert.equal(getDoor3DDisplayHeight(2100), DOOR_3D_DISPLAY_HEIGHT_MM, "3D doors should use the lowered display height.");
+assert.equal(getDoor3DDisplayHeight(2100), 2100, "3D doors must use their real opening height.");
 assert.deepEqual(
   getWindow3DDisplayMetrics(2800, 1400),
-  { heightMm: WINDOW_3D_DISPLAY_HEIGHT_MM, sillHeightMm: WINDOW_3D_SILL_HEIGHT_MM },
-  "Ordinary 3D windows should use the lowered display height and sill."
+  { heightMm: 1400, sillHeightMm: 900 },
+  "Ordinary 3D windows must keep their real height and derived sill."
 );
 
 const b1 = workspace.houseStructuresByFloor.B1;

@@ -4,10 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Exploration3DView, type Shared3DSceneSettings } from "@/components/floor-3d-view";
 import {
   buildExplorationCollisionWorld,
+  createExplorationCabinetStates,
   createExplorationDoorStates,
   getExplorationSpaceName,
+  reconcileExplorationCabinetStates,
   reconcileExplorationDoorStates,
   resolveExplorationSpawn,
+  type ExplorationCabinetStates,
   type ExplorationDoorStates,
   type ExplorationLightingMode,
   type ExplorationPoint,
@@ -51,12 +54,14 @@ export function ExplorationMode({
     : floors.find((floor) => Boolean(houseStructuresByFloor[floor.id]))?.id ?? initialFloorId;
   const [activeFloorId, setActiveFloorId] = useState<FloorId>(initialAvailableFloorId);
   const [doorStates, setDoorStates] = useState<ExplorationDoorStates>(() => createExplorationDoorStates(houseStructuresByFloor));
+  const [cabinetStates, setCabinetStates] = useState<ExplorationCabinetStates>(() => createExplorationCabinetStates(furniture));
   const [viewMode, setViewMode] = useState<ExplorationViewMode>("thirdPerson");
   const [lightingMode, setLightingMode] = useState<ExplorationLightingMode>("day");
   const [resetRequest, setResetRequest] = useState(0);
   const [position, setPosition] = useState<ExplorationPoint>({ x: 0, y: 0, z: 0 });
   const [walking, setWalking] = useState(false);
   const [nearbyDoorId, setNearbyDoorId] = useState<string | null>(null);
+  const [nearbyCabinetId, setNearbyCabinetId] = useState<string | null>(null);
   const [pointerLocked, setPointerLocked] = useState(false);
 
   const activeFloor = floors.find((floor) => floor.id === activeFloorId) ?? floors[0];
@@ -94,6 +99,8 @@ export function ExplorationMode({
   const roomName = activeStructure ? getExplorationSpaceName(activeStructure, position) : "场景加载中";
   const nearbyDoor = activeStructure?.doors.find((door) => door.id === nearbyDoorId) ?? null;
   const nearbyDoorOpen = nearbyDoorId ? Boolean(doorStates[nearbyDoorId]?.open) : false;
+  const nearbyCabinet = activeFurniture.find((item) => item.id === nearbyCabinetId) ?? null;
+  const nearbyCabinetOpen = nearbyCabinetId ? Boolean(cabinetStates[nearbyCabinetId]?.open) : false;
 
   useEffect(() => {
     setDoorStates((current) => {
@@ -102,6 +109,16 @@ export function ExplorationMode({
       return next;
     });
   }, [houseStructuresByFloor]);
+
+  useEffect(() => {
+    setCabinetStates((current) => {
+      const next = reconcileExplorationCabinetStates(current, furniture);
+      const currentIds = Object.keys(current);
+      const nextIds = Object.keys(next);
+      if (currentIds.length === nextIds.length && nextIds.every((id) => next[id] === current[id])) return current;
+      return next;
+    });
+  }, [furniture]);
 
   useEffect(() => {
     if (activeStructure) return;
@@ -130,6 +147,21 @@ export function ExplorationMode({
         });
         return changed ? next : current;
       });
+      setCabinetStates((current) => {
+        let changed = false;
+        const next = { ...current };
+        Object.entries(current).forEach(([cabinetId, state]) => {
+          const target = state.open ? 1 : 0;
+          const currentAmount = Math.abs(target - state.currentAmount) < 0.005
+            ? target
+            : state.currentAmount + Math.sign(target - state.currentAmount) * Math.min(Math.abs(target - state.currentAmount), delta * 2.15);
+          if (currentAmount !== state.currentAmount) {
+            changed = true;
+            next[cabinetId] = { ...state, currentAmount };
+          }
+        });
+        return changed ? next : current;
+      });
       frame = window.requestAnimationFrame(animateDoors);
     };
     frame = window.requestAnimationFrame(animateDoors);
@@ -140,6 +172,12 @@ export function ExplorationMode({
     setDoorStates((current) => {
       const state = current[doorId] ?? { open: false, currentAngle: 0 };
       return { ...current, [doorId]: { ...state, open: !state.open } };
+    });
+  }, []);
+  const toggleCabinet = useCallback((cabinetId: string) => {
+    setCabinetStates((current) => {
+      const state = current[cabinetId] ?? { open: false, currentAmount: 0 };
+      return { ...current, [cabinetId]: { ...state, open: !state.open } };
     });
   }, []);
   const toggleView = useCallback(() => {
@@ -181,15 +219,18 @@ export function ExplorationMode({
         collisionWorld={collisionWorld}
         spawnPosition={spawnPosition}
         doorStates={doorStates}
+        cabinetStates={cabinetStates}
         viewMode={viewMode}
         lightingMode={lightingMode}
         resetRequest={resetRequest}
         onToggleDoor={toggleDoor}
+        onToggleCabinet={toggleCabinet}
         onToggleView={toggleView}
         onExit={onExit}
         onFloorTransition={setActiveFloorId}
         onPositionChange={handlePositionChange}
         onNearbyDoorChange={setNearbyDoorId}
+        onNearbyCabinetChange={setNearbyCabinetId}
         onPointerLockChange={setPointerLocked}
       />
 
@@ -213,27 +254,35 @@ export function ExplorationMode({
         </div>
       </header>
 
-      {nearbyDoor && (
+      {(nearbyCabinet || nearbyDoor) && (
         <button
           className="absolute left-1/2 top-[58%] z-20 -translate-x-1/2 rounded-full border border-white/25 bg-stone-950/78 px-4 py-2 text-sm font-black shadow-2xl backdrop-blur-xl hover:bg-stone-900"
-          onClick={() => toggleDoor(nearbyDoor.id)}
+          onClick={() => nearbyCabinet ? toggleCabinet(nearbyCabinet.id) : nearbyDoor && toggleDoor(nearbyDoor.id)}
           type="button"
         >
-          E · {nearbyDoorOpen ? "关门" : "开门"} · {nearbyDoor.name}
+          {nearbyCabinet
+            ? `E · ${nearbyCabinetOpen ? "关柜门" : "开柜门"} · ${nearbyCabinet.name}`
+            : `E · ${nearbyDoorOpen ? "关门" : "开门"} · ${nearbyDoor?.name ?? "门"}`}
         </button>
+      )}
+
+      {viewMode === "firstPerson" && (
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center" aria-hidden="true">
+          <span className="size-1.5 rounded-full border border-stone-950/55 bg-white/90 shadow-[0_0_0_2px_rgba(255,255,255,0.22)]" />
+        </div>
       )}
 
       {!pointerLocked && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-stone-950/58 px-4 py-2 text-xs font-bold text-white/80 backdrop-blur">
-          点击画面后用鼠标转向
+          {viewMode === "firstPerson" ? "点击画面后自由环视，可抬头和低头" : "点击画面后用鼠标转向"}
         </div>
       )}
 
       <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center p-4 sm:p-5">
         <div className="flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-2xl border border-white/15 bg-stone-950/70 px-4 py-3 text-[11px] font-bold text-white/75 shadow-2xl backdrop-blur-xl">
           <span>WASD / 方向键移动</span>
-          <span>鼠标转向</span>
-          <span>E 开门 / 关门</span>
+          <span>{viewMode === "firstPerson" ? "鼠标自由环视" : "鼠标转向"}</span>
+          <span>E 开关房门 / 柜门</span>
           <span>V 切换视角</span>
           <span>R 重置</span>
           <span>Esc 退出</span>

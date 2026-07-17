@@ -21,6 +21,13 @@ export type ExplorationDoorState = {
 
 export type ExplorationDoorStates = Record<string, ExplorationDoorState>;
 
+export type ExplorationCabinetState = {
+  open: boolean;
+  currentAmount: number;
+};
+
+export type ExplorationCabinetStates = Record<string, ExplorationCabinetState>;
+
 export type ExplorationPoint = {
   x: number;
   y: number;
@@ -76,6 +83,7 @@ export type ExplorationCommand =
   | "look"
   | "toggle-view"
   | "toggle-door"
+  | "toggle-cabinet"
   | "reset-position"
   | "toggle-lighting"
   | "exit"
@@ -96,6 +104,7 @@ const explorationCommands = new Set<ExplorationCommand>([
   "look",
   "toggle-view",
   "toggle-door",
+  "toggle-cabinet",
   "reset-position",
   "toggle-lighting",
   "exit"
@@ -121,6 +130,45 @@ export function reconcileExplorationDoorStates(
   const next = createExplorationDoorStates(structuresByFloor);
   Object.keys(next).forEach((doorId) => {
     if (current[doorId]) next[doorId] = current[doorId];
+  });
+  return next;
+}
+
+const explorationCabinetTypes = new Set([
+  "cabinet",
+  "wallCabinet",
+  "kitchenCabinet",
+  "snackCabinet",
+  "tallCabinet",
+  "wardrobe",
+  "walkInCloset",
+  "entryCabinet",
+  "sideboard",
+  "island",
+  "outdoorCabinet"
+]);
+
+export function isExplorationCabinet(item: Furniture) {
+  if (item.hidden || item.visible === false || item.render3d?.visibleIn3d === false) return false;
+  const semanticTypes = [item.type, item.moduleType, item.render3d?.assetType].filter((value): value is string => Boolean(value));
+  if (semanticTypes.some((type) => explorationCabinetTypes.has(type))) return true;
+  return /衣柜|橱柜|柜体|收纳柜|餐边柜|鞋柜|玄关柜|水吧柜/.test(item.name);
+}
+
+export function createExplorationCabinetStates(furniture: Furniture[]): ExplorationCabinetStates {
+  return furniture.reduce<ExplorationCabinetStates>((states, item) => {
+    if (isExplorationCabinet(item)) states[item.id] = { open: false, currentAmount: 0 };
+    return states;
+  }, {});
+}
+
+export function reconcileExplorationCabinetStates(
+  current: ExplorationCabinetStates,
+  furniture: Furniture[]
+): ExplorationCabinetStates {
+  const next = createExplorationCabinetStates(furniture);
+  Object.keys(next).forEach((cabinetId) => {
+    if (current[cabinetId]) next[cabinetId] = current[cabinetId];
   });
   return next;
 }
@@ -453,6 +501,46 @@ export function findNearestExplorationDoor(world: ExplorationCollisionWorld, poi
     .filter((door) => door.distance <= maxDistance)
     .sort((left, right) => left.distance - right.distance)[0];
   return nearest ?? null;
+}
+
+export function findNearestExplorationCabinet(
+  furniture: Furniture[],
+  structure: HouseStructure,
+  point: { x: number; y?: number; z: number },
+  yaw: number,
+  pitch = 0,
+  maxDistance = 1.75
+) {
+  const forward = {
+    x: Math.sin(yaw) * Math.cos(pitch),
+    y: Math.sin(pitch),
+    z: -Math.cos(yaw) * Math.cos(pitch)
+  };
+  const eyeY = (point.y ?? 0) + 1.62;
+  return furniture
+    .filter(isExplorationCabinet)
+    .flatMap((item) => {
+      const center = sceneFurnitureCenter(item, structure);
+      const rotation = -(item.position.rotation || 0) * Math.PI / 180;
+      const front = { x: Math.sin(rotation), z: Math.cos(rotation) };
+      const interactionPoint = {
+        x: center.x + front.x * (item.dimensions.depth / 200 + 0.18),
+        y: Math.max(0.42, (item.render3d?.elevationMm ?? 0) * MM_TO_M + item.dimensions.height / 200),
+        z: center.z + front.z * (item.dimensions.depth / 200 + 0.18)
+      };
+      const dx = interactionPoint.x - point.x;
+      const dy = interactionPoint.y - eyeY;
+      const dz = interactionPoint.z - point.z;
+      const distance = Math.hypot(dx, dy, dz);
+      if (distance > maxDistance || distance < 0.001) return [];
+      const gazeAlignment = (dx * forward.x + dy * forward.y + dz * forward.z) / distance;
+      if (gazeAlignment < 0.28) return [];
+      const playerDistanceFromCenter = Math.max(0.001, Math.hypot(point.x - center.x, point.z - center.z));
+      const frontApproach = ((point.x - center.x) * front.x + (point.z - center.z) * front.z) / playerDistanceFromCenter;
+      const score = distance + (1 - gazeAlignment) * 0.72 + Math.max(0, 0.2 - frontApproach) * 0.36;
+      return [{ item, interactionPoint, distance, gazeAlignment, score }];
+    })
+    .sort((left, right) => left.score - right.score)[0] ?? null;
 }
 
 export function findExplorationStairTransition(world: ExplorationCollisionWorld, point: { x: number; z: number }) {
