@@ -1182,7 +1182,7 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
     moduleCategory: "kitchen",
     moduleType: "kitchenCabinet",
     roomId: "ROOM-1F-002",
-    dimensions: { width: 210, depth: 65, height: 90, unit: "cm" },
+    dimensions: { width: 210, depth: 55, height: 90, unit: "cm" },
     material: "浅灰防潮柜体 + 石英石台面",
     note: "U 型顶端靠窗，作为双水槽和主要洗涤台面。",
     constructionNote: "靠窗顶端布置双水槽，集中复核冷热水、净水、排水和窗台高度。",
@@ -1199,7 +1199,7 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
     moduleCategory: "kitchen",
     moduleType: "kitchenCabinet",
     roomId: "ROOM-1F-002",
-    dimensions: { width: 200, depth: 65, height: 90, unit: "cm" },
+    dimensions: { width: 200, depth: 55, height: 90, unit: "cm" },
     material: "浅灰柜体 + 耐污台面",
     note: "左侧柜段承接灶台、调味和锅具收纳。",
     constructionNote: "左侧灶台段优先校核烟道、燃气/电源和锅具抽屉高度。",
@@ -1216,12 +1216,12 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
     moduleCategory: "kitchen",
     moduleType: "kitchenCabinet",
     roomId: "ROOM-1F-002",
-    dimensions: { width: 130, depth: 65, height: 90, unit: "cm" },
+    dimensions: { width: 90, depth: 55, height: 90, unit: "cm" },
     material: "浅灰柜体 + 小电器抽拉层",
     note: "右侧柜段连接冰箱和靠窗水槽，作为备餐、小电器和临时放置区。",
     constructionNote: "右侧预留台面插座，避免冰箱开门和 U 型内部通道冲突。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    position: { x: 60.8, y: 18.5, rotation: 90 },
+    position: { x: 60.8, y: 15.72, rotation: 90 },
     color: "#d7dbd2",
     cabinetDesign: oneFloorUKitchenDesign
   },
@@ -1275,7 +1275,7 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
   },
   "furn-fridge-001": {
     code: "RF-1F-R",
-    name: "右下角嵌入式冰箱位",
+    name: "东墙内收嵌入式冰箱位",
     type: "fridge",
     catalogId: "kitchen-fridge",
     moduleCategory: "kitchen",
@@ -1283,10 +1283,10 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
     roomId: "ROOM-1F-002",
     dimensions: { width: 92, depth: 70, height: 190, unit: "cm" },
     material: "高柜嵌入 + 侧边散热",
-    note: "冰箱放在厨房右下角，靠近 U 型右侧备餐段。",
+    note: "冰箱沿东墙向北收进 U 型右侧柜段，释放厨房入口转角。",
     constructionNote: "冰箱建议独立回路，按设备样本预留散热和开门空间。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    position: { x: 60, y: 29.8, rotation: 0 },
+    position: { x: 60, y: 24.61, rotation: 0 },
     color: "#d9dee4"
   }
 };
@@ -1466,19 +1466,19 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
     moduleCategory: "kitchen",
     moduleType: "island",
     roomId: "ROOM-1F-005",
-    dimensions: { width: 210, depth: 75, height: 80, unit: "cm" },
+    dimensions: { width: 190, depth: 55, height: 80, unit: "cm" },
     material: "岩板台面 + 下柜收纳",
-    note: "放在厨房推拉门口和客厅之间，长度对齐靠窗水槽段，作为备餐、端菜和储物岛台。",
+    note: "岛台柜体减深并向东侧移动，释放厨房入口的左转空间，兼顾备餐、端菜和储物。",
     constructionNote: "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    position: { x: 53.4, y: 43.3, rotation: 0 },
+    position: { x: 57.5, y: 45.22, rotation: 0 },
     color: "#cfd8d3",
     cabinetDesign: {
       template: "island",
       title: "厨房门口加长储物岛台设计",
       designThinking: "岛台加长后承担两件事：厨房出菜/备餐的连续台面，以及客厅侧可拿取的储物。内部用抽屉、开放格和拉篮分开，避免一个大空腔不好用。",
       recommendedPlacement: "厨房推拉门外侧、客厅入口上方，长度与靠窗水槽段接近，四周仍要保留可绕行动线。",
-      layoutNotes: ["台面长度 2100mm，和靠窗水槽段形成呼应", "厨房侧放托盘、锅垫、备餐工具", "客厅侧放茶点、纸巾、杯垫和低频餐具"],
+      layoutNotes: ["台面长度 1900mm，柜体深度 550mm，入口侧留出连续转身空间", "厨房侧放托盘、锅垫、备餐工具", "客厅侧放茶点、纸巾、杯垫和低频餐具"],
       zones: [
         { id: "drawer-stack", label: "三层抽屉", role: "餐具 / 小工具", widthPercent: 30, heightPercent: 100, detail: "靠厨房一侧做三层抽屉，上层餐具，中层保鲜袋/杯垫，下层锅垫和餐垫。" },
         { id: "open-shelf", label: "开放隔层", role: "托盘 / 常用盘", widthPercent: 28, heightPercent: 100, detail: "中段做开放隔层，放托盘和常用盘，端菜时不用开门。" },
@@ -2533,6 +2533,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       setIsPhoneDevice(mobileDevice);
       if (mobileDevice) {
         setAccessMode(DEFAULT_MOBILE_ACCESS_MODE);
+        // The phone experience is a lightweight read-only presentation. Keep
+        // it out of the pointer-lock exploration shell even when the viewport
+        // changes while exploration is active on desktop.
+        setEditorMode("design");
+        explorationReturnStateRef.current = null;
         setPlannerMode("view");
         setDrawTool("select");
       } else {
@@ -5459,7 +5464,6 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             {mobileMoreOpen && (
               <div className="absolute right-3 top-12 z-[100] w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-white/80 bg-white/98 p-2 text-sm font-semibold text-stone-700 shadow-[0_18px_46px_rgba(39,34,28,0.22)] backdrop-blur">
                 <button className="block w-full rounded-xl px-3 py-2.5 text-left hover:bg-stone-50" onClick={resetMobileCurrentView} type="button">重置视角</button>
-                <button className="block w-full rounded-xl bg-emerald-50 px-3 py-2.5 text-left font-bold text-emerald-800 hover:bg-emerald-100" onClick={enterExplorationMode} type="button">探索模式</button>
                 <div className="mt-1 rounded-xl bg-stone-50 p-1">
                   <div className="grid grid-cols-3 gap-1 text-xs">
                     {([

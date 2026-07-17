@@ -2820,6 +2820,15 @@ function SolidWallSegment({
 }) {
   const capHeightMm = Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18));
   const bodyHeightMm = Math.max(42, heightMm - capHeightMm);
+  const bodyOpacity = wallOpacity == null
+    ? selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY
+    : Math.min(0.38, wallOpacity + (selected ? 0.12 : 0));
+  const trimOpacity = wallOpacity == null
+    ? selected ? 0.72 : 0.88
+    : Math.min(0.5, wallOpacity + (selected ? 0.16 : 0.12));
+  const capOpacity = wallOpacity == null
+    ? selected ? 1 : 1
+    : Math.min(0.52, wallOpacity + (selected ? 0.2 : 0.18));
   return (
     <group>
       <LineBox
@@ -2830,7 +2839,7 @@ function SolidWallSegment({
         heightMm={bodyHeightMm}
         structure={structure}
         color={selected ? "#bfdbfe" : color}
-        opacity={selected ? WALL_SELECTED_OPACITY : wallOpacity ?? WALL_PREVIEW_OPACITY}
+        opacity={bodyOpacity}
         textureKind="wall"
         textureAccent={effectMaterialCatalog.wallPaint.color}
         selected={selected}
@@ -2847,7 +2856,7 @@ function SolidWallSegment({
         heightMm={42}
         structure={structure}
         color={selected ? "#bfdbfe" : "#9b7250"}
-        opacity={selected ? 0.72 : wallOpacity == null ? 0.88 : Math.min(0.62, wallOpacity + 0.12)}
+        opacity={trimOpacity}
         yOffset={0.08}
         textureKind="wood"
         textureAccent="#5d3d26"
@@ -2865,7 +2874,7 @@ function SolidWallSegment({
         heightMm={capHeightMm}
         structure={structure}
         color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
-        opacity={selected ? 1 : wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
+        opacity={capOpacity}
         yOffset={bodyHeightMm * MM_TO_M}
         selected={selected}
         clippingPlanes={clippingPlanes}
@@ -2882,7 +2891,7 @@ function SolidWallSegment({
           heightMm={72}
           structure={structure}
           color={effectMaterialCatalog.baseboard.color}
-          opacity={wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
+          opacity={capOpacity}
           yOffset={0.018}
           textureKind="wood"
           textureAccent="#6f4c34"
@@ -2934,6 +2943,15 @@ function CutWallPanel({
 }) {
   const capHeightMm = reachesTop ? Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18)) : 0;
   const bodyHeightMm = Math.max(1, heightMm - capHeightMm);
+  const bodyOpacity = wallOpacity == null
+    ? selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY
+    : Math.min(0.38, wallOpacity + (selected ? 0.12 : 0));
+  const trimOpacity = wallOpacity == null
+    ? selected ? 0.72 : 0.88
+    : Math.min(0.5, wallOpacity + (selected ? 0.16 : 0.12));
+  const capOpacity = wallOpacity == null
+    ? selected ? 1 : 1
+    : Math.min(0.52, wallOpacity + (selected ? 0.2 : 0.18));
   return (
     <group>
       <LineBox
@@ -2944,7 +2962,7 @@ function CutWallPanel({
         heightMm={bodyHeightMm}
         structure={structure}
         color={selected ? "#bfdbfe" : color}
-        opacity={selected ? WALL_SELECTED_OPACITY : wallOpacity ?? WALL_PREVIEW_OPACITY}
+        opacity={bodyOpacity}
         yOffset={bottomMm * MM_TO_M}
         textureKind="wall"
         textureAccent={effectMaterialCatalog.wallPaint.color}
@@ -2963,7 +2981,7 @@ function CutWallPanel({
           heightMm={capHeightMm}
           structure={structure}
           color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
-          opacity={selected ? 1 : wallOpacity == null ? 1 : Math.min(0.72, wallOpacity + 0.18)}
+          opacity={capOpacity}
           yOffset={(bottomMm + bodyHeightMm) * MM_TO_M}
           selected={selected}
           clippingPlanes={clippingPlanes}
@@ -2982,7 +3000,7 @@ function CutWallPanel({
             heightMm={42}
             structure={structure}
             color={selected ? "#bfdbfe" : "#9b7250"}
-            opacity={selected ? 0.72 : wallOpacity == null ? 0.88 : Math.min(0.62, wallOpacity + 0.12)}
+            opacity={trimOpacity}
             yOffset={0.08}
             textureKind="wood"
             textureAccent="#5d3d26"
@@ -3001,6 +3019,7 @@ function CutWallPanel({
               heightMm={72}
               structure={structure}
               color={effectMaterialCatalog.baseboard.color}
+              opacity={capOpacity}
               yOffset={0.018}
               textureKind="wood"
               textureAccent="#6f4c34"
@@ -3204,6 +3223,7 @@ function PartitionMesh({
   partition,
   structure,
   wallMode,
+  wallOpacity,
   selected,
   onSelect,
   onHover,
@@ -3212,6 +3232,7 @@ function PartitionMesh({
   partition: HousePartition;
   structure: HouseStructure;
   wallMode: Drawing3DWallMode;
+  wallOpacity?: number;
   selected: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string) => void;
@@ -3226,7 +3247,10 @@ function PartitionMesh({
       heightMm={partition.height}
       structure={structure}
       color={partition.material === "glass" ? "#bae6fd" : "#ddd6c8"}
-      opacity={partition.transparency ? Math.max(0.28, 1 - partition.transparency) : 0.82}
+      opacity={Math.min(
+        partition.transparency ? Math.max(0.28, 1 - partition.transparency) : 0.82,
+        wallOpacity ?? 1
+      )}
       selected={selected}
       clippingPlanes={getWallClippingPlanes(structure, wallMode)}
       onSelect={onSelect}
@@ -6810,6 +6834,7 @@ const VILLA_FLOOR_ELEVATION_M: Partial<Record<Floor["id"], number>> = {
   "2F": 8.4,
   YARD: 5.6
 };
+const VILLA_BUILDING_FLOOR_IDS: Floor["id"][] = ["B2", "B1", "1F", "2F"];
 
 function VillaOverviewLayer({
   structuresByFloor,
@@ -6819,6 +6844,8 @@ function VillaOverviewLayer({
   furniture,
   drawingItems,
   designStyle,
+  wallMode,
+  wallOpacity,
   selectedObjectId,
   selectedFurnitureId,
   onEnterRoom,
@@ -6834,6 +6861,8 @@ function VillaOverviewLayer({
   furniture: Furniture[];
   drawingItems: DrawingItem[];
   designStyle: DesignStylePreset;
+  wallMode: Drawing3DWallMode;
+  wallOpacity?: number;
   selectedObjectId: string;
   selectedFurnitureId: string;
   onEnterRoom: (floorId: Floor["id"], roomId: string) => void;
@@ -6896,7 +6925,10 @@ function VillaOverviewLayer({
               </group>
             ))}
             {structure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => (
-              <WallMesh key={wall.id} wall={wall} structure={structure} wallColor={palette.wall} wallMode="cutaway" selected={selectedObjectId === wall.id} onSelect={onSelectStructure} onHover={onHoverObject} onClearHover={onClearHoverObject} />
+              <WallMesh key={wall.id} wall={wall} structure={structure} wallColor={palette.wall} wallMode={wallMode} wallOpacity={wallOpacity} selected={selectedObjectId === wall.id} onSelect={onSelectStructure} onHover={onHoverObject} onClearHover={onClearHoverObject} />
+            ))}
+            {structure.partitions.filter((partition) => resolveVisibility(partition).visible3d).map((partition) => (
+              <PartitionMesh key={partition.id} partition={partition} structure={structure} wallMode={wallMode} wallOpacity={wallOpacity} selected={selectedObjectId === partition.id} onSelect={onSelectStructure} onHover={onHoverObject} onClearHover={onClearHoverObject} />
             ))}
             {floorStairOpenings.map((opening) => (
               <StairOpeningMesh key={opening.id} opening={opening} elevationMm={0} structure={structure} selected={selectedObjectId === opening.id} showSlabFrame={false} />
@@ -7170,7 +7202,10 @@ function Floor3DScene({
   const currentRoomActive = villaExperienceEnabled && lightingExperienceScope === "currentRoom" && Boolean(currentRoom);
   const currentOutdoorActive = villaExperienceEnabled && lightingExperienceScope === "currentRoom" && Boolean(currentOutdoor);
   const currentSpaceActive = currentRoomActive || currentOutdoorActive;
-  const stackedVillaOverview = villaExperienceEnabled && lightingExperienceScope === "wholeHouse" && villaOverviewMode !== "singleFloor";
+  const stackedVillaOverview = villaOverviewMode !== "singleFloor" && (
+    mobilePresentationMode
+    || (villaExperienceEnabled && lightingExperienceScope === "wholeHouse")
+  );
   const sceneMode = explorationLightingMode
     ? "exploration"
     : stackedVillaOverview
@@ -7201,8 +7236,23 @@ function Floor3DScene({
     villaExperienceEnabled,
     lightingWallMode
   });
-  const lightingWallDisplayMode = wallDisplayModeOverride ?? resolvedWallDisplayMode;
-  const lightingWallOpacity = lightingActive && lightingWallMode === "transparent" ? 0.24 : undefined;
+  // Phones use one consistent presentation across every drawing specialty:
+  // full real wall height with a translucent material. This keeps full-height
+  // cabinets and their host walls aligned instead of mixing cutaway geometry
+  // with actual-height cabinetry.
+  const lightingWallDisplayMode = mobilePresentationMode
+    ? "full"
+    : wallDisplayModeOverride ?? resolvedWallDisplayMode;
+  // Exploration keeps the complete wall geometry for spatial context, but uses
+  // a translucent shell so first- and third-person views can read the room
+  // beyond it. Collision still comes from the unchanged exploration world.
+  const lightingWallOpacity = mobilePresentationMode
+    ? 0.22
+    : sceneMode === "exploration"
+    ? 0.22
+    : lightingActive && lightingWallMode === "transparent"
+      ? 0.24
+      : undefined;
   const showSpecialtyCeiling = drawingProfile.showCeiling && (!lightingActive || lightingExperienceScope === "currentRoom") && roomCeilingMode !== "hidden";
   const palette = designStylePalettes[designStyle];
   const lightingEnvironment = explorationLightingMode
@@ -7299,6 +7349,8 @@ function Floor3DScene({
           furniture={allFurniture}
           drawingItems={allDrawingItems}
           designStyle={designStyle}
+          wallMode={mobilePresentationMode ? "full" : "cutaway"}
+          wallOpacity={mobilePresentationMode ? 0.22 : undefined}
           selectedObjectId={selectedObjectId}
           selectedFurnitureId={selectedFurnitureId}
           onEnterRoom={onEnterRoom}
@@ -7419,6 +7471,7 @@ function Floor3DScene({
           partition={partition}
           structure={houseStructure}
           wallMode={lightingWallDisplayMode}
+          wallOpacity={lightingWallOpacity}
           selected={selectedObjectId === partition.id}
           onSelect={onSelectStructure}
           onHover={onHoverObject}
@@ -8576,7 +8629,13 @@ export function Floor3DView({
         .filter((node): node is RoomTourView => Boolean(node))
         .slice(0, 4)
     : [], [activeTourNode, currentFloorTourNodes]);
-  const activateFloorCameraView = (view: FloorCameraView, preserveLightingScene = false, notifySelection = true) => {
+  const activateFloorCameraView = (
+    view: FloorCameraView,
+    preserveLightingScene = false,
+    notifySelection = true,
+    preserveVillaOverview = false
+  ) => {
+    if (mobilePresentationMode && !preserveVillaOverview) setVillaOverviewMode("singleFloor");
     setActiveCameraViewId(view.id);
     setActiveTourNode(view.tourView ?? null);
     setTourPanelOpen(false);
@@ -8590,6 +8649,7 @@ export function Floor3DView({
     }
   };
   const requestFreeBrowse = () => {
+    if (mobilePresentationMode) setVillaOverviewMode("singleFloor");
     setCameraMode("orbit");
     setActiveCameraViewId(null);
     setActiveTourNode(null);
@@ -8781,7 +8841,10 @@ export function Floor3DView({
       fixedView,
       primary: true,
       priority: -100
-    }, true);
+    // This is an internal whole-building camera, not a floor camera selection.
+    // Avoid echoing it through the parent camera request, which would replay it
+    // as a single-floor view on mobile.
+    }, true, false, true);
   };
   const resetMobileCamera = () => {
     setCameraMode("orbit");
@@ -8791,6 +8854,10 @@ export function Floor3DView({
     setMaterialPreview(true);
     setShowServicePoints(false);
     setPresentationMode(true);
+    if (mobilePresentationMode) {
+      changeVillaOverviewMode("wholeVilla");
+      return;
+    }
     const defaultView = floorCameraViews.find((view) => view.defaultForFloor) ?? floorCameraViews.find((view) => view.name === "鸟瞰");
     if (defaultView) activateFloorCameraView(defaultView);
     else setCameraRequest((current) => ({ preset: "overview", fixedView: getMobileDefaultCameraView(floor, houseStructure), version: current.version + 1 }));
@@ -8972,6 +9039,13 @@ export function Floor3DView({
       setLightingSelectedGroupId(null);
       setLightingSoloGroupId(null);
     }
+    if (mobilePresentationMode) {
+      // The first 3D view restores the four-storey composition. Choosing a
+      // floor tab is an explicit request to inspect just that floor.
+      changeVillaOverviewMode(floorChanged ? "singleFloor" : "wholeVilla");
+      setDrawingViewPreset("birdseyeEdit");
+      return;
+    }
     if (villaExperienceEnabled) {
       // Selecting a floor is an explicit request to inspect that floor. Keep the
       // complete stair/opening geometry instead of leaving the user in the
@@ -8986,7 +9060,7 @@ export function Floor3DView({
     if (defaultView) activateFloorCameraView(defaultView, drawingSheetType === "lightingPlan");
     else requestCameraPreset("overview");
     setDrawingViewPreset(drawingSheetType === "lightingPlan" ? "birdseyeEdit" : drawingProfile.defaultPreset);
-  }, [drawingSheetType, floor.id, villaExperienceEnabled]);
+  }, [drawingSheetType, floor.id, mobilePresentationMode, villaExperienceEnabled]);
   useEffect(() => {
     const pending = pendingRoomEntryRef.current;
     if (!pending || pending.floorId !== floor.id) return;
@@ -9054,6 +9128,8 @@ export function Floor3DView({
       data-active-camera-view-id={activeCameraViewId ?? ""}
       data-villa-experience={villaExperienceEnabled ? "true" : "false"}
       data-villa-overview-mode={villaOverviewMode}
+      data-villa-stack-floor-count={VILLA_BUILDING_FLOOR_IDS.filter((floorId) => Boolean(houseStructuresByFloor[floorId])).length}
+      data-mobile-wall-treatment={mobilePresentationMode ? "full-height-translucent" : undefined}
       data-villa-space-count={villaSpaceDirectory.length}
       data-villa-light-count={villaConfiguredLightCount}
       data-current-space-floor={selectedLightingSpace?.floorId ?? ""}
@@ -9354,7 +9430,8 @@ export function Floor3DView({
 
       {mobilePresentationMode && !lightingExperienceActive && (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[85] flex justify-center px-3">
-          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-hidden rounded-full border border-white/80 bg-stone-950/78 p-1.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur" data-testid="mobile-camera-bar">
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/80 bg-stone-950/78 p-1.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur" data-testid="mobile-camera-bar">
+            <button aria-pressed={villaOverviewMode !== "singleFloor"} className={`whitespace-nowrap rounded-full px-3 py-2 ${villaOverviewMode !== "singleFloor" ? "bg-amber-300 text-stone-950" : "bg-white/10"}`} onClick={() => changeVillaOverviewMode("wholeVilla")} type="button">整栋四层</button>
             <button aria-pressed={!activeCameraViewId} className={`whitespace-nowrap rounded-full px-3 py-2 ${!activeCameraViewId ? "bg-white text-stone-900" : "bg-white/10"}`} onClick={requestFreeBrowse} type="button">自由浏览</button>
             <button aria-pressed={activeCameraView?.name === "鸟瞰"} className={`whitespace-nowrap rounded-full px-3 py-2 ${activeCameraView?.name === "鸟瞰" ? "bg-white text-stone-900" : "bg-white/10"}`} onClick={returnToBirdseye} type="button">鸟瞰</button>
             {primaryCameraViews.slice(0, 1).map((view) => (

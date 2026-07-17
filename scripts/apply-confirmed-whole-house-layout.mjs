@@ -220,13 +220,24 @@ for (const [id, sillHeightMm, operation] of [
   ["WIN-1F-005", 900, "casement"], ["WIN-1F-006", 900, "sliding"]
 ]) Object.assign(windowItem("1F", id), { sillHeightMm, operation });
 setPosition(furniture("furn-bath-toilet-001"), 9100, 1665, 90);
+const oneFloorKitchenWindowRun = furniture("furn-kitchen-run-001");
+const oneFloorKitchenLeftRun = furniture("furn-kitchen-u-left-run");
+const oneFloorKitchenRightRun = furniture("furn-kitchen-u-right-run");
+const oneFloorFridge = furniture("furn-fridge-001");
+oneFloorKitchenWindowRun.dimensions.depth = 55;
+oneFloorKitchenLeftRun.dimensions.depth = 55;
+oneFloorKitchenRightRun.dimensions.width = 90;
+oneFloorKitchenRightRun.dimensions.depth = 55;
+setPosition(oneFloorKitchenRightRun, 7296, 1415, 90);
+setPosition(oneFloorFridge, 7200, 2215, 0);
+for (const item of [oneFloorKitchenWindowRun, oneFloorKitchenLeftRun, oneFloorKitchenRightRun]) updateReserveSize(item);
 const oneFloorIsland = furniture("furn-kitchen-entry-island-001");
 const oneFloorSofa = furniture("furn-1f-living-main-sofa-001");
 const oneFloorCoffeeTable = furniture("furn-1f-living-coffee-table-001");
 oneFloorIsland.dimensions.width = 190;
-oneFloorIsland.dimensions.depth = 70;
-setPosition(oneFloorIsland, 6530, 4070, 0);
-oneFloorIsland.note = "岛台向厨房侧回收，和主沙发之间保留约 640mm 连续通道，同时不改变厨房推拉门洞。";
+oneFloorIsland.dimensions.depth = 55;
+setPosition(oneFloorIsland, 6900, 4070, 0);
+oneFloorIsland.note = "岛台柜体减深并向东侧移动，释放厨房入口的左转空间，同时保留客厅侧连续通道。";
 updateReserveSize(oneFloorIsland);
 oneFloorSofa.dimensions.width = 260;
 setPosition(oneFloorSofa, 5650, 6400, 90);

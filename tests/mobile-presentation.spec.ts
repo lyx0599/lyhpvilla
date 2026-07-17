@@ -37,7 +37,7 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(page.locator('main[data-access-mode="view-only"]')).toBeVisible();
   await expect(page.locator('[data-mobile-presentation="true"]')).toBeVisible();
 
-  for (const name of ["进入编辑模式", "保存到代码文件", "绑定代码文件", "自动写代码", "GitHub", "保存自检", "开发工具", "图纸包", "导出 HTML", "导出 JSON 清单", "导出 CSV 清单"]) {
+  for (const name of ["进入编辑模式", "探索模式", "保存到代码文件", "绑定代码文件", "自动写代码", "GitHub", "保存自检", "开发工具", "图纸包", "导出 HTML", "导出 JSON 清单", "导出 CSV 清单"]) {
     await expect(page.getByText(name, { exact: false })).toHaveCount(0);
   }
 
@@ -50,6 +50,10 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("button", { name: "重置视角", exact: true })).toBeVisible();
   await expect(page.getByTestId("mobile-camera-bar")).toBeVisible();
+  await expect(page.getByRole("button", { name: "整栋四层", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-villa-overview-mode="wholeVilla"]')).toBeVisible();
+  await expect(page.locator('[data-villa-stack-floor-count="4"]')).toBeVisible();
+  await expect(page.locator('[data-mobile-wall-treatment="full-height-translucent"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "自由浏览", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "鸟瞰", exact: true })).toBeVisible();
   await expect(page.locator("canvas")).toHaveCSS("touch-action", "none");
@@ -60,6 +64,7 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   const roomButton = tourPanel.getByRole("button").filter({ hasText: "房间" }).last();
   await roomButton.click();
   await expect(tourPanel).toBeHidden();
+  await expect(page.locator('[data-villa-overview-mode="singleFloor"]')).toBeVisible();
   await expect(page.getByTestId("mobile-tour-title")).toContainText("B1 /");
   await expect(page.locator('[data-room-tour-active="true"]')).toBeVisible();
   await expect(page.getByTestId("tour-hotspots")).toBeVisible();

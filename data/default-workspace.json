@@ -1992,8 +1992,8 @@
       "category": "light",
       "type": "wideBeamDownlight",
       "positionMm": {
-        "x": 5833,
-        "y": 1700
+        "x": 6532,
+        "y": 2600
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -2032,7 +2032,7 @@
         "trimColor": "哑白"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-002-AMBIENT:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-002\",\"category\":\"light\",\"type\":\"wideBeamDownlight\",\"positionMm\":{\"x\":5833,\"y\":1700},\"relatedFurnitureId\":null,\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-1F-V1-05 · 厨房边缘基础照明 1\",\"notes\":\"沿空间边缘与通道布置，不压在主要坐席或床头正上方；避开风口、检修口、梁位及柜门开启范围，施工前现场复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3500K\",\"needsSmartControl\":false,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-002-AMBIENT\",\"lightType\":\"wideBeamDownlight\",\"lightingLayer\":\"ambient\",\"colorTemperature\":\"3500K\",\"beamAngle\":60,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-1F-V1-05\",\"controlGroupId\":\"CG-1F-1F-002-AMBIENT\",\"smartControl\":false,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":9,\"luminousFluxLm\":760,\"cri\":95,\"glareRating\":\"UGR<19\",\"fixtureFamily\":\"wide-downlight\",\"trimColor\":\"哑白\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-002\",\"category\":\"light\",\"type\":\"wideBeamDownlight\",\"positionMm\":{\"x\":6532,\"y\":2600},\"relatedFurnitureId\":null,\"heightMm\":2800,\"circuitId\":null,\"label\":\"L-1F-V1-05 · 厨房边缘基础照明 1\",\"notes\":\"沿空间边缘与通道布置，不压在主要坐席或床头正上方；避开风口、检修口、梁位及柜门开启范围，施工前现场复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3500K\",\"needsSmartControl\":false,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-002-AMBIENT\",\"lightType\":\"wideBeamDownlight\",\"lightingLayer\":\"ambient\",\"colorTemperature\":\"3500K\",\"beamAngle\":60,\"mountingType\":\"recessed\",\"relatedSwitchId\":\"SW-1F-V1-05\",\"controlGroupId\":\"CG-1F-1F-002-AMBIENT\",\"smartControl\":false,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":9,\"luminousFluxLm\":760,\"cri\":95,\"glareRating\":\"UGR<19\",\"fixtureFamily\":\"wide-downlight\",\"trimColor\":\"哑白\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-1F-V1-05",
@@ -2041,8 +2041,8 @@
       "category": "switch",
       "type": "switchControl",
       "positionMm": {
-        "x": 5413,
-        "y": 2120
+        "x": 6112,
+        "y": 3020
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -2073,7 +2073,7 @@
       "needsSmartControl": false,
       "dimming": false,
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-002-AMBIENT:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-002\",\"category\":\"switch\",\"type\":\"switchControl\",\"positionMm\":{\"x\":5413,\"y\":2120},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-05 · 基础照明控制\",\"notes\":\"控制组 CG-1F-1F-002-AMBIENT；控制 L-1F-V1-05。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":false,\"switchControl\":[\"单控\"],\"controlledLightIds\":[\"L-1F-V1-05\"],\"lightGroupId\":\"CG-1F-1F-002-AMBIENT\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-002-AMBIENT\",\"smartControl\":false,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-05\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-002\",\"category\":\"switch\",\"type\":\"switchControl\",\"positionMm\":{\"x\":6112,\"y\":3020},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-05 · 基础照明控制\",\"notes\":\"控制组 CG-1F-1F-002-AMBIENT；控制 L-1F-V1-05。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":false,\"switchControl\":[\"单控\"],\"controlledLightIds\":[\"L-1F-V1-05\"],\"lightGroupId\":\"CG-1F-1F-002-AMBIENT\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-002-AMBIENT\",\"smartControl\":false,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-05\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-1F-V1-06",
@@ -3351,7 +3351,7 @@
       "category": "light",
       "type": "islandLinearPendant",
       "positionMm": {
-        "x": 6530,
+        "x": 6900,
         "y": 4070
       },
       "hostObjectId": null,
@@ -3381,7 +3381,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "relatedFurniturePositionMm": {
-        "x": 6530,
+        "x": 6900,
         "y": 4070
       },
       "hostCeilingAreaId": null,
@@ -3395,7 +3395,7 @@
         "trimColor": "深灰 / 黑色"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-ISLAND:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"islandLinearPendant\",\"positionMm\":{\"x\":6530,\"y\":4070},\"relatedFurnitureId\":\"furn-kitchen-entry-island-001\",\"heightMm\":1850,\"circuitId\":null,\"label\":\"L-1F-V1-34 · 中岛功能照明 / 线性吊灯\",\"notes\":\"对齐岛台长轴，兼顾操作面与通行净高；与餐桌灯分组，避开柜门、烟机和风口。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3500K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-ISLAND\",\"lightType\":\"islandLinearPendant\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3500K\",\"beamAngle\":50,\"mountingType\":\"pendant\",\"relatedSwitchId\":\"SW-1F-V1-28\",\"controlGroupId\":\"CG-1F-1F-005-ISLAND\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":28,\"luminousFluxLm\":2200,\"cri\":95,\"glareRating\":\"下照防眩\",\"fixtureFamily\":\"linear-pendant\",\"trimColor\":\"深灰 / 黑色\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"islandLinearPendant\",\"positionMm\":{\"x\":6900,\"y\":4070},\"relatedFurnitureId\":\"furn-kitchen-entry-island-001\",\"heightMm\":1850,\"circuitId\":null,\"label\":\"L-1F-V1-34 · 中岛功能照明 / 线性吊灯\",\"notes\":\"对齐岛台长轴，兼顾操作面与通行净高；与餐桌灯分组，避开柜门、烟机和风口。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3500K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-ISLAND\",\"lightType\":\"islandLinearPendant\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3500K\",\"beamAngle\":50,\"mountingType\":\"pendant\",\"relatedSwitchId\":\"SW-1F-V1-28\",\"controlGroupId\":\"CG-1F-1F-005-ISLAND\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":28,\"luminousFluxLm\":2200,\"cri\":95,\"glareRating\":\"下照防眩\",\"fixtureFamily\":\"linear-pendant\",\"trimColor\":\"深灰 / 黑色\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-1F-V1-28",
@@ -3404,7 +3404,7 @@
       "category": "switch",
       "type": "switchAndSceneControl",
       "positionMm": {
-        "x": 6110,
+        "x": 6480,
         "y": 4490
       },
       "hostObjectId": null,
@@ -3437,7 +3437,7 @@
       "needsSmartControl": true,
       "dimming": true,
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-ISLAND:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":6110,\"y\":4490},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-28 · 功能照明控制\",\"notes\":\"控制组 CG-1F-1F-005-ISLAND；控制 L-1F-V1-34。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-34\"],\"lightGroupId\":\"CG-1F-1F-005-ISLAND\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-ISLAND\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-34\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":6480,\"y\":4490},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-28 · 功能照明控制\",\"notes\":\"控制组 CG-1F-1F-005-ISLAND；控制 L-1F-V1-34。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-34\"],\"lightGroupId\":\"CG-1F-1F-005-ISLAND\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-ISLAND\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-34\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-1F-V1-35",
@@ -7515,7 +7515,7 @@
       "type": "underCabinetTaskStrip",
       "positionMm": {
         "x": 7296,
-        "y": 1665
+        "y": 1415
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -7545,7 +7545,7 @@
       "dimming": false,
       "relatedFurniturePositionMm": {
         "x": 7296,
-        "y": 1665
+        "y": 1415
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -7558,7 +7558,7 @@
         "trimColor": "铝色型材"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-002-COUNTER:light:3",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-002\",\"category\":\"light\",\"type\":\"underCabinetTaskStrip\",\"positionMm\":{\"x\":7296,\"y\":1665},\"relatedFurnitureId\":\"furn-kitchen-u-right-run\",\"heightMm\":1550,\"circuitId\":null,\"label\":\"L-1F-V1-08 · 厨房台面功能灯 3\",\"notes\":\"吊柜下沿连续无暗区灯带；出光在操作人员前方，驱动、铝槽与出线随橱柜深化。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3500K\",\"needsSmartControl\":false,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-002-COUNTER\",\"lightType\":\"underCabinetTaskStrip\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3500K\",\"beamAngle\":100,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-06\",\"controlGroupId\":\"CG-1F-1F-002-COUNTER\",\"smartControl\":false,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":12,\"luminousFluxLm\":1000,\"cri\":95,\"glareRating\":\"连续无暗区\",\"fixtureFamily\":\"under-cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-002\",\"category\":\"light\",\"type\":\"underCabinetTaskStrip\",\"positionMm\":{\"x\":7296,\"y\":1415},\"relatedFurnitureId\":\"furn-kitchen-u-right-run\",\"heightMm\":1550,\"circuitId\":null,\"label\":\"L-1F-V1-08 · 厨房台面功能灯 3\",\"notes\":\"吊柜下沿连续无暗区灯带；出光在操作人员前方，驱动、铝槽与出线随橱柜深化。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3500K\",\"needsSmartControl\":false,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-002-COUNTER\",\"lightType\":\"underCabinetTaskStrip\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3500K\",\"beamAngle\":100,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-06\",\"controlGroupId\":\"CG-1F-1F-002-COUNTER\",\"smartControl\":false,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":12,\"luminousFluxLm\":1000,\"cri\":95,\"glareRating\":\"连续无暗区\",\"fixtureFamily\":\"under-cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-1F-V1-09",
@@ -14056,7 +14056,7 @@
       "roomId": "ROOM-1F-002",
       "dimensions": {
         "width": 210,
-        "depth": 65,
+        "depth": 55,
         "height": 90,
         "unit": "cm"
       },
@@ -14173,7 +14173,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "210x65x90cm",
+        "reserveSize": "210x55x90cm",
         "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -14196,7 +14196,7 @@
       "roomId": "ROOM-1F-002",
       "dimensions": {
         "width": 200,
-        "depth": 65,
+        "depth": 55,
         "height": 90,
         "unit": "cm"
       },
@@ -14313,7 +14313,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "200x65x90cm",
+        "reserveSize": "200x55x90cm",
         "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -14335,8 +14335,8 @@
       "moduleType": "kitchenCabinet",
       "roomId": "ROOM-1F-002",
       "dimensions": {
-        "width": 130,
-        "depth": 65,
+        "width": 90,
+        "depth": 55,
         "height": 90,
         "unit": "cm"
       },
@@ -14351,7 +14351,7 @@
       },
       "position": {
         "x": 60.8,
-        "y": 18.5,
+        "y": 15.722222222222221,
         "rotation": 90
       },
       "color": "#d7dbd2",
@@ -14453,7 +14453,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "130x65x90cm",
+        "reserveSize": "90x55x90cm",
         "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -14832,7 +14832,7 @@
       "id": "furn-fridge-001",
       "floorId": "1F",
       "code": "RF-1F-R",
-      "name": "右下角嵌入式冰箱位",
+      "name": "东墙内收嵌入式冰箱位",
       "type": "fridge",
       "catalogId": "kitchen-fridge",
       "moduleCategory": "kitchen",
@@ -14845,7 +14845,7 @@
         "unit": "cm"
       },
       "material": "高柜嵌入 + 侧边散热",
-      "note": "冰箱放在厨房右下角，靠近 U 型右侧备餐段。",
+      "note": "冰箱沿东墙向北收进 U 型右侧柜段，释放厨房入口转角。",
       "constructionNote": "冰箱建议独立回路，按设备样本预留散热和开门空间。",
       "serviceRequirements": {
         "water": false,
@@ -14855,7 +14855,7 @@
       },
       "position": {
         "x": 60,
-        "y": 29.8,
+        "y": 24.61111111111111,
         "rotation": 0
       },
       "color": "#d9dee4",
@@ -15535,12 +15535,12 @@
       "roomId": "ROOM-1F-005",
       "dimensions": {
         "width": 190,
-        "depth": 70,
+        "depth": 55,
         "height": 80,
         "unit": "cm"
       },
       "material": "岩板台面 + 下柜收纳",
-      "note": "岛台向厨房侧回收，和主沙发之间保留约 640mm 连续通道，同时不改变厨房推拉门洞。",
+      "note": "岛台柜体减深并向东侧移动，释放厨房入口的左转空间，同时保留客厅侧连续通道。",
       "constructionNote": "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。",
       "serviceRequirements": {
         "water": false,
@@ -15549,7 +15549,7 @@
         "exhaust": false
       },
       "position": {
-        "x": 54.416666666666664,
+        "x": 57.49999999999999,
         "y": 45.22222222222222,
         "rotation": 0
       },
@@ -15560,7 +15560,7 @@
         "designThinking": "岛台加长后承担两件事：厨房出菜/备餐的连续台面，以及客厅侧可拿取的储物。内部用抽屉、开放格和拉篮分开，避免一个大空腔不好用。",
         "recommendedPlacement": "厨房推拉门外侧、客厅入口上方，长度与靠窗水槽段接近，四周仍要保留可绕行动线。",
         "layoutNotes": [
-          "台面长度 2100mm，和靠窗水槽段形成呼应",
+          "台面长度 1900mm，柜体深度 550mm，入口侧留出连续转身空间",
           "厨房侧放托盘、锅垫、备餐工具",
           "客厅侧放茶点、纸巾、杯垫和低频餐具"
         ],
@@ -15661,7 +15661,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "190x70x80cm",
+        "reserveSize": "190x55x80cm",
         "wallDependency": "安装前复核邻墙垂直度与完成面尺寸",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
