@@ -24,16 +24,17 @@ assert.equal(synchronized.cabinetHeight.topClosureMm, DEFAULT_CABINET_TOP_CLOSUR
 assert.equal(synchronized.dimensions.height * 10 + (synchronized.render3d?.elevationMm ?? 0), 2800 - DEFAULT_CABINET_TOP_CLOSURE_MM);
 
 const baseBounds = getFurnitureBoundsMm(synchronized, "workspace3d", "full");
-for (const mode of ["full", "cutaway", "exteriorHidden", "exteriorTransparent"]) {
+for (const mode of ["full", "cutaway", "exteriorHidden", "exteriorTransparent", "allTransparent"]) {
   assert.deepEqual(getFurnitureBoundsMm(synchronized, "overview3d", mode), baseBounds, `${mode} must not alter furniture bounds.`);
 }
 
 const wall = structure.walls.find((item) => item.barrierType !== "railing");
 assert.ok(wall);
-for (const mode of ["full", "cutaway", "exteriorHidden", "exteriorTransparent"]) {
+for (const mode of ["full", "cutaway", "exteriorHidden", "exteriorTransparent", "allTransparent"]) {
   assert.equal(getWallRenderPolicy(wall, structure, mode).sourceHeightMm, wall.height, `${mode} must preserve wall geometry height.`);
 }
 assert.equal(getWallRenderPolicy(wall, structure, "cutaway").clipHeightMm, 1176, "Cutaway height must be a view-only ratio of storey height.");
+assert.equal(getWallRenderPolicy(wall, structure, "allTransparent").opacity, 0.18, "Total-plan 3D must make every wall translucent.");
 
 const normalizedFurniture = workspace.furniture.map((item) => {
   const itemStructure = workspace.houseStructuresByFloor[item.floorId] ?? structure;

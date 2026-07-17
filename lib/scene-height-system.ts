@@ -89,7 +89,7 @@ export function getWallRenderPolicy(wall: HouseWall, structure: HouseStructure, 
   const exterior = isExteriorWall(wall, structure);
   return {
     visible: !(mode === "exteriorHidden" && exterior),
-    opacity: mode === "exteriorTransparent" && exterior ? 0.18 : undefined,
+    opacity: mode === "allTransparent" || (mode === "exteriorTransparent" && exterior) ? 0.18 : undefined,
     clipHeightMm: mode === "cutaway" ? resolveStructureStoryHeightMm(structure) * WALL_CUT_RATIO : null,
     sourceHeightMm: wall.height
   };
@@ -117,7 +117,7 @@ export function validateSceneHeightSystem(structure: HouseStructure, furniture: 
     if (bounds.top > ceiling + 1) findings.push({ ruleId: "CABINET_CEILING_PENETRATION", severity: "error", category: "geometry", title: "柜体穿出完成天花", message: `${item.name} 顶部 ${bounds.top}mm，高于完成天花 ${ceiling}mm。`, floorId: item.floorId, roomId: item.roomId, objectId: item.id, actualValue: `${bounds.top}mm`, requiredValue: `≤ ${ceiling}mm` });
     const overview = getFurnitureBoundsMm(item, "overview3d", "exteriorTransparent");
     if (!boundsEqual(bounds, overview)) findings.push({ ruleId: "FURNITURE_SCENE_BOUNDS", severity: "error", category: "geometry", title: "家具跨视图尺寸不一致", message: `${item.name} 在工作区与总平面 3D 的包围盒不同。`, floorId: item.floorId, objectId: item.id });
-    (["full", "cutaway", "exteriorHidden", "exteriorTransparent"] as Drawing3DWallMode[]).forEach((mode) => {
+    (["full", "cutaway", "exteriorHidden", "exteriorTransparent", "allTransparent"] as Drawing3DWallMode[]).forEach((mode) => {
       if (!boundsEqual(bounds, getFurnitureBoundsMm(item, "overview3d", mode))) findings.push({ ruleId: "WALL_MODE_FURNITURE_INVARIANCE", severity: "error", category: "geometry", title: "墙体模式改变了家具尺寸", message: `${item.name} 在 ${mode} 模式下包围盒发生变化。`, floorId: item.floorId, objectId: item.id });
     });
   });

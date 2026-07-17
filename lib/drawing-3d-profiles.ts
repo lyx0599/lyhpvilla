@@ -10,7 +10,7 @@ export type Drawing3DViewPreset =
   | "ceilingUp"
   | "wallElevation";
 
-export type Drawing3DWallMode = "full" | "cutaway" | "exteriorHidden" | "exteriorTransparent";
+export type Drawing3DWallMode = "full" | "cutaway" | "exteriorHidden" | "exteriorTransparent" | "allTransparent";
 export type Drawing3DFurnitureMode = "major" | "all" | "relatedOnly" | "dim" | "hidden";
 export type Drawing3DMaterialMode = "realistic" | "technical" | "flat";
 
@@ -47,9 +47,9 @@ export const drawing3DViewPresets = Object.keys(drawing3DViewPresetLabels) as Dr
 
 export const drawing3DPresentationProfiles: Record<DrawingSheetType, Drawing3DPresentationProfile> = {
   sitePlan: {
-    sheetType: "sitePlan", label: "总平面 3D", defaultPreset: "birdseyeEdit", wallMode: "exteriorTransparent", furnitureMode: "all", materialMode: "realistic",
+    sheetType: "sitePlan", label: "总平面 3D", defaultPreset: "birdseyeEdit", wallMode: "allTransparent", furnitureMode: "all", materialMode: "realistic",
     drawingCategories: ["ceiling", "floorFinish", "wallFinish", "cabinet", "light"], showOutdoors: true, showCeiling: true, showStructureIds: false, showRelationshipLines: false, realTimeLighting: false, focusCurrentRoom: false,
-    summary: "汇总当前统一项目状态中的建筑、庭院、全部家具设备、最终饰面、吊顶与可见灯具；专业点位和施工标记默认隐藏。"
+    summary: "汇总当前统一项目状态中的建筑、庭院、全部家具设备、最终饰面、吊顶与可见灯具；内外墙均以半透明完整墙高表达，专业点位和施工标记默认隐藏。"
   },
   structurePlan: {
     sheetType: "structurePlan", label: "结构专项 3D", defaultPreset: "cutawayEdit", wallMode: "cutaway", furnitureMode: "hidden", materialMode: "technical",

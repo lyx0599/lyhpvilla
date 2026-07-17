@@ -20,7 +20,7 @@ assert.equal(getDrawing3DPresentationProfile("structurePlan").defaultPreset, "cu
 assert.equal(getDrawing3DPresentationProfile("structurePlan").furnitureMode, "hidden");
 assert.equal(getDrawing3DPresentationProfile("sitePlan").furnitureMode, "all", "Overview must render all current furniture, not a major-object subset.");
 assert.equal(getDrawing3DPresentationProfile("sitePlan").materialMode, "realistic", "Overview must use the same detailed material/model path as furniture 3D.");
-assert.equal(getDrawing3DPresentationProfile("sitePlan").wallMode, "exteriorTransparent", "Overview must reveal the interior without changing real wall geometry.");
+assert.equal(getDrawing3DPresentationProfile("sitePlan").wallMode, "allTransparent", "Overview must reveal the interior through translucent interior and exterior walls without changing real wall geometry.");
 assert.equal(getDrawing3DPresentationProfile("sitePlan").showRelationshipLines, false);
 assert.equal(getDrawing3DPresentationProfile("sitePlan").showStructureIds, false);
 assert.equal(getDrawing3DPresentationProfile("furniturePlan").defaultPreset, "birdseyeEdit");

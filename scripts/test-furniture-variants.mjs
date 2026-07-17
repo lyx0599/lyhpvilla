@@ -91,10 +91,11 @@ assert.equal(diningSet.render3d.variantId, "roundPedestal");
 assert.equal(diningSet.render3d.detailLevel, "presentation");
 
 const showcaseIds = [
-  "furn-1f-living-main-sofa-001", "furn-1f-living-coffee-table-001",
+  "furn-1f-living-main-sofa-001",
   "furn-living-fireplace-south-001", "furn-2f-master-bedroom-bed-001", "furn-2f-master-bedroom-large-wardrobe-001"
 ];
 assert.equal(workspace.furniture.some((item) => item.id === "furn-1f-living-rug-001"), false, "The confirmed 1F living-room rug removal must persist.");
+assert.equal(workspace.furniture.some((item) => item.id === "furn-1f-living-coffee-table-001"), false, "The confirmed 1F living room must not regain a central coffee table.");
 for (const id of showcaseIds) {
   const item = workspace.furniture.find((candidate) => candidate.id === id);
   assert.ok(item, `${id} must exist in the default workspace`);
@@ -112,5 +113,6 @@ assert.match(rendererSources["table-family-3d.tsx"], /nestedDouble/);
 assert.match(rendererSources["chair-family-3d.tsx"], /wovenDining/);
 assert.match(rendererSources["cabinet-family-3d.tsx"], /openClosedMix/);
 assert.match(rendererSources["media-wall-3d.tsx"], /consoleHeight/);
+assert.match(rendererSources["media-wall-3d.tsx"], /integrated-fireplace-flames/);
 
 console.log("Furniture variant, stable seed, style protection and snapshot checks passed.");
