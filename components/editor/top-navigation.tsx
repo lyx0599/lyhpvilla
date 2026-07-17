@@ -4,7 +4,7 @@ type Props = {
   projectName: string;
   floors: Floor[];
   selectedFloorId: FloorId;
-  drawingName: string;
+  workspaceName: string;
   viewMode: ViewMode;
   saveLabel: string;
   saveTone: "saved" | "saving" | "dirty" | "error";
@@ -14,8 +14,11 @@ type Props = {
   onSelectFloor: (floorId: FloorId) => void;
   onOpenDirectory: () => void;
   onChangeView: (mode: ViewMode) => void;
+  onEnterExploration: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  onOpenValidation: () => void;
+  onOpenPackage: () => void;
   onToggleMore: () => void;
 };
 
@@ -23,7 +26,7 @@ export function TopNavigation({
   projectName,
   floors,
   selectedFloorId,
-  drawingName,
+  workspaceName,
   viewMode,
   saveLabel,
   saveTone,
@@ -33,8 +36,11 @@ export function TopNavigation({
   onSelectFloor,
   onOpenDirectory,
   onChangeView,
+  onEnterExploration,
   onUndo,
   onRedo,
+  onOpenValidation,
+  onOpenPackage,
   onToggleMore
 }: Props) {
   const toneClass = saveTone === "error" ? "text-red-700" : saveTone === "dirty" ? "text-amber-700" : saveTone === "saving" ? "text-blue-700" : "text-emerald-700";
@@ -54,15 +60,23 @@ export function TopNavigation({
           {floors.map((floor) => <option key={floor.id} value={floor.id}>{floor.label}</option>)}
         </select>
       </label>
-      <button className="flex h-9 min-w-0 max-w-[16rem] items-center gap-2 rounded-lg px-2.5 text-left text-xs font-semibold text-slate-800 transition hover:bg-stone-100" onClick={onOpenDirectory} title="打开图纸目录" type="button">
-        <span className="hidden text-stone-400 sm:inline">当前图纸</span>
-        <span className="truncate">{drawingName}</span>
+      <button className="flex h-9 min-w-0 max-w-[16rem] items-center gap-2 rounded-lg px-2.5 text-left text-xs font-semibold text-slate-800 transition hover:bg-stone-100" onClick={onOpenDirectory} title="切换工作区" type="button">
+        <span className="hidden text-stone-400 sm:inline">当前工作区</span>
+        <span className="truncate">{workspaceName}</span>
         <span className="text-stone-400">⌄</span>
       </button>
       <div className="ml-auto flex min-w-0 items-center gap-1">
         <div className="grid grid-cols-2 rounded-lg bg-stone-100 p-0.5 text-[11px] font-semibold">
           {(["2d", "3d"] as ViewMode[]).map((mode) => <button key={mode} className={`rounded-md px-2.5 py-1.5 transition ${viewMode === mode ? "bg-white text-slate-900 shadow-sm" : "text-stone-500 hover:text-slate-900"}`} onClick={() => onChangeView(mode)} type="button">{mode.toUpperCase()}</button>)}
         </div>
+        <button
+          className="h-9 shrink-0 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-700"
+          onClick={onEnterExploration}
+          title="进入只读探索模式"
+          type="button"
+        >
+          探索
+        </button>
         <span className="mx-1 hidden h-5 w-px bg-stone-200 sm:block" />
         <button aria-label="撤销" className="grid size-9 place-items-center rounded-lg text-base text-stone-600 hover:bg-stone-100 disabled:text-stone-300" disabled={!canUndo} onClick={onUndo} title="撤销 (⌘Z)" type="button">↶</button>
         <button aria-label="重做" className="grid size-9 place-items-center rounded-lg text-base text-stone-600 hover:bg-stone-100 disabled:text-stone-300" disabled={!canRedo} onClick={onRedo} title="重做 (⌘⇧Z)" type="button">↷</button>
@@ -70,6 +84,8 @@ export function TopNavigation({
           <span className={`size-1.5 rounded-full ${saveTone === "error" ? "bg-red-500" : saveTone === "dirty" ? "bg-amber-500" : saveTone === "saving" ? "bg-blue-500 animate-pulse" : "bg-emerald-500"}`} />
           <span className="truncate">{saveLabel}</span>
         </span>
+        <button aria-label="检查" className="hidden h-9 rounded-lg px-2.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100 md:block" onClick={onOpenValidation} type="button">检查</button>
+        <button aria-label="图纸包" className="hidden h-9 rounded-lg px-2.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100 lg:block" onClick={onOpenPackage} type="button">图纸包</button>
         <button aria-expanded={moreOpen} aria-label="更多" className={`grid size-9 place-items-center rounded-lg text-lg font-semibold transition ${moreOpen ? "bg-slate-900 text-white" : "text-stone-600 hover:bg-stone-100"}`} onClick={onToggleMore} title="更多" type="button">•••</button>
       </div>
     </header>

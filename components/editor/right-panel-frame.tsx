@@ -14,10 +14,10 @@ type RailProps = {
 };
 
 export function RightPanelRail({ activePanel, errorCount, onSelect }: RailProps) {
-  return <div className="flex rounded-xl border border-stone-200 bg-white p-1 shadow-lg lg:h-full lg:flex-col lg:rounded-none lg:border-0 lg:py-2 lg:shadow-none">{(Object.keys(panelMeta) as EditorRightPanelKey[]).map((key) => {
+  return <div className="flex rounded-xl border border-stone-200 bg-white p-1 shadow-lg lg:h-full lg:w-[88px] lg:flex-col lg:rounded-none lg:border-0 lg:px-1.5 lg:py-2 lg:shadow-none">{(Object.keys(panelMeta) as EditorRightPanelKey[]).map((key) => {
     const meta = panelMeta[key];
     const active = key === activePanel;
-    return <button key={key} aria-label={meta.label} className={`relative grid size-9 place-items-center rounded-lg text-sm font-semibold transition lg:size-10 ${active ? "bg-slate-900 text-white" : "text-stone-500 hover:bg-stone-100 hover:text-slate-900"}`} onClick={() => onSelect(key)} title={meta.label} type="button"><span>{meta.icon}</span>{key === "validation" && errorCount > 0 ? <span className="absolute right-0.5 top-0.5 grid size-3.5 place-items-center rounded-full bg-red-600 text-[8px] font-black text-white">{Math.min(9, errorCount)}</span> : null}</button>;
+    return <button key={key} aria-label={meta.label} className={`relative flex h-10 min-w-[60px] items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition lg:w-full lg:justify-start ${active ? "bg-slate-900 text-white" : "text-stone-500 hover:bg-stone-100 hover:text-slate-900"}`} onClick={() => onSelect(key)} title={meta.label} type="button"><span className="grid size-5 shrink-0 place-items-center text-sm">{meta.icon}</span><span>{meta.label}</span>{key === "validation" && errorCount > 0 ? <span className="absolute right-0.5 top-0.5 grid size-3.5 place-items-center rounded-full bg-red-600 text-[8px] font-black text-white">{Math.min(9, errorCount)}</span> : null}</button>;
   })}</div>;
 }
 

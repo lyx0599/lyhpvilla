@@ -47,9 +47,9 @@ export const drawing3DViewPresets = Object.keys(drawing3DViewPresetLabels) as Dr
 
 export const drawing3DPresentationProfiles: Record<DrawingSheetType, Drawing3DPresentationProfile> = {
   sitePlan: {
-    sheetType: "sitePlan", label: "总平面 3D", defaultPreset: "birdseyeEdit", wallMode: "low", furnitureMode: "major", materialMode: "flat",
-    drawingCategories: [], showOutdoors: true, showCeiling: false, showStructureIds: false, showRelationshipLines: false, realTimeLighting: false, focusCurrentRoom: false,
-    summary: "整体鸟瞰建筑、庭院、围栏、路径、硬景与主要家具，弱化室内细节。"
+    sheetType: "sitePlan", label: "总平面 3D", defaultPreset: "birdseyeEdit", wallMode: "low", furnitureMode: "all", materialMode: "realistic",
+    drawingCategories: ["ceiling", "floorFinish", "wallFinish", "cabinet", "light"], showOutdoors: true, showCeiling: true, showStructureIds: false, showRelationshipLines: false, realTimeLighting: false, focusCurrentRoom: false,
+    summary: "汇总当前统一项目状态中的建筑、庭院、全部家具设备、最终饰面、吊顶与可见灯具；专业点位和施工标记默认隐藏。"
   },
   structurePlan: {
     sheetType: "structurePlan", label: "结构专项 3D", defaultPreset: "cutawayEdit", wallMode: "cutaway", furnitureMode: "hidden", materialMode: "technical",

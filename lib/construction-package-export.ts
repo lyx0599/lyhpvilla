@@ -13,6 +13,7 @@ import {
 import type { VerificationTargetEntry } from "./dimension-verification.ts";
 import type { DrawingItem, DrawingItemCategory, DrawingSheetType, FixedCameraView, Furniture, HouseOutdoorSurface, HouseStructure, VerificationSource, VerificationStatus } from "../types/space";
 import type { WorkspaceDocument } from "../types/workspace";
+import { evaluateOutputDrawings } from "./output-drawings.ts";
 
 export const constructionPackageSheets: Array<{ sheetNo: string; title: string; type: DrawingSheetType | null; categories: DrawingItemCategory[]; scale: string }> = [
   { sheetNo: "A-00", title: "图纸目录/总说明", type: null, categories: [], scale: "NTS" },
@@ -28,8 +29,8 @@ export const constructionPackageSheets: Array<{ sheetNo: string; title: string; 
   { sheetNo: "C-01", title: "吊顶图", type: "ceilingPlan", categories: ["ceiling"], scale: "1:50" },
   { sheetNo: "M-01", title: "地面铺装图", type: "floorFinishPlan", categories: ["floorFinish"], scale: "1:50" },
   { sheetNo: "M-02", title: "墙面材料图", type: "wallFinishPlan", categories: ["wallFinish"], scale: "1:50" },
-  { sheetNo: "M-03", title: "材料索引图", type: "materialPlan", categories: ["floorFinish", "wallFinish", "cabinet"], scale: "NTS" },
-  { sheetNo: "N-01", title: "施工标注/待确认项", type: "annotationPlan", categories: ["annotation"], scale: "NTS" }
+  { sheetNo: "M-03", title: "材料索引清单（辅助输出）", type: null, categories: ["floorFinish", "wallFinish", "cabinet"], scale: "NTS" },
+  { sheetNo: "N-01", title: "待确认项清单（检查附件）", type: null, categories: ["annotation"], scale: "NTS" }
 ];
 
 export const constructionPackageRecordFields = [
@@ -46,6 +47,21 @@ export const requiredConstructionCameraViewIds = [
   "view-1f-yard-overview", "view-yard-south-living", "view-yard-entry", "view-1f-living-dining-overview",
   "view-2f-master-bedroom", "view-2f-closet", "view-b2-activity", "view-b1-guest-room"
 ] as const;
+
+const outputDefinitionIdBySheetType: Partial<Record<DrawingSheetType, string>> = {
+  sitePlan: "layout-plan",
+  structurePlan: "layout-plan",
+  demolitionAndBuildPlan: "renovation-plan",
+  furniturePlan: "furniture-position-plan",
+  socketPlan: "socket-plan",
+  switchPlan: "switch-plan",
+  lightingPlan: "lighting-plan",
+  waterSupplyPlan: "water-plan",
+  drainagePlan: "drainage-plan",
+  ceilingPlan: "ceiling-plan",
+  floorFinishPlan: "floor-finish-plan",
+  wallFinishPlan: "wall-finish-plan"
+};
 
 type ExportRecord = Record<string, unknown> & Partial<Record<(typeof constructionPackageRecordFields)[number], unknown>>;
 
@@ -159,11 +175,11 @@ function furniturePlacementRecord(
     roomAssignmentLocked: Boolean(item.roomAssignmentLocked),
     wallAnchor: item.wallAnchor ?? null,
     clearanceMeta: item.clearanceMeta ?? null,
-    placementWarnings: warnings.map((warning) => ({ code: warning.code, relatedObjectId: warning.relatedObjectId ?? null, message: warning.message })),
+    placementWarnings: warnings.map((warning) => ({ code: warning.code, severity: warning.severity ?? "warning", category: warning.category ?? "geometry", relatedObjectId: warning.relatedObjectId ?? null, message: warning.message })),
     relatedDrawingItems: related.map((drawingItem) => drawingItem.id),
     position: item.position,
     dimensions: item.dimensions,
-    status: warnings.length ? "todo" : "draft",
+    status: warnings.some((warning) => warning.severity === "error" || warning.severity === "warning") ? "todo" : "draft",
     notes: warnings.map((warning) => warning.message).join("；"),
     createdAt: null,
     updatedAt: null
@@ -255,7 +271,7 @@ export function validateConstructionPackage(workspace: WorkspaceDocument) {
     dimensionUnconfirmed: verificationEntries.filter((entry) => entry.object.verificationMeta?.status !== "confirmed").length,
     dimensionEstimated: verificationEntries.filter((entry) => ["estimated", "drawing-derived"].includes(entry.object.verificationMeta?.status ?? "unverified")).length,
     dimensionConflicts: verificationEntries.filter((entry) => verificationConflictIds.has(entry.object.id)).length,
-    furniturePlacement: furniturePlacementWarnings.length
+    furniturePlacement: furniturePlacementWarnings.filter((issue) => issue.severity === "error" || issue.severity === "warning").length
   };
   return { valid: references.errors.length === 0, errors: references.errors, warnings: references.warnings, orphanIssues, draftItems, todoItems, reviewItems, verificationEntries, furniturePlacementWarnings, warningCounts };
 }
@@ -484,8 +500,25 @@ export function constructionPackageToHtml(workspace: WorkspaceDocument) {
     if (!structure) return "";
     const furniture = workspace.furniture.filter((item) => item.floorId === floor.id);
     const items = workspace.drawingItems.filter((item) => item.floorId === floor.id);
-    const drawings = constructionPackageSheets.filter((sheet) => sheet.type).map((sheet) => `<article><header><div><strong>${sheet.sheetNo} ${esc(sheet.title)}</strong><small>${esc(floor.label)} · ${esc(floor.subtitle)} · ${sheet.scale}</small></div><span>${sheetStatus(items, sheet.categories)}</span></header>${floorSvg(structure, furniture, items, sheet, verificationConflictIds)}<footer>版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</footer></article>`).join("");
-    return `<section class="floor"><h2>${esc(floor.label)} · ${esc(floor.subtitle)}</h2>${drawings}</section>`;
+    const readiness = evaluateOutputDrawings({
+      structure,
+      furniture,
+      drawingItems: items,
+      stairSystems: workspace.stairSystems.filter((system) => system.lowerFloorId === floor.id || system.upperFloorId === floor.id),
+      stairLandings: workspace.stairLandings.filter((landing) => landing.lowerFloorId === floor.id || landing.upperFloorId === floor.id),
+      stairOpenings: workspace.stairOpenings.filter((opening) => opening.floorId === floor.id),
+      errorCount: data.validation.errors.length,
+      warningCount: Object.values(data.validation.warningCounts).reduce((sum, count) => sum + count, 0)
+    });
+    const readinessById = new Map(readiness.map((drawing) => [drawing.id, drawing]));
+    const formalSheets = constructionPackageSheets.filter((sheet) => {
+      if (!sheet.type) return false;
+      const definitionId = outputDefinitionIdBySheetType[sheet.type];
+      return definitionId ? readinessById.get(definitionId)?.status === "ready" : false;
+    });
+    const drawings = formalSheets.map((sheet) => `<article><header><div><strong>${sheet.sheetNo} ${esc(sheet.title)}</strong><small>${esc(floor.label)} · ${esc(floor.subtitle)} · ${sheet.scale}</small></div><span>${sheetStatus(items, sheet.categories)}</span></header>${floorSvg(structure, furniture, items, sheet, verificationConflictIds)}<footer>版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</footer></article>`).join("");
+    const incomplete = readiness.filter((drawing) => drawing.status !== "ready").map((drawing) => `<tr><td>${esc(drawing.number)}</td><td>${esc(drawing.name)}</td><td>${esc(drawing.status === "draft" ? "草稿" : "未完成")}</td><td>${esc(drawing.missing.join("、"))}</td></tr>`).join("");
+    return `<section class="floor"><h2>${esc(floor.label)} · ${esc(floor.subtitle)}</h2>${drawings || "<p>当前楼层暂无满足导出条件的正式图纸。</p>"}<h3>未完成图纸</h3><table><thead><tr><th>图号</th><th>图名</th><th>状态</th><th>缺失内容</th></tr></thead><tbody>${incomplete || "<tr><td colspan='4'>全部正式图纸已满足条件</td></tr>"}</tbody></table></section>`;
   }).join("");
   const warningRows = Object.entries({ "草稿项": warning.draft, "待确认项": warning.todo, "孤立引用": warning.orphan, "家具定位提醒": warning.furniturePlacement, "插座缺少高度": warning.socketMissingHeight, "开关缺少关联灯具": warning.switchMissingLights, "灯具缺少色温": warning.lightMissingColorTemperature, "灯具系统字段不完整": warning.lightIncompleteSystemFields, "灯具/开关控制组不一致": warning.controlGroupMismatch, "排水点缺少类型": warning.drainageMissingType, "铺装/墙面缺少材质": warning.finishMissingMaterial, "庭院待复核": warning.yardNeedsReview, "尺寸未确认": warning.dimensionUnconfirmed, "按图/视觉估算": warning.dimensionEstimated, "尺寸冲突": warning.dimensionConflicts }).map(([label, count]) => `<tr><td>${label}</td><td>${count}</td><td>${count ? "导出后继续复核" : "通过"}</td></tr>`).join("");
   const cameraRows = data.cameraViews.map((view) => `<tr><td>${esc(view.floor)}</td><td>${esc(view.name)}</td><td>${esc(view.description ?? "")}</td><td><button type="button" data-camera-view="${esc(view.id)}">在应用中打开固定视角并手动截图</button></td></tr>`).join("");

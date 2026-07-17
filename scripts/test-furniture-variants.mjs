@@ -84,16 +84,17 @@ assert.match(
 );
 assert.match(floor3dSource, /rotation=\{\[0, -angle - Math\.PI \/ 2, 0\]\}/, "Legacy dining chairs must face toward the table.");
 const island = workspace.furniture.find((item) => item.id === "furn-kitchen-entry-island-001");
-assert.deepEqual(island.dimensions, { width: 210, depth: 75, height: 80, unit: "cm" });
+assert.deepEqual(island.dimensions, { width: 190, depth: 70, height: 80, unit: "cm" }, "The walkability-adjusted island envelope must persist.");
 const diningSet = workspace.furniture.find((item) => item.id === "module-1f-table-001");
 assert.equal(diningSet.roomId, "ROOM-1F-005", "The six-person dining set must remain assigned to the living room.");
 assert.equal(diningSet.render3d.variantId, "roundPedestal");
 assert.equal(diningSet.render3d.detailLevel, "presentation");
 
 const showcaseIds = [
-  "furn-1f-living-main-sofa-001", "furn-1f-living-rug-001", "furn-1f-living-coffee-table-001",
+  "furn-1f-living-main-sofa-001", "furn-1f-living-coffee-table-001",
   "furn-living-fireplace-south-001", "furn-2f-master-bedroom-bed-001", "furn-2f-master-bedroom-large-wardrobe-001"
 ];
+assert.equal(workspace.furniture.some((item) => item.id === "furn-1f-living-rug-001"), false, "The confirmed 1F living-room rug removal must persist.");
 for (const id of showcaseIds) {
   const item = workspace.furniture.find((candidate) => candidate.id === id);
   assert.ok(item, `${id} must exist in the default workspace`);

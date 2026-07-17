@@ -18,6 +18,10 @@ for (const sheetType of officialDrawingSheetTypes) {
 
 assert.equal(getDrawing3DPresentationProfile("structurePlan").defaultPreset, "cutawayEdit");
 assert.equal(getDrawing3DPresentationProfile("structurePlan").furnitureMode, "hidden");
+assert.equal(getDrawing3DPresentationProfile("sitePlan").furnitureMode, "all", "Overview must render all current furniture, not a major-object subset.");
+assert.equal(getDrawing3DPresentationProfile("sitePlan").materialMode, "realistic", "Overview must use the same detailed material/model path as furniture 3D.");
+assert.equal(getDrawing3DPresentationProfile("sitePlan").showRelationshipLines, false);
+assert.equal(getDrawing3DPresentationProfile("sitePlan").showStructureIds, false);
 assert.equal(getDrawing3DPresentationProfile("furniturePlan").defaultPreset, "birdseyeEdit");
 assert.equal(getDrawing3DPresentationProfile("lightingPlan").defaultPreset, "interiorTour");
 assert.equal(getDrawing3DPresentationProfile("lightingPlan").wallMode, "full");
@@ -32,10 +36,19 @@ const floor3dSource = await readFile(new URL("../components/floor-3d-view.tsx", 
 assert.match(floor3dSource, /data-drawing-sheet-type=/);
 assert.match(floor3dSource, /DrawingItems3DLayer/);
 assert.match(floor3dSource, /lightingSceneModeLabels/);
-assert.match(floor3dSource, /onDrawingSheetTypeChange/);
+assert.doesNotMatch(floor3dSource, /onDrawingSheetTypeChange/, "3D must follow the selected workspace instead of exposing a professional switcher in its top bar.");
+assert.doesNotMatch(floor3dSource, /3D 图纸专项/, "Professional drawing selection must stay in the workspace selector.");
+assert.match(floor3dSource, /场景灯光预览/, "Scene-lighting controls must be named as a visual preview, not a drawing specialty.");
 assert.match(floor3dSource, /data-testid="lighting-free-browse-minimap"/, "Lighting free browse must expose the draggable floor-plan minimap.");
 assert.match(floor3dSource, /cameraMode === "orbit" && !activeCameraViewId/, "The lighting minimap must only appear in free browse.");
 assert.match(floor3dSource, /navigationRequest\.targetX - controls\.target\.x/, "Dragging the minimap must translate the camera focus without changing its relative view.");
 assert.doesNotMatch(floor3dSource, /threeDDrawingItems|drawingItems3D\s*=/, "3D must not create a separate drawing item store.");
+assert.match(floor3dSource, /filterSceneFurniture/, "All 3D modes must resolve furniture through the unified scene visibility layer.");
+assert.match(floor3dSource, /sceneLod=\{sceneVisibility\.lod\}/, "Current-floor views must keep a shared semantic asset while applying view-only LOD.");
+assert.match(floor3dSource, /notifySelection && view\.fixedView/, "A selected fixed camera view must notify the shared workspace state.");
+
+const spacePlannerSource = await readFile(new URL("../components/space-planner.tsx", import.meta.url), "utf8");
+assert.match(spacePlannerSource, /view\.scope === "courtyard"/, "Courtyard camera views must be recognized as unified site overviews.");
+assert.match(spacePlannerSource, /setSharedPlanCanvasMode\("sitePlan"\)/, "Opening the courtyard overview must activate the site-plan scene profile.");
 
 console.log("Shared drawing 3D profile checks passed.");

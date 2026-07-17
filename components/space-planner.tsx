@@ -15,6 +15,10 @@ import { EditorUtilityDialog } from "@/components/editor/editor-utility-dialog";
 import { MoreMenu, type EditorDialogKey } from "@/components/editor/more-menu";
 import { RightPanelFrame, RightPanelRail, type EditorRightPanelKey } from "@/components/editor/right-panel-frame";
 import { TopNavigation } from "@/components/editor/top-navigation";
+import { WorkspaceTabs } from "@/components/editor/workspace-tabs";
+import { DrawingPackageManager } from "@/components/editor/drawing-package-manager";
+import { ExplorationMode } from "@/components/exploration-mode";
+import type { Shared3DSceneSettings } from "@/components/floor-3d-view";
 import { interiorModuleCatalog, interiorModuleCategoryLabels, serviceRequirementLabels } from "@/data/interior-module-catalog";
 import type { InteriorModuleCatalogItem } from "@/data/interior-module-catalog";
 import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
@@ -25,6 +29,7 @@ import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
 import { drawingItemCategoryLabels, generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
 import { generateLightingDesignV1, modernWarmFixtureFamilies } from "@/lib/lighting-design";
 import { createUnifiedCourtyardModel, courtyardViewFloorIds } from "@/lib/courtyard-model";
+import { buildUnifiedSceneGraph, resolveUnifiedSceneScope } from "@/lib/unified-scene-graph";
 import { createSyncSelfCheckReport, resolveSelection } from "@/lib/object-sync-adapter";
 import { DEFAULT_MOBILE_ACCESS_MODE, getDefaultAccessModeForDevice, getWorkspaceAccessCapabilities } from "@/lib/workspace-access";
 import { applyWorkspaceMigrations, CURRENT_WORKSPACE_DATA_REVISION, CURRENT_WORKSPACE_SCHEMA_VERSION, reportWorkspaceDataSources } from "@/lib/workspace-migrations";
@@ -32,19 +37,29 @@ import { compareWorkspace, getDetailedWorkspaceDifference, getWorkspaceDifferenc
 import { validateWorkspaceReferences } from "@/lib/workspace-reference-validator";
 import { validateStairSystems } from "@/lib/stair-systems";
 import { deriveRoomTourViews } from "@/lib/room-tour";
+import { canExecuteEditorCommand, type ExplorationEditorMode } from "@/lib/exploration-mode";
 import { normalizeDrawingSheetType } from "@/lib/drawing-sheets";
+import { getDrawing3DPresentationProfile } from "@/lib/drawing-3d-profiles";
 import {
   getAdjacentDrawingWorkspace,
   getDefaultDrawingWorkspace,
+  getDefaultWorkspaceTab,
   getDrawingWorkspace,
+  resolveDrawingWorkspace,
   type DrawingWorkspaceConfig,
-  type DrawingWorkspaceTool
+  type DrawingWorkspaceTool,
+  type WorkspaceTabId,
+  type WorkspaceViewDefinition
 } from "@/lib/drawing-workspaces";
+import { evaluateOutputDrawings } from "@/lib/output-drawings";
+import { getValidationGroup, groupValidationFindings, type ValidationFinding } from "@/lib/validation-rules";
 import {
   commitFurnitureSpaceAssignment,
   getRelatedDrawingItemSyncState,
   reconcileFurnitureWallAnchors,
   refreshFurnitureWallAnchorFromPosition,
+  resolveFurnitureSpaceAssignment,
+  syncRelatedDrawingItemsToFurniture,
   validateFurniturePlacement
 } from "@/lib/furniture-placement";
 import {
@@ -2295,6 +2310,31 @@ function RightPanelCard({
   );
 }
 
+function createDefaultShared3DSceneSettings(drawingSheetType: DrawingSheetType): Shared3DSceneSettings {
+  const profile = getDrawing3DPresentationProfile(drawingSheetType);
+  const wallDisplayMode = profile.wallMode;
+  return {
+    drawingSheetType,
+    drawingViewPreset: profile.defaultPreset,
+    furnitureHeightMode: drawingSheetType === "sitePlan" || wallDisplayMode === "full" ? "actual" : "cutaway",
+    materialPreview: true,
+    designStyle: "warmJapandi",
+    wallDisplayMode,
+    lightingWallMode: wallDisplayMode === "full" ? "full" : "smartCutaway",
+    materialCategoryFilter: "all",
+    roomCeilingMode: drawingSheetType === "sitePlan" ? "translucent" : "hidden",
+    ceilingSolid: false,
+    showFixtureModels: true,
+    showFixtureIds: false,
+    showBeamCones: false,
+    showLightSpots: false,
+    showControlRelations: false,
+    showIlluminanceLayer: false,
+    presentationMode: false,
+    villaExperienceEnabled: drawingSheetType === "lightingPlan"
+  };
+}
+
 export function SpacePlanner({ data }: { data: SpaceData }) {
   const defaultSelectedFloorId: FloorId = data.selectedFloorId ?? "1F";
   const initialSelectedFloorId: FloorId = data.floors.some((floor) => floor.id === defaultSelectedFloorId) ? defaultSelectedFloorId : "1F";
@@ -2315,16 +2355,24 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => data.workspace.semanticObjects);
   const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("2d");
-  const initialDrawingSheetType = data.workspace.selectedDrawingSheetType ?? "sitePlan";
+  const [editorMode, setEditorMode] = useState<ExplorationEditorMode>("design");
+  const explorationReturnStateRef = useRef<{ viewMode: ViewMode; plannerMode: PlannerMode } | null>(null);
+  const legacyInitialDrawingSheetType = data.workspace.selectedDrawingSheetType ?? "sitePlan";
+  const initialDrawingWorkspace = getDefaultDrawingWorkspace(legacyInitialDrawingSheetType);
+  const initialWorkspaceTabId = getDefaultWorkspaceTab(legacyInitialDrawingSheetType);
+  const initialResolvedDrawingWorkspace = resolveDrawingWorkspace(initialDrawingWorkspace.id, initialWorkspaceTabId);
+  const initialDrawingSheetType = initialResolvedDrawingWorkspace.persistedSheet;
   const [selectedDrawingSheetType, setSelectedDrawingSheetType] = useState<DrawingSheetType>(initialDrawingSheetType);
-  const [sharedPlanCanvasMode, setSharedPlanCanvasMode] = useState<PlanCanvasMode>(initialDrawingSheetType);
-  const [activeDrawingWorkspaceId, setActiveDrawingWorkspaceId] = useState(() => getDefaultDrawingWorkspace(initialDrawingSheetType).id);
+  const [sharedPlanCanvasMode, setSharedPlanCanvasMode] = useState<PlanCanvasMode>(initialResolvedDrawingWorkspace.mode);
+  const [activeDrawingWorkspaceId, setActiveDrawingWorkspaceId] = useState(initialDrawingWorkspace.id);
+  const [activeWorkspaceTabId, setActiveWorkspaceTabId] = useState<WorkspaceTabId | null>(initialWorkspaceTabId);
+  const [shared3DSceneSettings, setShared3DSceneSettings] = useState<Shared3DSceneSettings>(() => createDefaultShared3DSceneSettings(initialDrawingSheetType));
   const [activeEditorPanel, setActiveEditorPanel] = useState<EditorRightPanelKey | null>(null);
   const [drawingDirectoryOpen, setDrawingDirectoryOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [editorDialog, setEditorDialog] = useState<EditorDialogKey>(null);
   const [developerMode, setDeveloperMode] = useState(false);
-  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(false);
+  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(true);
   const [activeWorkspaceToolId, setActiveWorkspaceToolId] = useState("select");
   const [showAdvancedCanvasControls, setShowAdvancedCanvasControls] = useState(false);
   const [constructionPackageOpenRequest, setConstructionPackageOpenRequest] = useState(0);
@@ -2409,7 +2457,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const latestWorkspaceRef = useRef<PersistedWebWorkspace | null>(null);
   const workspaceImportInputRef = useRef<HTMLInputElement | null>(null);
   const wardrobeCanvasRef = useRef<HTMLDivElement | null>(null);
-  const activeDrawingWorkspace = getDrawingWorkspace(activeDrawingWorkspaceId);
+  const activeDrawingWorkspace = resolveDrawingWorkspace(activeDrawingWorkspaceId, activeWorkspaceTabId);
   const initialFurnitureWith3DMeta = useMemo(() => enrichMissingFurnitureMetadata(data.workspace.furniture), [data.workspace.furniture]);
   const committedModelRef = useRef<Partial<Record<FloorId, ModelSnapshot>>>(
     Object.fromEntries(floors.map((floor) => [
@@ -2423,11 +2471,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   );
   const accessCapabilities = getWorkspaceAccessCapabilities(accessMode);
   const {
-    canMutateWorkspace,
+    canMutateWorkspace: accessCanMutateWorkspace,
     canPersistDraft,
-    canWriteCode,
+    canWriteCode: accessCanWriteCode,
     canUseExternalSync
   } = accessCapabilities;
+  const isExplorationMode = editorMode === "exploration";
+  const canMutateWorkspace = accessCanMutateWorkspace && canExecuteEditorCommand(editorMode, "edit-property");
+  const canWriteCode = accessCanWriteCode && !isExplorationMode;
   const canUseBrowserDrafts = IS_DEVELOPMENT && canPersistDraft;
 
   useEffect(() => {
@@ -2500,19 +2551,29 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const currentFloor = floors.find((floor) => floor.id === selectedFloorId) ?? floors[0];
   const floorPlanVisualSettings = visualSettingsByFloor[selectedFloorId] ?? getDefaultVisualSettings();
   const floorCleanPatches = cleanPatchesByFloor[selectedFloorId] ?? [];
-  const floorHouseStructure = houseStructuresByFloor[selectedFloorId] ?? createEmptyStructure(selectedFloorId);
-  const floorFurniture = useMemo(
-    () => furniture.filter((item) => item.floorId === selectedFloorId),
-    [furniture, selectedFloorId]
+  const unifiedProjectScene = useMemo(() => buildUnifiedSceneGraph({
+    structuresByFloor: houseStructuresByFloor,
+    furniture,
+    drawingItems
+  }), [drawingItems, furniture, houseStructuresByFloor]);
+  const currentFloorScene = useMemo(
+    () => resolveUnifiedSceneScope(unifiedProjectScene, [selectedFloorId]),
+    [selectedFloorId, unifiedProjectScene]
   );
-  const floorDrawingItems = useMemo(() => drawingItems.filter((item) => item.floorId === selectedFloorId), [drawingItems, selectedFloorId]);
+  const floorHouseStructure = currentFloorScene.structuresByFloor[selectedFloorId] ?? createEmptyStructure(selectedFloorId);
+  const floorFurniture = currentFloorScene.furniture;
+  const floorDrawingItems = currentFloorScene.drawingItems;
   const oneFloorHouseStructure = houseStructuresByFloor["1F"] ?? createEmptyStructure("1F");
   const yardHouseStructure = houseStructuresByFloor.YARD ?? createEmptyStructure("YARD");
+  const courtyardScene = useMemo(
+    () => resolveUnifiedSceneScope(unifiedProjectScene, courtyardViewFloorIds),
+    [unifiedProjectScene]
+  );
   const unifiedCourtyardModel = useMemo(() => createUnifiedCourtyardModel({
     oneFloorStructure: oneFloorHouseStructure,
     yardStructure: yardHouseStructure,
-    furniture
-  }), [furniture, oneFloorHouseStructure, yardHouseStructure]);
+    furniture: courtyardScene.furniture
+  }), [courtyardScene.furniture, oneFloorHouseStructure, yardHouseStructure]);
   const derivedRoomTourViews = useMemo(() => deriveRoomTourViews({
     floors,
     houseStructuresByFloor,
@@ -2596,9 +2657,32 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const modernNaturalPreview = previewModernNaturalApplication(furniture, modernNaturalScope);
   const activeFurnitureDrawingItems = activeFurniture ? floorDrawingItems.filter((item) => item.relatedFurnitureId === activeFurniture.id) : [];
   const floorFurniturePlacementWarnings = useMemo(
-    () => validateFurniturePlacement(floorHouseStructure, floorFurniture, floorDrawingItems),
-    [floorDrawingItems, floorFurniture, floorHouseStructure]
+    () => validateFurniturePlacement(floorHouseStructure, floorFurniture, floorDrawingItems, { workspaceId: activeDrawingWorkspace.id }),
+    [activeDrawingWorkspace.id, floorDrawingItems, floorFurniture, floorHouseStructure]
   );
+  const baseValidationFindings = useMemo(() => {
+    const findings: ValidationFinding[] = [];
+    const showStructureRules = activeDrawingWorkspace.id === "space" || activeDrawingWorkspace.id === "renovation";
+    if (showStructureRules) {
+      houseValidation.errors.forEach((issue) => findings.push({ ruleId: issue.ruleId ?? "STRUCTURE_GEOMETRY", severity: issue.severity ?? "error", category: issue.category ?? "geometry", title: `${issue.type} 检查`, message: issue.message, floorId: selectedFloorId, objectId: issue.id, suggestion: issue.suggestion, canAutoFix: issue.canAutoFix, rootCauseKey: issue.rootCauseKey }));
+      houseValidation.warnings.forEach((issue) => findings.push({ ruleId: issue.ruleId ?? "STRUCTURE_GEOMETRY", severity: issue.severity ?? "warning", category: issue.category ?? "geometry", title: `${issue.type} 检查`, message: issue.message, floorId: selectedFloorId, objectId: issue.id, suggestion: issue.suggestion, canAutoFix: issue.canAutoFix, rootCauseKey: issue.rootCauseKey }));
+    }
+    houseValidation.infos.forEach((issue) => {
+      const relevant = issue.type === "door"
+        ? activeDrawingWorkspace.id === "space" || activeDrawingWorkspace.id === "renovation"
+        : activeDrawingWorkspace.id === "furniture" || activeDrawingWorkspace.id === "mep";
+      if (!relevant) return;
+      findings.push({ ruleId: issue.ruleId ?? "MISSING_OBJECT_METADATA", severity: "info", category: "metadata", title: "对象资料不完整", message: issue.message, floorId: selectedFloorId, objectId: issue.id, suggestion: issue.suggestion, canAutoFix: issue.canAutoFix, rootCauseKey: issue.rootCauseKey });
+    });
+    referenceReport.errors.forEach((issue) => {
+      const optionalExperienceRelation = issue.code === "INVALID_TOUR_LIGHTING_SCENE";
+      findings.push({ ruleId: optionalExperienceRelation ? "ROOM_RELATION" : "DATA_REFERENCE_BROKEN", severity: optionalExperienceRelation ? "warning" : "blocking", category: optionalExperienceRelation ? "relation" : "blocking", title: optionalExperienceRelation ? "体验场景关系需要确认" : "必要引用失效", message: `${issue.path}：${issue.message}`, objectId: issue.objectId, suggestion: issue.suggestion, rootCauseKey: optionalExperienceRelation ? `REFERENCE:${issue.code}` : `REFERENCE:${issue.objectId}` });
+    });
+    referenceReport.warnings.forEach((issue) => findings.push({ ruleId: "ROOM_RELATION", severity: "warning", category: "relation", title: "引用关系需要确认", message: `${issue.path}：${issue.message}`, objectId: issue.objectId, suggestion: issue.suggestion, rootCauseKey: `REFERENCE:${issue.objectId}` }));
+    if (activeDrawingWorkspace.id === "space") stairValidationIssues.filter((issue) => issue.floorId === selectedFloorId).forEach((issue) => findings.push({ ruleId: issue.code, severity: issue.severity, category: "geometry", title: "楼梯系统检查", message: issue.message, floorId: issue.floorId, objectId: issue.objectId, rootCauseKey: `STAIR:${issue.objectId}:${issue.code}` }));
+    floorFurniturePlacementWarnings.forEach((issue) => findings.push({ ruleId: issue.ruleId ?? issue.code, severity: issue.severity ?? "warning", category: issue.category ?? "geometry", title: issue.code === "PASSAGE_TOO_NARROW" ? "操作净空不足" : issue.category === "metadata" ? "对象资料不完整" : "家具布置检查", message: issue.message, floorId: selectedFloorId, roomId: floorFurniture.find((item) => item.id === issue.furnitureId)?.roomId, objectId: issue.furnitureId, objectName: floorFurniture.find((item) => item.id === issue.furnitureId)?.name, relatedObjectIds: issue.relatedObjectId ? [issue.relatedObjectId] : [], actualValue: issue.actualValue, requiredValue: issue.requiredValue, checkPosition: issue.checkPosition, suggestion: issue.suggestion, canAutoFix: issue.canAutoFix, rootCauseKey: issue.rootCauseKey }));
+    return groupValidationFindings(findings);
+  }, [activeDrawingWorkspace.id, floorFurniture, floorFurniturePlacementWarnings, houseValidation, referenceReport, selectedFloorId, stairValidationIssues]);
   const activeFurniturePlacementWarnings = activeFurniture
     ? floorFurniturePlacementWarnings.filter((warning) => warning.furnitureId === activeFurniture.id)
     : [];
@@ -2692,10 +2776,15 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     const nextDrawingItems = migratedWorkspace.drawingItems;
     const nextSemanticObjects = migratedWorkspace.semanticObjects;
 
+    const loadedWorkspace = getDefaultDrawingWorkspace(migratedWorkspace.selectedDrawingSheetType);
+    const loadedWorkspaceTabId = getDefaultWorkspaceTab(migratedWorkspace.selectedDrawingSheetType);
+    const resolvedLoadedWorkspace = resolveDrawingWorkspace(loadedWorkspace.id, loadedWorkspaceTabId);
     setSelectedFloorId(nextSelectedFloorId);
-    setSelectedDrawingSheetType(migratedWorkspace.selectedDrawingSheetType);
-    setSharedPlanCanvasMode(migratedWorkspace.selectedDrawingSheetType);
-    setActiveDrawingWorkspaceId(getDefaultDrawingWorkspace(migratedWorkspace.selectedDrawingSheetType).id);
+    setSelectedDrawingSheetType(resolvedLoadedWorkspace.persistedSheet);
+    setSharedPlanCanvasMode(resolvedLoadedWorkspace.mode);
+    setActiveDrawingWorkspaceId(loadedWorkspace.id);
+    setActiveWorkspaceTabId(loadedWorkspaceTabId);
+    setShared3DSceneSettings(createDefaultShared3DSceneSettings(resolvedLoadedWorkspace.persistedSheet));
     setActiveWorkspaceToolId("select");
     setFloors(nextFloors);
     setFurniture(nextFurniture);
@@ -3045,7 +3134,39 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setMobileMoreOpen(false);
   }
 
+  function enterExplorationMode() {
+    explorationReturnStateRef.current = { viewMode, plannerMode };
+    setDrawTool("select");
+    setPlannerMode("view");
+    setActiveObjectId("");
+    setSelectedFurnitureId("");
+    setSelectedSemanticObjectId("");
+    setLocateObjectRequest(null);
+    setFocusMode(false);
+    setFurnitureImmersiveMode(false);
+    setActiveEditorPanel(null);
+    setDrawingDirectoryOpen(false);
+    setMoreMenuOpen(false);
+    setEditorDialog(null);
+    setMobileMoreOpen(false);
+    setMobileSheetTarget(null);
+    setEditorMode("exploration");
+  }
+
+  function exitExplorationMode() {
+    const returnState = explorationReturnStateRef.current;
+    setEditorMode("design");
+    setViewMode(returnState?.viewMode ?? "3d");
+    setPlannerMode(returnState?.plannerMode ?? "view");
+    setDrawTool("select");
+    explorationReturnStateRef.current = null;
+  }
+
   function handleSelectFixedCameraView(view: FixedCameraView) {
+    const opensUnifiedSiteOverview = view.scope === "courtyard"
+      || view.floor === "YARD"
+      || view.id === "view-1f-yard-overview"
+      || view.name.includes("南北院总览");
     setFixedCameraViewRequest({ view, nonce: Date.now() });
     setFocusMode(false);
     setFurnitureImmersiveMode(false);
@@ -3056,6 +3177,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setActiveObjectId("");
     setLocateObjectRequest(null);
     setMobileSheetTarget(null);
+    if (opensUnifiedSiteOverview) {
+      setActiveDrawingWorkspaceId("space");
+      setActiveWorkspaceTabId(null);
+      setActiveWorkspaceToolId("select");
+      setSharedPlanCanvasMode("sitePlan");
+      setSelectedDrawingSheetType("sitePlan");
+    }
     setSelectedFloorId(view.floor);
     setViewMode("3d");
   }
@@ -3157,6 +3285,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   function handleSharedPlanCanvasModeChange(nextMode: PlanCanvasMode) {
     setSharedPlanCanvasMode(nextMode);
     setActiveDrawingWorkspaceId(getDefaultDrawingWorkspace(nextMode).id);
+    setActiveWorkspaceTabId(getDefaultWorkspaceTab(nextMode));
     setActiveWorkspaceToolId("select");
     const officialType = normalizeDrawingSheetType(nextMode);
     if (!officialType) return;
@@ -3183,18 +3312,54 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function selectDrawingWorkspace(workspace: DrawingWorkspaceConfig) {
+    const nextTabId = workspace.tabs?.[0]?.id ?? null;
+    const resolvedWorkspace = resolveDrawingWorkspace(workspace.id, nextTabId);
     setActiveDrawingWorkspaceId(workspace.id);
-    setSharedPlanCanvasMode(workspace.mode);
-    setSelectedDrawingSheetType(workspace.persistedSheet);
-    setActiveWorkspaceToolId(workspace.tools[0]?.id ?? "select");
-    setDrawTool(workspace.tools[0]?.drawTool ?? "select");
+    setActiveWorkspaceTabId(nextTabId);
+    setSharedPlanCanvasMode(resolvedWorkspace.mode);
+    setSelectedDrawingSheetType(resolvedWorkspace.persistedSheet);
+    setActiveWorkspaceToolId(resolvedWorkspace.tools[0]?.id ?? "select");
+    setDrawTool(resolvedWorkspace.tools[0]?.drawTool ?? "select");
     setPlannerMode("edit");
     setDrawingDirectoryOpen(false);
     setMoreMenuOpen(false);
-    applyDrawingWorkspaceLayers(workspace);
-    if (["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(workspace.persistedSheet)) {
-      setMobileProfessionalSheetMode(workspace.persistedSheet as MobileProfessionalSheetMode);
+    applyDrawingWorkspaceLayers(resolvedWorkspace);
+    if (["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan", "annotationPlan"].includes(resolvedWorkspace.persistedSheet)) {
+      setMobileProfessionalSheetMode(resolvedWorkspace.persistedSheet as MobileProfessionalSheetMode);
     }
+  }
+
+  function selectWorkspaceTab(tabId: WorkspaceTabId, workspaceId = activeDrawingWorkspaceId) {
+    const resolvedWorkspace = resolveDrawingWorkspace(workspaceId, tabId);
+    setActiveDrawingWorkspaceId(workspaceId);
+    setActiveWorkspaceTabId(tabId);
+    setSharedPlanCanvasMode(resolvedWorkspace.mode);
+    setSelectedDrawingSheetType(resolvedWorkspace.persistedSheet);
+    setActiveWorkspaceToolId(resolvedWorkspace.tools[0]?.id ?? "select");
+    setDrawTool(resolvedWorkspace.tools[0]?.drawTool ?? "select");
+    setPlannerMode("edit");
+    applyDrawingWorkspaceLayers(resolvedWorkspace);
+    if (["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan", "ceilingPlan", "floorFinishPlan", "wallFinishPlan", "materialPlan"].includes(resolvedWorkspace.persistedSheet)) {
+      setMobileProfessionalSheetMode(resolvedWorkspace.persistedSheet as MobileProfessionalSheetMode);
+    }
+  }
+
+  function activateWorkspaceView(view: WorkspaceViewDefinition) {
+    if (view.id === "stairs") {
+      const stair = floorHouseStructure.stairs[0];
+      if (stair) openStairView(stair.id, view.name);
+      else {
+        setValidatorRepairLog(["当前楼层没有楼梯对象，无法打开楼梯视图。"]);
+        setActiveEditorPanel("validation");
+      }
+    } else {
+      if (view.id === "lighting-preview") selectWorkspaceTab("lighting");
+      if (["section", "walkthrough", "lighting-preview"].includes(view.id)) setViewMode("3d");
+      if (view.id === "walls") handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, layerVisibility: { ...floorPlanVisualSettings.layerVisibility, furnitureOverlay: false } });
+      if (view.id === "furniture-only" || view.id === "cabinet-only") handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, layerVisibility: { ...floorPlanVisualSettings.layerVisibility, furnitureOverlay: true, semanticOverlay: false, debug: false } });
+      setValidatorRepairLog([`${view.name}：${view.description} 这是模型显示视图，不会作为正式图纸进入图纸包。`]);
+    }
+    setEditorDialog(null);
   }
 
   function handleWorkspaceToolSelect(toolConfig: DrawingWorkspaceTool) {
@@ -3203,6 +3368,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return;
     }
     setActiveWorkspaceToolId(toolConfig.id);
+    if (toolConfig.action === "stair-view") {
+      const stair = activeStructureObject && "stepCount" in activeStructureObject ? activeStructureObject : floorHouseStructure.stairs[0];
+      if (!stair) {
+        setValidatorRepairLog(["当前楼层没有可进入的楼梯对象。请先创建楼梯或切换到包含楼梯的楼层。"]);
+        setActiveEditorPanel("validation");
+        return;
+      }
+      setActiveObjectId(stair.id);
+      setViewMode("3d");
+      setLocateObjectRequest({ id: stair.id, nonce: Date.now() });
+      setValidatorRepairLog([`已进入 ${stair.name} 的楼梯视图；当前显示踏步、梯段、平台、洞口及上下楼层连接。`]);
+      return;
+    }
     if (toolConfig.drawTool) {
       setPlannerMode("edit");
       setDrawTool(toolConfig.drawTool);
@@ -3232,11 +3410,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return;
     }
     if (toolConfig.action === "more") {
-      if (activeDrawingWorkspace.id === "construction-package") {
-        setConstructionPackageOpenRequest(Date.now());
-      } else {
-        setMoreMenuOpen(true);
-      }
+      setMoreMenuOpen(true);
     }
   }
 
@@ -4523,6 +4697,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setDesignPageRequest({ kind: "stair", id: stairId });
   }
 
+  function openStairView(stairId: string, viewLabel: string) {
+    const stairFloor = Object.entries(houseStructuresByFloor).find(([, structure]) => structure.stairs.some((stair) => stair.id === stairId))?.[0] as FloorId | undefined;
+    if (stairFloor) setSelectedFloorId(stairFloor);
+    setActiveDrawingWorkspaceId("space");
+    setActiveWorkspaceTabId(null);
+    setSharedPlanCanvasMode("structurePlan");
+    setSelectedDrawingSheetType("structurePlan");
+    setActiveObjectId(stairId);
+    setViewMode("3d");
+    setLocateObjectRequest({ id: stairId, nonce: Date.now() });
+    setValidatorRepairLog([`楼梯视图 · ${viewLabel}：突出楼梯、踏步、平台、楼板洞口及上下层连接；这属于视图，不作为正式施工图。`]);
+  }
+
   function updateWardrobeDesign(patch: Partial<WardrobeDesign>) {
     if (!canMutateWorkspace) return;
     if (!wardrobeDesignFurniture || wardrobeDesignFurniture.locked) return;
@@ -4821,7 +5008,27 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   }
 
   function handleAutoRepairHouse() {
-    calibrateWholeHouse(houseStructuresByFloor, furniture);
+    if (!canMutateWorkspace) return;
+    let roomAssignments = 0;
+    let syncedPoints = 0;
+    let nextDrawingItems = drawingItems;
+    const nextFurniture = furniture.map((item) => {
+      const structure = houseStructuresByFloor[item.floorId];
+      if (!structure || item.roomAssignmentLocked) return item;
+      const assignment = resolveFurnitureSpaceAssignment(item, structure);
+      if (assignment.outside || assignment.spanning || assignment.candidateSpaceIds.length !== 1 || !assignment.primarySpaceId || assignment.primarySpaceId === item.roomId) return item;
+      const committed = commitFurnitureSpaceAssignment(item, structure).furniture;
+      roomAssignments += 1;
+      const before = nextDrawingItems;
+      nextDrawingItems = syncRelatedDrawingItemsToFurniture(nextDrawingItems, committed, structure, { moveUntouchedGenerated: true });
+      syncedPoints += nextDrawingItems.filter((drawingItem, index) => drawingItem !== before[index]).length;
+      return committed;
+    });
+    if (roomAssignments > 0) setFurniture(nextFurniture);
+    if (syncedPoints > 0) setDrawingItems(nextDrawingItems);
+    setValidatorRepairLog(roomAssignments || syncedPoints
+      ? [`已安全补齐 ${roomAssignments} 个唯一房间归属，同步 ${syncedPoints} 个未手工调整的派生点位。未移动家具、墙体、门窗、楼梯或庭院边界。`]
+      : ["没有可确定自动修复的资料问题；存在歧义的项目已保留为需要确认。"]);
   }
 
   function handleWallLengthChange(wallId: string, nextLengthValue: number) {
@@ -4833,11 +5040,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...floorHouseStructure,
       walls: floorHouseStructure.walls.map((wall) => wall.id === wallId ? resizeHouseWallToLength(wall, nextLength) : wall)
     };
-    const nextStructuresByFloor = {
-      ...houseStructuresByFloor,
-      [selectedFloorId]: nextStructure
-    };
-    calibrateWholeHouse(nextStructuresByFloor, furniture, [`${currentFloor.label}: 已把 ${targetWall.name} 长度改为 ${nextLength} mm，并重新校准全屋比例。`]);
+    const reconciliation = reconcileFurnitureWallAnchors(floorHouseStructure, nextStructure, floorFurniture);
+    setHouseStructuresByFloor((current) => ({ ...current, [selectedFloorId]: nextStructure }));
+    setFurniture((current) => [
+      ...current.filter((item) => item.floorId !== selectedFloorId),
+      ...reconciliation.furniture
+    ]);
+    setValidatorRepairLog([
+      `${currentFloor.label}: 已把 ${targetWall.name} 长度改为 ${nextLength}mm。`,
+      ...reconciliation.warnings.map((warning) => warning.message)
+    ]);
     setActiveObjectId(wallId);
     setLocateObjectRequest({ id: wallId, nonce: Date.now() });
     setOpenRightPanels((currentPanels) => ({
@@ -5006,8 +5218,40 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           ? "写入目标已绑定"
           : "绑定代码文件";
   const mobileShellActive = isPhoneDevice;
-  const editorErrorCount = houseValidation.errors.length + referenceReport.errors.length;
-  const editorWarningCount = houseValidation.warnings.length + referenceReport.warnings.length + stairValidationIssues.length;
+  const editorErrorCount = baseValidationFindings.filter((finding) => finding.severity === "blocking" || finding.severity === "error").length;
+  const editorWarningCount = baseValidationFindings.filter((finding) => finding.severity === "warning").length;
+  const outputDrawingReadiness = evaluateOutputDrawings({
+    structure: floorHouseStructure,
+    furniture: floorFurniture,
+    drawingItems: floorDrawingItems,
+    stairSystems: stairSystems.filter((system) => system.lowerFloorId === selectedFloorId || system.upperFloorId === selectedFloorId),
+    stairLandings: stairLandings.filter((landing) => landing.lowerFloorId === selectedFloorId || landing.upperFloorId === selectedFloorId),
+    stairOpenings: stairOpenings.filter((opening) => opening.floorId === selectedFloorId),
+    errorCount: editorErrorCount,
+    warningCount: editorWarningCount
+  });
+  const validationFindings = groupValidationFindings([
+    ...baseValidationFindings,
+    ...outputDrawingReadiness.filter((drawing) => drawing.status !== "ready" && drawing.workspace === activeDrawingWorkspace.id).map((drawing): ValidationFinding => ({
+      ruleId: "DRAWING_READINESS",
+      severity: "info",
+      category: "drawing",
+      title: `${drawing.name}尚未完成`,
+      message: `缺少：${drawing.missing.join("、") || "导出条件"}`,
+      floorId: selectedFloorId,
+      objectId: drawing.id,
+      actualValue: `${drawing.objectCount} 个相关对象`,
+      requiredValue: "对象、标注、图例与导出条件完整",
+      suggestion: "在图纸包中补齐缺失内容后重新检查。",
+      rootCauseKey: `DRAWING:${selectedFloorId}:${drawing.id}`
+    }))
+  ]);
+  const validationGroups = {
+    repair: validationFindings.filter((finding) => getValidationGroup(finding.severity, finding.category) === "repair"),
+    confirm: validationFindings.filter((finding) => getValidationGroup(finding.severity, finding.category) === "confirm"),
+    metadata: validationFindings.filter((finding) => getValidationGroup(finding.severity, finding.category) === "metadata"),
+    drawing: validationFindings.filter((finding) => getValidationGroup(finding.severity, finding.category) === "drawing")
+  };
   const editorSaveTone: "saved" | "saving" | "dirty" | "error" = draftSaveState.status === "error" || codeSaveState.status === "error"
     ? "error"
     : draftSaveState.status === "saving" || codeSaveState.status === "saving"
@@ -5042,6 +5286,27 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     materialPlan: "材料",
     annotationPlan: "标注"
   };
+
+  if (isExplorationMode) {
+    return (
+      <ExplorationMode
+        floors={floors}
+        initialFloorId={selectedFloorId}
+        houseStructuresByFloor={houseStructuresByFloor}
+        stairSystems={stairSystems}
+        stairLandings={stairLandings}
+        stairOpenings={stairOpenings}
+        furniture={furniture}
+        drawingItems={drawingItems}
+        sceneSettings={{
+          ...(shared3DSceneSettings.drawingSheetType === selectedDrawingSheetType
+            ? shared3DSceneSettings
+            : createDefaultShared3DSceneSettings(selectedDrawingSheetType))
+        }}
+        onExit={exitExplorationMode}
+      />
+    );
+  }
 
   if (mobileShellActive) {
     return (
@@ -5099,6 +5364,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             {mobileMoreOpen && (
               <div className="absolute right-3 top-12 z-[100] w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-white/80 bg-white/98 p-2 text-sm font-semibold text-stone-700 shadow-[0_18px_46px_rgba(39,34,28,0.22)] backdrop-blur">
                 <button className="block w-full rounded-xl px-3 py-2.5 text-left hover:bg-stone-50" onClick={resetMobileCurrentView} type="button">重置视角</button>
+                <button className="block w-full rounded-xl bg-emerald-50 px-3 py-2.5 text-left font-bold text-emerald-800 hover:bg-emerald-100" onClick={enterExplorationMode} type="button">进入探索模式</button>
                 <div className="mt-1 rounded-xl bg-stone-50 p-1">
                   <div className="grid grid-cols-3 gap-1 text-xs">
                     {([
@@ -5155,7 +5421,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               legacyRooms={floorLegacyRooms}
               legacyWalls={floorLegacyWalls}
               furniture={usesUnifiedCourtyard3D ? unifiedCourtyardModel.furniture : floorFurniture}
-              drawingItems={floorDrawingItems}
+              drawingItems={usesUnifiedCourtyard3D ? courtyardScene.drawingItems : floorDrawingItems}
               constructionExportWorkspace={getCurrentWorkspace("manual")}
               dimensionVerificationConflictIds={verificationConflictIds}
               semanticObjects={floorSemanticObjects}
@@ -5217,6 +5483,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onSelectSemanticObject={handleMobileSemanticObjectSelect}
               onMoveSemanticObject={handleMoveSemanticObject}
               onSelectCameraView={handleSelectFixedCameraView}
+              onSceneSettingsChange={setShared3DSceneSettings}
             />
             {mobileSheetTarget && (
               <MobileDetailsDrawer
@@ -5360,7 +5627,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           projectName="林屿湖畔"
           floors={floors}
           selectedFloorId={selectedFloorId}
-          drawingName={`${currentFloor.id} · ${activeDrawingWorkspace.name}`}
+          workspaceName={`${activeDrawingWorkspace.name}${activeDrawingWorkspace.activeTabName ? ` · ${activeDrawingWorkspace.activeTabName}` : ""}`}
           viewMode={viewMode}
           saveLabel={editorSaveLabel}
           saveTone={editorSaveTone}
@@ -5370,13 +5637,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           onSelectFloor={handleFloorChange}
           onOpenDirectory={() => setDrawingDirectoryOpen(true)}
           onChangeView={setViewMode}
+          onEnterExploration={enterExplorationMode}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          onOpenValidation={() => setActiveEditorPanel("validation")}
+          onOpenPackage={() => setEditorDialog("package")}
           onToggleMore={() => setMoreMenuOpen((open) => !open)}
         />
         <section className={`relative grid min-h-0 ${contextToolbarExpanded
-          ? activeEditorPanel ? "lg:grid-cols-[176px_minmax(0,1fr)_336px_44px]" : "lg:grid-cols-[176px_minmax(0,1fr)_44px]"
-          : activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_336px_44px]" : "lg:grid-cols-[56px_minmax(0,1fr)_44px]"}`}>
+          ? activeEditorPanel ? "lg:grid-cols-[176px_minmax(0,1fr)_336px_88px]" : "lg:grid-cols-[176px_minmax(0,1fr)_88px]"
+          : activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_336px_88px]" : "lg:grid-cols-[56px_minmax(0,1fr)_88px]"}`}>
           <div className="relative z-30 hidden min-h-0 border-r border-stone-200/80 bg-white lg:block">
             <ContextToolBar
               workspace={activeDrawingWorkspace}
@@ -5396,13 +5666,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             />
           </div>
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <WorkspaceTabs tabs={getDrawingWorkspace(activeDrawingWorkspaceId).tabs} activeTabId={activeDrawingWorkspace.activeTabId} onSelect={selectWorkspaceTab} />
           <PlanCanvas
               floor={currentFloor}
               floors={floors}
               legacyRooms={floorLegacyRooms}
               legacyWalls={floorLegacyWalls}
               furniture={usesUnifiedCourtyard3D ? unifiedCourtyardModel.furniture : floorFurniture}
-              drawingItems={floorDrawingItems}
+              drawingItems={usesUnifiedCourtyard3D ? courtyardScene.drawingItems : floorDrawingItems}
               constructionExportWorkspace={getCurrentWorkspace("manual")}
               dimensionVerificationConflictIds={verificationConflictIds}
               semanticObjects={floorSemanticObjects}
@@ -5460,6 +5731,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onSelectSemanticObject={handleSemanticObjectSelect}
               onMoveSemanticObject={handleMoveSemanticObject}
               onSelectCameraView={handleSelectFixedCameraView}
+              onSceneSettingsChange={setShared3DSceneSettings}
             />
         </section>
 
@@ -5560,8 +5832,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             {activeEditorPanel === "validation" && !isFurnitureWorkspace && <RightPanelCard
               id="status"
               eyebrow="Validator"
-              title="模型状态"
-              summary={`${houseValidation.errors.length + referenceReport.errors.length} 错误 · ${houseValidation.warnings.length + referenceReport.warnings.length + stairValidationIssues.length} 警告`}
+              title="检查"
+              summary={`需修复 ${validationGroups.repair.length} · 需确认 ${validationGroups.confirm.length} · 资料 ${validationGroups.metadata.length} · 图纸 ${validationGroups.drawing.length}`}
               open={openRightPanels.status}
               onToggle={toggleRightPanel}
             >
@@ -5625,49 +5897,42 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                 )}
               </div>}
               <div className="flex items-center justify-between gap-3">
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${houseValidation.valid ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-                  {houseValidation.valid && referenceReport.valid ? "结构与引用通过" : "需检查"}
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${validationGroups.repair.length === 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                  {validationGroups.repair.length === 0 ? "没有明确错误" : "存在需要修复的问题"}
                 </span>
                 <button className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-ink/90" onClick={handleAutoRepairHouse} type="button">
-                  校准全屋比例
+                  安全补齐资料
                 </button>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-xl bg-red-50 px-3 py-2 text-red-700">
-                  <p className="font-semibold">{houseValidation.errors.length + referenceReport.errors.length}</p>
-                  <p>错误</p>
-                </div>
-                <div className="rounded-xl bg-amber-50 px-3 py-2 text-amber-700">
-                  <p className="font-semibold">{houseValidation.warnings.length + referenceReport.warnings.length + stairValidationIssues.length}</p>
-                  <p>警告</p>
-                </div>
+                {([
+                  ["需要修复", validationGroups.repair.length, "bg-red-50 text-red-700"],
+                  ["需要确认", validationGroups.confirm.length, "bg-amber-50 text-amber-700"],
+                  ["缺少资料", validationGroups.metadata.length, "bg-blue-50 text-blue-700"],
+                  ["图纸未完成", validationGroups.drawing.length, "bg-stone-100 text-stone-700"]
+                ] as Array<[string, number, string]>).map(([label, count, tone]) => <div key={label} className={`rounded-xl px-3 py-2 ${tone}`}><p className="font-semibold">{count}</p><p>{label}</p></div>)}
               </div>
-              <div className="mt-3 max-h-96 space-y-2 overflow-auto pr-1">
-                {[...houseValidation.errors, ...houseValidation.warnings].map((issue, index) => (
-                  <button key={`${issue.type}-${issue.id}-${index}`} className="block w-full rounded-xl bg-slate-50 p-2 text-left text-xs leading-5 text-slate-600 transition hover:bg-blue-50" onClick={() => locateValidationObject(issue.id)} type="button">
-                    <p className="font-semibold text-ink">{issue.type} · {issue.id}</p>
-                    <p>{issue.message}</p>
-                    <p className="mt-1 font-semibold text-blue-600">定位对象</p>
-                  </button>
-                ))}
-                {referenceReport.issues.map((issue, index) => (
-                  <button key={`${issue.code}-${issue.objectId}-${index}`} className="block w-full rounded-xl bg-slate-50 p-2 text-left text-xs leading-5 text-slate-600 transition hover:bg-blue-50" onClick={() => locateValidationObject(issue.objectId)} type="button">
-                    <p className="font-semibold text-ink">引用{issue.severity === "error" ? "错误" : "警告"} · {issue.objectId}</p>
-                    <p>{issue.path} = {issue.value ?? "未绑定"}</p>
-                    <p>{issue.message}</p>
-                    <p className="mt-1 text-stone-500">建议：{issue.suggestion}</p>
-                  </button>
-                ))}
-                {stairValidationIssues.map((issue, index) => (
-                  <button key={`${issue.code}-${issue.objectId}-${index}`} className="block w-full rounded-xl bg-amber-50 p-2 text-left text-xs leading-5 text-amber-900 transition hover:bg-amber-100" onClick={() => { if (issue.floorId !== selectedFloorId) setSelectedFloorId(issue.floorId); locateValidationObject(issue.objectId); }} type="button">
-                    <p className="font-semibold">楼梯系统警告 · {issue.floorId} · {issue.objectId}</p>
-                    <p>{issue.message}</p>
-                    <p className="mt-1 font-semibold text-blue-700">定位到楼层与对象</p>
-                  </button>
-                ))}
-                {houseValidation.errors.length + houseValidation.warnings.length + referenceReport.issues.length + stairValidationIssues.length === 0 && (
-                  <p className="rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-500">当前楼层未发现结构表达或引用错误。</p>
-                )}
+              <div className="mt-3 max-h-[30rem] space-y-4 overflow-auto pr-1">
+                {([
+                  ["需要修复", validationGroups.repair, "border-red-100 bg-red-50/60"],
+                  ["需要确认", validationGroups.confirm, "border-amber-100 bg-amber-50/60"],
+                  ["缺少资料", validationGroups.metadata, "border-blue-100 bg-blue-50/60"],
+                  ["图纸未完成", validationGroups.drawing, "border-stone-200 bg-stone-50"]
+                ] as const).map(([label, findings, tone]) => findings.length > 0 && <section key={label}>
+                  <p className="mb-2 text-[11px] font-semibold text-stone-500">{label} · {findings.length}</p>
+                  <div className="space-y-2">{findings.map((finding) => (
+                    <button key={`${finding.ruleId}-${finding.objectId}-${finding.relatedObjectIds?.join("-") ?? ""}`} className={`block w-full rounded-xl border p-2.5 text-left text-xs leading-5 text-slate-600 transition hover:border-blue-200 ${tone}`} onClick={() => locateValidationObject(finding.objectId)} type="button">
+                      <p className="font-semibold text-ink">{finding.title}</p>
+                      <p>{finding.message}</p>
+                      {(finding.actualValue || finding.requiredValue) && <p className="mt-1 text-stone-600">{finding.actualValue && `实际：${finding.actualValue}`}{finding.actualValue && finding.requiredValue ? " · " : ""}{finding.requiredValue && `要求：${finding.requiredValue}`}</p>}
+                      {finding.checkPosition && <p className="text-stone-500">检查位置：{finding.checkPosition}</p>}
+                      {finding.suggestion && <p className="text-stone-500">建议：{finding.suggestion}</p>}
+                      {(finding.derivedMessages?.length ?? 0) > 1 && <p className="text-stone-400">同一根因已合并 {finding.derivedMessages?.length} 条相关消息</p>}
+                      <p className="mt-1 font-semibold text-blue-600">定位对象 <span className="font-normal text-stone-400">{finding.objectId}</span></p>
+                    </button>
+                  ))}</div>
+                </section>)}
+                {validationFindings.length === 0 && <p className="rounded-xl bg-slate-50 p-2 text-xs leading-5 text-slate-500">当前工作区未发现需要处理的问题。</p>}
               </div>
               {validatorRepairLog.length > 0 && (
                 <div className="mt-3 max-h-56 space-y-1 overflow-auto rounded-xl bg-slate-50 p-2 pr-1 text-xs leading-5 text-slate-600">
@@ -5786,13 +6051,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                   );
                 })}
               </div> : <div className="space-y-3">
-                <p className="rounded-xl bg-stone-100 p-3 text-xs leading-5 text-stone-600">资源已按“{activeDrawingWorkspace.name}”过滤，只显示当前图纸需要的类型。</p>
+                <p className="rounded-xl bg-stone-100 p-3 text-xs leading-5 text-stone-600">资源已按“{activeDrawingWorkspace.name}”过滤，只显示当前工作区需要的类型。</p>
                 <div className="grid grid-cols-2 gap-2">
                   {activeDrawingWorkspace.resourceGroups.map((group) => <button key={group} className="rounded-xl border border-stone-200 bg-white px-3 py-4 text-left text-xs font-semibold text-slate-900 transition hover:border-slate-400 hover:bg-stone-50" type="button"><span className="mb-3 grid size-8 place-items-center rounded-lg bg-stone-100 text-stone-500">▤</span>{group}</button>)}
                 </div>
-                {activeDrawingWorkspace.resourceGroups.length === 0 ? <p className="py-10 text-center text-xs text-stone-400">当前图纸没有独立资源库，可直接使用左侧工具。</p> : null}
+                {activeDrawingWorkspace.resourceGroups.length === 0 ? <p className="py-10 text-center text-xs text-stone-400">当前工作区没有独立资源库，可直接使用左侧工具。</p> : null}
                 <div className="border-t border-stone-200 pt-3">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">当前图纸工具</p>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-400">当前工作区工具</p>
                   <div className="space-y-1">{activeDrawingWorkspace.tools.filter((toolConfig) => toolConfig.drawingPreset).map((toolConfig) => <button key={toolConfig.id} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-semibold text-stone-700 hover:bg-stone-100" onClick={() => handleWorkspaceToolSelect(toolConfig)} type="button"><span className="grid size-7 place-items-center rounded-md bg-stone-100">{toolConfig.icon}</span><span>{toolConfig.label}</span></button>)}</div>
                 </div>
               </div>}
@@ -6322,13 +6587,17 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     </label>
                   )}
                   {activeStructureObject && "stepCount" in activeStructureObject && (
-                    <button
-                      className="mt-3 w-full rounded-xl bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-                      onClick={() => openStairDesignPage(activeStructureObject.id)}
-                      type="button"
-                    >
-                      进入楼梯设计
-                    </button>
+                    <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                      <p className="text-xs font-semibold text-blue-950">楼梯编辑与视图</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold">
+                        <button className="rounded-lg bg-blue-700 px-2 py-2 text-white hover:bg-blue-800" onClick={() => openStairDesignPage(activeStructureObject.id)} type="button">编辑楼梯</button>
+                        <button className="rounded-lg bg-white px-2 py-2 text-blue-800 hover:bg-blue-100" onClick={() => openStairView(activeStructureObject.id, "隔离楼梯")} type="button">隔离楼梯</button>
+                        {[
+                          "查看上行", "查看下行", "查看剖面", "显示楼板洞口", "显示踏步与平台", "显示扶手栏杆"
+                        ].map((label) => <button key={label} className="rounded-lg bg-white px-2 py-2 text-stone-700 hover:bg-blue-100" onClick={() => openStairView(activeStructureObject.id, label)} type="button">{label}</button>)}
+                      </div>
+                      <p className="mt-2 text-[10px] leading-4 text-blue-800">楼梯视图用于编辑和检查；只有平面、剖面、净高、标高及栏杆参数齐全后，图纸包才会生成“楼梯详图”。</p>
+                    </div>
                   )}
                   {activeStructureObject && "openDirection" in activeStructureObject && (
                     <label className="mt-3 block text-xs text-stone-500">
@@ -6399,7 +6668,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         onExport={downloadWorkspace}
         onOpen={(dialog) => {
           if (dialog === "package") {
-            setConstructionPackageOpenRequest(Date.now());
+            setEditorDialog("package");
             return;
           }
           setEditorDialog(dialog);
@@ -6414,12 +6683,23 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         onSelect={selectDrawingWorkspace}
       />
 
-      {editorDialog === "layers" && <EditorUtilityDialog title="图层" eyebrow="Drawing layers" description={`当前图纸：${activeDrawingWorkspace.name}。手动调整后可以随时恢复图纸默认图层。`} onClose={() => setEditorDialog(null)}>
+      {editorDialog === "views" && <EditorUtilityDialog title="视图设置" eyebrow="Model views" description={`${activeDrawingWorkspace.name} · 视图只改变模型表达，不属于正式输出图纸。`} onClose={() => setEditorDialog(null)}>
+        <div className="space-y-4">
+          <section><p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">全局视图</p><div className="space-y-2"><button className="flex w-full items-start gap-3 rounded-xl border border-stone-200 bg-white p-3 text-left transition hover:border-stone-400 hover:bg-stone-50" onClick={enterExplorationMode} type="button"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-500">◎</span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">自由探索</span><span className="mt-1 block text-xs leading-5 text-stone-500">进入全屋轻量漫游；这是查看方式，不改变当前专业对象。</span></span><span className="rounded-full bg-stone-100 px-2 py-1 text-[9px] font-semibold text-stone-500">全局</span></button><button className="flex w-full items-start gap-3 rounded-xl border border-stone-200 bg-white p-3 text-left transition hover:border-amber-300 hover:bg-amber-50" onClick={() => { selectWorkspaceTab("lighting", "mep"); setViewMode("3d"); setEditorDialog(null); }} type="button"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-700">☀</span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">场景灯光预览</span><span className="mt-1 block text-xs leading-5 text-stone-500">进入“水电与照明 · 灯光”的 3D 日夜与灯组效果预览。</span></span><span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-semibold text-amber-700">视觉预览</span></button></div></section>
+          <section><p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">当前工作区视图</p><div className="space-y-2">{activeDrawingWorkspace.views.filter((view) => view.id !== "lighting-preview").map((view) => <button key={view.id} className="flex w-full items-start gap-3 rounded-xl border border-stone-200 bg-white p-3 text-left transition hover:border-stone-400 hover:bg-stone-50" onClick={() => activateWorkspaceView(view)} type="button"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-500">◫</span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">{view.name}</span><span className="mt-1 block text-xs leading-5 text-stone-500">{view.description}</span><span className="mt-1 block text-[10px] text-stone-400">对象范围：{view.objectScope.join(" / ")}</span></span><span className="rounded-full bg-stone-100 px-2 py-1 text-[9px] font-semibold text-stone-500">非图纸</span></button>)}</div></section>
+        </div>
+      </EditorUtilityDialog>}
+
+      {editorDialog === "package" && <EditorUtilityDialog title="图纸包" eyebrow="Output drawings" description={`${currentFloor.label} · 正式输出图纸按对象、标注、图例和导出条件判断成熟度。`} onClose={() => setEditorDialog(null)}>
+        <DrawingPackageManager drawings={outputDrawingReadiness} errorCount={editorErrorCount} warningCount={editorWarningCount} onOpenLegacyPackage={() => { setEditorDialog(null); setConstructionPackageOpenRequest(Date.now()); }} />
+      </EditorUtilityDialog>}
+
+      {editorDialog === "layers" && <EditorUtilityDialog title="图层" eyebrow="Workspace layers" description={`当前工作区：${activeDrawingWorkspace.name}。手动调整后可以随时恢复工作区默认图层。`} onClose={() => setEditorDialog(null)}>
         <div className="space-y-2">
           {([
             ["baseFloorPlan", "原始底图", "作为定位参考的导入图纸"],
             ["cleanupPatch", "底图清理", "显示底图清理与修补结果"],
-            ["furnitureOverlay", "家具与柜体", "根据当前图纸显示或弱化家具"],
+            ["furnitureOverlay", "家具与柜体", "根据当前工作区显示或弱化家具"],
             ["semanticOverlay", "语义辅助", "仅在开发者模式可显示"],
             ["debug", "调试信息", "仅在开发者模式可显示"]
           ] as const).map(([key, label, detail]) => {
@@ -6428,7 +6708,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             return <label key={key} className={`flex items-center gap-3 rounded-xl border border-stone-200 px-3 py-3 ${developerLayer && !developerMode ? "bg-stone-50 opacity-55" : "bg-white"}`}><input checked={checked} disabled={developerLayer && !developerMode} onChange={(event) => handleFloorPlanVisualSettingsChange({ ...floorPlanVisualSettings, layerVisibility: { ...floorPlanVisualSettings.layerVisibility, [key]: event.target.checked } })} type="checkbox" /><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900">{label}</span><span className="mt-0.5 block text-xs text-stone-500">{detail}</span></span><span className="text-[10px] font-semibold text-stone-400">{checked ? "显示" : "隐藏"}</span></label>;
           })}
         </div>
-        <button className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800" onClick={() => applyDrawingWorkspaceLayers(activeDrawingWorkspace)} type="button">恢复当前图纸默认图层</button>
+        <button className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800" onClick={() => applyDrawingWorkspaceLayers(activeDrawingWorkspace)} type="button">恢复当前工作区默认图层</button>
       </EditorUtilityDialog>}
 
       {editorDialog === "background" && <EditorUtilityDialog title="调整底图" eyebrow="Background image" description="底图设置只在面板打开时出现，不占用主画布。" onClose={() => setEditorDialog(null)}>
@@ -6477,7 +6757,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 
       {editorDialog === "shortcuts" && <EditorUtilityDialog title="快捷键" eyebrow="Keyboard" onClose={() => setEditorDialog(null)}><div className="divide-y divide-stone-100 rounded-xl border border-stone-200">{[["V", "选择工具"], ["Esc", "取消当前操作"], ["Delete", "删除选中对象"], ["⌘ Z", "撤销"], ["⌘ ⇧ Z", "重做"], ["滚轮", "平移或缩放画布"]].map(([key, label]) => <div key={key} className="flex items-center justify-between px-4 py-3 text-sm"><span className="text-stone-600">{label}</span><kbd className="rounded-md bg-stone-100 px-2 py-1 text-xs font-semibold text-slate-700">{key}</kbd></div>)}</div></EditorUtilityDialog>}
 
-      {editorDialog === "help" && <EditorUtilityDialog title="主要操作路径" eyebrow="Help" onClose={() => setEditorDialog(null)}><ol className="space-y-3">{["在顶部选择楼层。", "点击当前图纸，按专业选择要编辑的图纸。", "使用左侧当前图纸工具创建或编辑对象。", "选中对象后在右侧属性面板修改；资源、检查与 AI 各自独立。", "在检查与交付中完成综合检查，最后从更多打开施工图纸包。"].map((item, index) => <li key={item} className="flex gap-3 rounded-xl bg-stone-100 p-3 text-sm leading-6 text-stone-700"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-slate-900 text-[10px] font-bold text-white">{index + 1}</span><span>{item}</span></li>)}</ol></EditorUtilityDialog>}
+      {editorDialog === "help" && <EditorUtilityDialog title="主要操作路径" eyebrow="Help" onClose={() => setEditorDialog(null)}><ol className="space-y-3">{["在顶部选择楼层。", "从五个工作区中选择当前设计任务。", "水电与照明、顶面与饰面通过二级 Tab 切换专业。", "使用左侧工具编辑对象；选中对象后在属性面板修改。", "使用检查处理问题，再到图纸包查看哪些正式图纸已经可导出。"].map((item, index) => <li key={item} className="flex gap-3 rounded-xl bg-stone-100 p-3 text-sm leading-6 text-stone-700"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-slate-900 text-[10px] font-bold text-white">{index + 1}</span><span>{item}</span></li>)}</ol></EditorUtilityDialog>}
 
       {designPageData && (
         <section className="fixed inset-3 z-[75] overflow-hidden rounded-2xl border border-white/80 bg-white shadow-soft lg:inset-6">

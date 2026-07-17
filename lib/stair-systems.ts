@@ -9,6 +9,7 @@ import type {
   StairOpening,
   StairSystem
 } from "@/types/space";
+import { getFurnitureSemanticKind } from "./furniture-placement.ts";
 
 export const STAIR_FLOOR_TO_FLOOR_HEIGHT_MM = 2800;
 export const STAIR_TOTAL_STEP_COUNT = 20;
@@ -42,7 +43,7 @@ export type StairFlightRecord = {
 };
 
 export type StairSystemValidationIssue = {
-  severity: "warning";
+  severity: "error" | "warning";
   code: string;
   stairSystemId?: string;
   floorId: FloorId;
@@ -377,6 +378,7 @@ export function validateStairSystems(input: {
   if (twoFloor.some((stair) => stair.direction === "up")) warn("2F", twoFloor.find((stair) => stair.direction === "up")?.id ?? "2F", "FALSE_2F_UP", "2F 不得存在通向不存在楼层的虚假上行梯段。");
 
   (input.furniture ?? []).forEach((item) => {
+    if (getFurnitureSemanticKind(item) === "rug") return;
     const structure = input.structuresByFloor[item.floorId];
     if (!structure) return;
     const center = furnitureCenterMm(item, structure);

@@ -7,10 +7,13 @@ import {
   anchorFurnitureToWall,
   commitFurnitureSpaceAssignment,
   getFurnitureCenterMm,
+  getFurnitureHeightInterval,
   getRelatedDrawingItemSyncState,
   reconcileFurnitureWallAnchors,
   resolveFurnitureSpaceAssignment,
-  syncRelatedDrawingItemsToFurniture
+  shouldCheckCollision,
+  syncRelatedDrawingItemsToFurniture,
+  validateFurniturePlacement
 } from "../lib/furniture-placement.ts";
 
 function room(id, minX, maxX) {
@@ -71,6 +74,22 @@ assert.equal(commitFurnitureSpaceAssignment(lockedRoom, structure).furniture.roo
 
 const spanning = furniture({ dimensions: { width: 200, depth: 60, height: 90, unit: "cm" }, position: { x: 50, y: 50, rotation: 0 } });
 assert.equal(resolveFurnitureSpaceAssignment(spanning, structure).spanning, true, "Furniture crossing the room boundary must be reported.");
+
+const rug = furniture({ id: "RUG", name: "测试地毯", type: "custom", dimensions: { width: 240, depth: 180, height: 1, unit: "cm" } });
+const sofa = furniture({ id: "SOFA", name: "测试沙发", type: "sofa", moduleType: "sofa", dimensions: { width: 200, depth: 90, height: 80, unit: "cm" } });
+assert.equal(shouldCheckCollision(rug, sofa), false, "Rugs must never use hard-furniture collision rules.");
+assert.equal(validateFurniturePlacement(structure, [rug, sofa]).some((issue) => ["FURNITURE_OVERLAP", "PASSAGE_TOO_NARROW"].includes(issue.code)), false, "Rugs must not produce overlap or passage warnings.");
+
+const baseCabinet = furniture({ id: "BASE", moduleType: "kitchenCabinet", render3d: { assetType: "kitchenCabinet" }, dimensions: { width: 100, depth: 60, height: 90, unit: "cm" } });
+const wallCabinet = furniture({ id: "WALL", moduleType: "wallCabinet", render3d: { assetType: "wallCabinet", elevationMm: 1400 }, dimensions: { width: 100, depth: 35, height: 70, unit: "cm" } });
+assert.equal(getFurnitureHeightInterval(wallCabinet).minZ, 1400);
+assert.equal(shouldCheckCollision(baseCabinet, wallCabinet), false, "Objects at different height intervals must not collide.");
+const sink = furniture({ id: "SINK", moduleType: "sink", render3d: { assetType: "sink" } });
+assert.equal(shouldCheckCollision(baseCabinet, sink), false, "A sink may overlap its supporting cabinet projection.");
+
+const bed = furniture({ id: "BED", type: "bed", moduleType: "bed", dimensions: { width: 180, depth: 200, height: 55, unit: "cm" }, position: { x: 25, y: 50, rotation: 0 } });
+const nightstand = furniture({ id: "NIGHTSTAND", type: "nightstand", moduleType: "nightstand", dimensions: { width: 45, depth: 40, height: 50, unit: "cm" }, position: { x: 35, y: 50, rotation: 0 } });
+assert.equal(validateFurniturePlacement(structure, [bed, nightstand]).some((issue) => issue.code === "PASSAGE_TOO_NARROW"), false, "Bed and nightstand adjacency is not a passage.");
 
 const outdoorStructure = {
   ...createEmptyStructure("YARD"),

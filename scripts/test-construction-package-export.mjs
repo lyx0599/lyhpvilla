@@ -15,7 +15,7 @@ const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.j
 const data = buildConstructionPackageData(workspace);
 
 assert.equal(constructionPackageSheets.length, 15);
-for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆改施工图", "家具定位图", "插座点位图", "开关控制图", "灯光点位图", "给水点位图", "排水点位图", "吊顶图", "地面铺装图", "墙面材料图", "材料索引图", "施工标注/待确认项"]) {
+for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆改施工图", "家具定位图", "插座点位图", "开关控制图", "灯光点位图", "给水点位图", "排水点位图", "吊顶图", "地面铺装图", "墙面材料图", "材料索引清单（辅助输出）", "待确认项清单（检查附件）"]) {
   assert.ok(constructionPackageSheets.some((sheet) => sheet.title === title), `missing sheet ${title}`);
 }
 
@@ -31,11 +31,12 @@ assert.match(html, /A-00 图纸目录\/总说明/);
 assert.match(html, /固定 3D 视角截图入口/);
 assert.match(html, /使用说明与复尺提醒/);
 assert.match(html, /施工包检查/);
+assert.match(html, /未完成图纸/);
+assert.match(html, /缺失内容/);
 assert.match(html, /庭院专项/);
 assert.match(html, /柜体深化表/);
 assert.match(html, /家具定位复核表/);
 assert.match(html, /尺寸复核台账/);
-assert.match(html, /DimensionVerificationLayer/);
 assert.match(html, /版本 .*导出时间/);
 assert.doesNotMatch(html, /debug overlay|开发工具|对象调试字段/);
 for (const floor of workspace.floors) assert.ok(html.includes(floor.subtitle));

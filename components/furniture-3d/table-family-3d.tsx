@@ -40,6 +40,7 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
       ) : (
         <RoundedPart size={[tableWidth, topThickness, tableDepth]} position={[0, topY, 0]} radius={metalFrame ? 0.025 : 0.045} detailLevel={asset.detailLevel} material={topMaterial} role={metalFrame ? "stone" : "wood"} repeat={[5, 3]} />
       )}
+      {!round && <RoundedPart size={[tableWidth * 0.88, 0.022, tableDepth * 0.82]} position={[0, topY - topThickness * 0.72, 0]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.accent} role={metalFrame ? "metal" : "wood"} color="#625a52" />}
 
       {variant === "roundPedestal" ? (
         <group>

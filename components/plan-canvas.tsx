@@ -69,7 +69,7 @@ import {
 } from "@/lib/object-sync-adapter";
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
 import { FurnitureTopView } from "@/components/furniture-top-view";
-import { Floor3DView } from "@/components/floor-3d-view";
+import { Floor3DView, type Shared3DSceneSettings } from "@/components/floor-3d-view";
 import type { LightingDesign } from "@/types/workspace";
 import type {
   CleanPatch,
@@ -98,6 +98,7 @@ import type {
 import { getSemanticObjectPosition, semanticCategoryLabels, semanticIdPrefixes } from "@/lib/semantic-map";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
 import { constructionPackageToCsv, constructionPackageToHtml, constructionPackageToJson, validateConstructionPackage } from "@/lib/construction-package-export";
+import { constructionAnchorLabel, constructionAnchorToPlanPoint, getConstructionAnchorsForSheet } from "@/lib/construction-anchors";
 import { getVerificationDisplayState, verificationDisplayStateLabels, verificationDisplayStyles } from "@/lib/dimension-verification";
 import { getFurnitureCenterMm, getRelatedDrawingItemSyncState, validateFurniturePlacement } from "@/lib/furniture-placement";
 import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
@@ -181,6 +182,7 @@ type Props = {
   onSelectSemanticObject: (object: SemanticObject) => void;
   onMoveSemanticObject: (objectId: string, position: { x: number; y: number }) => void;
   onSelectCameraView?: (view: FixedCameraView) => void;
+  onSceneSettingsChange?: (settings: Shared3DSceneSettings) => void;
 };
 
 const MIN_SCALE = 0.6;
@@ -658,7 +660,8 @@ export function PlanCanvas({
   onOpenStairDesigner,
   onSelectSemanticObject,
   onMoveSemanticObject: requestMoveSemanticObject,
-  onSelectCameraView
+  onSelectCameraView,
+  onSceneSettingsChange
 }: Props) {
   const onUndo = () => {
     if (workspaceMutationAllowed) requestUndo();
@@ -3459,7 +3462,9 @@ export function PlanCanvas({
     : drawingItems.filter((item) => activeDrawingItemCategories.includes(item.category));
   const selectedDrawingItem = drawingItems.find((item) => item.id === selectedDrawingItemId) ?? null;
   const drawingItemLayerActive = activeDrawingItemCategories.length > 0 || (isFurnitureSheetMode && selectedFurnitureRelatedDrawingItems.length > 0);
-  const furniturePlacementWarnings = validateFurniturePlacement(houseStructure, furniture, drawingItems);
+  const furniturePlacementWarnings = validateFurniturePlacement(houseStructure, furniture, drawingItems, {
+    workspaceId: isFurnitureSheetMode ? "furniture" : ["socketPlan", "switchPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan"].includes(sheetMode) ? "mep" : "space"
+  });
   const isMobileAnnotatedPlan = mobilePresentationMode && mobileDisplayLevel !== "simple";
   const visibleBaseFloorPlan = false;
   const visibleCleanupPatch = false;
@@ -3594,6 +3599,32 @@ export function PlanCanvas({
         <text x={x + 180} y={y + 52} fill={color} fontSize={160} fontWeight={800}>{label}</text>
       </g>
     );
+  }
+
+  function renderBoundConstructionAnchors(mode: DrawingSheetType) {
+    const colors = {
+      coldWater: "#0284c7",
+      hotWater: "#ef4444",
+      filteredWater: "#0891b2",
+      drain: "#15803d",
+      power: "#dc2626",
+      gas: "#7c3aed",
+      exhaust: "#b91c1c"
+    } as const;
+    return furniture.flatMap((item) => {
+      const center = getFurnitureMmCenter(item, houseStructure);
+      return getConstructionAnchorsForSheet(item.constructionAnchors, mode).map((anchor) => {
+        const point = constructionAnchorToPlanPoint(item, center, anchor);
+        return renderSheetPoint(
+          `bound-${item.id}-${anchor.id}`,
+          point.x,
+          point.y,
+          constructionAnchorLabel(anchor),
+          colors[anchor.type],
+          anchor.type === "power" ? "square" : "circle"
+        );
+      });
+    });
   }
 
   function renderSheetPolyline(id: string, points: MmPoint[], color: string, dashed = false) {
@@ -3909,9 +3940,7 @@ export function PlanCanvas({
         <g data-layer="SocketPlanOverlay" pointerEvents="none">
           {renderSheetPoint("socket-tv", 3000, 6100, "电视/网络", "#dc2626", "square")}
           {renderSheetPoint("socket-sofa", 2350, 5350, "沙发五孔", "#dc2626", "square")}
-          {renderSheetPoint("socket-fridge", 9000, 1700, "冰箱专线", "#dc2626", "square")}
-          {renderSheetPoint("socket-cooktop", 7850, 2050, "厨房专用", "#dc2626", "square")}
-          {renderSheetPoint("socket-island", 7200, 3820, "岛台地插", "#dc2626", "square")}
+          {renderBoundConstructionAnchors("socketPlan")}
           {renderSheetPoint("socket-yard", 8300, 8750, "南院防水", "#dc2626", "square")}
           {renderSheetPolyline("socket-run", [{ x: 950, y: 7800 }, { x: 3000, y: 7800 }, { x: 3000, y: 6100 }, { x: 7200, y: 3820 }, { x: 9000, y: 1700 }], "#dc2626", true)}
         </g>
@@ -4030,10 +4059,7 @@ export function PlanCanvas({
       }
       return (
         <g data-layer="WaterPlanOverlay" pointerEvents="none">
-          {renderSheetPolyline("cold-water", [{ x: 9100, y: 7800 }, { x: 9100, y: 2700 }, { x: 8150, y: 2400 }, { x: 7200, y: 3720 }], "#0284c7")}
-          {renderSheetPolyline("hot-water", [{ x: 8800, y: 7800 }, { x: 8800, y: 2800 }, { x: 8000, y: 2600 }, { x: 7200, y: 3920 }], "#ef4444", true)}
-          {renderSheetPoint("water-sink", 7200, 3820, "岛台水槽", "#0284c7")}
-          {renderSheetPoint("water-kitchen", 8150, 2400, "厨房水点", "#0284c7")}
+          {renderBoundConstructionAnchors("waterSupplyPlan")}
           {renderSheetPoint("water-yard", 8400, 8800, "庭院龙头", "#0284c7")}
         </g>
       );
@@ -4065,9 +4091,8 @@ export function PlanCanvas({
       }
       return (
         <g data-layer="DrainagePlanOverlay" pointerEvents="none">
-          {renderSheetPolyline("drain-main", [{ x: 9400, y: 7800 }, { x: 9400, y: 3850 }, { x: 7250, y: 3850 }], "#92400e")}
           {renderSheetPolyline("drain-yard", [{ x: 6050, y: 9600 }, { x: 8500, y: 9600 }, { x: 9400, y: 7800 }], "#92400e", true)}
-          {renderSheetPoint("drain-island", 7250, 3850, "水槽排水", "#92400e")}
+          {renderBoundConstructionAnchors("drainagePlan")}
           {renderSheetPoint("drain-yard-point", 6050, 9600, "庭院地漏", "#92400e")}
         </g>
       );
@@ -6910,11 +6935,11 @@ export function PlanCanvas({
             onActiveObjectChange(drawingItemId);
             setStructureMessage(`已在 3D 专项中选择 ${drawingItemId}。`);
           }}
-          onDrawingSheetTypeChange={setSheetMode}
           onSelectFloor={onSelectFloor}
           onHoverObject={hoverObject}
           onClearHoverObject={clearHoverObject}
           onSelectCameraView={onSelectCameraView}
+          onSceneSettingsChange={onSceneSettingsChange}
         />
       )}
     </div>

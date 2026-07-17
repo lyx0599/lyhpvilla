@@ -28,6 +28,7 @@ assert.equal(STAIR_RISER_HEIGHT_MM, 140);
 assert.equal(STAIR_FLIGHT_RISE_MM, 1400);
 assert.equal(workspace.stairSystems.length, 3);
 assert.deepEqual(validate(workspace), [], "The canonical stair systems must have no structural warnings.");
+assert.equal(validate(workspace, true).some((issue) => /rug/i.test(issue.objectId) || /地毯/.test(issue.message)), false, "Rugs must not trigger stair-clearance warnings.");
 
 const flightIndex = new Map(
   Object.values(workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs.map((stair) => [stair.id, stair]))

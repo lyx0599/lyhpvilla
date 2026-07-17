@@ -30,6 +30,7 @@ export function DiningChair3D({ variantId, seed, primary, secondary, accent, det
   return (
     <group>
       <RoundedPart size={[seatWidth, 0.09, seatDepth]} position={[0, seatY, 0]} radius={upholstered ? 0.055 : 0.035} detailLevel={detailLevel} material={upholstered ? secondary : primary} role={upholstered ? "fabric" : "wood"} repeat={[2, 2]} />
+      <RoundedPart size={[seatWidth * 0.84, 0.045, seatDepth * 0.78]} position={[0, seatY - 0.065, 0]} radius={0.018} detailLevel={detailLevel} material={frameMaterial} role={metal ? "metal" : "wood"} />
       {woven ? (
         <group position={[0, backY, -seatDepth * 0.46]} rotation={[backLean, 0, 0]}>
           <RoundedPart size={[seatWidth * 0.98, 0.43, 0.045]} radius={0.05} detailLevel={detailLevel} material={primary} role="wood" />
@@ -57,6 +58,9 @@ export function DiningChair3D({ variantId, seed, primary, secondary, accent, det
         const position: Vec3 = [sx * seatWidth * 0.34, -0.24, sz * seatDepth * 0.32];
         return <CylinderPart key={`${sx}-${sz}`} radiusTop={metal ? 0.014 : 0.019} height={0.38} position={position} rotation={[0, 0, sx * 0.045]} material={frameMaterial} role={metal ? "metal" : "wood"} sides={metal ? 10 : 12} />;
       }))}
+      {[-1, 1].map((side) => (
+        <CylinderPart key={`side-rail-${side}`} radiusTop={metal ? 0.011 : 0.014} height={seatDepth * 0.62} position={[side * seatWidth * 0.34, -0.22, 0]} rotation={[Math.PI / 2, 0, 0]} material={frameMaterial} role={metal ? "metal" : "wood"} sides={10} />
+      ))}
     </group>
   );
 }

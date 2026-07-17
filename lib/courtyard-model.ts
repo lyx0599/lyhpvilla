@@ -15,10 +15,6 @@ export function isCourtyardCameraViewId(viewId: string) {
   return Object.values(COURTYARD_CAMERA_VIEW_IDS).includes(viewId as typeof COURTYARD_CAMERA_VIEW_IDS[keyof typeof COURTYARD_CAMERA_VIEW_IDS]);
 }
 
-export function isYardFurniture(item: Furniture) {
-  return item.floorId === "YARD" || item.roomId.startsWith("OD-1F") || item.name.includes("南院") || item.name.includes("北院") || item.name.includes("庭院") || item.name.includes("户外");
-}
-
 function uniqueById<T extends { id: string }>(items: T[]) {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -69,6 +65,8 @@ export function createUnifiedCourtyardModel({
 
   return {
     houseStructure,
-    furniture: furniture.filter((item) => item.floorId === "1F" || isYardFurniture(item))
+    // Furniture has already been scoped by UnifiedSceneGraph. Keep the exact
+    // source objects so courtyard overview cannot drift into a second model.
+    furniture
   };
 }

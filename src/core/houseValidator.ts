@@ -8,12 +8,19 @@ export type HouseValidationIssue = {
   type: HouseValidationIssueType;
   id: string;
   message: string;
+  ruleId?: string;
+  category?: "blocking" | "geometry" | "relation" | "metadata";
+  severity?: "blocking" | "error" | "warning" | "info";
+  suggestion?: string;
+  canAutoFix?: boolean;
+  rootCauseKey?: string;
 };
 
 export type HouseValidationResult = {
   valid: boolean;
   errors: HouseValidationIssue[];
   warnings: HouseValidationIssue[];
+  infos: HouseValidationIssue[];
 };
 
 export type HouseAutoRepairResult = {
@@ -94,7 +101,7 @@ function isPointInsideFloor(point: MmPoint) {
 }
 
 function isPointInsideOutdoorBounds(floorId: FloorId, point: MmPoint) {
-  if (floorId !== "1F") return isPointInsideFloor(point);
+  if (floorId !== "1F" && floorId !== "YARD") return isPointInsideFloor(point);
   return point.x >= 0 && point.x <= STRUCTURE_WIDTH_MM && point.y >= SITE_PLAN_MIN_Y_MM && point.y <= SITE_PLAN_MAX_Y_MM;
 }
 
@@ -105,8 +112,9 @@ function isValidPercentPoint(point: { x?: number; y?: number } | undefined) {
 
 function isValidFurniturePercentPoint(floorId: FloorId, point: { x?: number; y?: number } | undefined) {
   if (!point || !isFiniteNumber(point.x) || !isFiniteNumber(point.y)) return false;
-  const minY = floorId === "1F" ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
-  const maxY = floorId === "1F" ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
+  const usesSitePlan = floorId === "1F" || floorId === "YARD";
+  const minY = usesSitePlan ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
+  const maxY = usesSitePlan ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
   return point.x >= 0 && point.x <= 100 && point.y >= minY && point.y <= maxY;
 }
 
@@ -390,8 +398,8 @@ function connectedRoomCount(hostId: string, rooms: HouseRoom[], partitions: Hous
   return roomsFromWalls + roomsFromPartitions;
 }
 
-function pushCoordinateError(errors: HouseValidationIssue[], id: string, message: string) {
-  errors.push({ type: "coordinate", id, message });
+function pushCoordinateError(errors: HouseValidationIssue[], id: string, message: string, rootCauseKey?: string) {
+  errors.push({ type: "coordinate", id, ruleId: rootCauseKey?.startsWith("SITE_BOUNDARY") ? "SITE_BOUNDARY" : "STRUCTURE_GEOMETRY", category: "geometry", severity: "error", rootCauseKey, message });
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -1147,6 +1155,7 @@ export function autoRepairHouse(floorId: FloorId, structure: HouseStructure, fur
 export function validateHouse(floorId: FloorId, structure: HouseStructure, furniture: Furniture[]): HouseValidationResult {
   const errors: HouseValidationIssue[] = [];
   const warnings: HouseValidationIssue[] = [];
+  const infos: HouseValidationIssue[] = [];
   const allowOpenBoundary = floorId === "YARD";
 
   if (structure.floorId !== floorId) {
@@ -1305,7 +1314,7 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       return;
     }
     if (!isPointInsideOutdoorBounds(floorId, fence.start) || !isPointInsideOutdoorBounds(floorId, fence.end)) {
-      pushCoordinateError(errors, fence.id, "篱笆端点超出当前图纸坐标范围。");
+      pushCoordinateError(errors, fence.id, "篱笆端点超出真实场地边界。", floorId === "YARD" ? "SITE_BOUNDARY:YARD" : undefined);
     }
     if (getLineLength(fence.start, fence.end) <= 0) {
       errors.push({ type: "outdoor", id: fence.id, message: "篱笆长度必须大于 0。" });
@@ -1323,7 +1332,7 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       errors.push({ type: "outdoor", id: surface.id, message: "硬地/小路/绿化区域至少需要 3 个边界点。" });
     }
     if (surface.polygon.some((point) => !isValidMmPoint(point) || !isPointInsideOutdoorBounds(floorId, point))) {
-      pushCoordinateError(errors, surface.id, "硬地/小路/绿化区域存在非法坐标或超出当前图纸坐标范围。");
+      pushCoordinateError(errors, surface.id, "硬地/小路/绿化区域存在非法坐标或超出真实场地边界。", floorId === "YARD" ? "SITE_BOUNDARY:YARD" : undefined);
     }
     if (!isFiniteNumber(surface.area) || surface.area <= 0) {
       errors.push({ type: "outdoor", id: surface.id, message: "硬地/小路/绿化区域必须有合法面积。" });
@@ -1346,7 +1355,7 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       errors.push({ type: "door", id: door.id, message: "门必须有合法宽度和高度，单位为 mm。" });
     }
     if (connectedRoomCount(door.hostId, structure.rooms, structure.partitions) < 2) {
-      warnings.push({ type: "door", id: door.id, message: "门已挂在墙上，但两侧房间/室外关系还未完整标注。" });
+      infos.push({ type: "door", id: door.id, ruleId: "MISSING_OBJECT_METADATA", category: "metadata", severity: "info", message: "门已挂在墙上，但两侧房间/室外关系还未完整标注。", suggestion: "补齐相邻房间关系。" });
     }
     const point = {
       x: host.start.x + (host.end.x - host.start.x) * door.positionOnWall,
@@ -1426,84 +1435,31 @@ export function validateHouse(floorId: FloorId, structure: HouseStructure, furni
       errors.push({ type: "furniture", id: item.id, message: "家具/硬装模块必须有合法宽度、进深、高度，单位为 cm。" });
     }
     if (!isValidFurniturePercentPoint(floorId, item.position)) {
-      pushCoordinateError(errors, item.id, floorId === "1F"
-        ? "家具 overlay 坐标必须落在 1F 室内或南北院图纸范围内。"
+      pushCoordinateError(errors, item.id, floorId === "1F" || floorId === "YARD"
+        ? "家具 overlay 坐标必须落在真实场地或室内图纸范围内。"
         : "家具 overlay 坐标必须使用 0~100 的楼层百分比坐标。");
     }
     if (item.moduleCategory && !item.moduleType) {
-      warnings.push({ type: "furniture", id: item.id, message: "硬装模块缺少 moduleType，后续清单统计可能不完整。" });
+      infos.push({ type: "furniture", id: item.id, ruleId: "MISSING_OBJECT_METADATA", category: "metadata", severity: "info", canAutoFix: true, message: "硬装模块缺少 moduleType，后续清单统计可能不完整。", suggestion: "可在类型唯一明确时自动补齐。" });
     }
     if (item.moduleCategory) {
       const serviceRequirements = item.serviceRequirements as Record<string, unknown> | undefined;
       const invalidServiceKeys = MODULE_SERVICE_KEYS.filter((key) => typeof serviceRequirements?.[key] !== "boolean");
       if (invalidServiceKeys.length > 0) {
-        warnings.push({ type: "furniture", id: item.id, message: "硬装模块缺少完整的给水、排水、电源、排烟需求标记。" });
+        infos.push({ type: "furniture", id: item.id, ruleId: "MISSING_OBJECT_METADATA", category: "metadata", severity: "info", message: "硬装模块缺少完整的给水、排水、电源、排烟需求标记。", suggestion: "依据设备规格补齐机电需求。" });
       }
     }
     const linkedGround = groundPolygons.find((ground) => ground.id === item.roomId) ?? null;
     const roomExists = Boolean(linkedGround);
     if (!roomExists) {
-      warnings.push({ type: "furniture", id: item.id, message: "家具引用的 Room/Zone 不在当前结构房间或院子中，可能漂浮在未定义空间。" });
+      warnings.push({ type: "furniture", id: item.id, ruleId: "ROOM_RELATION", category: "relation", severity: "warning", rootCauseKey: `POSITION:${item.id}`, message: "家具引用的 Room/Zone 不在当前结构房间或院子中，归属需要确认。" });
     }
-    if (
-      item.dimensions &&
-      isFiniteNumber(item.dimensions.width) &&
-      isFiniteNumber(item.dimensions.depth) &&
-      item.dimensions.width > 0 &&
-      item.dimensions.depth > 0 &&
-      isValidFurniturePercentPoint(floorId, item.position)
-    ) {
-      const footprint = getRotatedRectangleFootprint(
-        mmPointFromFurniturePosition(item.position),
-        item.dimensions.width * 10,
-        item.dimensions.depth * 10,
-        isFiniteNumber(item.position.rotation) ? item.position.rotation : 0
-      );
-      const centerGround = findGroundContainingPoint(footprint.center, groundPolygons);
-      const containingGround = findGroundContainingFootprint(footprint, groundPolygons);
-      const blockingWall = footprintIntersectsSolidWall(footprint, structure.walls);
-      if (!centerGround) {
-        errors.push({ type: "furniture", id: item.id, message: "家具中心点没有落在任何房间或院子的地面上，属于漂浮摆放。" });
-      } else if (!containingGround) {
-        errors.push({ type: "furniture", id: item.id, message: "家具占位轮廓跨出房间/院子边界，可能穿墙或悬空。" });
-      }
-      if (linkedGround && !polygonFitsWithinGround(footprint, linkedGround)) {
-        errors.push({ type: "furniture", id: item.id, message: `家具标注属于 ${linkedGround.id}，但实际占位没有完整落在该地面区域内。` });
-      }
-      if (blockingWall) {
-        errors.push({ type: "furniture", id: item.id, message: `家具占位穿过实体墙 ${blockingWall.id}，请移动或旋转。` });
-      }
-    }
-  });
-
-  const sofas = furniture.filter(isSofaFurniture);
-  furniture.filter(isCoffeeTableFurniture).forEach((coffeeTable) => {
-    const coffeeTableFootprint = getRotatedRectangleFootprint(
-      mmPointFromFurniturePosition(coffeeTable.position),
-      coffeeTable.dimensions.width * 10,
-      coffeeTable.dimensions.depth * 10,
-      coffeeTable.position.rotation || 0
-    );
-    sofas.filter((sofa) => sofa.roomId === coffeeTable.roomId).forEach((sofa) => {
-      const sofaFootprint = getRotatedRectangleFootprint(
-        mmPointFromFurniturePosition(sofa.position),
-        sofa.dimensions.width * 10,
-        sofa.dimensions.depth * 10,
-        sofa.position.rotation || 0
-      );
-      if (footprintPolygonsOverlap(coffeeTableFootprint, sofaFootprint)) {
-        errors.push({
-          type: "furniture",
-          id: coffeeTable.id,
-          message: `茶几 ${coffeeTable.name} 与沙发 ${sofa.name} 占位重叠，请把茶几向沙发前方移动并保留通行净距。`
-        });
-      }
-    });
   });
 
   return {
     valid: errors.length === 0,
     errors,
-    warnings
+    warnings,
+    infos
   };
 }

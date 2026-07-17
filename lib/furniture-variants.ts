@@ -78,6 +78,7 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
   ],
   cabinet: [
     { id: "fullHeightFlat", label: "通顶平板柜", description: "整面平板门、细分缝和无明装拉手", planShape: "rect" },
+    { id: "slidingPanels", label: "通顶移门柜", description: "前后错轨移门、无外摆门扇，适合紧凑卧室", planShape: "rect" },
     { id: "floating", label: "悬浮柜", description: "内收挂装结构和底部灯带", planShape: "floating" },
     { id: "glassDisplay", label: "玻璃展示柜", description: "细框玻璃门和内部层板", planShape: "glass" },
     { id: "openClosedMix", label: "开放封闭组合柜", description: "开放格与平板柜门组合", planShape: "open" },
@@ -231,6 +232,8 @@ export function getModernNaturalMaterials(item: Furniture, family = getFurniture
 
 export function getRecommendedFurnitureDetailLevel(item: Furniture): NonNullable<Render3DMeta["detailLevel"]> {
   const text = searchableText(item);
+  const family = getFurnitureFamily(item);
+  if (item.floorId !== "YARD" && ["bed", "sofa", "diningTable", "coffeeTable", "chair", "cabinet"].includes(family)) return "presentation";
   if (/主沙发|主卧|六人|餐边柜|玄关柜|岛台|壁炉|衣帽间|主卫|水吧|庭院/.test(text)) return "presentation";
   return item.floorId === "YARD" ? "standard" : "standard";
 }

@@ -23,6 +23,14 @@ export type InteractionModel = {
   furniture: Furniture[];
 };
 
+export type InteractionGuardState = ObjectInteractionState & {
+  /**
+   * Command-layer guard used by read-only surfaces such as exploration mode.
+   * UI visibility is not considered an authorization boundary.
+   */
+  readOnly?: boolean;
+};
+
 export type DragDelta = {
   x: number;
   y: number;
@@ -48,6 +56,10 @@ export function isLocked(state: ObjectInteractionState, objectId: string) {
   return state.lockedObjectIds.includes(objectId);
 }
 
+export function isInteractionReadOnly(state: InteractionGuardState) {
+  return state.readOnly === true;
+}
+
 export function handleSelect(state: ObjectInteractionState, objectId: string): ObjectInteractionState {
   return {
     ...state,
@@ -63,8 +75,8 @@ export function handleHover(state: ObjectInteractionState, objectId: string): Ob
   };
 }
 
-export function handleEdit(state: ObjectInteractionState, objectId: string): ObjectInteractionState {
-  if (isLocked(state, objectId)) return state;
+export function handleEdit(state: InteractionGuardState, objectId: string): ObjectInteractionState {
+  if (isInteractionReadOnly(state) || isLocked(state, objectId)) return state;
   return {
     ...state,
     editingObjectId: objectId,
@@ -72,7 +84,8 @@ export function handleEdit(state: ObjectInteractionState, objectId: string): Obj
   };
 }
 
-export function toggleLock(state: ObjectInteractionState, objectId: string): ObjectInteractionState {
+export function toggleLock(state: InteractionGuardState, objectId: string): ObjectInteractionState {
+  if (isInteractionReadOnly(state)) return state;
   const locked = isLocked(state, objectId);
   return {
     ...state,
@@ -113,8 +126,8 @@ function getFurnitureYBounds(item: Furniture) {
   };
 }
 
-export function handleDrag(model: InteractionModel, state: ObjectInteractionState, objectId: string, delta: DragDelta): InteractionModel {
-  if (isLocked(state, objectId)) return model;
+export function handleDrag(model: InteractionModel, state: InteractionGuardState, objectId: string, delta: DragDelta): InteractionModel {
+  if (isInteractionReadOnly(state) || isLocked(state, objectId)) return model;
 
   if (model.houseStructure.walls.some((wall) => wall.id === objectId)) {
     return {
@@ -237,8 +250,8 @@ export function handleDrag(model: InteractionModel, state: ObjectInteractionStat
   };
 }
 
-export function handleResize(model: InteractionModel, state: ObjectInteractionState, objectId: string, params: ResizeParams): InteractionModel {
-  if (isLocked(state, objectId)) return model;
+export function handleResize(model: InteractionModel, state: InteractionGuardState, objectId: string, params: ResizeParams): InteractionModel {
+  if (isInteractionReadOnly(state) || isLocked(state, objectId)) return model;
 
   if (params.kind === "wall-endpoint") {
     return {
@@ -273,8 +286,8 @@ export function handleResize(model: InteractionModel, state: ObjectInteractionSt
   };
 }
 
-export function handleSnap(model: InteractionModel, state: ObjectInteractionState, objectId: string, target: SnapTarget): InteractionModel {
-  if (isLocked(state, objectId)) return model;
+export function handleSnap(model: InteractionModel, state: InteractionGuardState, objectId: string, target: SnapTarget): InteractionModel {
+  if (isInteractionReadOnly(state) || isLocked(state, objectId)) return model;
 
   if (target.kind === "room") {
     return {
@@ -298,15 +311,15 @@ export function handleSnap(model: InteractionModel, state: ObjectInteractionStat
   };
 }
 
-export function rotateFurniture(furniture: Furniture[], state: ObjectInteractionState, objectId: string, degrees = 15) {
-  if (isLocked(state, objectId)) return furniture;
+export function rotateFurniture(furniture: Furniture[], state: InteractionGuardState, objectId: string, degrees = 15) {
+  if (isInteractionReadOnly(state) || isLocked(state, objectId)) return furniture;
   return furniture.map((item) => item.id === objectId
     ? { ...item, position: { ...item.position, rotation: (item.position.rotation + degrees + 360) % 360 } }
     : item);
 }
 
-export function rotateDoor(structure: HouseStructure, state: ObjectInteractionState, objectId: string): HouseStructure {
-  if (isLocked(state, objectId)) return structure;
+export function rotateDoor(structure: HouseStructure, state: InteractionGuardState, objectId: string): HouseStructure {
+  if (isInteractionReadOnly(state) || isLocked(state, objectId)) return structure;
   const directions = ["leftIn", "rightIn", "leftOut", "rightOut"] as const;
   return {
     ...structure,
@@ -318,8 +331,8 @@ export function rotateDoor(structure: HouseStructure, state: ObjectInteractionSt
   };
 }
 
-export function splitWall(structure: HouseStructure, state: ObjectInteractionState, wallId: string): HouseStructure {
-  if (isLocked(state, wallId)) return structure;
+export function splitWall(structure: HouseStructure, state: InteractionGuardState, wallId: string): HouseStructure {
+  if (isInteractionReadOnly(state) || isLocked(state, wallId)) return structure;
   const wall = structure.walls.find((item): item is StraightHouseWall => item.id === wallId && item.kind === "straight");
   if (!wall) return structure;
   const midpoint = { x: Math.round((wall.start.x + wall.end.x) / 2), y: Math.round((wall.start.y + wall.end.y) / 2) };
@@ -333,8 +346,8 @@ export function splitWall(structure: HouseStructure, state: ObjectInteractionSta
   }));
 }
 
-export function mergeWall(structure: HouseStructure, state: ObjectInteractionState, wallId: string): HouseStructure {
-  if (isLocked(state, wallId)) return structure;
+export function mergeWall(structure: HouseStructure, state: InteractionGuardState, wallId: string): HouseStructure {
+  if (isInteractionReadOnly(state) || isLocked(state, wallId)) return structure;
   const wall = structure.walls.find((item): item is StraightHouseWall => item.id === wallId && item.kind === "straight");
   if (!wall) return structure;
   const candidate = structure.walls.find((item): item is StraightHouseWall => {

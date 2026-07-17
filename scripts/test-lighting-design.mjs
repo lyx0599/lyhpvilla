@@ -24,7 +24,7 @@ lights.forEach((light) => {
   assert.ok(["generated-from-room", "generated-from-furniture"].includes(light.source), `${light.id} must record its generation source.`);
 });
 
-for (const phrase of ["餐桌吊灯", "中岛功能照明", "厨房台面功能灯", "餐边柜灯带", "壁炉/背景墙", "床头氛围灯", "衣柜灯带", "镜前灯", "淋浴区防潮灯", "马桶夜灯", "书桌功能灯", "活动区氛围灯", "楼梯灯带", "路径灯", "围栏灯", "植物上照灯", "户外柜照明", "庭院壁灯"]) {
+for (const phrase of ["餐桌吊灯", "中岛功能照明", "厨房台面功能灯", "餐边柜灯带", "壁炉/背景墙", "床头氛围灯", "衣柜灯带", "镜前灯", "淋浴区防潮灯", "马桶夜灯", "洗衣操作任务灯", "书桌功能灯", "活动区氛围灯", "楼梯灯带", "路径灯", "围栏灯", "植物上照灯", "户外柜照明", "庭院壁灯"]) {
   assert.ok(lights.some((item) => item.label.includes(phrase)), `Lighting draft must include ${phrase}.`);
 }
 

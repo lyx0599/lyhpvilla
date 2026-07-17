@@ -11,8 +11,8 @@ type Props = {
 export function ContextToolBar({ workspace, activeToolId, expanded, onToggleExpanded, onSelectTool }: Props) {
   return (
     <div className={`flex max-h-[calc(100dvh-7rem)] flex-col overflow-hidden rounded-xl border border-stone-200 bg-white/96 p-1.5 shadow-lg backdrop-blur lg:h-full lg:max-h-none lg:rounded-none lg:border-0 lg:bg-transparent lg:py-2 lg:shadow-none ${expanded ? "w-44 lg:w-full" : "w-12 lg:w-full"}`}>
-      <button aria-label={expanded ? "收起工具栏" : "展开工具栏"} className="mb-1 flex h-9 items-center justify-center rounded-lg text-xs font-semibold text-stone-500 hover:bg-stone-100" onClick={onToggleExpanded} title={expanded ? "收起工具栏" : "展开工具栏"} type="button">
-        <span className="lg:hidden">{expanded ? "‹" : "›"}</span><span className="hidden lg:inline">≡</span>
+      <button aria-label={expanded ? "收起工具栏" : "展开工具栏"} className={`mb-1 flex h-9 items-center rounded-lg text-xs font-semibold text-stone-500 hover:bg-stone-100 ${expanded ? "justify-start gap-2 px-3" : "justify-center"}`} onClick={onToggleExpanded} title={expanded ? "收起工具栏" : "展开工具栏"} type="button">
+        <span>{expanded ? "‹" : "›"}</span>{expanded ? <span>创建与编辑</span> : null}
       </button>
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
         {workspace.tools.map((tool) => {
@@ -21,7 +21,7 @@ export function ContextToolBar({ workspace, activeToolId, expanded, onToggleExpa
         })}
       </div>
       <div className="mt-1 border-t border-stone-200 pt-1">
-        <button aria-label="打开图纸目录" className="flex h-10 w-full items-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-slate-900" onClick={() => onSelectTool({ id: "directory", label: "图纸", icon: "▤", action: "more" })} title="图纸目录" type="button"><span className="grid size-10 shrink-0 place-items-center text-sm">▤</span>{expanded ? <span className="text-xs font-semibold">图纸目录</span> : null}</button>
+        <button aria-label="切换工作区" className="flex h-10 w-full items-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-slate-900" onClick={() => onSelectTool({ id: "directory", label: "工作区", icon: "▤", action: "more" })} title="工作区" type="button"><span className="grid size-10 shrink-0 place-items-center text-sm">▤</span>{expanded ? <span className="text-xs font-semibold">工作区</span> : null}</button>
       </div>
     </div>
   );

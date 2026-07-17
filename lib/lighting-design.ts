@@ -1,5 +1,6 @@
 import { createDrawingItem, getDrawingItemGeneratedFingerprint } from "./drawing-items.ts";
 import { pointInPolygon } from "./furniture-placement.ts";
+import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM } from "./house-geometry.ts";
 import type {
   DrawingItem,
   FloorId,
@@ -133,9 +134,11 @@ function centerOf(space: LightingSpace): MmPoint {
 
 function clampToStructure(point: MmPoint, structure: HouseStructure): MmPoint {
   const { origin, width, height } = structure.coordinateSystem;
+  const minY = structure.floorId === "YARD" ? SITE_PLAN_MIN_Y_MM : origin.y;
+  const maxY = structure.floorId === "YARD" ? SITE_PLAN_MAX_Y_MM : origin.y + height;
   return {
     x: Math.round(Math.min(origin.x + width - 180, Math.max(origin.x + 180, point.x))),
-    y: Math.round(Math.min(origin.y + height - 180, Math.max(origin.y + 180, point.y)))
+    y: Math.round(Math.min(maxY - 180, Math.max(minY + 180, point.y)))
   };
 }
 
@@ -260,7 +263,12 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       const shower = pickFurniture(roomItems, /淋浴/);
       const toilet = pickFurniture(roomItems, /马桶/);
       add({ key: "MIRROR", name: `${room.name}镜前灯`, lightType: "linearMirrorLight", layer: "mirrorLight", colorTemperature: "3500K", beamAngle: 100, mountingType: "mirrorIntegrated", heightMm: 1850, position: vanity ? furniturePoint(vanity, structure) : offset(center, 520, 380, structure), roomId: room.id, furnitureId: vanity?.id, hostWallId: inferHostWallId(vanity, structure), smartControl: false, dimming: true, source: vanity ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("mirror-light", { cri: 95, waterproofRating: "IP44" }), notes: "从正面或两侧均匀照亮面部；电源与镜柜厂家深化同步，潮湿区接线盒做防潮处理。" });
-      add({ key: "SHOWER", name: `${room.name}淋浴区防潮灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: shower ? furniturePoint(shower, structure) : offset(center, -520, -380, structure), roomId: room.id, furnitureId: shower?.id, smartControl: false, dimming: false, source: shower ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 90 }), notes: "淋浴区建议不低于 IP44，具体等级按安装分区与现场规范确认；不默认使用过冷色温。" });
+      if (shower) {
+        add({ key: "SHOWER", name: `${room.name}淋浴区防潮灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: furniturePoint(shower, structure), roomId: room.id, furnitureId: shower.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 90 }), notes: "淋浴区建议不低于 IP44，具体等级按安装分区与现场规范确认；不默认使用过冷色温。" });
+      } else if (isLaundry) {
+        const washer = pickFurniture(roomItems, /洗衣机/);
+        add({ key: "LAUNDRY", name: `${room.name}洗衣操作任务灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3500K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: washer ? furniturePoint(washer, structure) : offset(center, -520, -380, structure), roomId: room.id, furnitureId: washer?.id, smartControl: false, dimming: false, source: washer ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 95 }), notes: "照亮洗衣机投放、取衣和台盆操作区；按潮湿环境配置防潮灯具，不生成淋浴专用照明。" });
+      }
       add({ key: "NIGHT", name: `${room.name}马桶夜灯（可选）`, lightType: "lowLevelNightLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 90, mountingType: "wallMounted", heightMm: 300, position: toilet ? furniturePoint(toilet, structure) : offset(center, 600, -420, structure), roomId: room.id, furnitureId: toilet?.id, hostWallId: inferHostWallId(toilet, structure), smartControl: true, dimming: true, optional: true, source: toilet ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("night-light", { waterproofRating: "IP44" }), notes: "人体感应低位夜灯；与基础照明分组，避免夜间眩光。" });
       const bathtub = pickFurniture(roomItems, /浴缸/);
       if (bathtub) add({ key: "BATH-MOOD", name: `${room.name}浴缸氛围灯`, lightType: "concealedBathCove", layer: "decorative", colorTemperature: "2700K", beamAngle: 120, mountingType: "concealed", heightMm: 450, position: furniturePoint(bathtub, structure), roomId: room.id, furnitureId: bathtub.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("curtain-strip", { waterproofRating: "IP44" }), notes: "浴缸氛围灯独立控制，灯带不可直接见光，防水分区与检修方式待深化。" });

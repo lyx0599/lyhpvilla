@@ -17,6 +17,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
   const { asset, width, depth, height, item } = props;
   const resolved = resolveFurnitureVariant(item, asset.assetType);
   const variant = resolved.variant.id;
+  const sliding = variant === "slidingPanels";
   const floorY = -height / 2;
   const glass = variant === "glassDisplay" || variant === "slimGlassFrame";
   const open = variant === "openClosedMix" || variant === "woodWarmWhite";
@@ -39,6 +40,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
         <RoundedPart key={index} size={[0.018, height * 0.89, depth * 0.76]} position={[-width / 2 + (index + 1) * (width / panelCount), carcassY, -depth * 0.05]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" />
       ))}
       <RoundedPart size={[width * 0.94, 0.08, depth * 0.76]} position={[0, floorY + 0.04, -depth * 0.04]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#574f47" />
+      {sliding && [-1, 1].map((side) => <RoundedPart key={`track-${side}`} size={[width * 0.94, 0.018, 0.045]} position={[0, floorY + height * (side > 0 ? 0.945 : 0.055), depth * 0.47]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
       {Array.from({ length: panelCount }, (_, index) => {
         const x = -width / 2 + gap + panelWidth / 2 + index * (panelWidth + gap);
         const openBay = open && index === openIndex;
@@ -55,7 +57,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
           );
         }
         return (
-          <group key={index} position={[x, floorY + height * 0.5, depth * 0.495]}>
+          <group key={index} position={[x, floorY + height * 0.5, depth * (sliding && index % 2 ? 0.46 : 0.495)]}>
             <RoundedPart size={[panelWidth, height * 0.91, 0.045]} radius={0.012} detailLevel={asset.detailLevel} material={glassBay ? asset.materials.secondary : index % 3 === 1 && variant === "woodWarmWhite" ? asset.materials.secondary : asset.materials.primary} role={glassBay ? "glass" : index % 3 === 1 && variant === "woodWarmWhite" ? "ceramic" : "wood"} opacity={glassBay ? 0.36 : 1} repeat={[2, 6]} />
             {glassBay && (
               <group>
@@ -63,7 +65,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
                 {[-1, 1].map((side) => <RoundedPart key={side} size={[panelWidth * 0.94, 0.025, 0.055]} position={[0, side * height * 0.445, 0.018]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
               </group>
             )}
-            {!glassBay && variant !== "fullHeightFlat" && <RoundedPart size={[0.018, Math.min(0.22, height * 0.13), 0.025]} position={[panelWidth * 0.34 * (index % 2 ? -1 : 1), 0, 0.035]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />}
+            {!glassBay && variant !== "fullHeightFlat" && !sliding && <RoundedPart size={[0.018, Math.min(0.22, height * 0.13), 0.025]} position={[panelWidth * 0.34 * (index % 2 ? -1 : 1), 0, 0.035]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />}
           </group>
         );
       })}
@@ -109,6 +111,18 @@ function LowStorageCabinet3D(props: FurnitureFamily3DProps) {
           </group>
         );
       })}
+      {Array.from({ length: bayCount - 1 }, (_, index) => (
+        <RoundedPart
+          key={`front-reveal-${index}`}
+          size={[0.012, bodyHeight * 0.84, 0.012]}
+          position={[-width / 2 + bayWidth * (index + 1), bodyY, depth * 0.535]}
+          radius={0.004}
+          detailLevel={asset.detailLevel}
+          material={asset.materials.accent}
+          role="metal"
+          color="#5b554f"
+        />
+      ))}
       <RoundedPart size={[width + 0.08, 0.06, depth + 0.06]} position={[0, floorY + lift + bodyHeight + 0.03, 0]} radius={0.022} detailLevel={asset.detailLevel} material={asset.materials.secondary} role={asset.materials.secondary.role === "glass" ? "glass" : asset.materials.secondary.role === "wood" ? "wood" : "stone"} repeat={[5, 2]} />
       {!floating && <RoundedPart size={[width * 0.86, 0.09, depth * 0.7]} position={[0, floorY + 0.045, -depth * 0.03]} radius={0.015} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#514b44" />}
       {floating && <WarmStrip width={width * 0.84} position={[0, floorY + lift - 0.018, depth * 0.46]} />}

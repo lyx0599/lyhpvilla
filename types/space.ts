@@ -332,6 +332,71 @@ export type Render3DMeta = {
   visibleIn3d?: boolean;
   selectableIn3d?: boolean;
   childrenMode?: "merged" | "grouped";
+  /** Bottom elevation of the visual asset above finished floor. */
+  elevationMm?: number;
+  kitchenVisual?: KitchenVisualConfig;
+  wetAreaVisual?: WetAreaVisualConfig;
+};
+
+export type KitchenVisualConfig = {
+  cabinetKind?: "base" | "wall" | "tall" | "island" | "waterBar";
+  doorCount?: number;
+  drawerCount?: number;
+  countertopThicknessMm?: number;
+  backsplashHeightMm?: number;
+  toeKickHeightMm?: number;
+  overhangMm?: number;
+  showUpperCabinets?: boolean;
+  showRangeHood?: boolean;
+  sinkBowls?: 1 | 2;
+  appliancePanel?: "none" | "dishwasher" | "oven" | "steamOven";
+  frontStyle?: "slab" | "shaker" | "fluted" | "glass";
+  handleStyle?: "bar" | "edgePull" | "groove" | "knob";
+  countertopEdge?: "eased" | "thin" | "waterfall";
+  panelGapMm?: number;
+  endPanelThicknessMm?: number;
+  showCountertopSeams?: boolean;
+  showInternalShadowGap?: boolean;
+};
+
+export type WetAreaVisualConfig = {
+  fixtureKind?: "vanity" | "toilet" | "shower" | "bathtub";
+  basinCount?: 1 | 2;
+  floating?: boolean;
+  mirrorStyle?: "round" | "roundedRect" | "cabinet";
+  showerDoor?: "fixed" | "sliding" | "swing";
+  frameFinish?: "black" | "bronze" | "minimal";
+  toiletType?: "smart" | "closeCoupled" | "wallHung";
+  bathtubType?: "freestanding" | "builtIn";
+  showNiche?: boolean;
+  showLinearDrain?: boolean;
+};
+
+export type ConstructionAnchorType =
+  | "coldWater"
+  | "hotWater"
+  | "filteredWater"
+  | "drain"
+  | "power"
+  | "gas"
+  | "exhaust";
+
+export type ConstructionAnchor = {
+  id: string;
+  type: ConstructionAnchorType;
+  label: string;
+  /** Local object coordinates: x=left/right, y=height, z=front/back. */
+  positionMm: { x: number; y: number; z: number };
+  installationHeightMm?: number;
+  notes?: string;
+};
+
+export type ConstructionAnchorLayer = {
+  points: ConstructionAnchor[];
+  openingSizeMm?: { width: number; depth: number };
+  installationHeightMm?: number;
+  ventilationClearanceMm?: { top?: number; left?: number; right?: number; rear?: number };
+  notes?: string;
 };
 
 export type MepMeta = {
@@ -617,6 +682,10 @@ export type HouseWindow = SyncObjectState & VerificationState & {
   positionOnWall: number;
   width: number;
   height: number;
+  /** Finished-floor height of the lower edge. Missing on legacy windows. */
+  sillHeightMm?: number;
+  operation?: "fixed" | "sliding" | "casement" | "tiltTurn";
+  openDirection?: "inward" | "outward" | "left" | "right";
 };
 
 export type HouseBayWindow = SyncObjectState & VerificationState & {
@@ -876,6 +945,8 @@ export type Furniture = {
   render3d?: Render3DMeta;
   mepMeta?: MepMeta;
   constructionMeta?: ConstructionMeta;
+  /** Lightweight hidden construction points bound to this editable object. */
+  constructionAnchors?: ConstructionAnchorLayer;
   locked?: boolean;
   visible?: boolean;
   hidden?: boolean;
