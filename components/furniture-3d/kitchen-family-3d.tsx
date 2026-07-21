@@ -395,9 +395,14 @@ export function ParametricFridge(props: FurnitureFamily3DProps) {
 }
 
 function WaterBar3D(props: FurnitureFamily3DProps) {
+  const referenceStyle = props.item.render3d?.variantId === "archedBuffetBase";
   return (
     <group name="parametric-water-bar">
       <ParametricCabinet {...props} />
+      {referenceStyle && <>
+        {Array.from({ length: Math.max(8, Math.round(props.width / 0.14)) }, (_, index) => <RoundedPart key={`buffet-flute-${index}`} size={[0.012, props.height * 0.15, 0.016]} position={[-props.width * 0.45 + index * (props.width * 0.9 / Math.max(7, Math.round(props.width / 0.14) - 1)), props.height * 0.27, props.depth / 2 + 0.06]} radius={0.003} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" opacity={0.48} />)}
+        <RoundedPart size={[props.width * 0.26, props.height * 0.5, 0.035]} position={[props.width * 0.34, -props.height * 0.09, props.depth / 2 + 0.058]} radius={0.012} detailLevel={props.asset.detailLevel} material={props.asset.materials.secondary} role="wood" />
+      </>}
       <group position={[props.width * 0.28, props.height / 2 - 0.065, 0]}>
         <ParametricSink {...props} width={props.width * 0.28} depth={props.depth * 0.52} height={0.13} />
       </group>

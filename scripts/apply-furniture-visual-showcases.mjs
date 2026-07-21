@@ -81,8 +81,8 @@ function visualFurniture({ id, code, name, type, moduleType, floorId, roomId, di
 const additions = [
   visualFurniture({
     id: "furn-1f-living-main-sofa-001", code: "SF-1F-01", name: "1F 客厅低矮模块主沙发", type: "sofa", moduleType: "sofa", floorId: "1F", roomId: "ROOM-1F-005",
-    dimensions: { width: 282, depth: 112, height: 76 }, position: { x: 47, y: 69, rotation: 90 }, material: "米灰布艺 + 内收深色底座", color: "#d5c7b8", assetType: "sofa", variantId: "lowModular",
-    primaryMaterial: "taupeFabric", secondaryMaterial: "beigeFabric", accentMaterial: "camelFabric", socket: true,
+    dimensions: { width: 282, depth: 112, height: 76 }, position: { x: 47, y: 69, rotation: 90 }, material: "奶油色羊羔绒 + 内收软包底座", color: "#e8dece", assetType: "sofa", variantId: "boucleCurve",
+    primaryMaterial: "creamBoucle", secondaryMaterial: "creamBoucle", accentMaterial: "beigeFabric", socket: true,
     note: "低矮深坐模块沙发，面向西侧电视壁炉墙；右侧端位保留去餐厅通道。"
   }),
   visualFurniture({
@@ -124,7 +124,7 @@ workspace.furniture.push(...additions);
 const diningSet = workspace.furniture.find((item) => item.id === "module-1f-table-001");
 if (diningSet) {
   diningSet.position = { x: 66.5, y: 69, rotation: 0 };
-  diningSet.render3d = { ...diningSet.render3d, variantId: "roundPedestal", detailLevel: "presentation", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze" };
+  diningSet.render3d = { ...diningSet.render3d, variantId: "roundPedestal", detailLevel: "presentation", primaryMaterial: "walnut", secondaryMaterial: "creamFabric", accentMaterial: "blackTitanium" };
 }
 
 const mediaWall = workspace.furniture.find((item) => item.id === "furn-living-fireplace-south-001");

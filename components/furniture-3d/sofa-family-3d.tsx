@@ -26,6 +26,48 @@ function BeanBagSofa3D(props: FurnitureFamily3DProps) {
   );
 }
 
+function SculpturalBoucleSofa3D(props: FurnitureFamily3DProps) {
+  const { asset, width, depth, height } = props;
+  const floorY = -height / 2;
+  const seatY = floorY + height * 0.34;
+  const backY = floorY + height * 0.68;
+  const upholstery = asset.materials.primary;
+  const pillowRadius = Math.min(0.17, width * 0.06, height * 0.21);
+  return (
+    <group name="sculptural-boucle-curve-sofa">
+      <RoundedPart size={[width * 0.82, 0.075, depth * 0.55]} position={[0, floorY + 0.038, depth * 0.04]} radius={0.032} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" />
+      <SpherePart radius={0.5} position={[-width * 0.16, seatY, depth * 0.045]} scale={[width * 0.64, height * 0.46, depth * 0.7]} segments={asset.detailLevel === "presentation" ? 44 : 32} material={upholstery} role="fabric" roughness={0.98} />
+      <SpherePart radius={0.5} position={[width * 0.3, seatY + height * 0.005, depth * 0.11]} rotation={[0, -0.12, 0]} scale={[width * 0.38, height * 0.48, depth * 0.82]} segments={asset.detailLevel === "presentation" ? 44 : 32} material={asset.materials.secondary} role="fabric" roughness={0.98} />
+      <SpherePart radius={0.5} position={[-width * 0.03, backY, -depth * 0.31]} rotation={[0.04, 0, 0]} scale={[width * 0.83, height * 0.82, depth * 0.31]} segments={asset.detailLevel === "presentation" ? 48 : 34} material={upholstery} role="fabric" roughness={0.99} />
+      {[-1, 1].map((side) => (
+        <SpherePart
+          key={`wrap-arm-${side}`}
+          radius={0.5}
+          position={[side * width * 0.43, floorY + height * 0.5, side > 0 ? depth * 0.02 : -depth * 0.01]}
+          rotation={[0, side * 0.16, 0]}
+          scale={[width * 0.23, height * 0.7, depth * (side > 0 ? 0.64 : 0.56)]}
+          segments={asset.detailLevel === "presentation" ? 42 : 30}
+          material={upholstery}
+          role="fabric"
+          roughness={0.99}
+        />
+      ))}
+      <RoundedPart size={[0.014, height * 0.25, depth * 0.46]} position={[width * 0.12, seatY + height * 0.02, depth * 0.1]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" opacity={0.48} />
+      {asset.detailLevel === "presentation" && [-0.15, 0.01].map((xRatio, index) => (
+        <SpherePart
+          key={`boucle-ball-pillow-${index}`}
+          radius={pillowRadius}
+          position={[xRatio * width, floorY + height * (0.72 + index * 0.015), -depth * (0.12 - index * 0.015)]}
+          segments={36}
+          material={index ? asset.materials.secondary : upholstery}
+          role="fabric"
+          roughness={1}
+        />
+      ))}
+    </group>
+  );
+}
+
 function getModuleLayout(props: FurnitureFamily3DProps) {
   const { item, asset, width, depth } = props;
   const resolved = resolveFurnitureVariant(item, asset.assetType);
@@ -57,6 +99,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
   const resolved = resolveFurnitureVariant(item, asset.assetType);
   const variant = resolved.variant.id;
   if (variant === "beanBag") return <BeanBagSofa3D {...props} />;
+  if (variant === "boucleCurve") return <SculpturalBoucleSofa3D {...props} />;
   const floorY = -height / 2;
   const slim = variant === "slimLegSofa";
   const deep = variant === "deepLounge";
@@ -120,6 +163,24 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
               <RoundedPart size={[module.width * 0.78, 0.012, 0.012]} position={[0, seatY + backHeight * 0.5, -depth * (deep ? 0.425 : 0.38)]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" color="#81776e" />
             </group>
           )}
+        </group>
+      ))}
+      {asset.detailLevel === "presentation" && modules.slice(0, Math.min(3, modules.length)).map((module, index) => (
+        <group
+          key={`throw-pillow-${index}`}
+          position={[module.x + (index % 2 ? -0.08 : 0.08), seatY + backHeight * 0.42, -depth * 0.25]}
+          rotation={[0.05, index % 2 ? -0.14 : 0.12, index % 2 ? -0.05 : 0.06]}
+        >
+          <SpherePart
+            radius={0.5}
+            position={[0, 0, 0]}
+            scale={[Math.min(0.38, module.width * 0.7), Math.min(0.34, backHeight * 0.72), 0.12]}
+            segments={32}
+            material={index === 1 ? asset.materials.secondary : asset.materials.primary}
+            role={upholsteryRole}
+            roughness={0.92}
+          />
+          <RoundedPart size={[Math.min(0.3, module.width * 0.55), 0.012, 0.012]} position={[0, 0, -0.061]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role={upholsteryRole} color="#786f67" />
         </group>
       ))}
       {!modular && [-1, 1].map((side) => {

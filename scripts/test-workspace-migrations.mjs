@@ -11,9 +11,9 @@ const canonical = JSON.parse(await readFile(new URL("../data/default-workspace.j
 const current = applyWorkspaceMigrations(canonical);
 assert.equal(current.workspace.schemaVersion, CURRENT_WORKSPACE_SCHEMA_VERSION);
 assert.equal(current.workspace.dataRevision, CURRENT_WORKSPACE_DATA_REVISION);
-assert.ok(Object.values(current.sources).every((source) => source === "default-workspace"));
+assert.equal(current.sources.drawingItems, "migration");
 assert.deepEqual(current.workspace.furniture, canonical.furniture, "Current furniture must pass through without injected defaults.");
-assert.deepEqual(current.workspace.drawingItems, canonical.drawingItems, "Current drawing items must pass through unchanged.");
+assert.ok(current.workspace.drawingItems.filter((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category)).every((item) => item.confidence === "schemePositioned"), "Current MEP points must carry scheme-stage confidence.");
 assert.deepEqual(current.workspace.semanticObjects, canonical.semanticObjects, "Current semantic objects must pass through unchanged.");
 assert.deepEqual(current.workspace.cameraViews, canonical.cameraViews, "Current camera views must pass through unchanged.");
 assert.deepEqual(current.workspace.roomTourViews, canonical.roomTourViews, "Current room tour views must pass through unchanged.");
@@ -52,6 +52,52 @@ const migratedTwice = applyWorkspaceMigrations(migrated.workspace, { canonicalWo
 assert.deepEqual(migratedTwice.workspace, migrated.workspace, "Workspace migrations must be idempotent.");
 assert.ok(Object.values(migratedTwice.sources).every((source) => source === "default-workspace"));
 
+const legacyLivingSurfaces = structuredClone(canonical);
+legacyLivingSurfaces.dataRevision = "2026-07-18-yard-skylight-clearance-v7";
+const legacyLivingRoom = legacyLivingSurfaces.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
+delete legacyLivingRoom.surfaceFinishes;
+const migratedLivingSurfaces = applyWorkspaceMigrations(legacyLivingSurfaces, { canonicalWorkspace: canonical });
+const migratedLivingRoom = migratedLivingSurfaces.workspace.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
+assert.equal(migratedLivingRoom.surfaceFinishes.floor.tileWidthMm, 600, "Legacy drafts must receive the living-room tile specification.");
+assert.equal(migratedLivingRoom.surfaceFinishes.wall.material, "mineralTextureWallpaper", "Legacy drafts must receive the living-room wall finish.");
+assert.equal(migratedLivingSurfaces.sources.houseStructuresByFloor, "migration");
+
+const customLivingSurfaces = structuredClone(legacyLivingSurfaces);
+const customLivingRoom = customLivingSurfaces.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
+customLivingRoom.surfaceFinishes = { floor: { ...canonical.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005").surfaceFinishes.floor, baseColor: "#abcdef" } };
+const migratedCustomLivingSurfaces = applyWorkspaceMigrations(customLivingSurfaces, { canonicalWorkspace: canonical });
+const preservedLivingRoom = migratedCustomLivingSurfaces.workspace.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
+assert.equal(preservedLivingRoom.surfaceFinishes.floor.baseColor, "#abcdef", "Existing user-selected floor finishes must be preserved.");
+assert.ok(preservedLivingRoom.surfaceFinishes.wall, "A missing wall finish may be added without replacing the custom floor finish.");
+
+const legacyLivingJoinery = structuredClone(canonical);
+legacyLivingJoinery.dataRevision = "2026-07-22-living-surface-finishes-v8";
+legacyLivingJoinery.furniture.find((item) => item.id === "furn-living-waterbar-001").dimensions.width = 180;
+legacyLivingJoinery.furniture.find((item) => item.id === "furn-living-waterbar-upper-001").dimensions.width = 180;
+legacyLivingJoinery.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId = "handleless";
+const legacyLivingWindow = legacyLivingJoinery.houseStructuresByFloor["1F"].windows.find((window) => window.id === "WIN-1F-006");
+legacyLivingWindow.width = 1200;
+legacyLivingWindow.height = 1400;
+legacyLivingWindow.sillHeightMm = 900;
+const migratedLivingJoinery = applyWorkspaceMigrations(legacyLivingJoinery, { canonicalWorkspace: canonical });
+assert.equal(migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-waterbar-001").dimensions.width, 240);
+assert.equal(migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId, "doubleDoorPulloutPantry");
+assert.equal(migratedLivingJoinery.workspace.houseStructuresByFloor["1F"].windows.find((window) => window.id === "WIN-1F-006").width, 3600);
+
+const legacyInteriorDoors = structuredClone(canonical);
+legacyInteriorDoors.dataRevision = "2026-07-22-living-window-waterbar-v9";
+for (const structure of Object.values(legacyInteriorDoors.houseStructuresByFloor)) {
+  for (const door of structure.doors) delete door.visual;
+}
+const legacyMasterDoor = legacyInteriorDoors.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-008");
+legacyMasterDoor.width = 900;
+legacyMasterDoor.height = 2100;
+const migratedInteriorDoors = applyWorkspaceMigrations(legacyInteriorDoors, { canonicalWorkspace: canonical });
+assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["1F"].doors.find((door) => door.id === "D-1F-005").visual.style, "archedReededGlass");
+assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-003").visual.style, "wovenReliefWood");
+assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-008").width, 1600);
+assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-008").visual.leafCount, 2);
+
 const legacyStairLanes = structuredClone(canonical);
 legacyStairLanes.dataRevision = "2026-07-12-mobile-room-tour-v1";
 const legacyB1Up = legacyStairLanes.houseStructuresByFloor.B1.stairs.find((stair) => stair.id === "ST-B1-001");
@@ -82,6 +128,9 @@ assert.ok(upgradedLight.lightingLayer);
 assert.ok(upgradedLight.mountingType);
 assert.ok(upgradedLight.relatedSwitchId);
 assert.equal(migratedLighting.sources.drawingItems, "migration");
+assert.equal(upgradedLight.confidence, "schemePositioned", "Legacy MEP points must default to scheme positioning, not construction confirmation.");
+assert.ok(upgradedLight.positioningBasis, "Migrated MEP points must retain a positioning basis.");
+assert.ok(Array.isArray(upgradedLight.pendingConfirmations) && upgradedLight.pendingConfirmations.includes("developerOriginalPoint"), "Migrated MEP points must record developer-drawing confirmation work.");
 
 const confirmedLighting = structuredClone(canonical);
 confirmedLighting.schemaVersion = 13;

@@ -43,6 +43,21 @@ function drawFurnitureTexture(layer: ResolvedRender3DMaterialLayer, role: Render
       }
       context.stroke();
     }
+  } else if (role === "fabric" && /boucle/i.test(layer.token)) {
+    context.globalAlpha = 0.24;
+    for (let y = 4; y < 256; y += 8) {
+      for (let x = 4 + (Math.floor(y / 8) % 2) * 4; x < 256; x += 8) {
+        const wobble = Math.sin((x * 1.7 + y) * 0.11) * 1.2;
+        context.strokeStyle = tone(layer.color, (x + y) % 24 ? -0.12 : 0.14);
+        context.lineWidth = 1.35;
+        context.beginPath();
+        context.arc(x + wobble, y, 2.2 + ((x + y) % 3) * 0.35, 0, Math.PI * 2);
+        context.stroke();
+      }
+    }
+    context.globalAlpha = 0.12;
+    context.fillStyle = tone(layer.color, 0.2);
+    for (let y = 6; y < 256; y += 16) for (let x = 6; x < 256; x += 16) context.fillRect(x, y, 2, 2);
   } else if (role === "fabric") {
     // Keep the weave intentionally legible at normal room-view distance. Thin
     // single-pixel lines disappear after tone mapping and read as a colour block.

@@ -28,6 +28,14 @@ export type DrawingItemCategory =
 
 export type DrawingItemSource = "manual" | "generated-from-furniture" | "generated-from-room";
 export type DrawingItemStatus = "draft" | "confirmed" | "todo" | "deprecated";
+/** Confidence records the delivery-stage maturity of MEP recommendations, not drawing-item approval. */
+export type PointConfidence = "requirementConfirmed" | "schemePositioned" | "drawingVerified" | "siteMeasured" | "constructionConfirmed";
+export type PointPositionRule = {
+  type: "relativeToObject" | "relativeToWall" | "wallCenter" | "cabinetSegment" | "equipmentBay";
+  anchor: "rearOrAdjacentCabinet" | "objectEdge" | "wallCorner" | "wallCenter" | "countertopZone" | "equipmentInstallBay";
+  offsetMm?: number;
+  side?: "left" | "right" | "front" | "rear" | "center";
+};
 export type LightingLayer = "ambient" | "task" | "accent" | "decorative" | "cabinetStrip" | "mirrorLight" | "outdoor";
 export type LightMountingType =
   | "recessed" | "surfaceMounted" | "pendant" | "wallMounted" | "concealed"
@@ -72,6 +80,12 @@ export type DrawingItem = {
   generatedFingerprint?: string;
   /** Furniture center when this point was last positioned or reviewed. */
   relatedFurniturePositionMm?: MmPoint;
+  /** Scheme-stage MEP metadata. Coordinates remain recommendations until constructionConfirmed. */
+  confidence?: PointConfidence;
+  positioningBasis?: "currentFurnitureLayout" | "currentCabinetLayout" | "developerDrawing" | "siteMeasurement" | "constructionCoordination";
+  positionRule?: PointPositionRule | null;
+  pendingConfirmations?: Array<"developerOriginalPoint" | "finishedWallDimension" | "circuitCapacity" | "existingCircuit" | "doorWindowPosition" | "wallPipeline" | "drainRiser" | "drainOutlet" | "cabinetShopDrawing">;
+  serviceScenario?: string | null;
   /** 灯光专项 v1 标准字段；旧字段保留用于已保存工作区兼容。 */
   lightType?: string | null;
   lightingLayer?: LightingLayer | null;
@@ -353,6 +367,9 @@ export type CabinetVisualConfig = {
   gridRows?: number;
   displayContents?: boolean;
   interiorLighting?: boolean;
+  doorCount?: number;
+  interiorSystem?: "shelves" | "pulloutBaskets";
+  basketCount?: number;
 };
 
 export type BedVisualConfig = {
@@ -666,6 +683,30 @@ export type HouseRoom = SyncObjectState & VerificationState & {
   sourceWallIds: string[];
   /** Finished ceiling elevation above finished floor, used by ceiling-bound furniture. */
   finishedCeilingHeightMm?: number;
+  /** Room-specific finishes override the global style while remaining editable workspace data. */
+  surfaceFinishes?: {
+    floor?: {
+      material: FloorFinishMaterial | string;
+      name: string;
+      baseColor: string;
+      jointColor: string;
+      textureAccent: string;
+      roughness: number;
+      tileWidthMm?: number;
+      tileLengthMm?: number;
+      seamWidthMm?: number;
+      directionDeg?: number;
+      textureScale?: number;
+    };
+    wall?: {
+      material: string;
+      name: string;
+      baseColor: string;
+      textureAccent: string;
+      roughness: number;
+      textureScale?: number;
+    };
+  };
 };
 
 export type HousePartition = SyncObjectState & VerificationState & {
@@ -700,6 +741,14 @@ export type HouseDoor = SyncObjectState & VerificationState & {
   operation?: "swing" | "sliding";
   material?: "solid" | "glass" | "translucentGlass";
   transparency?: number;
+  visual?: {
+    style: "standard" | "archedReededGlass" | "wovenReliefWood" | "doubleLeafWood";
+    woodColor?: string;
+    frameColor?: string;
+    hardwareColor?: string;
+    glassColor?: string;
+    leafCount?: 1 | 2;
+  };
 };
 
 export type HouseWindow = SyncObjectState & VerificationState & {

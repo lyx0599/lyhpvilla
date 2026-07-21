@@ -77,7 +77,7 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
   if (visualType === "sofa" && variantId === "sectionalLShape") {
     return <FootprintSymbolShell><path d="M7 16 H93 V55 H59 V89 H7 Z" fill={color} stroke={stroke} strokeWidth="2.4" strokeLinejoin="round" {...strokeProps} /><path d="M14 25 H85 V46 H51 V80 H14 Z" fill={light} fillOpacity="0.34" stroke={stroke} strokeWidth="1.3" {...strokeProps} /><line x1="35" y1="25" x2="35" y2="80" stroke={stroke} opacity="0.28" {...strokeProps} /><line x1="59" y1="25" x2="59" y2="48" stroke={stroke} opacity="0.28" {...strokeProps} /></FootprintSymbolShell>;
   }
-  if (visualType === "sofa" && variantId === "curvedSofa") {
+  if (visualType === "sofa" && (variantId === "curvedSofa" || variantId === "boucleCurve")) {
     return <FootprintSymbolShell><path d="M8 65 C20 12 80 12 92 65 L78 80 C68 46 32 46 22 80 Z" fill={color} stroke={stroke} strokeWidth="2.4" {...strokeProps} /><path d="M22 62 C34 34 66 34 78 62" fill="none" stroke={light} strokeWidth="7" opacity="0.5" {...strokeProps} /></FootprintSymbolShell>;
   }
 
@@ -100,7 +100,7 @@ function renderFootprintSymbol(type: FurnitureType, color: string, footprint?: P
   }
 
   if ((visualType === "diningChair" || type === "chair") && variantId) {
-    const curved = variantId === "curvedLounge" || variantId === "armHost";
+    const curved = variantId === "curvedLounge" || variantId === "armHost" || variantId === "wrapDining";
     const woven = variantId === "wovenDining";
     return <FootprintSymbolShell><rect x="25" y="37" width="50" height="45" rx={curved ? 14 : 7} fill={color} stroke={stroke} strokeWidth="2.2" {...strokeProps} /><path d={curved ? "M18 43 C22 8 78 8 82 43" : "M25 35 Q50 14 75 35"} fill="none" stroke={stroke} strokeWidth={curved ? 8 : 6} strokeLinecap="round" {...strokeProps} />{woven && [-10, 0, 10].map((offset) => <line key={offset} x1={50 + offset} y1="18" x2={50 + offset} y2="35" stroke="#d9c4a7" strokeWidth="2" {...strokeProps} />)}{variantId === "armHost" && <><path d="M23 48 H10 V71" fill="none" stroke={stroke} strokeWidth="4" {...strokeProps} /><path d="M77 48 H90 V71" fill="none" stroke={stroke} strokeWidth="4" {...strokeProps} /></>}</FootprintSymbolShell>;
   }

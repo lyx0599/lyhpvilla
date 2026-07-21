@@ -1555,8 +1555,37 @@ function isBathroomRoom(room: HouseStructure["rooms"][number]) {
   return room.name.includes("卫");
 }
 
-function getRoomFloorStyle(room: HouseStructure["rooms"][number], structure: HouseStructure, designStyle: DesignStylePreset) {
+type RoomFloorStyle = {
+  base: string;
+  joint: string;
+  vein: string;
+  roughness: number;
+  kind: "wood" | "microcement" | "stone" | "tile";
+  tileWidthMm?: number;
+  tileLengthMm?: number;
+  seamWidthMm?: number;
+  directionDeg?: number;
+  textureScale?: number;
+};
+type RoomWallFinish = NonNullable<NonNullable<HouseStructure["rooms"][number]["surfaceFinishes"]>["wall"]>;
+
+function getRoomFloorStyle(room: HouseStructure["rooms"][number], structure: HouseStructure, designStyle: DesignStylePreset): RoomFloorStyle {
   const palette = designStylePalettes[designStyle];
+  const roomFinish = room.surfaceFinishes?.floor;
+  if (roomFinish) {
+    return {
+      base: roomFinish.baseColor,
+      joint: roomFinish.jointColor,
+      vein: roomFinish.textureAccent,
+      roughness: roomFinish.roughness,
+      kind: roomFinish.material === "woodFloor" ? "wood" as const : roomFinish.material === "microcement" ? "microcement" as const : "tile" as const,
+      tileWidthMm: roomFinish.tileWidthMm,
+      tileLengthMm: roomFinish.tileLengthMm,
+      seamWidthMm: roomFinish.seamWidthMm,
+      directionDeg: roomFinish.directionDeg,
+      textureScale: roomFinish.textureScale
+    };
+  }
   const isBasement = structure.floorId === "B1" || structure.floorId === "B2";
   if (isBasement) {
     const isWetArea = isBathroomRoom(room);
@@ -2019,8 +2048,8 @@ function RoomFloorMesh({
     floorStyle.kind === "wood" ? "wood" : floorStyle.kind === "microcement" ? "microcement" : "stone",
     floorStyle.base,
     floorStyle.joint,
-    floorStyle.kind === "wood" ? 4.8 : floorStyle.kind === "microcement" ? 2.2 : 3.2,
-    floorStyle.kind === "wood" ? 1.5 : floorStyle.kind === "microcement" ? 2.2 : 3.2
+    floorStyle.kind === "wood" ? 4.8 : floorStyle.kind === "microcement" ? 2.2 : floorStyle.textureScale ?? 3.2,
+    floorStyle.kind === "wood" ? 1.5 : floorStyle.kind === "microcement" ? 2.2 : floorStyle.textureScale ?? 3.2
   );
   return (
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018 + index * 0.002, 0]}>
@@ -2054,7 +2083,10 @@ function RoomFloorFinishOverlay({
   const floorStyle = getRoomFloorStyle(room, structure, designStyle);
   const isWood = floorStyle.kind === "wood";
   if (floorStyle.kind === "microcement") return null;
-  const tileSize = floorStyle.kind === "stone" ? 0.72 : 0.9;
+  const tileWidth = Math.max(0.3, (floorStyle.tileWidthMm ?? (floorStyle.kind === "stone" ? 720 : 900)) * MM_TO_M);
+  const tileLength = Math.max(0.3, (floorStyle.tileLengthMm ?? (floorStyle.kind === "stone" ? 720 : 900)) * MM_TO_M);
+  const seamWidth = Math.max(0.004, Math.min(0.018, (floorStyle.seamWidthMm ?? 8) * MM_TO_M));
+  const direction = (floorStyle.directionDeg ?? 0) * Math.PI / 180;
   const plankSize = 0.26;
   if (isWood) {
     const plankCount = Math.max(2, Math.floor(width / plankSize));
@@ -2081,25 +2113,25 @@ function RoomFloorFinishOverlay({
       </group>
     );
   }
-  const xLines = Math.floor(width / tileSize);
-  const zLines = Math.floor(depth / tileSize);
+  const xLines = Math.floor(width / tileWidth);
+  const zLines = Math.floor(depth / tileLength);
 
   return (
-    <group position={[0, 0.057, 0]}>
+    <group position={[centerX, 0.057, centerZ]} rotation={[0, direction, 0]}>
       {Array.from({ length: xLines + 1 }, (_, index) => {
-        const x = bounds.minX + index * tileSize;
+        const x = -width / 2 + index * tileWidth;
         return (
-          <mesh key={`master-bath-tile-x-${index}`} position={[x, 0, centerZ]}>
-            <boxGeometry args={[0.01, 0.004, depth]} />
+          <mesh key={`${room.id}-tile-x-${index}`} position={[x, 0, 0]}>
+            <boxGeometry args={[seamWidth, 0.004, depth]} />
             <meshStandardMaterial color={floorStyle.joint} transparent opacity={floorStyle.kind === "stone" ? 0.42 : 0.32} roughness={0.84} />
           </mesh>
         );
       })}
       {Array.from({ length: zLines + 1 }, (_, index) => {
-        const z = bounds.minZ + index * tileSize;
+        const z = -depth / 2 + index * tileLength;
         return (
-          <mesh key={`master-bath-tile-z-${index}`} position={[centerX, 0, z]}>
-            <boxGeometry args={[width, 0.004, 0.01]} />
+          <mesh key={`${room.id}-tile-z-${index}`} position={[0, 0, z]}>
+            <boxGeometry args={[width, 0.004, seamWidth]} />
             <meshStandardMaterial color={floorStyle.joint} transparent opacity={floorStyle.kind === "stone" ? 0.42 : 0.32} roughness={0.84} />
           </mesh>
         );
@@ -2794,6 +2826,8 @@ function LineBox({
   selected = false,
   textureKind = null,
   textureAccent,
+  materialRoughness = 0.7,
+  textureScale = 1,
   clippingPlanes,
   onSelect,
   onHover,
@@ -2811,6 +2845,8 @@ function LineBox({
   selected?: boolean;
   textureKind?: ProceduralTextureKind | null;
   textureAccent?: string;
+  materialRoughness?: number;
+  textureScale?: number;
   clippingPlanes?: THREE.Plane[];
   onSelect?: (id: string) => void;
   onHover?: (id: string) => void;
@@ -2819,7 +2855,7 @@ function LineBox({
   const metrics = useMemo(() => lineMetrics(start, end, structure), [start, end, structure]);
   const width = Math.max(0.025, widthMm * MM_TO_M);
   const height = Math.max(0.04, heightMm * MM_TO_M);
-  const texture = useProceduralTexture(textureKind, color, textureAccent ?? "#8a8075", Math.max(1.2, metrics.length * 0.9), Math.max(1, height * 1.8));
+  const texture = useProceduralTexture(textureKind, color, textureAccent ?? "#8a8075", Math.max(1.2, metrics.length * 0.9) * textureScale, Math.max(1, height * 1.8) * textureScale);
   return (
     <mesh
       castShadow={selected || opacity >= 0.72}
@@ -2846,7 +2882,7 @@ function LineBox({
         depthWrite={opacity >= 0.72}
         transparent={opacity < 1}
         opacity={opacity}
-        roughness={0.7}
+        roughness={materialRoughness}
         clippingPlanes={clippingPlanes ?? null}
       />
     </mesh>
@@ -2979,6 +3015,7 @@ function SolidWallSegment({
   widthMm,
   heightMm,
   color,
+  wallFinish,
   wallOpacity,
   clippingPlanes,
   selected,
@@ -2993,6 +3030,7 @@ function SolidWallSegment({
   widthMm: number;
   heightMm: number;
   color: string;
+  wallFinish?: RoomWallFinish;
   wallOpacity?: number;
   clippingPlanes?: THREE.Plane[];
   selected: boolean;
@@ -3025,7 +3063,9 @@ function SolidWallSegment({
         color={selected ? "#bfdbfe" : wallSurfaceColor}
         opacity={bodyOpacity}
         textureKind={isBasementWall ? "microcement" : "wall"}
-        textureAccent={isBasementWall ? "#e0d8ce" : effectMaterialCatalog.wallPaint.color}
+        textureAccent={isBasementWall ? "#e0d8ce" : wallFinish?.textureAccent ?? effectMaterialCatalog.wallPaint.color}
+        materialRoughness={wallFinish?.roughness ?? 0.7}
+        textureScale={wallFinish?.textureScale ?? 1}
         selected={selected}
         clippingPlanes={clippingPlanes}
         onSelect={onSelect}
@@ -3101,6 +3141,7 @@ function CutWallPanel({
   structure,
   widthMm,
   color,
+  wallFinish,
   wallOpacity,
   clippingPlanes,
   selected,
@@ -3118,6 +3159,7 @@ function CutWallPanel({
   structure: HouseStructure;
   widthMm: number;
   color: string;
+  wallFinish?: RoomWallFinish;
   wallOpacity?: number;
   clippingPlanes?: THREE.Plane[];
   selected: boolean;
@@ -3151,7 +3193,9 @@ function CutWallPanel({
         opacity={bodyOpacity}
         yOffset={bottomMm * MM_TO_M}
         textureKind={isBasementWall ? "microcement" : "wall"}
-        textureAccent={isBasementWall ? "#e0d8ce" : effectMaterialCatalog.wallPaint.color}
+        textureAccent={isBasementWall ? "#e0d8ce" : wallFinish?.textureAccent ?? effectMaterialCatalog.wallPaint.color}
+        materialRoughness={wallFinish?.roughness ?? 0.7}
+        textureScale={wallFinish?.textureScale ?? 1}
         selected={selected}
         clippingPlanes={clippingPlanes}
         onSelect={onSelect}
@@ -3230,6 +3274,7 @@ function StraightWallWithOpenings({
   wall,
   structure,
   wallColor,
+  wallFinish,
   wallMode,
   wallOpacity,
   selected,
@@ -3240,6 +3285,7 @@ function StraightWallWithOpenings({
   wall: Extract<HouseWall, { kind: "straight" }>;
   structure: HouseStructure;
   wallColor: string;
+  wallFinish?: RoomWallFinish;
   wallMode: Drawing3DWallMode;
   wallOpacity?: number;
   selected: boolean;
@@ -3266,6 +3312,7 @@ function StraightWallWithOpenings({
           structure={structure}
           widthMm={wall.thickness}
           color={wallColor}
+          wallFinish={wallFinish}
           selected={selected}
           wallOpacity={wallOpacity}
           clippingPlanes={clippingPlanes}
@@ -3282,6 +3329,7 @@ function WallMesh({
   wall,
   structure,
   wallColor,
+  wallFinish,
   wallMode,
   wallOpacity,
   selected,
@@ -3292,6 +3340,7 @@ function WallMesh({
   wall: HouseWall;
   structure: HouseStructure;
   wallColor: string;
+  wallFinish?: RoomWallFinish;
   wallMode: Drawing3DWallMode;
   wallOpacity?: number;
   selected: boolean;
@@ -3356,6 +3405,7 @@ function WallMesh({
             heightMm={wall.height}
             structure={structure}
             color={wallColor}
+            wallFinish={wallFinish}
             selected={selected}
             wallOpacity={wallOpacity}
             clippingPlanes={clippingPlanes}
@@ -3376,6 +3426,7 @@ function WallMesh({
         wall={wall}
         structure={structure}
         wallColor={wallColor}
+        wallFinish={wallFinish}
         wallMode={wallMode}
         wallOpacity={wallOpacity}
         selected={selected}
@@ -3395,6 +3446,7 @@ function WallMesh({
       heightMm={wall.height}
       structure={structure}
       color={wallColor}
+      wallFinish={wallFinish}
       selected={selected}
       wallOpacity={wallOpacity}
       clippingPlanes={getWallClippingPlanes(structure, wallMode)}
@@ -3492,6 +3544,79 @@ function ColumnMesh({
   );
 }
 
+function StyledDoorLeaf({
+  style,
+  width,
+  height,
+  color,
+  glassColor,
+  hardwareColor,
+  leafDirection,
+  woodTexture
+}: {
+  style: NonNullable<HouseDoor["visual"]>["style"];
+  width: number;
+  height: number;
+  color: string;
+  glassColor: string;
+  hardwareColor: string;
+  leafDirection: number;
+  woodTexture: THREE.Texture | null;
+}) {
+  const doorDepth = 0.055;
+  const border = Math.max(0.08, width * 0.13);
+  const insetWidth = Math.max(0.18, width - border * 2);
+  const insetHeight = height * 0.78;
+  const insetBottom = -height * 0.39;
+  const archRadius = insetWidth / 2;
+  const archSpring = insetBottom + insetHeight - archRadius;
+  const archedInsetShape = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(-insetWidth / 2, insetBottom);
+    shape.lineTo(-insetWidth / 2, archSpring);
+    shape.absarc(0, archSpring, archRadius, Math.PI, 0, true);
+    shape.lineTo(insetWidth / 2, insetBottom);
+    shape.closePath();
+    return shape;
+  }, [archRadius, archSpring, insetBottom, insetWidth]);
+  if (style === "archedReededGlass") {
+    return (
+      <group position={[leafDirection * width / 2, height / 2, 0]}>
+        {[-1, 1].map((side) => <mesh key={`bath-door-side-${side}`} castShadow receiveShadow position={[side * (width / 2 - border / 2), 0, 0]}><boxGeometry args={[border, height * 0.985, doorDepth]} /><meshStandardMaterial color={color} map={woodTexture ?? undefined} roughness={0.58} /></mesh>)}
+        <mesh castShadow receiveShadow position={[0, height * 0.44, 0]}><boxGeometry args={[width - border * 2, height * 0.105, doorDepth]} /><meshStandardMaterial color={color} map={woodTexture ?? undefined} roughness={0.58} /></mesh>
+        <mesh castShadow receiveShadow position={[0, -height * 0.445, 0]}><boxGeometry args={[width - border * 2, height * 0.095, doorDepth]} /><meshStandardMaterial color={color} map={woodTexture ?? undefined} roughness={0.58} /></mesh>
+        <mesh position={[0, 0, doorDepth * 0.58]}>
+          <shapeGeometry args={[archedInsetShape]} />
+          <meshPhysicalMaterial color={glassColor} transmission={0.52} transparent opacity={0.62} roughness={0.24} thickness={0.018} ior={1.46} side={THREE.DoubleSide} />
+        </mesh>
+        {Array.from({ length: 13 }, (_, index) => {
+          const x = (index - 6) * insetWidth / 14;
+          const archTop = archSpring + Math.sqrt(Math.max(0, archRadius * archRadius - x * x));
+          const reedHeight = archTop - insetBottom - 0.035;
+          return <mesh key={`reed-${index}`} position={[x, insetBottom + reedHeight / 2 + 0.018, doorDepth * 0.76]}><boxGeometry args={[0.008, reedHeight, 0.008]} /><meshStandardMaterial color="#d8c6a5" transparent opacity={0.46} roughness={0.32} metalness={0.08} /></mesh>;
+        })}
+        <mesh position={[leafDirection * width * 0.34, 0, doorDepth * 0.84]}><sphereGeometry args={[0.038, 16, 10]} /><meshStandardMaterial color={hardwareColor} roughness={0.24} metalness={0.72} /></mesh>
+      </group>
+    );
+  }
+  return (
+    <group position={[leafDirection * width / 2, height / 2, 0]}>
+      <mesh castShadow receiveShadow><boxGeometry args={[width, height * 0.985, doorDepth]} /><meshStandardMaterial color={color} map={woodTexture ?? undefined} roughness={0.62} side={THREE.DoubleSide} /></mesh>
+      {style === "wovenReliefWood" && (
+        <group position={[width * 0.18, 0, doorDepth * 0.62]}>
+          {Array.from({ length: 30 }, (_, index) => {
+            const column = index % 3;
+            const row = Math.floor(index / 3);
+            return <mesh key={`woven-${index}`} position={[(column - 1) * width * 0.065, (row - 4.5) * height * 0.078, 0]} rotation={[0, 0, (column + row) % 2 ? 0.08 : -0.08]}><boxGeometry args={[width * 0.072, height * 0.066, 0.024]} /><meshStandardMaterial color={index % 2 ? "#b08b61" : "#c19b6e"} roughness={0.68} /></mesh>;
+          })}
+        </group>
+      )}
+      {style === "doubleLeafWood" && <mesh position={[0, -height * 0.27, doorDepth * 0.62]}><boxGeometry args={[width * 0.94, 0.012, 0.012]} /><meshStandardMaterial color="#9f7f5c" roughness={0.72} /></mesh>}
+      <mesh position={[leafDirection * width * 0.39, 0, doorDepth * 0.92]}><sphereGeometry args={[0.036, 16, 10]} /><meshStandardMaterial color={hardwareColor} roughness={0.24} metalness={0.72} /></mesh>
+    </group>
+  );
+}
+
 function OpeningMesh({
   opening,
   structure,
@@ -3524,10 +3649,15 @@ function OpeningMesh({
   const height = Math.max(0.3, displayHeightMm * MM_TO_M);
   const sillHeight = isDoor ? 0 : windowDisplayMetrics!.sillHeightMm * MM_TO_M;
   const isGlassDoor = isDoor && "material" in opening && opening.material?.toLowerCase().includes("glass");
+  const doorVisual = isDoor ? (opening as HouseDoor).visual : undefined;
+  const doorStyle = doorVisual?.style ?? "standard";
   const color = selected ? "#2563eb" : isDoor ? (isGlassDoor ? "#8fd3e8" : effectMaterialCatalog.doorWood.color) : "#b6ddeb";
   const opacity = isDoor ? (isGlassDoor ? 0.44 : 1) : 0.42;
   const woodTexture = useProceduralTexture(isDoor && !isGlassDoor ? "wood" : null, effectMaterialCatalog.doorWood.color, "#b59b7f", 1.2, 2.2);
-  const frameColor = selected ? "#2563eb" : effectMaterialCatalog.blackMetal.color;
+  const doorWoodColor = selected ? "#2563eb" : doorVisual?.woodColor ?? color;
+  const frameColor = selected ? "#2563eb" : doorVisual?.frameColor ?? effectMaterialCatalog.blackMetal.color;
+  const doorHardwareColor = doorVisual?.hardwareColor ?? "#c9a46a";
+  const doorGlassColor = doorVisual?.glassColor ?? "#d7c7aa";
   const frameWidth = Math.min(0.065, Math.max(0.035, width * 0.045));
 
   return (
@@ -3585,20 +3715,22 @@ function OpeningMesh({
             const swingAngle = explorationDoorState
               ? designSwingAngle * explorationDoorState.currentAngle
               : designSwingAngle;
+            if (doorStyle === "doubleLeafWood" || doorVisual?.leafCount === 2) {
+              const leafWidth = width / 2;
+              const openingAmount = explorationDoorState ? explorationDoorState.currentAngle : 1;
+              return (
+                <group>
+                  {([-1, 1] as const).map((side) => (
+                    <group key={`double-leaf-${side}`} position={[side * width / 2, 0, 0]} rotation={[0, -side * openingAmount * Math.PI * 0.4, 0]}>
+                      <StyledDoorLeaf style="doubleLeafWood" width={leafWidth} height={height} color={doorWoodColor} glassColor={doorGlassColor} hardwareColor={doorHardwareColor} leafDirection={-side} woodTexture={woodTexture} />
+                    </group>
+                  ))}
+                </group>
+              );
+            }
             return (
               <group position={[opensFromStart ? -width / 2 : width / 2, 0, 0]} rotation={[0, swingAngle, 0]}>
-                <mesh castShadow receiveShadow position={[leafDirection * width / 2, height / 2, 0]}>
-                  <boxGeometry args={[width, height * 0.985, 0.055]} />
-                  {isGlassDoor
-                    ? <meshPhysicalMaterial color={color} transmission={0.58} transparent opacity={0.56} roughness={0.08} metalness={0.02} thickness={0.018} ior={1.48} envMapIntensity={0.9} side={THREE.DoubleSide} />
-                    : <meshStandardMaterial color={color} map={woodTexture ?? undefined} roughness={0.58} metalness={0.02} side={THREE.DoubleSide} />}
-                </mesh>
-                {!isGlassDoor && (
-                  <mesh position={[leafDirection * width * 0.4, Math.min(1.02, height * 0.48), 0.052]}>
-                    <sphereGeometry args={[0.04, 16, 10]} />
-                    <meshStandardMaterial color="#c9a46a" roughness={0.26} metalness={0.72} />
-                  </mesh>
-                )}
+                {isGlassDoor && doorStyle === "standard" ? <mesh castShadow receiveShadow position={[leafDirection * width / 2, height / 2, 0]}><boxGeometry args={[width, height * 0.985, 0.055]} /><meshPhysicalMaterial color={color} transmission={0.58} transparent opacity={0.56} roughness={0.08} metalness={0.02} thickness={0.018} ior={1.48} envMapIntensity={0.9} side={THREE.DoubleSide} /></mesh> : <StyledDoorLeaf style={doorStyle} width={width} height={height} color={doorWoodColor} glassColor={doorGlassColor} hardwareColor={doorHardwareColor} leafDirection={leafDirection} woodTexture={woodTexture} />}
               </group>
             );
           })()}
@@ -7476,6 +7608,7 @@ function SmartRoomWalls({
 }) {
   const { camera } = useThree();
   const roomWalls = structure.walls.filter((wall) => room.sourceWallIds.includes(wall.id) && resolveVisibility(wall).visible3d);
+  const roomWallColor = room.surfaceFinishes?.wall?.baseColor ?? designStylePalettes.warmJapandi.wall;
   const bounds = getSceneBounds(room.boundary, structure);
   const roomCenter = useMemo(() => new THREE.Vector3((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2), [bounds.maxX, bounds.maxZ, bounds.minX, bounds.minZ]);
   const [occludingWallId, setOccludingWallId] = useState<string | null>(null);
@@ -7508,7 +7641,8 @@ function SmartRoomWalls({
             key={wall.id}
             wall={wall}
             structure={structure}
-            wallColor={isBathroomWall(wall, structure) ? masterBathPalette.wall : designStylePalettes.warmJapandi.wall}
+            wallColor={isBathroomWall(wall, structure) ? masterBathPalette.wall : roomWallColor}
+            wallFinish={room.surfaceFinishes?.wall}
             wallMode="full"
             wallOpacity={wallMode === "transparent" ? 0.24 : wallOpacity}
             selected={selectedObjectId === wall.id}
@@ -8163,12 +8297,15 @@ function Floor3DScene({
       ) : materialPlanShowsStructure && houseStructure.walls.filter((wall) => resolveVisibility(wall).visible3d).map((wall) => {
         const policy = getWallRenderPolicy(wall, houseStructure, lightingWallDisplayMode);
         if (!policy.visible) return null;
+        const finishedRoom = houseStructure.rooms.find((room) => room.sourceWallIds.includes(wall.id) && room.surfaceFinishes?.wall);
+        const finishedWallColor = finishedRoom?.surfaceFinishes?.wall?.baseColor;
         return (
           <WallMesh
             key={wall.id}
             wall={wall}
             structure={houseStructure}
-            wallColor={drawingSheetType === "wallFinishPlan" && relatedWallIds.has(wall.id) ? "#f0a5c7" : isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : palette.wall}
+            wallColor={drawingSheetType === "wallFinishPlan" && relatedWallIds.has(wall.id) ? "#f0a5c7" : isBathroomWall(wall, houseStructure) ? masterBathPalette.wall : finishedWallColor ?? palette.wall}
+            wallFinish={finishedRoom?.surfaceFinishes?.wall}
             wallMode={lightingWallDisplayMode}
             wallOpacity={policy.opacity ?? lightingWallOpacity}
             selected={selectedObjectId === wall.id}

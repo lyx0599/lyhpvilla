@@ -16,7 +16,7 @@ const data = buildConstructionPackageData(workspace);
 const baselineValidation = validateConstructionPackage(workspace);
 
 assert.equal(constructionPackageSheets.length, 15);
-for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆改施工图", "家具定位图", "插座点位图", "开关控制图", "灯光点位图", "给水点位图", "排水点位图", "吊顶图", "地面铺装图", "墙面材料图", "材料索引清单（辅助输出）", "待确认项清单（检查附件）"]) {
+for (const title of ["图纸目录/总说明", "总平面图", "结构图", "拆改施工图", "家具定位图", "插座需求方案（待图纸核对）", "开关控制建议图（待图纸核对）", "灯光点位图", "给水需求方案（待现场复核）", "排水需求方案（待现场复核）", "吊顶图", "地面铺装图", "墙面材料图", "材料索引清单（辅助输出）", "待确认项清单（检查附件）"]) {
   assert.ok(constructionPackageSheets.some((sheet) => sheet.title === title), `missing sheet ${title}`);
 }
 

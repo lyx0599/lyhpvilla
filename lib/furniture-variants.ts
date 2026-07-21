@@ -48,6 +48,7 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
   sofa: [
     { id: "lowModular", label: "低矮模块沙发", description: "低靠背、宽模块和细缝坐垫", planShape: "rect" },
     { id: "curvedSofa", label: "柔和弧形沙发", description: "弧形模块和包裹式靠背", planShape: "curve" },
+    { id: "boucleCurve", label: "羊羔绒雕塑弧形沙发", description: "连续包裹靠背、不对称圆润坐垫和球形靠包", planShape: "curve" },
     { id: "slimLegSofa", label: "细腿轻盈沙发", description: "薄扶手、高离地和细金属脚", planShape: "open" },
     { id: "deepLounge", label: "深坐休闲沙发", description: "深坐面、厚靠包和松弛比例", planShape: "rect" },
     { id: "sectionalLShape", label: "L 型组合沙发", description: "带单侧贵妃位的组合结构", planShape: "lShape" },
@@ -74,6 +75,7 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
     { id: "timberDining", label: "木质餐椅", description: "木框、弧背和轻薄坐面", planShape: "open" },
     { id: "upholsteredDining", label: "软包餐椅", description: "软包坐背和浅木细腿", planShape: "rect" },
     { id: "wovenDining", label: "编织感餐椅", description: "轻木框和通透编织靠背", planShape: "open" },
+    { id: "wrapDining", label: "环抱软包餐椅", description: "米白软包环抱背、独立坐垫和深木细腿", planShape: "curve" },
     { id: "armHost", label: "带扶手主椅", description: "端位使用的弧形扶手椅", planShape: "curve" },
     { id: "lightSide", label: "轻型侧椅", description: "细金属框和薄坐垫", planShape: "open" },
     { id: "curvedLounge", label: "弧背休闲单椅", description: "包裹弧背和旋转底座", planShape: "curve" }
@@ -85,6 +87,8 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
     { id: "glassDisplay", label: "玻璃展示柜", description: "细框玻璃门和内部层板", planShape: "glass" },
     { id: "openClosedMix", label: "开放封闭组合柜", description: "开放格与平板柜门组合", planShape: "open" },
     { id: "woodWarmWhite", label: "浅木暖白组合柜", description: "暖白柜门和浅木开放区", planShape: "open" },
+    { id: "archedBuffet", label: "拱形玻璃餐边柜", description: "双侧木饰面高柜、拱形玻璃吊柜、开放操作台和下柜", planShape: "rect" },
+    { id: "archedBuffetUpper", label: "拱形玻璃吊柜", description: "中部拱形竖纹玻璃门与两侧木饰面门", planShape: "glass" },
     { id: "handleless", label: "无把手柜体", description: "反弹门和连续水平凹槽", planShape: "rect" },
     { id: "slimGlassFrame", label: "细框玻璃柜", description: "深色细框和浅茶玻璃", planShape: "glass" },
     { id: "wallMounted", label: "壁挂吊柜", description: "壁挂箱体和底部任务照明", planShape: "floating" }

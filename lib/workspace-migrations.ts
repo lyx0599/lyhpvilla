@@ -7,7 +7,7 @@ import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
 import { buildManagedStairInfrastructure, normalizeManagedStairFlights } from "./stair-systems.ts";
 
 export const CURRENT_WORKSPACE_SCHEMA_VERSION = 18;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-18-yard-skylight-clearance-v7";
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-22-interior-door-designs-v10";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -187,6 +187,75 @@ function migrateDimensionVerification(workspace: Partial<WorkspaceDocument>) {
       });
     });
   });
+  return changed;
+}
+
+function migrateLivingSurfaceFinishes(workspace: Partial<WorkspaceDocument>, canonical?: WorkspaceDocument) {
+  const room = workspace.houseStructuresByFloor?.["1F"]?.rooms.find((candidate) => candidate.id === "ROOM-1F-005");
+  const canonicalRoom = canonical?.houseStructuresByFloor?.["1F"]?.rooms.find((candidate) => candidate.id === "ROOM-1F-005");
+  if (!room || !canonicalRoom?.surfaceFinishes) return false;
+  let changed = false;
+  room.surfaceFinishes ??= {};
+  if (!room.surfaceFinishes.floor && canonicalRoom.surfaceFinishes.floor) {
+    room.surfaceFinishes.floor = cloneJson(canonicalRoom.surfaceFinishes.floor);
+    changed = true;
+  }
+  if (!room.surfaceFinishes.wall && canonicalRoom.surfaceFinishes.wall) {
+    room.surfaceFinishes.wall = cloneJson(canonicalRoom.surfaceFinishes.wall);
+    changed = true;
+  }
+  return changed;
+}
+
+function migrateLivingWindowAndWaterbar(workspace: Partial<WorkspaceDocument>, canonical?: WorkspaceDocument) {
+  if (!workspace.furniture || !canonical?.furniture) return false;
+  const managedFurnitureIds = new Set([
+    "furn-living-waterbar-001",
+    "furn-living-waterbar-upper-001",
+    "furn-living-snack-pullout-001"
+  ]);
+  const canonicalFurniture = new Map(canonical.furniture.filter((item) => managedFurnitureIds.has(item.id)).map((item) => [item.id, item]));
+  let changed = false;
+  workspace.furniture = workspace.furniture.map((item) => {
+    const managed = canonicalFurniture.get(item.id);
+    if (!managed || JSON.stringify(item) === JSON.stringify(managed)) return item;
+    changed = true;
+    return cloneJson(managed);
+  });
+  const windows = workspace.houseStructuresByFloor?.["1F"]?.windows;
+  const canonicalWindow = canonical.houseStructuresByFloor?.["1F"]?.windows.find((window) => window.id === "WIN-1F-006");
+  const windowIndex = windows?.findIndex((window) => window.id === "WIN-1F-006") ?? -1;
+  if (windows && canonicalWindow && windowIndex >= 0 && JSON.stringify(windows[windowIndex]) !== JSON.stringify(canonicalWindow)) {
+    windows[windowIndex] = cloneJson(canonicalWindow);
+    changed = true;
+  }
+  return changed;
+}
+
+function migrateInteriorDoorDesigns(workspace: Partial<WorkspaceDocument>, canonical?: WorkspaceDocument) {
+  const managedDoorIds = new Set([
+    "D-B1-001",
+    "D-1F-003",
+    "D-1F-005",
+    "D-2F-003",
+    "D-2F-004",
+    "D-2F-006",
+    "D-2F-007",
+    "D-2F-008"
+  ]);
+  if (!workspace.houseStructuresByFloor || !canonical?.houseStructuresByFloor) return false;
+  let changed = false;
+  for (const floorId of ["B1", "1F", "2F"] as const) {
+    const doors = workspace.houseStructuresByFloor[floorId]?.doors;
+    const canonicalDoors = new Map((canonical.houseStructuresByFloor[floorId]?.doors ?? []).filter((door) => managedDoorIds.has(door.id)).map((door) => [door.id, door]));
+    if (!doors) continue;
+    for (let index = 0; index < doors.length; index += 1) {
+      const managed = canonicalDoors.get(doors[index].id);
+      if (!managed || JSON.stringify(doors[index]) === JSON.stringify(managed)) continue;
+      doors[index] = cloneJson(managed);
+      changed = true;
+    }
+  }
   return changed;
 }
 
@@ -385,6 +454,34 @@ function migrateLightingDrawingItemsV1(workspace: Partial<WorkspaceDocument>) {
   return changed;
 }
 
+/**
+ * Keeps MEP intent attached to the existing DrawingItem model.  Until developer
+ * drawings and site measurements exist, absolute coordinates are explicitly a
+ * scheme recommendation rather than a construction instruction.
+ */
+function migrateMepSchemePositioning(workspace: Partial<WorkspaceDocument>) {
+  if (!workspace.drawingItems) return false;
+  const mepCategories = new Set(["socket", "network", "switch", "light", "waterSupply", "drainage"]);
+  let changed = false;
+  workspace.drawingItems.forEach((item) => {
+    if (!mepCategories.has(item.category)) return;
+    if (item.confidence === undefined) { item.confidence = "schemePositioned"; changed = true; }
+    if (item.positioningBasis === undefined) { item.positioningBasis = item.relatedFurnitureId ? "currentFurnitureLayout" : "currentCabinetLayout"; changed = true; }
+    if (item.serviceScenario === undefined) { item.serviceScenario = item.relatedFurnitureId ? "家具/设备关联需求" : "空间使用与控制需求"; changed = true; }
+    if (item.pendingConfirmations === undefined) {
+      item.pendingConfirmations = ["developerOriginalPoint", "finishedWallDimension", "existingCircuit", "cabinetShopDrawing"];
+      changed = true;
+    }
+    if (item.positionRule === undefined) {
+      item.positionRule = item.relatedFurnitureId
+        ? { type: "relativeToObject", anchor: /洗碗机|净水|冰箱|烤箱|蒸箱/.test(`${item.label} ${item.notes}`) ? "rearOrAdjacentCabinet" : "objectEdge", offsetMm: 150, side: "rear" }
+        : item.hostWallId ? { type: "relativeToWall", anchor: "wallCenter", offsetMm: 0, side: "center" } : null;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 function migrateLightingSemanticCorrections(workspace: Partial<WorkspaceDocument>) {
   if (!workspace.drawingItems || !workspace.houseStructuresByFloor) return false;
   let changed = false;
@@ -545,6 +642,12 @@ export function applyWorkspaceMigrations(
     workspace.stairOpenings ??= cloneJson(canonical?.stairOpenings ?? infrastructure.stairOpenings);
   }
   if (canMigrate && migrateDimensionVerification(workspace)) structureMigrated = true;
+  if (canMigrate && migrateLivingSurfaceFinishes(workspace, canonical)) structureMigrated = true;
+  if (canMigrate && migrateLivingWindowAndWaterbar(workspace, canonical)) {
+    structureMigrated = true;
+    sources.furniture = "migration";
+  }
+  if (canMigrate && migrateInteriorDoorDesigns(workspace, canonical)) structureMigrated = true;
   if (canMigrate && migrateFurniturePlacement(workspace)) {
     sources.furniture = "migration";
     sources.drawingItems = "migration";
@@ -557,6 +660,7 @@ export function applyWorkspaceMigrations(
   if (canMigrate && migrateOutdoorLandscapeEdgeLayout(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateFurnitureVariants(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
+  if (migrateMepSchemePositioning(workspace)) sources.drawingItems = "migration";
   if (canMigrate && migrateLightingSemanticCorrections(workspace)) {
     sources.drawingItems = "migration";
     sources.lightingDesign = "migration";

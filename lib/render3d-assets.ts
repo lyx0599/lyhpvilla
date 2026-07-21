@@ -65,6 +65,7 @@ export const render3DMaterialTokenCatalog = {
   walnut: { label: "低饱和胡桃木", role: "wood", color: "#927965", roughness: 0.5, metalness: 0.02 },
   honeyWood: { label: "蜂蜜木", role: "wood", color: "#c5a47d", roughness: 0.54, metalness: 0.02 },
   creamFabric: { label: "奶油布艺", role: "fabric", color: "#eee3d6", roughness: 0.92, metalness: 0 },
+  creamBoucle: { label: "奶油羊羔绒", role: "fabric", color: "#e8dece", roughness: 0.98, metalness: 0 },
   beigeFabric: { label: "米灰布艺", role: "fabric", color: "#d8cabc", roughness: 0.94, metalness: 0 },
   taupeFabric: { label: "灰褐布艺", role: "fabric", color: "#aa9786", roughness: 0.93, metalness: 0 },
   camelFabric: { label: "浅驼软装", role: "fabric", color: "#b99876", roughness: 0.9, metalness: 0 },

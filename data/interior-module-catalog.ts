@@ -84,7 +84,7 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "布艺 / 皮革沙发",
     note: "用于客厅主座位，后续可按实际采购款式调整长度和材质。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
-    render3d: { assetType: "sofa", variantId: "lowModular", stylePreset: "modernNatural", primaryMaterial: "beigeFabric", secondaryMaterial: "creamFabric", accentMaterial: "camelFabric", detailLevel: "standard", childrenMode: "grouped" }
+    render3d: { assetType: "sofa", variantId: "boucleCurve", stylePreset: "modernNatural", primaryMaterial: "creamBoucle", secondaryMaterial: "creamBoucle", accentMaterial: "beigeFabric", detailLevel: "presentation", childrenMode: "grouped" }
   },
   {
     id: "living-dining-table",
@@ -98,7 +98,7 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "圆餐桌 + 6 把餐椅",
     note: "按整套餐桌椅占地估算，放置后再校核餐椅后退和通道宽度。",
     serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
-    render3d: { assetType: "diningTable", variantId: "roundPedestal", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", detailLevel: "presentation", childrenMode: "grouped" }
+    render3d: { assetType: "diningTable", variantId: "roundPedestal", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "creamFabric", accentMaterial: "blackTitanium", detailLevel: "presentation", childrenMode: "grouped" }
   },
   {
     id: "living-slab-table",
@@ -507,6 +507,7 @@ export const interiorModuleCatalog: InteriorModuleCatalogItem[] = [
     material: "餐边柜 + 小家电台面",
     note: "预留咖啡机、净饮机或小家电插座。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
+    render3d: { assetType: "sideboard", variantId: "archedBuffet", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "warmWhiteCeramic", accentMaterial: "brushedBronze", detailLevel: "presentation", childrenMode: "grouped", cabinetVisual: { frontStyle: "glass", handleStyle: "knob", glassTone: "clear", gridColumns: 4, interiorLighting: true } },
     cabinetDesign: {
       template: "sideboard",
       title: "餐边柜设计",

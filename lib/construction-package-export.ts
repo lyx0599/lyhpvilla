@@ -21,11 +21,11 @@ export const constructionPackageSheets: Array<{ sheetNo: string; title: string; 
   { sheetNo: "A-02", title: "结构图", type: "structurePlan", categories: [], scale: "1:50" },
   { sheetNo: "A-03", title: "拆改施工图", type: "demolitionAndBuildPlan", categories: [], scale: "1:50" },
   { sheetNo: "F-01", title: "家具定位图", type: "furniturePlan", categories: ["cabinet"], scale: "1:50" },
-  { sheetNo: "E-01", title: "插座点位图", type: "socketPlan", categories: ["socket", "network"], scale: "1:50" },
-  { sheetNo: "E-02", title: "开关控制图", type: "switchPlan", categories: ["switch"], scale: "1:50" },
+  { sheetNo: "E-01", title: "插座需求方案（待图纸核对）", type: "socketPlan", categories: ["socket", "network"], scale: "1:50" },
+  { sheetNo: "E-02", title: "开关控制建议图（待图纸核对）", type: "switchPlan", categories: ["switch"], scale: "1:50" },
   { sheetNo: "L-01", title: "灯光点位图", type: "lightingPlan", categories: ["light"], scale: "1:50" },
-  { sheetNo: "W-01", title: "给水点位图", type: "waterSupplyPlan", categories: ["waterSupply"], scale: "1:50" },
-  { sheetNo: "W-02", title: "排水点位图", type: "drainagePlan", categories: ["drainage"], scale: "1:50" },
+  { sheetNo: "W-01", title: "给水需求方案（待现场复核）", type: "waterSupplyPlan", categories: ["waterSupply"], scale: "1:50" },
+  { sheetNo: "W-02", title: "排水需求方案（待现场复核）", type: "drainagePlan", categories: ["drainage"], scale: "1:50" },
   { sheetNo: "C-01", title: "吊顶图", type: "ceilingPlan", categories: ["ceiling"], scale: "1:50" },
   { sheetNo: "M-01", title: "地面铺装图", type: "floorFinishPlan", categories: ["floorFinish"], scale: "1:50" },
   { sheetNo: "M-02", title: "墙面材料图", type: "wallFinishPlan", categories: ["wallFinish"], scale: "1:50" },
@@ -37,7 +37,7 @@ export const constructionPackageRecordFields = [
   "floorId", "roomId", "roomName", "objectId", "category", "type", "label", "quantity", "heightMm", "materialId",
   "lightType", "lightingLayer", "colorTemperature", "beamAngle", "mountingType", "controlGroupId", "smartControl", "dimming",
   "fixtureFamily", "powerW", "luminousFluxLm", "cri", "glareRating", "waterproofRating",
-  "relatedSwitchId", "relatedRoomId", "hostCeilingAreaId", "relatedFurnitureId", "relatedFurnitureName", "hostWallId", "circuitId", "status", "notes",
+  "relatedSwitchId", "relatedRoomId", "hostCeilingAreaId", "relatedFurnitureId", "relatedFurnitureName", "hostWallId", "circuitId", "confidence", "positioningBasis", "positionRule", "pendingConfirmations", "serviceScenario", "status", "notes",
   "outdoorId", "roomAssignmentLocked", "wallAnchor", "clearanceMeta", "placementWarnings", "relatedFurniturePositionMm",
   "verificationStatus", "verificationSource", "verificationSourceNote", "verificationToleranceMm", "verificationVerifiedAt", "verificationVerifiedBy", "verificationNotes", "verificationDisplayState", "verificationConflicts",
   "createdAt", "updatedAt"
@@ -273,7 +273,7 @@ export function validateConstructionPackage(workspace: WorkspaceDocument) {
     dimensionConflicts: verificationEntries.filter((entry) => verificationConflictIds.has(entry.object.id)).length,
     furniturePlacement: furniturePlacementWarnings.filter((issue) => issue.severity === "error" || issue.severity === "warning").length
   };
-  return { valid: references.errors.length === 0, errors: references.errors, warnings: references.warnings, orphanIssues, draftItems, todoItems, reviewItems, verificationEntries, furniturePlacementWarnings, warningCounts };
+  return { valid: references.errors.length === 0, errors: references.errors, warnings: references.warnings, orphanIssues, draftItems, todoItems, reviewItems, verificationEntries, furniturePlacementWarnings, warningCounts, mepMaturity: workspace.drawingItems.some((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category) && item.confidence === "constructionConfirmed") ? "partial-construction-confirmed" : "scheme-usable" };
 }
 
 function isCabinet(item: Furniture) {

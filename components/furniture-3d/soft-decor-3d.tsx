@@ -13,6 +13,10 @@ export function SoftDecor3D(props: FurnitureFamily3DProps) {
       <group>
         <RoundedPart size={[width, 0.028, depth]} position={[0, floorY + 0.014, 0]} radius={0.07} detailLevel={asset.detailLevel} material={asset.materials.primary} role="fabric" repeat={[9, 7]} receiveShadow />
         <RoundedPart size={[width * 0.82, 0.012, depth * 0.72]} position={[0, floorY + 0.034, 0]} radius={0.06} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="fabric" opacity={0.54} repeat={[7, 5]} castShadow={false} />
+        {asset.detailLevel === "presentation" && [-1, 1].flatMap((side) => Array.from({ length: 22 }, (_, index) => {
+          const x = -width * 0.46 + index * width * 0.92 / 21;
+          return <CylinderPart key={`${side}-${index}`} radiusTop={0.004} height={0.075} position={[x, floorY + 0.01, side * (depth * 0.5 + 0.025)]} rotation={[Math.PI / 2, 0, 0]} material={asset.materials.primary} role="fabric" sides={6} />;
+        }))}
       </group>
     );
   }

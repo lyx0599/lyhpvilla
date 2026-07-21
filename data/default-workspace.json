@@ -1,7 +1,7 @@
 {
   "schemaVersion": 18,
-  "dataRevision": "2026-07-18-yard-skylight-clearance-v7",
-  "defaultWorkspaceRevision": "2026-07-18-yard-skylight-clearance-v7",
+  "dataRevision": "2026-07-22-interior-door-designs-v10",
+  "defaultWorkspaceRevision": "2026-07-22-interior-door-designs-v10",
   "savedAt": "2026-07-17T16:44:13.655Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -15956,7 +15956,7 @@
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 180,
+        "width": 240,
         "depth": 55,
         "height": 90,
         "unit": "cm"
@@ -15972,7 +15972,7 @@
       },
       "position": {
         "x": 76.75,
-        "y": 76.11111111111111,
+        "y": 72.22222222222223,
         "rotation": 90
       },
       "color": "#d8ddd9",
@@ -16023,12 +16023,12 @@
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
         "primaryMaterial": "warmOak",
-        "secondaryMaterial": "smokedGlass",
+        "secondaryMaterial": "travertine",
         "accentMaterial": "brushedBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "glassDisplay",
+        "variantId": "archedBuffetBase",
         "variationSeed": 3410308795,
         "styleSource": "generated",
         "elevationMm": 0,
@@ -16067,12 +16067,12 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "常规插座回路",
-        "notes": "1800mm 水吧台、净饮、小水槽、咖啡机及杯具操作整体迁至北段；给排水和三组电源随柜体同步迁移并复核管线路径。"
+        "notes": "2400mm 水吧台与吊柜同轴布置；净饮、小水槽、咖啡机及杯具操作点位随柜体同步复核。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "180x55x90cm",
+        "reserveSize": "240x55x90cm",
         "wallDependency": "绑定 W-1F-011，安装前按墙面完成面复尺并复核收口。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -16080,7 +16080,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "1800mm 水吧台、净饮、小水槽、咖啡机及杯具操作整体迁至北段；给排水和三组电源随柜体同步迁移并复核管线路径。"
+        "notes": "2400mm 水吧台与吊柜同轴布置；给排水和三组电源随柜体同步复核管线路径。"
       },
       "constructionAnchors": {
         "points": [
@@ -16153,7 +16153,7 @@
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 180,
+        "width": 240,
         "depth": 32,
         "height": 80,
         "unit": "cm"
@@ -16164,7 +16164,7 @@
       },
       "material": "暖白吊柜 + 局部玻璃门 / 开放格 + 柜下灯带",
       "note": "吊柜与南段水吧同轴。",
-      "constructionNote": "下沿标高 1450mm；复核墙体基层、柜下灯带电源与 1800mm 柜体分格。",
+      "constructionNote": "下沿标高 1450mm；复核墙体基层、柜下灯带电源与 2400mm 柜体分格。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -16173,7 +16173,7 @@
       },
       "position": {
         "x": 77.70833333333333,
-        "y": 76.11111111111111,
+        "y": 72.22222222222223,
         "rotation": 90
       },
       "color": "#f0e7d8",
@@ -16224,15 +16224,22 @@
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
         "primaryMaterial": "warmOak",
-        "secondaryMaterial": "smokedGlass",
+        "secondaryMaterial": "clearGlass",
         "accentMaterial": "brushedBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "glassDisplay",
+        "variantId": "archedBuffetUpper",
         "variationSeed": 3401117001,
         "styleSource": "generated",
         "elevationMm": 1450,
+        "cabinetVisual": {
+          "frontStyle": "glass",
+          "handleStyle": "knob",
+          "glassTone": "clear",
+          "gridColumns": 4,
+          "interiorLighting": true
+        },
         "kitchenVisual": {
           "cabinetKind": "wall",
           "doorCount": 3,
@@ -16263,12 +16270,12 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "常规插座回路",
-        "notes": "下沿标高 1450mm；复核墙体基层、柜下灯带电源与 1800mm 柜体分格。"
+        "notes": "下沿标高 1450mm；复核墙体基层、柜下灯带电源与 2400mm 柜体分格。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "wallMounted",
-        "reserveSize": "180x32x80cm",
+        "reserveSize": "240x32x80cm",
         "wallDependency": "绑定 W-1F-011，安装前按墙面完成面复尺并复核收口。",
         "floorDependency": "",
         "ceilingDependency": "柜顶与吊顶、灯带电源及检修空间协同",
@@ -16276,7 +16283,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "下沿标高 1450mm；复核墙体基层、柜下灯带电源与 1800mm 柜体分格。"
+        "notes": "下沿标高 1450mm；复核墙体基层、柜下灯带电源与 2400mm 柜体分格。"
       },
       "constructionAnchors": {
         "points": [
@@ -16472,22 +16479,22 @@
     {
       "id": "furn-living-snack-pullout-001",
       "code": "SC-1F-01",
-      "name": "W-1F-011 北段零食柜",
-      "type": "snackCabinet",
+      "name": "W-1F-011 厨房侧双门拉篮高柜",
+      "type": "cabinet",
       "catalogId": "storage-snack-cabinet",
       "moduleCategory": "storage",
-      "moduleType": "snackCabinet",
+      "moduleType": "tallCabinet",
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 120,
-        "depth": 32,
-        "height": 120,
+        "width": 80,
+        "depth": 55,
+        "height": 240,
         "unit": "cm"
       },
-      "material": "横向浅柜 + 分段拉篮 + 封闭门板",
-      "note": "零食柜明确放在 W-1F-011 北段，更靠近北院和入户方向。",
-      "constructionNote": "保持 320mm 浅柜并朝客厅抽拉，避开北侧厨房与卫生间入口。",
+      "material": "浅木色柜体 + 双门 + 双列多层金属拉篮",
+      "note": "位于水吧靠厨房一侧，与 2400mm 水吧吊柜连续收口。",
+      "constructionNote": "800mm 双门通顶高柜；两扇门后各设六层独立拉篮，开启净空与厨房入口现场复核。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -16495,20 +16502,20 @@
         "exhaust": false
       },
       "position": {
-        "x": 77.75,
-        "y": 52.77777777777778,
+        "x": 76.75,
+        "y": 54.44444444444444,
         "rotation": 90
       },
-      "color": "#f3d9b1",
+      "color": "#d5b58d",
       "cabinetDesign": {
-        "template": "snackCabinet",
-        "title": "W-1F-011 南段零食柜设计",
-        "designThinking": "将零食、茶包与日常补给收纳集中在 W-1F-011 南段，与北段水吧形成明确分区，减少包装外露并保持客厅动线清爽。",
-        "recommendedPlacement": "1F 客厅侧，贴 W-1F-011 南段墙面，与北段 1800mm 水吧柜分区对应。",
+        "template": "tallCabinet",
+        "title": "厨房侧双门拉篮高柜",
+        "designThinking": "把零食、饮料和干货收纳集中到与水吧连续的通顶高柜内，两扇门各自对应一列拉篮。",
+        "recommendedPlacement": "贴 W-1F-011，紧接 2400mm 水吧柜靠厨房一端。",
         "layoutNotes": [
-          "柜体贴 W-1F-011 南段横向布置，宽度按 1200mm 控制",
-          "深度保持 320mm，避让餐椅后退和主通道",
-          "拉篮朝客厅方向抽出，前方保持完整抽拉净空"
+          "柜体宽 800mm、深 550mm、高 2400mm",
+          "左右两扇门分别开启，门后各设六层拉篮",
+          "柜体与水吧同色，侧板和吊柜端板连续收口"
         ],
         "zones": [
           {
@@ -16537,12 +16544,12 @@
           }
         ],
         "cautionNotes": [
-          "现场复核 W-1F-011 南段墙面、踢脚线与餐椅后退净距。",
-          "若抽拉净空不足，优先减少柜深，不侵占主通道。"
+          "现场复核厨房入口、柜门开启与拉篮完全拉出的净空。",
+          "高柜固定、层板承重和拉篮五金由定制厂家深化。"
         ]
       },
       "render3d": {
-        "assetType": "snackCabinet",
+        "assetType": "cabinet",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
         "primaryMaterial": "warmOak",
@@ -16551,9 +16558,16 @@
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "handleless",
+        "variantId": "doubleDoorPulloutPantry",
         "variationSeed": 1699219631,
-        "styleSource": "generated"
+        "styleSource": "generated",
+        "cabinetVisual": {
+          "frontStyle": "shaker",
+          "handleStyle": "knob",
+          "doorCount": 2,
+          "interiorSystem": "pulloutBaskets",
+          "basketCount": 6
+        }
       },
       "mepMeta": {
         "needsSocket": false,
@@ -16570,12 +16584,12 @@
         "needsNetwork": false,
         "needsVentilation": false,
         "needsSmartControl": false,
-        "notes": "保持 320mm 浅柜和朝客厅抽拉方向，复核餐椅后退区与抽拉净空。"
+        "notes": "双门各关联一列六层拉篮；柜门和拉篮打开净空待现场复核。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "120x32x120cm",
+        "reserveSize": "80x55x240cm",
         "wallDependency": "绑定 W-1F-011，安装前按墙面完成面复尺并复核收口。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -16583,11 +16597,12 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "保持 320mm 浅柜和朝客厅抽拉方向，复核餐椅后退区与抽拉净空。"
+        "notes": "双门高柜与 2400mm 水吧柜连续收口；拉篮五金和承重由厂家深化。"
       },
       "hostWallId": "W-1F-011",
       "clearanceMeta": {
-        "frontMm": 400
+        "frontMm": 900,
+        "serviceMm": 600
       }
     },
     {
@@ -16983,9 +16998,9 @@
         "assetType": "diningTable",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "blackTitanium",
-        "accentMaterial": "brushedBronze",
+        "primaryMaterial": "walnut",
+        "secondaryMaterial": "creamFabric",
+        "accentMaterial": "blackTitanium",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "merged",
@@ -17651,7 +17666,7 @@
         "height": 76,
         "unit": "cm"
       },
-      "material": "米灰布艺 + 内收深色底座",
+      "material": "奶油色羊羔绒 + 内收软包底座",
       "note": "主沙发略向西调整，与紧凑圆餐桌形成约 740mm 的客餐厅连续通道。",
       "constructionNote": "低矮深坐模块沙发，面向西侧电视壁炉墙；右侧端位保留去餐厅通道。",
       "serviceRequirements": {
@@ -17668,14 +17683,14 @@
       "color": "#d5c7b8",
       "render3d": {
         "assetType": "sofa",
-        "variantId": "lowModular",
+        "variantId": "boucleCurve",
         "variationSeed": 2711605882,
         "stylePreset": "modernNatural",
         "styleSource": "generated",
         "detailLevel": "presentation",
-        "primaryMaterial": "taupeFabric",
-        "secondaryMaterial": "beigeFabric",
-        "accentMaterial": "camelFabric",
+        "primaryMaterial": "creamBoucle",
+        "secondaryMaterial": "creamBoucle",
+        "accentMaterial": "beigeFabric",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped"
@@ -22813,7 +22828,7 @@
         {
           "id": "D-B1-001",
           "floorId": "B1",
-          "name": "Door 001",
+          "name": "B1 盥洗间拱形长虹玻璃门",
           "geometryType": "line",
           "hostId": "W-B1-016",
           "hostType": "wall",
@@ -22826,7 +22841,15 @@
             "source": "developer-plan",
             "toleranceMm": 80
           },
-          "operation": "swing"
+          "operation": "swing",
+          "visual": {
+            "style": "archedReededGlass",
+            "woodColor": "#765039",
+            "frameColor": "#60412f",
+            "hardwareColor": "#c59a58",
+            "glassColor": "#d8c8aa",
+            "leafCount": 1
+          }
         }
       ],
       "windows": [],
@@ -23495,6 +23518,29 @@
             "status": "drawing-derived",
             "source": "developer-plan",
             "toleranceMm": 80
+          },
+          "surfaceFinishes": {
+            "floor": {
+              "material": "tile",
+              "name": "暖米灰哑光砂岩砖",
+              "baseColor": "#d8cfbd",
+              "jointColor": "#c5b9a5",
+              "textureAccent": "#eee7d9",
+              "roughness": 0.84,
+              "tileWidthMm": 600,
+              "tileLengthMm": 1200,
+              "seamWidthMm": 2,
+              "directionDeg": 0,
+              "textureScale": 4.2
+            },
+            "wall": {
+              "material": "mineralTextureWallpaper",
+              "name": "暖米白矿物肌理墙纸",
+              "baseColor": "#e8dfd0",
+              "textureAccent": "#d6c9b7",
+              "roughness": 0.9,
+              "textureScale": 2.6
+            }
           }
         },
         {
@@ -23743,7 +23789,7 @@
         {
           "id": "D-1F-003",
           "floorId": "1F",
-          "name": "Door 003",
+          "name": "1F 卧室浅木编织纹门",
           "geometryType": "line",
           "hostId": "W-1F-012",
           "hostType": "wall",
@@ -23755,6 +23801,14 @@
             "status": "drawing-derived",
             "source": "developer-plan",
             "toleranceMm": 80
+          },
+          "operation": "swing",
+          "visual": {
+            "style": "wovenReliefWood",
+            "woodColor": "#bd9569",
+            "frameColor": "#a47d55",
+            "hardwareColor": "#9a7545",
+            "leafCount": 1
           }
         },
         {
@@ -23780,7 +23834,7 @@
         {
           "id": "D-1F-005",
           "floorId": "1F",
-          "name": "Door 005",
+          "name": "1F 卫生间拱形长虹玻璃门",
           "geometryType": "line",
           "hostId": "W-1F-009",
           "hostType": "wall",
@@ -23793,7 +23847,15 @@
             "source": "developer-plan",
             "toleranceMm": 80
           },
-          "operation": "swing"
+          "operation": "swing",
+          "visual": {
+            "style": "archedReededGlass",
+            "woodColor": "#765039",
+            "frameColor": "#60412f",
+            "hardwareColor": "#c59a58",
+            "glassColor": "#d8c8aa",
+            "leafCount": 1
+          }
         },
         {
           "id": "D-1F-006",
@@ -23870,20 +23932,21 @@
         {
           "id": "WIN-1F-006",
           "floorId": "1F",
-          "name": "客厅南院普通窗",
+          "name": "客厅南院加宽半落地观景窗",
           "geometryType": "line",
           "hostId": "W-1F-015",
           "hostType": "wall",
-          "positionOnWall": 0.78,
-          "width": 1200,
-          "height": 1400,
+          "positionOnWall": 0.55,
+          "width": 3600,
+          "height": 1900,
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
-            "toleranceMm": 80
+            "status": "estimated",
+            "source": "manual-input",
+            "sourceNote": "按用户提供的半落地观景窗参考图调整，最终洞口等待开发商图纸及现场复核",
+            "toleranceMm": 100
           },
-          "sillHeightMm": 900,
-          "operation": "sliding"
+          "sillHeightMm": 550,
+          "operation": "fixed"
         }
       ],
       "bayWindows": [
@@ -24831,7 +24894,7 @@
         {
           "id": "D-2F-003",
           "floorId": "2F",
-          "name": "Door 003",
+          "name": "2F 卧室1浅木编织纹门",
           "geometryType": "line",
           "hostId": "W-2F-012",
           "hostType": "wall",
@@ -24843,12 +24906,20 @@
             "status": "drawing-derived",
             "source": "developer-plan",
             "toleranceMm": 80
+          },
+          "operation": "swing",
+          "visual": {
+            "style": "wovenReliefWood",
+            "woodColor": "#bd9569",
+            "frameColor": "#a47d55",
+            "hardwareColor": "#9a7545",
+            "leafCount": 1
           }
         },
         {
           "id": "D-2F-004",
           "floorId": "2F",
-          "name": "Door 004",
+          "name": "2F 卧室2浅木编织纹门",
           "geometryType": "line",
           "hostId": "W-2F-013",
           "hostType": "wall",
@@ -24860,12 +24931,20 @@
             "status": "drawing-derived",
             "source": "developer-plan",
             "toleranceMm": 80
+          },
+          "operation": "swing",
+          "visual": {
+            "style": "wovenReliefWood",
+            "woodColor": "#bd9569",
+            "frameColor": "#a47d55",
+            "hardwareColor": "#9a7545",
+            "leafCount": 1
           }
         },
         {
           "id": "D-2F-006",
           "floorId": "2F",
-          "name": "Door 006",
+          "name": "2F 客卫拱形长虹玻璃门",
           "geometryType": "line",
           "hostId": "W-2F-008",
           "hostType": "wall",
@@ -24877,12 +24956,21 @@
             "status": "drawing-derived",
             "source": "developer-plan",
             "toleranceMm": 80
+          },
+          "operation": "swing",
+          "visual": {
+            "style": "archedReededGlass",
+            "woodColor": "#765039",
+            "frameColor": "#60412f",
+            "hardwareColor": "#c59a58",
+            "glassColor": "#d8c8aa",
+            "leafCount": 1
           }
         },
         {
           "id": "D-2F-007",
           "floorId": "2F",
-          "name": "Door 007",
+          "name": "2F 主卫拱形长虹玻璃门",
           "geometryType": "line",
           "hostId": "W-2F-009",
           "hostType": "wall",
@@ -24894,6 +24982,15 @@
             "status": "drawing-derived",
             "source": "developer-plan",
             "toleranceMm": 80
+          },
+          "operation": "swing",
+          "visual": {
+            "style": "archedReededGlass",
+            "woodColor": "#765039",
+            "frameColor": "#60412f",
+            "hardwareColor": "#c59a58",
+            "glassColor": "#d8c8aa",
+            "leafCount": 1
           }
         },
         {
@@ -24916,18 +25013,27 @@
         {
           "id": "D-2F-008",
           "floorId": "2F",
-          "name": "主卧门",
+          "name": "2F 主卧浅木双开门",
           "geometryType": "line",
           "hostId": "W-2F-017",
           "hostType": "wall",
           "positionOnWall": 0.44,
-          "width": 900,
-          "height": 2100,
+          "width": 1600,
+          "height": 2300,
           "openDirection": "rightIn",
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
-            "toleranceMm": 80
+            "status": "estimated",
+            "source": "manual-input",
+            "sourceNote": "按用户提供的主卧双开门参考图调整，门洞尺寸待开发商图纸及现场复核",
+            "toleranceMm": 100
+          },
+          "operation": "swing",
+          "visual": {
+            "style": "doubleLeafWood",
+            "woodColor": "#c6a477",
+            "frameColor": "#ad875c",
+            "hardwareColor": "#a17b48",
+            "leafCount": 2
           }
         }
       ],
