@@ -52,8 +52,8 @@ for (const [legacyKey, canvasMode] of Object.entries(legacyPlanSheetModeAliases)
   assert.equal(normalizePlanCanvasMode(legacyKey), canvasMode);
 }
 
-assert.equal(drawingSheetTypeLabels.waterSupplyPlan, "给水点位图");
-assert.equal(drawingSheetTypeLabels.drainagePlan, "排水点位图");
+assert.equal(drawingSheetTypeLabels.waterSupplyPlan, "给水需求方案（待现场复核）");
+assert.equal(drawingSheetTypeLabels.drainagePlan, "排水需求方案（待现场复核）");
 assert.equal(planCanvasModeLabels.structureSyncCheck, "结构联动检查");
 assert.equal(planCanvasModeLabels.presentationView, "展示视图");
 

@@ -341,7 +341,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
     };
     addSpecial(/module-1f-table|六人圆餐桌/, { key: "DINING", name: "餐桌吊灯 / 六人圆桌装饰灯", lightType: "roundTablePendant", layer: "accent", colorTemperature: "2700K", beamAngle: 40, mountingType: "pendant", heightMm: 1700, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("round-table-pendant", { cri: 95 }), notes: "灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。" });
     addSpecial(/岛台/, { key: "ISLAND", name: "中岛功能照明 / 线性吊灯", lightType: "islandLinearPendant", layer: "task", colorTemperature: "3500K", beamAngle: 50, mountingType: "pendant", heightMm: 1850, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("linear-pendant", { cri: 95 }), notes: "对齐岛台长轴，兼顾操作面与通行净高；与餐桌灯分组，避开柜门、烟机和风口。" });
-    addSpecial(/水吧台吊柜|餐边柜|零食柜/, { key: "SIDEBOARD", name: "餐边柜灯带", lightType: "sideboardStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 1650, smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "柜体感应并纳入用餐场景；驱动电源、灯槽与出线位置由柜体厂家深化。" });
+    addSpecial(/水吧台吊柜|水吧吊柜|餐边柜|零食柜|拉篮高柜/, { key: "SIDEBOARD", name: "餐边柜灯带", lightType: "sideboardStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 1650, smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "柜体感应并纳入用餐场景；驱动电源、灯槽与出线位置由柜体厂家深化。" });
   }
   return intents;
 }

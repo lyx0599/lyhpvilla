@@ -3459,12 +3459,12 @@
       "category": "light",
       "type": "sideboardStrip",
       "positionMm": {
-        "x": 9330,
-        "y": 4750
+        "x": 9325,
+        "y": 6500
       },
       "hostObjectId": null,
       "hostWallId": "W-1F-011",
-      "relatedFurnitureId": "furn-living-snack-pullout-001",
+      "relatedFurnitureId": "furn-living-waterbar-upper-001",
       "heightMm": 1650,
       "circuitId": null,
       "materialId": null,
@@ -3489,8 +3489,8 @@
       "needsSmartControl": true,
       "dimming": false,
       "relatedFurniturePositionMm": {
-        "x": 9330,
-        "y": 4750
+        "x": 9325,
+        "y": 6500
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -3503,7 +3503,7 @@
         "trimColor": "铝色型材"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-SIDEBOARD:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"sideboardStrip\",\"positionMm\":{\"x\":9330,\"y\":4750},\"relatedFurnitureId\":\"furn-living-snack-pullout-001\",\"heightMm\":1650,\"circuitId\":null,\"label\":\"L-1F-V1-34 · 餐边柜灯带\",\"notes\":\"柜体感应并纳入用餐场景；驱动电源、灯槽与出线位置由柜体厂家深化。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"lightType\":\"sideboardStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-29\",\"controlGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-011\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"sideboardStrip\",\"positionMm\":{\"x\":9325,\"y\":6500},\"relatedFurnitureId\":\"furn-living-waterbar-upper-001\",\"heightMm\":1650,\"circuitId\":null,\"label\":\"L-1F-V1-34 · 餐边柜灯带\",\"notes\":\"柜体感应并纳入用餐场景；驱动电源、灯槽与出线位置由柜体厂家深化。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"lightType\":\"sideboardStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-29\",\"controlGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-011\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "SW-1F-V1-29",
@@ -3512,8 +3512,8 @@
       "category": "switch",
       "type": "switchAndSceneControl",
       "positionMm": {
-        "x": 8910,
-        "y": 5170
+        "x": 8905,
+        "y": 6920
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -3545,7 +3545,7 @@
       "needsSmartControl": true,
       "dimming": false,
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-SIDEBOARD:switch",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":8910,\"y\":5170},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-29 · 柜内灯带控制\",\"notes\":\"控制组 CG-1F-1F-005-SIDEBOARD；控制 L-1F-V1-34。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-34\"],\"lightGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-34\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":8905,\"y\":6920},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-1F-V1-29 · 柜内灯带控制\",\"notes\":\"控制组 CG-1F-1F-005-SIDEBOARD；控制 L-1F-V1-34。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-1F-V1-34\"],\"lightGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-1F-V1-34\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}"
     },
     {
       "id": "L-2F-V1-01",
@@ -19455,11 +19455,44 @@
       },
       "constructionAnchors": {
         "points": [
-          { "id": "furn-b2-study-handwash-001-cold", "type": "coldWater", "label": "小台盆冷水", "positionMm": { "x": -55, "y": 550, "z": -185 }, "installationHeightMm": 550 },
-          { "id": "furn-b2-study-handwash-001-hot", "type": "hotWater", "label": "小台盆热水", "positionMm": { "x": 55, "y": 550, "z": -185 }, "installationHeightMm": 550 },
-          { "id": "furn-b2-study-handwash-001-drain", "type": "drain", "label": "小台盆墙排", "positionMm": { "x": 0, "y": 500, "z": -172 }, "installationHeightMm": 500 }
+          {
+            "id": "furn-b2-study-handwash-001-cold",
+            "type": "coldWater",
+            "label": "小台盆冷水",
+            "positionMm": {
+              "x": -55,
+              "y": 550,
+              "z": -185
+            },
+            "installationHeightMm": 550
+          },
+          {
+            "id": "furn-b2-study-handwash-001-hot",
+            "type": "hotWater",
+            "label": "小台盆热水",
+            "positionMm": {
+              "x": 55,
+              "y": 550,
+              "z": -185
+            },
+            "installationHeightMm": 550
+          },
+          {
+            "id": "furn-b2-study-handwash-001-drain",
+            "type": "drain",
+            "label": "小台盆墙排",
+            "positionMm": {
+              "x": 0,
+              "y": 500,
+              "z": -172
+            },
+            "installationHeightMm": 500
+          }
         ],
-        "openingSizeMm": { "width": 180, "depth": 160 },
+        "openingSizeMm": {
+          "width": 180,
+          "depth": 160
+        },
         "installationHeightMm": 850,
         "notes": "冷热水与墙排随小台盆移动同步，墙面交接处做防水收口。"
       }
