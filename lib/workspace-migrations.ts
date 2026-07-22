@@ -7,7 +7,7 @@ import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
 import { buildManagedStairInfrastructure, normalizeManagedStairFlights } from "./stair-systems.ts";
 
 export const CURRENT_WORKSPACE_SCHEMA_VERSION = 18;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-22-interior-door-designs-v10";
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-23-yard-realism-v2";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -190,20 +190,27 @@ function migrateDimensionVerification(workspace: Partial<WorkspaceDocument>) {
   return changed;
 }
 
-function migrateLivingSurfaceFinishes(workspace: Partial<WorkspaceDocument>, canonical?: WorkspaceDocument) {
-  const room = workspace.houseStructuresByFloor?.["1F"]?.rooms.find((candidate) => candidate.id === "ROOM-1F-005");
-  const canonicalRoom = canonical?.houseStructuresByFloor?.["1F"]?.rooms.find((candidate) => candidate.id === "ROOM-1F-005");
-  if (!room || !canonicalRoom?.surfaceFinishes) return false;
+function migrateWholeHouseSurfaceFinishes(workspace: Partial<WorkspaceDocument>, canonical?: WorkspaceDocument) {
+  if (!workspace.houseStructuresByFloor || !canonical?.houseStructuresByFloor) return false;
   let changed = false;
-  room.surfaceFinishes ??= {};
-  if (!room.surfaceFinishes.floor && canonicalRoom.surfaceFinishes.floor) {
-    room.surfaceFinishes.floor = cloneJson(canonicalRoom.surfaceFinishes.floor);
-    changed = true;
-  }
-  if (!room.surfaceFinishes.wall && canonicalRoom.surfaceFinishes.wall) {
-    room.surfaceFinishes.wall = cloneJson(canonicalRoom.surfaceFinishes.wall);
-    changed = true;
-  }
+  Object.entries(canonical.houseStructuresByFloor).forEach(([floorId, canonicalStructure]) => {
+    const structure = workspace.houseStructuresByFloor?.[floorId as FloorId];
+    if (!structure || !canonicalStructure) return;
+    canonicalStructure.rooms.forEach((canonicalRoom) => {
+      if (!canonicalRoom.surfaceFinishes) return;
+      const room = structure.rooms.find((candidate) => candidate.id === canonicalRoom.id);
+      if (!room) return;
+      room.surfaceFinishes ??= {};
+      if (!room.surfaceFinishes.floor && canonicalRoom.surfaceFinishes.floor) {
+        room.surfaceFinishes.floor = cloneJson(canonicalRoom.surfaceFinishes.floor);
+        changed = true;
+      }
+      if (!room.surfaceFinishes.wall && canonicalRoom.surfaceFinishes.wall) {
+        room.surfaceFinishes.wall = cloneJson(canonicalRoom.surfaceFinishes.wall);
+        changed = true;
+      }
+    });
+  });
   return changed;
 }
 
@@ -324,6 +331,40 @@ function migrateOutdoorLandscapeEdgeLayout(workspace: Partial<WorkspaceDocument>
     if (!position || item.floorId !== "YARD" || (item.position.x === position.x && item.position.y === position.y)) return;
     item.position = { ...item.position, ...position };
     changed = true;
+  });
+  return changed;
+}
+
+function migrateYardRealismLayout(workspace: Partial<WorkspaceDocument>) {
+  if (!workspace.furniture) return false;
+  const layouts: Record<string, { x?: number; y?: number; width?: number; depth?: number; height?: number }> = {
+    "ph-1f-north-yard-gate": { x: 36.5 },
+    "OUT-S-RELAX": { x: 64, y: 95, width: 240, depth: 150 },
+    "OUT-S-UMBRELLA": { x: 64, y: 100, width: 220, depth: 220, height: 250 },
+    "OUT-S-DRYING": { y: 113 },
+    "OUT-S-PET-HOUSE": { x: 73, y: 119, width: 90, depth: 70, height: 78 },
+    "OUT-S-PET-WASH": { x: 75, y: 116 }
+  };
+  let changed = false;
+  workspace.furniture.forEach((item) => {
+    const layout = layouts[item.id];
+    if (!layout || item.floorId !== "YARD") return;
+    const nextPosition = { ...item.position, x: layout.x ?? item.position.x, y: layout.y ?? item.position.y };
+    const nextDimensions = { ...item.dimensions, width: layout.width ?? item.dimensions.width, depth: layout.depth ?? item.dimensions.depth, height: layout.height ?? item.dimensions.height };
+    if (JSON.stringify(nextPosition) !== JSON.stringify(item.position)) { item.position = nextPosition; changed = true; }
+    if (JSON.stringify(nextDimensions) !== JSON.stringify(item.dimensions)) { item.dimensions = nextDimensions; changed = true; }
+  });
+  const cameraLayouts: Record<string, { cameraPosition: { x: number; y: number; z: number }; target: { x: number; y: number; z: number } }> = {
+    "view-yard-south": { cameraPosition: { x: 2.7, y: 2.5, z: 6.8 }, target: { x: 0.3, y: 0.45, z: 5.15 } },
+    "view-yard-south-living": { cameraPosition: { x: 2.8, y: 1.8, z: 6.65 }, target: { x: 1, y: 0.55, z: 4.9 } },
+    "view-yard-north": { cameraPosition: { x: 0, y: 2.9, z: -7.3 }, target: { x: 0.45, y: 0.52, z: -4.8 } },
+    "view-yard-entry": { cameraPosition: { x: -0.35, y: 1.7, z: -5.3 }, target: { x: 1, y: 0.5, z: -4.55 } }
+  };
+  workspace.cameraViews?.forEach((view) => {
+    const layout = cameraLayouts[view.id];
+    if (!layout) return;
+    if (JSON.stringify(view.cameraPosition) !== JSON.stringify(layout.cameraPosition)) { view.cameraPosition = layout.cameraPosition; changed = true; }
+    if (JSON.stringify(view.target) !== JSON.stringify(layout.target)) { view.target = layout.target; changed = true; }
   });
   return changed;
 }
@@ -642,7 +683,7 @@ export function applyWorkspaceMigrations(
     workspace.stairOpenings ??= cloneJson(canonical?.stairOpenings ?? infrastructure.stairOpenings);
   }
   if (canMigrate && migrateDimensionVerification(workspace)) structureMigrated = true;
-  if (canMigrate && migrateLivingSurfaceFinishes(workspace, canonical)) structureMigrated = true;
+  if (canMigrate && migrateWholeHouseSurfaceFinishes(workspace, canonical)) structureMigrated = true;
   if (canMigrate && migrateLivingWindowAndWaterbar(workspace, canonical)) {
     structureMigrated = true;
     sources.furniture = "migration";
@@ -658,6 +699,7 @@ export function applyWorkspaceMigrations(
   }
   if (canMigrate && migrateOutdoorObjectBoundaries(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateOutdoorLandscapeEdgeLayout(workspace)) sources.furniture = "migration";
+  if (canMigrate && migrateYardRealismLayout(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateFurnitureVariants(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
   if (migrateMepSchemePositioning(workspace)) sources.drawingItems = "migration";

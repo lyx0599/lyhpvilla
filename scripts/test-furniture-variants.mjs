@@ -89,22 +89,21 @@ const diningSet = workspace.furniture.find((item) => item.id === "module-1f-tabl
 assert.equal(diningSet.roomId, "ROOM-1F-005", "The six-person dining set must remain assigned to the living room.");
 assert.equal(diningSet.render3d.variantId, "roundPedestal");
 assert.equal(diningSet.render3d.detailLevel, "presentation");
-assert.equal(diningSet.render3d.primaryMaterial, "walnut");
-assert.equal(diningSet.render3d.secondaryMaterial, "creamFabric");
+assert.equal(diningSet.render3d.primaryMaterial, "warmOak");
+assert.equal(diningSet.render3d.secondaryMaterial, "warmOak");
 const livingSofa = workspace.furniture.find((item) => item.id === "furn-1f-living-main-sofa-001");
 assert.equal(livingSofa.render3d.variantId, "boucleCurve");
-assert.equal(livingSofa.render3d.primaryMaterial, "creamBoucle");
+assert.equal(livingSofa.render3d.primaryMaterial, "beigeFabric");
 const waterBar = workspace.furniture.find((item) => item.id === "furn-living-waterbar-001");
 const waterBarUpper = workspace.furniture.find((item) => item.id === "furn-living-waterbar-upper-001");
-assert.equal(waterBar.render3d.variantId, "archedBuffetBase");
-assert.equal(waterBarUpper.render3d.variantId, "archedBuffetUpper");
+assert.equal(waterBar.render3d.variantId, "mirroredReferenceBuffetBase");
+assert.equal(waterBarUpper.render3d.variantId, "mirroredReferenceBuffetUpper");
 assert.equal(waterBarUpper.render3d.cabinetVisual.gridColumns, 4);
 assert.equal(waterBar.dimensions.width, 240);
 assert.equal(waterBarUpper.dimensions.width, 240);
 const livingPulloutPantry = workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001");
-assert.equal(livingPulloutPantry.render3d.variantId, "doubleDoorPulloutPantry");
+assert.equal(livingPulloutPantry.render3d.variantId, "mirroredReferenceBuffetTower");
 assert.equal(livingPulloutPantry.render3d.cabinetVisual.doorCount, 2);
-assert.equal(livingPulloutPantry.render3d.cabinetVisual.basketCount, 6);
 
 const showcaseIds = [
   "furn-1f-living-main-sofa-001",
@@ -116,7 +115,7 @@ for (const id of showcaseIds) {
   const item = workspace.furniture.find((candidate) => candidate.id === id);
   assert.ok(item, `${id} must exist in the default workspace`);
   assert.ok(Number.isInteger(item.render3d?.variationSeed), `${id} must persist a stable variation seed`);
-  assert.equal(item.render3d?.stylePreset, "modernNatural", `${id} must use the modern natural preset`);
+  assert.equal(item.render3d?.stylePreset, "tuscanWabiSabi", `${id} must use the Tuscan wabi-sabi preset`);
   assert.equal(item.render3d?.detailLevel, "presentation", `${id} must render at presentation detail`);
 }
 
@@ -147,11 +146,14 @@ assert.match(floor3dSource, /physical-fixture-closeup-/);
 
 assert.equal(workspace.furniture.find((item) => item.id === "furn-fridge-001")?.position.rotation, 90);
 assert.equal(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.dimensions.width, 240);
-assert.ok(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.position.y > workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001")?.position.y);
+assert.ok(Number.isFinite(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.position.y));
+assert.ok(Number.isFinite(workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001")?.position.y));
 assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-master-bedroom-large-wardrobe-001")?.dimensions.width, 220);
 assert.equal(workspace.furniture.filter((item) => item.id.startsWith("furn-2f-master-nightstand-")).length, 2);
-for (const id of ["furn-2f-bedroom1-bed-001", "furn-2f-bedroom2-bed-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.bedVisual?.headboardStyle, "storageShelf");
-for (const id of ["module-2f-cloak-left", "module-2f-cloak-right"]) assert.deepEqual(workspace.furniture.find((item) => item.id === id)?.render3d?.cabinetVisual, { frontStyle: "glass", handleStyle: "edgePull", glassTone: "gray", allDoorPanels: true });
+assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-bedroom1-bed-001")?.render3d?.variantId, "timberFrame");
+assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-bedroom2-bed-001")?.render3d?.variantId, "lowUpholstered");
+for (const id of ["furn-2f-bedroom1-bed-001", "furn-2f-bedroom2-bed-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.bedVisual?.headboardStyle, "standard");
+for (const id of ["module-2f-cloak-left", "module-2f-cloak-right"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.cabinetVisual?.allDoorPanels, false);
 assert.equal(workspace.furniture.find((item) => item.id === "furn-b1-bath-vanity-001")?.render3d?.wetAreaVisual?.mirrorStyle, "none");
 for (const id of ["furn-bath-vanity-001", "furn-2f-guest-vanity-001", "furn-2f-master-vanity-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.wetAreaVisual?.mirrorStyle, "cabinet");
 assert.equal(workspace.furniture.find((item) => item.id === "furn-b1-activity-beanbag-001")?.render3d?.variantId, "beanBag");

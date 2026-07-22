@@ -501,6 +501,14 @@ export function shouldCheckCollision(left: Furniture, right: Furniture) {
   if (adjacency.has("bed") && adjacency.has("nightstand") || adjacency.has("sofa") && adjacency.has("sideTable")) return false;
   if ((integratedKinds.has(leftKind) && cabinetKinds.has(rightKind)) || (integratedKinds.has(rightKind) && cabinetKinds.has(leftKind))) return false;
   if ((leftKind === "countertop" && cabinetKinds.has(rightKind)) || (rightKind === "countertop" && cabinetKinds.has(leftKind))) return false;
+  const outdoorPair = new Set([left.outdoorObjectType, right.outdoorObjectType]);
+  if (outdoorPair.has("outdoorIsland") && (outdoorPair.has("bbq") || outdoorPair.has("waterTap"))) return false;
+  if (left.outdoorZoneId && left.outdoorZoneId === right.outdoorZoneId && outdoorPair.has("outdoorCabinet") && outdoorPair.has("hoseReel")) return false;
+  if (left.outdoorZoneId && left.outdoorZoneId === right.outdoorZoneId && (
+    (left.render3d?.assetType === "outdoorSocket" && right.outdoorObjectType === "outdoorCabinet")
+    || (right.render3d?.assetType === "outdoorSocket" && left.outdoorObjectType === "outdoorCabinet")
+  )) return false;
+  if (outdoorPair.has("shadeUmbrella") && [left, right].some((item) => item.outdoorObjectType === "outdoorCabinet" && /休闲|桌椅|茶几/.test(item.name))) return false;
   return intervalsOverlap(getFurnitureHeightInterval(left), getFurnitureHeightInterval(right));
 }
 

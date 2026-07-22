@@ -58,6 +58,59 @@ function ArchedUpperCabinet3D(props: FurnitureFamily3DProps) {
   );
 }
 
+function MirroredReferenceBuffetUpper3D(props: FurnitureFamily3DProps) {
+  const { asset, width, depth, height } = props;
+  const frontZ = depth / 2 + 0.025;
+  const backHeight = 0.64;
+  const backY = -height / 2 - 0.2;
+  const upperHeight = 0.48;
+  const upperY = height * 0.12;
+  const closedWidth = width * 0.25;
+  const openWidth = width - closedWidth;
+  return (
+    <group name="mirrored-reference-buffet-upper">
+      <RoundedPart size={[width, backHeight, 0.035]} position={[0, backY, -depth * 0.36]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#8f704f" repeat={[8, 3]} />
+      {Array.from({ length: Math.max(18, Math.round(width / 0.09)) }, (_, index) => {
+        const count = Math.max(18, Math.round(width / 0.09));
+        return <RoundedPart key={`backsplash-flute-${index}`} size={[0.018, backHeight * 0.94, 0.025]} position={[-width * 0.47 + index * width * 0.94 / (count - 1), backY, frontZ - 0.02]} radius={0.003} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#a48663" />;
+      })}
+      <RoundedPart size={[width + 0.03, 0.045, depth * 0.74]} position={[0, backY + backHeight / 2 + 0.025, -depth * 0.01]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#5a301f" />
+      <RoundedPart size={[openWidth, upperHeight, depth]} position={[-closedWidth / 2, upperY, 0]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#806247" repeat={[6, 2]} />
+      <RoundedPart size={[closedWidth * 0.96, upperHeight * 0.92, 0.045]} position={[width / 2 - closedWidth / 2, upperY, frontZ]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#653620" repeat={[2, 2]} />
+      {Array.from({ length: 3 }, (_, index) => {
+        const bayWidth = openWidth / 3;
+        const x = -width / 2 + bayWidth * (index + 0.5);
+        return (
+          <group key={`open-bay-${index}`} position={[x, upperY, frontZ]}>
+            <RoundedPart size={[bayWidth * 0.94, upperHeight * 0.84, 0.025]} position={[0, 0, -depth * 0.58]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#3e2118" />
+            {[-0.18, 0, 0.18].map((ratio, jar) => <CylinderPart key={ratio} radiusTop={0.025 + jar * 0.004} radiusBottom={0.029 + jar * 0.004} height={0.1 + jar * 0.025} position={[ratio * bayWidth * 2.1, -upperHeight * 0.27 + jar * 0.01, 0.025]} material={asset.materials.secondary} role="glass" color={jar % 2 ? "#b39a7e" : "#ddd1c2"} opacity={0.78} sides={18} />)}
+          </group>
+        );
+      })}
+      {[-width / 2 + openWidth / 3, -width / 2 + openWidth * 2 / 3].map((x) => <RoundedPart key={x} size={[0.035, upperHeight * 0.88, depth * 0.92]} position={[x, upperY, 0]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#5d321f" />)}
+      <WarmStrip width={width * 0.95} position={[0, upperY - upperHeight / 2 - 0.018, frontZ]} />
+    </group>
+  );
+}
+
+function MirroredReferenceBuffetTower3D(props: FurnitureFamily3DProps) {
+  const { asset, width, depth, height } = props;
+  const frontZ = depth / 2 + 0.026;
+  const nicheHeight = 0.44;
+  const nicheY = -height * 0.08;
+  return (
+    <group name="mirrored-reference-buffet-tower">
+      <RoundedPart size={[width, height, depth]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#e9e7e1" repeat={[3, 7]} />
+      {[-0.255, 0.255].map((x) => <RoundedPart key={`tower-door-${x}`} size={[width * 0.485, height * 0.94, 0.042]} position={[x * width, 0, frontZ]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#efeee9" repeat={[2, 7]} />)}
+      <RoundedPart size={[width * 0.48, nicheHeight, 0.055]} position={[width * 0.255, nicheY, frontZ + 0.018]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#171717" roughness={0.2} metalness={0.34} />
+      <RoundedPart size={[width * 0.36, nicheHeight * 0.56, 0.025]} position={[width * 0.255, nicheY + 0.025, frontZ + 0.055]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.accent} role="glass" color="#080909" opacity={0.9} />
+      <CylinderPart radiusTop={0.04} radiusBottom={0.05} height={0.09} position={[width * 0.255, nicheY - nicheHeight * 0.22, frontZ + 0.085]} material={asset.materials.secondary} role="ceramic" color="#ded8ce" sides={24} />
+      <RoundedPart size={[width * 0.16, 0.02, 0.018]} position={[width * 0.255, nicheY + nicheHeight * 0.34, frontZ + 0.078]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#a4a19b" />
+      <RoundedPart size={[width * 0.88, 0.075, depth * 0.72]} position={[0, -height / 2 + 0.038, -depth * 0.04]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#d9d6cf" />
+    </group>
+  );
+}
+
 function ArchedBuffetCabinet3D(props: FurnitureFamily3DProps) {
   const { asset, width, depth, height } = props;
   const floorY = -height / 2;
@@ -226,13 +279,16 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
   const open = variant === "openClosedMix" || variant === "woodWarmWhite";
   const glassColor = cabinetVisual?.glassTone === "gray" ? "#a4adb0" : undefined;
   const panelCount = Math.max(3, Math.min(6, Math.round(width / 0.58)));
-  const gap = 0.018;
+  const gap = 0.006;
   const panelWidth = (width - gap * (panelCount + 1)) / panelCount;
   const openIndex = Math.min(panelCount - 1, Math.floor(resolved.variation.panelBias * panelCount));
   const carcassThickness = Math.min(0.045, Math.max(0.025, width * 0.018));
   const carcassY = floorY + height * 0.5;
+  const doorMaterial = asset.materials.secondary;
+  const doorRole = doorMaterial.role === "wood" ? "wood" : "ceramic";
+  const doorColor = item.roomId === "ROOM-2F-006" ? "#9f8f7b" : "#b6a68f";
   return (
-    <group>
+    <group name="realistic-built-in-tall-cabinet">
       <RoundedPart size={[width - carcassThickness * 2, height * 0.91, carcassThickness]} position={[0, carcassY, -depth * 0.46]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#eee9e1" repeat={[Math.max(3, panelCount), 6]} />
       {[-1, 1].map((side) => (
         <RoundedPart key={side} size={[carcassThickness, height * 0.96, depth * 0.92]} position={[side * (width / 2 - carcassThickness / 2), carcassY, 0]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[1, 6]} />
@@ -240,10 +296,12 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
       {[-1, 1].map((side) => (
         <RoundedPart key={side} size={[width, carcassThickness, depth * 0.92]} position={[0, carcassY + side * (height * 0.48 - carcassThickness / 2), 0]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[Math.max(3, panelCount), 1]} />
       ))}
+      <RoundedPart size={[width * 0.995, Math.min(0.075, height * 0.035), depth * 0.96]} position={[0, floorY + height - Math.min(0.075, height * 0.035) / 2, 0]} radius={0.006} detailLevel={asset.detailLevel} material={doorMaterial} role={doorRole} color={doorColor} repeat={[Math.max(3, panelCount), 1]} />
+      {[-1, 1].map((side) => <RoundedPart key={`scribe-${side}`} size={[Math.min(0.055, width * 0.025), height * 0.94, depth * 0.98]} position={[side * (width / 2 - Math.min(0.055, width * 0.025) / 2), floorY + height * 0.5, 0]} radius={0.005} detailLevel={asset.detailLevel} material={doorMaterial} role={doorRole} color={doorColor} repeat={[1, 7]} />)}
       {Array.from({ length: panelCount - 1 }, (_, index) => (
         <RoundedPart key={index} size={[0.018, height * 0.89, depth * 0.76]} position={[-width / 2 + (index + 1) * (width / panelCount), carcassY, -depth * 0.05]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" />
       ))}
-      <RoundedPart size={[width * 0.94, 0.08, depth * 0.76]} position={[0, floorY + 0.04, -depth * 0.04]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#574f47" />
+      <RoundedPart size={[width * 0.9, 0.09, depth * 0.72]} position={[0, floorY + 0.045, -depth * 0.065]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" color="#75614d" />
       {runtimeOpenAmount > 0.01 && <RoundedPart size={[width * 0.94, height * 0.88, 0.024]} position={[0, carcassY, depth * 0.455]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#3d342c" />}
       {sliding && [-1, 1].map((side) => <RoundedPart key={`track-${side}`} size={[width * 0.94, 0.018, 0.045]} position={[0, floorY + height * (side > 0 ? 0.945 : 0.055), depth * 0.47]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
       {Array.from({ length: panelCount }, (_, index) => {
@@ -262,14 +320,14 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
           );
         }
         const panel = <>
-            <RoundedPart size={[panelWidth, height * 0.91, 0.045]} radius={0.012} detailLevel={asset.detailLevel} material={glassBay ? asset.materials.secondary : index % 3 === 1 && variant === "woodWarmWhite" ? asset.materials.secondary : asset.materials.primary} role={glassBay ? "glass" : index % 3 === 1 && variant === "woodWarmWhite" ? "ceramic" : "wood"} color={glassBay ? glassColor : undefined} opacity={glassBay ? 0.3 : 1} repeat={[2, 6]} />
+            <RoundedPart size={[panelWidth, height * 0.91, 0.045]} radius={0.008} detailLevel={asset.detailLevel} material={glassBay ? asset.materials.secondary : doorMaterial} role={glassBay ? "glass" : doorRole} color={glassBay ? glassColor : doorColor} opacity={glassBay ? 0.3 : 1} repeat={[2, 6]} />
             {glassBay && (
               <group>
                 {[-1, 1].map((side) => <RoundedPart key={side} size={[0.025, height * 0.89, 0.055]} position={[side * panelWidth * 0.47, 0, 0.018]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
                 {[-1, 1].map((side) => <RoundedPart key={side} size={[panelWidth * 0.94, 0.025, 0.055]} position={[0, side * height * 0.445, 0.018]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />)}
               </group>
             )}
-            {!glassBay && variant !== "fullHeightFlat" && !sliding && <RoundedPart size={[0.018, Math.min(0.22, height * 0.13), 0.025]} position={[panelWidth * 0.34 * (index % 2 ? -1 : 1), 0, 0.035]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />}
+            {!glassBay && variant !== "fullHeightFlat" && !sliding && <RoundedPart size={[0.012, Math.min(0.18, height * 0.1), 0.018]} position={[panelWidth * 0.37 * (index % 2 ? -1 : 1), 0, 0.035]} radius={0.004} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />}
           </>;
         const panelPosition: [number, number, number] = [x, floorY + height * 0.5, depth * (sliding && index % 2 ? 0.46 : 0.495)];
         if (sliding) {
@@ -395,6 +453,8 @@ export function CabinetFamily3D(props: FurnitureFamily3DProps) {
   const variant = props.item.render3d?.variantId;
   if (variant === "archedBuffet") return <ArchedBuffetCabinet3D {...props} />;
   if (variant === "archedBuffetUpper") return <ArchedUpperCabinet3D {...props} />;
+  if (variant === "mirroredReferenceBuffetUpper") return <MirroredReferenceBuffetUpper3D {...props} />;
+  if (variant === "mirroredReferenceBuffetTower") return <MirroredReferenceBuffetTower3D {...props} />;
   if (variant === "doubleDoorPulloutPantry") return <DoubleDoorPulloutPantry3D {...props} />;
   if (props.item.render3d?.cabinetVisual?.layout === "squareGrid") return <SquareGridDisplayCabinet3D {...props} />;
   if (type === "wardrobe" || type === "walkInCloset" || props.height > 1.45) return <TallCabinet3D {...props} />;

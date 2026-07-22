@@ -75,8 +75,13 @@ export const render3DMaterialTokenCatalog = {
   travertine: { label: "米色洞石", role: "stone", color: "#ded2bd", roughness: 0.38, metalness: 0.03 },
   microCement: { label: "暖灰微水泥", role: "stone", color: "#cbc3b8", roughness: 0.72, metalness: 0.02 },
   warmWhiteCeramic: { label: "暖白陶瓷", role: "ceramic", color: "#fbf8f1", roughness: 0.26, metalness: 0.01 },
+  oatTaupeLacquer: { label: "浅燕麦灰褐哑光饰面", role: "ceramic", color: "#b6a68f", roughness: 0.74, metalness: 0.01 },
+  smokedOatTaupe: { label: "烟熏燕麦灰褐哑光饰面", role: "ceramic", color: "#9f8f7b", roughness: 0.76, metalness: 0.01 },
   blackTitanium: { label: "黑钛金属", role: "metal", color: "#343331", roughness: 0.28, metalness: 0.68 },
   brushedBronze: { label: "拉丝古铜", role: "metal", color: "#a17f5b", roughness: 0.26, metalness: 0.72 },
+  agedBrass: { label: "做旧黄铜", role: "metal", color: "#8a6844", roughness: 0.48, metalness: 0.58 },
+  terracotta: { label: "低饱和陶土", role: "stone", color: "#a76646", roughness: 0.84, metalness: 0 },
+  oliveFabric: { label: "橄榄绿亚麻", role: "fabric", color: "#69705a", roughness: 0.95, metalness: 0 },
   clearGlass: { label: "低铁玻璃", role: "glass", color: "#c9e7e8", roughness: 0.04, metalness: 0.02, opacity: 0.34 },
   smokedGlass: { label: "茶色玻璃", role: "glass", color: "#8f8379", roughness: 0.08, metalness: 0.04, opacity: 0.38 },
   graySmokedGlass: { label: "灰色透明玻璃", role: "glass", color: "#9ca5a8", roughness: 0.07, metalness: 0.05, opacity: 0.3 },
@@ -233,7 +238,7 @@ function materialFallbackTokens(assetType: Render3DAssetType): [Render3DMaterial
   if (assetType === "sink") return ["warmGreyStone", "brushedBronze", "clearGlass"];
   if (assetType === "cooktop" || assetType === "fridge") return ["blackTitanium", "warmGreyStone", "brushedBronze"];
   if (assetType === "fireplace") return ["travertine", "microCement", "warmLightEmissive"];
-  if (assetType === "outdoorDiningSet") return ["warmOak", "microCement", "blackTitanium"];
+  if (assetType === "outdoorDiningSet") return ["warmOak", "terracotta", "agedBrass"];
   if (assetType === "dryingRack" || assetType === "yardGate" || assetType === "yardLight" || assetType === "outdoorSocket" || assetType === "drainPoint") return ["blackTitanium", "microCement", "warmLightEmissive"];
   if (assetType === "dogHouse" || assetType === "outdoorCabinet") return ["warmOak", "warmGreyStone", "blackTitanium"];
   if (assetType === "paving" || assetType === "yardModule") return ["warmGreyStone", "microCement", "blackTitanium"];

@@ -395,6 +395,38 @@ export function ParametricFridge(props: FurnitureFamily3DProps) {
 }
 
 function WaterBar3D(props: FurnitureFamily3DProps) {
+  if (props.item.render3d?.variantId === "mirroredReferenceBuffetBase") {
+    const frontZ = props.depth / 2 + 0.025;
+    const floorY = -props.height / 2;
+    const toeKickHeight = 0.09;
+    const bodyHeight = props.height - toeKickHeight - 0.055;
+    const bodyY = floorY + toeKickHeight + bodyHeight / 2;
+    const bayCount = 4;
+    const bayWidth = props.width / bayCount;
+    return (
+      <group name="mirrored-reference-buffet-base">
+        <RoundedPart size={[props.width, bodyHeight, props.depth * 0.94]} position={[0, bodyY, -props.depth * 0.02]} radius={0.012} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" color="#9a7654" repeat={[8, 3]} />
+        {Array.from({ length: bayCount }, (_, column) => [-1, 1].map((row) => (
+          <group key={`buffet-front-${column}-${row}`} position={[-props.width / 2 + bayWidth * (column + 0.5), bodyY + row * bodyHeight * 0.245, frontZ]}>
+            <RoundedPart size={[bayWidth * 0.94, bodyHeight * 0.45, 0.045]} radius={0.008} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" color="#a48462" repeat={[2, 1]} />
+            <RoundedPart size={[bayWidth * 0.82, bodyHeight * 0.34, 0.012]} position={[0, 0, 0.03]} radius={0.004} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" color="#6c3a24" repeat={[2, 1]} />
+          </group>
+        )))}
+        <RoundedPart size={[props.width + 0.04, 0.055, props.depth + 0.035]} position={[0, props.height / 2 - 0.028, 0.012]} radius={0.01} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" color="#5d301d" repeat={[8, 2]} />
+        <RoundedPart size={[props.width * 0.94, toeKickHeight, props.depth * 0.72]} position={[0, floorY + toeKickHeight / 2, -props.depth * 0.05]} radius={0.006} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" color="#4c2819" />
+        {Array.from({ length: Math.max(14, Math.round(props.width / 0.11)) }, (_, index) => {
+          const count = Math.max(14, Math.round(props.width / 0.11));
+          return <RoundedPart key={`toe-flute-${index}`} size={[0.018, toeKickHeight * 0.9, 0.018]} position={[-props.width * 0.45 + index * props.width * 0.9 / (count - 1), floorY + toeKickHeight / 2, frontZ + 0.015]} radius={0.003} detailLevel={props.asset.detailLevel} material={props.asset.materials.primary} role="wood" color="#75442a" />;
+        })}
+        <group position={[props.width * 0.29, props.height / 2 + 0.12, -props.depth * 0.02]}>
+          <RoundedPart size={[0.3, 0.23, 0.22]} radius={0.025} detailLevel={props.asset.detailLevel} material={props.asset.materials.secondary} role="ceramic" color="#eee9df" />
+          <RoundedPart size={[0.2, 0.12, 0.12]} position={[0, -0.015, 0.13]} radius={0.012} detailLevel={props.asset.detailLevel} material={props.asset.materials.accent} role="glass" color="#242322" opacity={0.88} />
+          <CylinderPart radiusTop={0.032} radiusBottom={0.038} height={0.11} position={[0.07, -0.14, 0.13]} material={props.asset.materials.secondary} role="glass" color="#3a332e" opacity={0.72} sides={20} />
+        </group>
+        {[-0.31, -0.19, -0.07].map((ratio, index) => <CylinderPart key={`counter-jar-${ratio}`} radiusTop={0.032} radiusBottom={0.038} height={0.12 + index * 0.025} position={[ratio * props.width, props.height / 2 + 0.06 + index * 0.012, props.depth * 0.18]} material={props.asset.materials.secondary} role="glass" color={index % 2 ? "#9a7658" : "#d8c9b7"} opacity={0.78} sides={20} />)}
+      </group>
+    );
+  }
   const referenceStyle = props.item.render3d?.variantId === "archedBuffetBase";
   return (
     <group name="parametric-water-bar">

@@ -88,6 +88,11 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
   const mirrorDoorCount = width >= 1.1 ? 3 : 2;
   const mirrorCenterY = mirrorStyle === "cabinet" ? height * 0.95 : height * 0.72;
   const frontZ = depth / 2 + 0.025;
+  // The user stands at +Z and faces the wall at -Z. Mirrors therefore belong
+  // on the wall/back edge of the vanity, never on the cabinet-front edge.
+  const mirrorMountZ = mirrorStyle === "cabinet"
+    ? -depth / 2 + mirrorCabinetDepth * 0.88
+    : -depth / 2 + 0.025;
   return (
     <group name="parametric-bathroom-vanity">
       <RoundedPart size={[width, bodyHeight, depth * 0.9]} position={[0, bodyY, -depth * 0.02]} radius={0.026} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[Math.max(2, bayCount), 2]} />
@@ -111,7 +116,7 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
           <MetalBar material={metal} position={[0, floorY + lift + bodyHeight * 0.48, -depth * 0.49]} length={width * 0.7} axis="x" />
         </>
       )}
-      {mirrorStyle !== "none" && <group position={[0, mirrorCenterY, frontZ + 0.045]}>
+      {mirrorStyle !== "none" && <group position={[0, mirrorCenterY, mirrorMountZ]}>
         {mirrorStyle === "round" ? (
           <>
             <CylinderPart radiusTop={Math.min(0.38, width * 0.4)} height={0.028} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]} material={metal} role="metal" sides={48} />

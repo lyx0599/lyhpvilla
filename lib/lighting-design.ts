@@ -83,24 +83,24 @@ export type LightingDesignGenerationResult = {
 };
 
 export const modernWarmFixtureFamilies: LightingFixtureFamily[] = [
-  ["deep-cup-downlight", "防眩深杯筒灯", "antiGlareDownlight", "recessed", "3000K", 50, 9, 720, 90, "UGR<19", undefined, "哑白 / 哑黑"],
-  ["adjustable-spot", "可调角射灯", "adjustableSpotlight", "recessed", "3000K", 24, 10, 780, 90, "深藏光源", undefined, "哑黑 / 哑白"],
-  ["narrow-wallwasher", "窄光束洗墙射灯", "wallWashSpotlight", "recessed", "3000K", 18, 10, 760, 90, "蜂窝防眩", undefined, "哑黑"],
-  ["wide-downlight", "宽光束基础筒灯", "wideBeamDownlight", "recessed", "3000K", 60, 9, 760, 90, "UGR<19", undefined, "哑白"],
-  ["linear-pendant", "线性吊灯", "linearPendant", "pendant", "3000K", 50, 28, 2200, 90, "下照防眩", undefined, "深灰 / 黑色"],
-  ["round-table-pendant", "圆桌装饰吊灯", "roundTablePendant", "pendant", "2700K", 40, 24, 1800, 90, "柔光罩", undefined, "黑色 / 香槟金属"],
-  ["under-cabinet-strip", "柜下灯带", "underCabinetStrip", "cabinetIntegrated", "3500K", 110, 12, 1000, 95, "连续无暗区", undefined, "铝色型材"],
+  ["deep-cup-downlight", "防眩深杯筒灯", "antiGlareDownlight", "recessed", "2700K", 50, 9, 720, 90, "UGR<19", undefined, "暖白"],
+  ["adjustable-spot", "可调角射灯", "adjustableSpotlight", "recessed", "2700K", 24, 10, 780, 90, "深藏光源", undefined, "暖白"],
+  ["narrow-wallwasher", "窄光束洗墙射灯", "wallWashSpotlight", "recessed", "2700K", 18, 10, 760, 90, "蜂窝防眩", undefined, "暖白"],
+  ["wide-downlight", "宽光束基础筒灯", "wideBeamDownlight", "recessed", "2700K", 60, 9, 760, 90, "UGR<19", undefined, "哑白"],
+  ["linear-pendant", "线性吊灯", "linearPendant", "pendant", "3000K", 50, 28, 2200, 90, "下照防眩", undefined, "深棕古铜"],
+  ["round-table-pendant", "圆桌装饰吊灯", "roundTablePendant", "pendant", "2700K", 40, 24, 1800, 90, "柔光罩", undefined, "做旧黄铜"],
+  ["under-cabinet-strip", "柜下灯带", "underCabinetStrip", "cabinetIntegrated", "3000K", 110, 12, 1000, 95, "连续无暗区", undefined, "隐藏铝槽"],
   ["curtain-strip", "窗帘盒灯带", "curtainCoveStrip", "concealed", "2700K", 120, 10, 850, 90, "不可见光源", undefined, "隐藏安装"],
   ["cabinet-strip", "柜内灯带", "cabinetSensorStrip", "cabinetIntegrated", "3000K", 110, 8, 650, 95, "门控感应", undefined, "铝色型材"],
-  ["mirror-light", "镜前灯", "linearMirrorLight", "mirrorIntegrated", "3500K", 100, 14, 1100, 95, "正面柔光", "IP44", "镜体一体"],
-  ["bed-reading", "床头阅读灯", "bedsideReadingLight", "wallMounted", "2700K", 36, 6, 420, 90, "独立调光", undefined, "黑色 / 拉丝金属"],
+  ["mirror-light", "镜前灯", "linearMirrorLight", "mirrorIntegrated", "3000K", 100, 14, 1100, 95, "正面柔光", "IP44", "乳白玻璃 / 做旧黄铜"],
+  ["bed-reading", "床头阅读灯", "bedsideReadingLight", "wallMounted", "2700K", 36, 6, 420, 90, "独立调光", undefined, "米白亚麻 / 做旧黄铜"],
   ["night-light", "低位起夜灯", "lowLevelNightLight", "wallMounted", "2700K", 90, 2, 120, 90, "遮光向下", undefined, "哑白"],
   ["step-light", "踏步灯", "stairStepLight", "stepMounted", "2700K", 90, 2, 120, 90, "遮光向下", undefined, "深灰"],
-  ["outdoor-wall", "户外壁灯", "outdoorWallLight", "wallMounted", "3000K", 60, 8, 520, 90, "向下遮光", "IP65", "深灰"],
-  ["bollard", "草坪灯", "bollardPathLight", "bollard", "3000K", 90, 8, 480, 90, "低眩路径光", "IP65", "深灰"],
+  ["outdoor-wall", "户外壁灯", "outdoorWallLight", "wallMounted", "2700K", 60, 8, 520, 90, "向下遮光", "IP65", "深棕古铜"],
+  ["bollard", "草坪灯", "bollardPathLight", "bollard", "2700K", 90, 8, 480, 90, "低眩路径光", "IP65", "深棕"],
   ["in-ground", "地埋灯", "inGroundLight", "floorMounted", "2700K", 24, 8, 520, 90, "防眩格栅", "IP67", "不锈钢"],
   ["tree-uplight", "照树灯", "plantUplight", "groundSpike", "2700K", 24, 10, 720, 90, "可调方向", "IP66", "深灰"],
-  ["yard-task", "庭院操作灯", "outdoorTaskLight", "cabinetIntegrated", "3500K", 100, 14, 1100, 95, "连续工作面照明", "IP65", "深灰 / 铝色"]
+  ["yard-task", "庭院操作灯", "outdoorTaskLight", "cabinetIntegrated", "3000K", 100, 14, 1100, 95, "连续工作面照明", "IP65", "深棕 / 隐藏铝槽"]
 ].map(([id, name, lightType, mountingType, defaultColorTemperature, defaultBeamAngle, powerW, luminousFluxLm, cri, glareRating, waterproofRating, finish]) => ({
   id: id as string,
   name: name as string,
@@ -110,7 +110,7 @@ export const modernWarmFixtureFamilies: LightingFixtureFamily[] = [
   defaultBeamAngle: defaultBeamAngle as number,
   defaultLightSpec: { powerW: powerW as number, luminousFluxLm: luminousFluxLm as number, cri: cri as number, glareRating: glareRating as string, ...(waterproofRating ? { waterproofRating: waterproofRating as string } : {}), fixtureFamily: id as string, trimColor: finish as string },
   finishOptions: String(finish).split(" / "),
-  notes: "现代温暖型默认家族；第一版为设计参数，品牌、功率与 IES 配光待选型。"
+  notes: "自然托斯卡纳×现代简约侘寂统一灯具家族；暖光、低眩、低反光，品牌与 IES 配光待选型。"
 }));
 
 const fixtureFamilyById = new Map(modernWarmFixtureFamilies.map((family) => [family.id, family]));
@@ -248,7 +248,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
     const isCloak = /衣帽间/.test(room.name);
     const isEntry = /玄关/.test(room.name);
     const isLaundry = /洗衣/.test(room.name);
-    const ambientTemperature: LightColorTemperature = isKitchen || isBathroom || isStudy ? "3500K" : "3000K";
+    const ambientTemperature: LightColorTemperature = "2700K";
 
     ambientPoints(room, roomItems, structure).forEach((position, index) => add({
       key: `AMBIENT-${index + 1}`, name: `${room.name}边缘基础照明 ${index + 1}`, lightType: isStair || isCorridor ? "antiGlareLinearDownlight" : "wideBeamDownlight",
@@ -262,12 +262,12 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       const vanity = pickFurniture(roomItems, /台盆|浴室柜|洗手池/);
       const shower = pickFurniture(roomItems, /淋浴/);
       const toilet = pickFurniture(roomItems, /马桶/);
-      add({ key: "MIRROR", name: `${room.name}镜前灯`, lightType: "linearMirrorLight", layer: "mirrorLight", colorTemperature: "3500K", beamAngle: 100, mountingType: "mirrorIntegrated", heightMm: 1850, position: vanity ? furniturePoint(vanity, structure) : offset(center, 520, 380, structure), roomId: room.id, furnitureId: vanity?.id, hostWallId: inferHostWallId(vanity, structure), smartControl: false, dimming: true, source: vanity ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("mirror-light", { cri: 95, waterproofRating: "IP44" }), notes: "从正面或两侧均匀照亮面部；电源与镜柜厂家深化同步，潮湿区接线盒做防潮处理。" });
+      add({ key: "MIRROR", name: `${room.name}镜柜灯 / 两侧乳白玻璃壁灯`, lightType: "linearMirrorLight", layer: "mirrorLight", colorTemperature: "3000K", beamAngle: 100, mountingType: "mirrorIntegrated", heightMm: 1850, position: vanity ? furniturePoint(vanity, structure) : offset(center, 520, 380, structure), roomId: room.id, furnitureId: vanity?.id, hostWallId: inferHostWallId(vanity, structure), smartControl: false, dimming: true, source: vanity ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("mirror-light", { cri: 95, waterproofRating: "IP44" }), notes: "以镜子两侧竖向乳白玻璃柔光为主，均匀照亮面部；电源与镜柜厂家深化同步，潮湿区接线盒做防潮处理。" });
       if (shower) {
         add({ key: "SHOWER", name: `${room.name}淋浴区防潮灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: furniturePoint(shower, structure), roomId: room.id, furnitureId: shower.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 90 }), notes: "淋浴区建议不低于 IP44，具体等级按安装分区与现场规范确认；不默认使用过冷色温。" });
       } else if (isLaundry) {
         const washer = pickFurniture(roomItems, /洗衣机/);
-        add({ key: "LAUNDRY", name: `${room.name}洗衣操作任务灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3500K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: washer ? furniturePoint(washer, structure) : offset(center, -520, -380, structure), roomId: room.id, furnitureId: washer?.id, smartControl: false, dimming: false, source: washer ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 95 }), notes: "照亮洗衣机投放、取衣和台盆操作区；按潮湿环境配置防潮灯具，不生成淋浴专用照明。" });
+        add({ key: "LAUNDRY", name: `${room.name}洗衣操作任务灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: washer ? furniturePoint(washer, structure) : offset(center, -520, -380, structure), roomId: room.id, furnitureId: washer?.id, smartControl: false, dimming: false, source: washer ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 95 }), notes: "照亮洗衣机投放、取衣和台盆操作区；按潮湿环境配置防潮灯具，不生成淋浴专用照明。" });
       }
       add({ key: "NIGHT", name: `${room.name}马桶夜灯（可选）`, lightType: "lowLevelNightLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 90, mountingType: "wallMounted", heightMm: 300, position: toilet ? furniturePoint(toilet, structure) : offset(center, 600, -420, structure), roomId: room.id, furnitureId: toilet?.id, hostWallId: inferHostWallId(toilet, structure), smartControl: true, dimming: true, optional: true, source: toilet ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("night-light", { waterproofRating: "IP44" }), notes: "人体感应低位夜灯；与基础照明分组，避免夜间眩光。" });
       const bathtub = pickFurniture(roomItems, /浴缸/);
@@ -281,7 +281,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       const bedPoint = bed ? furniturePoint(bed, structure) : center;
       [-1, 1].forEach((side, index) => add({ key: `BEDSIDE-${index + 1}`, name: `${room.name}${side < 0 ? "左" : "右"}床头氛围灯 / 阅读灯`, lightType: "bedsideReadingLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 36, mountingType: "wallMounted", heightMm: 1150, position: offset(bedPoint, side * 620, 320, structure), roomId: room.id, furnitureId: bed?.id, smartControl: true, dimming: true, source: bed ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("bed-reading"), notes: "左右独立控制并纳入睡前场景；最终位置随床宽、床头柜及软包完成面复核。" }));
       if (wardrobe) add({ key: "WARDROBE", name: `${room.name}衣柜灯带`, lightType: "wardrobeSensorStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 2100, position: furniturePoint(wardrobe, structure), roomId: room.id, furnitureId: wardrobe.id, hostWallId: inferHostWallId(wardrobe, structure), smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "门控或人体感应；驱动电源留可检修位置，灯槽与柜体厂家同步深化。" });
-      add({ key: "DESK", name: `${room.name}化妆/书桌功能灯`, lightType: "deskTaskLight", layer: "task", colorTemperature: "3500K", beamAngle: 40, mountingType: "surfaceMounted", heightMm: 1400, position: desk ? furniturePoint(desk, structure) : offset(center, 720, 0, structure), roomId: room.id, furnitureId: desk?.id, smartControl: false, dimming: true, optional: !desk, source: desk ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "书桌/化妆区预留独立功能灯与电源；无固定家具时仅表达设计意图。" });
+      add({ key: "DESK", name: `${room.name}化妆/书桌功能灯`, lightType: "deskTaskLight", layer: "task", colorTemperature: "3000K", beamAngle: 40, mountingType: "surfaceMounted", heightMm: 1400, position: desk ? furniturePoint(desk, structure) : offset(center, 720, 0, structure), roomId: room.id, furnitureId: desk?.id, smartControl: false, dimming: true, optional: !desk, source: desk ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "书桌/化妆区预留独立功能灯与电源；无固定家具时仅表达设计意图。" });
       add({ key: "NIGHT", name: `${room.name}低位起夜灯`, lightType: "lowLevelNightLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 90, mountingType: "wallMounted", heightMm: 300, position: offset(bedPoint, 0, 760, structure), roomId: room.id, furnitureId: bed?.id, smartControl: true, dimming: true, source: bed ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("night-light"), notes: "起夜模式只开低位暖光，不联动卧室基础灯。" });
       add({ key: "CURTAIN", name: `${room.name}窗帘盒氛围灯`, lightType: "curtainCoveStrip", layer: "decorative", colorTemperature: "2700K", beamAngle: 120, mountingType: "concealed", heightMm: 2650, position: offset(center, 0, -650, structure), roomId: room.id, smartControl: true, dimming: true, optional: true, lightSpec: spec("curtain-strip"), notes: "仅在存在窗帘盒和吊顶条件时实施；灯槽尺寸与窗帘电机、检修空间同步深化。" });
     }
@@ -290,15 +290,15 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       const counters = roomItems.filter((item) => /橱柜|备餐/.test(`${item.name} ${item.type}`));
       const sinks = roomItems.filter((item) => /水槽|sink/.test(`${item.name} ${item.type}`));
       const cooktop = pickFurniture(roomItems, /灶台|cooktop/);
-      counters.forEach((counter, index) => add({ key: `COUNTER-${index + 1}`, name: `厨房台面功能灯 ${index + 1}`, lightType: "underCabinetTaskStrip", layer: "task", colorTemperature: "3500K", beamAngle: 100, mountingType: "cabinetIntegrated", heightMm: 1550, position: furniturePoint(counter, structure), roomId: room.id, furnitureId: counter.id, hostWallId: inferHostWallId(counter, structure), smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("under-cabinet-strip", { cri: 95 }), notes: "吊柜下沿连续无暗区灯带；出光在操作人员前方，驱动、铝槽与出线随橱柜深化。" }));
-      sinks.forEach((sink, index) => add({ key: `SINK-${index + 1}`, name: `厨房水槽任务灯 ${index + 1}`, lightType: "sinkTaskDownlight", layer: "task", colorTemperature: "3500K", beamAngle: 50, mountingType: "recessed", heightMm: 2800, position: offset(furniturePoint(sink, structure), 0, -420, structure), roomId: room.id, furnitureId: sink.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "灯位落在操作者前上方，避免身体遮挡水槽工作面；与吊柜、窗扇和风口复核。" }));
-      if (cooktop) add({ key: "COOKTOP", name: "厨房灶台任务灯", lightType: "cooktopTaskLight", layer: "task", colorTemperature: "3500K", beamAngle: 50, mountingType: "surfaceMounted", heightMm: 2200, position: furniturePoint(cooktop, structure), roomId: room.id, furnitureId: cooktop.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "优先复用烟机自带工作灯；独立点位仅作补充，避开高温和油烟检修区。" });
+      counters.forEach((counter, index) => add({ key: `COUNTER-${index + 1}`, name: `厨房台面功能灯 ${index + 1}`, lightType: "underCabinetTaskStrip", layer: "task", colorTemperature: "3000K", beamAngle: 100, mountingType: "cabinetIntegrated", heightMm: 1550, position: furniturePoint(counter, structure), roomId: room.id, furnitureId: counter.id, hostWallId: inferHostWallId(counter, structure), smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("under-cabinet-strip", { cri: 95 }), notes: "吊柜下沿连续无暗区灯带；出光在操作人员前方，驱动、铝槽与出线随橱柜深化。" }));
+      sinks.forEach((sink, index) => add({ key: `SINK-${index + 1}`, name: `厨房水槽任务灯 ${index + 1}`, lightType: "sinkTaskDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 50, mountingType: "recessed", heightMm: 2800, position: offset(furniturePoint(sink, structure), 0, -420, structure), roomId: room.id, furnitureId: sink.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "灯位落在操作者前上方，避免身体遮挡水槽工作面；与吊柜、窗扇和风口复核。" }));
+      if (cooktop) add({ key: "COOKTOP", name: "厨房灶台任务灯", lightType: "cooktopTaskLight", layer: "task", colorTemperature: "3000K", beamAngle: 50, mountingType: "surfaceMounted", heightMm: 2200, position: furniturePoint(cooktop, structure), roomId: room.id, furnitureId: cooktop.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "优先复用烟机自带工作灯；独立点位仅作补充，避开高温和油烟检修区。" });
     }
 
     if (isLiving) {
       const fireplace = pickFurniture(roomItems, /壁炉|背景墙|电视/);
       const sofa = pickFurniture(roomItems, /沙发/);
-      if (fireplace) add({ key: "FEATURE", name: "壁炉/背景墙重点照明", lightType: "adjustableSpotlight", layer: "accent", colorTemperature: "3000K", beamAngle: 24, mountingType: "recessed", heightMm: 2800, position: offset(furniturePoint(fireplace, structure), 0, -700, structure), roomId: room.id, furnitureId: fireplace.id, hostWallId: inferHostWallId(fireplace, structure), smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("adjustable-spot"), notes: "灯轴对准壁炉或材质墙，不直射电视屏幕；保留设备自身发光并控制辅助光亮度。" });
+      if (fireplace) add({ key: "FEATURE", name: "壁炉/背景墙重点照明", lightType: "adjustableSpotlight", layer: "accent", colorTemperature: "2700K", beamAngle: 24, mountingType: "recessed", heightMm: 2800, position: offset(furniturePoint(fireplace, structure), 0, -700, structure), roomId: room.id, furnitureId: fireplace.id, hostWallId: inferHostWallId(fireplace, structure), smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("adjustable-spot"), notes: "灯轴对准壁炉或材质墙，不直射电视屏幕；保留设备自身发光并控制辅助光亮度。" });
       if (fireplace) add({ key: "TV-WALL", name: "电视背景低亮度洗墙", lightType: "wallWashSpotlight", layer: "accent", colorTemperature: "2700K", beamAngle: 18, mountingType: "recessed", heightMm: 2800, position: offset(furniturePoint(fireplace, structure), 760, -650, structure), roomId: room.id, furnitureId: fireplace.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("narrow-wallwasher"), notes: "低亮度擦墙，灯轴避开屏幕反射角；观影场景仅保留约 10%–20%。" });
       add({ key: "READING", name: "客厅沙发阅读灯预留", lightType: "floorReadingLight", layer: "task", colorTemperature: "2700K", beamAngle: 36, mountingType: "floorMounted", heightMm: 1450, position: sofa ? offset(furniturePoint(sofa, structure), 850, 0, structure) : offset(center, 850, 450, structure), roomId: room.id, furnitureId: sofa?.id, smartControl: true, dimming: true, optional: !sofa, source: sofa ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("bed-reading"), notes: "落地阅读灯或家具插座预留；避免顶灯正压沙发中心。" });
       add({ key: "CURTAIN", name: "客厅窗帘盒灯带", lightType: "curtainCoveStrip", layer: "decorative", colorTemperature: "2700K", beamAngle: 120, mountingType: "concealed", heightMm: 2650, position: offset(center, 0, -760, structure), roomId: room.id, smartControl: true, dimming: true, optional: true, lightSpec: spec("curtain-strip"), notes: "存在吊顶条件时设置低亮度窗帘盒灯带；与主照明分组，观影时可低亮保留。" });
@@ -306,7 +306,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
 
     if (isStudy) {
       const table = pickFurniture(roomItems, /桌|书桌|大板/);
-      add({ key: "DESK", name: `${room.name}书桌功能灯`, lightType: "wideBeamTaskPendant", layer: "task", colorTemperature: "3500K", beamAngle: 60, mountingType: "pendant", heightMm: 1900, position: table ? furniturePoint(table, structure) : offset(center, 550, 0, structure), roomId: room.id, furnitureId: table?.id, smartControl: false, dimming: true, source: table ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("linear-pendant", { cri: 95 }), notes: "桌面上方功能照明，吊装高度与桌面位置最终复核，避免屏幕反光。" });
+      add({ key: "DESK", name: `${room.name}书桌功能灯`, lightType: "wideBeamTaskPendant", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "pendant", heightMm: 1900, position: table ? furniturePoint(table, structure) : offset(center, 550, 0, structure), roomId: room.id, furnitureId: table?.id, smartControl: false, dimming: true, source: table ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("linear-pendant", { cri: 95 }), notes: "桌面上方功能照明，吊装高度与桌面位置最终复核，避免屏幕反光。" });
     }
 
     if (isActivity) add({ key: "MOOD", name: `${room.name}氛围灯`, lightType: "indirectLinearLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 120, mountingType: "concealed", heightMm: 2500, position: offset(center, 620, 420, structure), roomId: room.id, smartControl: true, dimming: true, lightSpec: spec("curtain-strip"), notes: "洗墙和灯带提高地下空间层次；与基础照明独立分组，避免低角度直射。" });
@@ -322,14 +322,14 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       const cabinet = pickFurniture(roomItems, /柜|挂区|鞋/);
       if (cabinet) add({ key: "CABINET", name: "玄关柜内灯", lightType: "cabinetSensorStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 2000, position: furniturePoint(cabinet, structure), roomId: room.id, furnitureId: cabinet.id, hostWallId: inferHostWallId(cabinet, structure), smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "随柜门或人体感应开启，驱动可检修。" });
       add({ key: "LOW", name: "玄关柜底感应灯", lightType: "lowLevelNightLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 90, mountingType: "cabinetIntegrated", heightMm: 120, position: cabinet ? furniturePoint(cabinet, structure) : offset(center, -450, 0, structure), roomId: room.id, furnitureId: cabinet?.id, smartControl: true, dimming: true, optional: !cabinet, source: cabinet ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("night-light"), notes: "与入户门状态或人体感应联动，用于夜间回家；不联动全屋主灯。" });
-      add({ key: "FEATURE", name: "玄关端景重点灯", lightType: "adjustableSpotlight", layer: "accent", colorTemperature: "3000K", beamAngle: 24, mountingType: "recessed", heightMm: 2800, position: offset(center, 620, 0, structure), roomId: room.id, smartControl: true, dimming: true, optional: true, lightSpec: spec("adjustable-spot"), notes: "仅在端景墙或艺术品最终确认后校准灯轴；当前为设计意图点。" });
+      add({ key: "FEATURE", name: "玄关端景重点灯", lightType: "adjustableSpotlight", layer: "accent", colorTemperature: "2700K", beamAngle: 24, mountingType: "recessed", heightMm: 2800, position: offset(center, 620, 0, structure), roomId: room.id, smartControl: true, dimming: true, optional: true, lightSpec: spec("adjustable-spot"), notes: "仅在端景墙或艺术品最终确认后校准灯轴；当前为设计意图点。" });
     }
 
     if (isCloak) {
       const wardrobe = pickFurniture(roomItems, /柜/);
       const desk = pickFurniture(roomItems, /桌|梳妆/);
       if (wardrobe) add({ key: "WARDROBE", name: `${room.name}柜内灯带`, lightType: "wardrobeSensorStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 2100, position: furniturePoint(wardrobe, structure), roomId: room.id, furnitureId: wardrobe.id, hostWallId: inferHostWallId(wardrobe, structure), smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "门控/人体感应；高显色避免衣物颜色失真，驱动留可检修位置。" });
-      if (desk) add({ key: "VANITY", name: `${room.name}梳妆功能灯`, lightType: "vanityTaskLight", layer: "task", colorTemperature: "3500K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1650, position: furniturePoint(desk, structure), roomId: room.id, furnitureId: desk.id, hostWallId: inferHostWallId(desk, structure), smartControl: false, dimming: true, source: "generated-from-furniture", lightSpec: spec("mirror-light", { cri: 95 }), notes: "面部两侧或均匀线性出光，避免只有头顶光。" });
+      if (desk) add({ key: "VANITY", name: `${room.name}梳妆功能灯`, lightType: "vanityTaskLight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1650, position: furniturePoint(desk, structure), roomId: room.id, furnitureId: desk.id, hostWallId: inferHostWallId(desk, structure), smartControl: false, dimming: true, source: "generated-from-furniture", lightSpec: spec("mirror-light", { cri: 95 }), notes: "面部两侧或均匀线性出光，避免只有头顶光。" });
     }
   });
 
@@ -340,7 +340,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       intents.push({ ...intent, position: furniturePoint(item, structure), roomId: item.roomId, furnitureId: item.id, hostWallId: intent.hostWallId ?? inferHostWallId(item, structure) });
     };
     addSpecial(/module-1f-table|六人圆餐桌/, { key: "DINING", name: "餐桌吊灯 / 六人圆桌装饰灯", lightType: "roundTablePendant", layer: "accent", colorTemperature: "2700K", beamAngle: 40, mountingType: "pendant", heightMm: 1700, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("round-table-pendant", { cri: 95 }), notes: "灯具中心对齐餐桌中心；灯下沿距桌面约 700–800mm。餐桌移动后按 relatedFurnitureId 同步复核灯位。" });
-    addSpecial(/岛台/, { key: "ISLAND", name: "中岛功能照明 / 线性吊灯", lightType: "islandLinearPendant", layer: "task", colorTemperature: "3500K", beamAngle: 50, mountingType: "pendant", heightMm: 1850, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("linear-pendant", { cri: 95 }), notes: "对齐岛台长轴，兼顾操作面与通行净高；与餐桌灯分组，避开柜门、烟机和风口。" });
+    addSpecial(/岛台/, { key: "ISLAND", name: "中岛功能照明 / 线性吊灯", lightType: "islandLinearPendant", layer: "task", colorTemperature: "3000K", beamAngle: 50, mountingType: "pendant", heightMm: 1850, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("linear-pendant", { cri: 95 }), notes: "对齐岛台长轴，兼顾操作面与通行净高；与餐桌灯分组，避开柜门、烟机和风口。" });
     addSpecial(/水吧台吊柜|水吧吊柜|餐边柜|零食柜|拉篮高柜/, { key: "SIDEBOARD", name: "餐边柜灯带", lightType: "sideboardStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 1650, smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "柜体感应并纳入用餐场景；驱动电源、灯槽与出线位置由柜体厂家深化。" });
   }
   return intents;
@@ -356,25 +356,25 @@ function collectYardIntents(structure: HouseStructure, furniture: Furniture[]) {
     const plant = pickFurniture(roomItems, /树|植物|桂花/);
     const table = pickFurniture(roomItems, /餐桌|桌椅|休闲/);
     const gate = pickFurniture(roomItems, /院门|门牌/);
-    add(outdoor, { key: "PATH", name: `${outdoor.name}路径灯`, lightType: "bollardPathLight", layer: "outdoor", colorTemperature: "3000K", beamAngle: 90, mountingType: "bollard", heightMm: 650, position: offset(center, -900, 420, structure), smartControl: true, dimming: true, lightSpec: spec("bollard"), notes: "沿真实动线低位引导，不追求整体过亮；避免直射室内与邻居，回路设漏电保护并使用防水接线盒。" });
+    add(outdoor, { key: "PATH", name: `${outdoor.name}路径灯`, lightType: "bollardPathLight", layer: "outdoor", colorTemperature: "2700K", beamAngle: 90, mountingType: "bollard", heightMm: 650, position: offset(center, -900, 420, structure), smartControl: true, dimming: true, lightSpec: spec("bollard"), notes: "沿真实动线低位引导，不追求整体过亮；避免直射室内与邻居，回路设漏电保护并使用防水接线盒。" });
     add(outdoor, { key: "FENCE", name: `${outdoor.name}围栏灯 / 安全照明`, lightType: "shieldedFenceLight", layer: "outdoor", colorTemperature: "2700K", beamAngle: 45, mountingType: "wallMounted", heightMm: 900, position: offset(center, 900, 420, structure), smartControl: true, dimming: true, lightSpec: spec("outdoor-wall"), notes: "遮光向下并设夜间低亮安全状态；灯具固定与围栏节点同步深化。" });
-    add(outdoor, { key: "WALL", name: `${outdoor.name}庭院壁灯`, lightType: "outdoorWallLight", layer: "outdoor", colorTemperature: "3000K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1900, position: offset(center, 0, -520, structure), smartControl: true, dimming: true, lightSpec: spec("outdoor-wall"), notes: "墙体出线做防水封堵，安装高度与门窗立面复核，避免光线直接照入室内。" });
+    add(outdoor, { key: "WALL", name: `${outdoor.name}庭院壁灯`, lightType: "outdoorWallLight", layer: "outdoor", colorTemperature: "2700K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1900, position: offset(center, 0, -520, structure), smartControl: true, dimming: true, lightSpec: spec("outdoor-wall"), notes: "墙体出线做防水封堵，安装高度与门窗立面复核，避免光线直接照入室内。" });
     add(outdoor, { key: "STEP", name: `${outdoor.name}台阶灯`, lightType: "outdoorStepLight", layer: "outdoor", colorTemperature: "2700K", beamAngle: 90, mountingType: "stepMounted", heightMm: 180, position: offset(center, -420, -420, structure), smartControl: true, dimming: true, optional: true, lightSpec: spec("step-light", { waterproofRating: "IP65" }), notes: "仅在现场存在高差或台阶时实施；遮光向下，位置待现场尺寸复核。" });
     if (plant || outdoorIndex === 0) add(outdoor, { key: "PLANT", name: `${outdoor.name}植物上照灯 / 照树灯`, lightType: "plantUplight", layer: "outdoor", colorTemperature: "2700K", beamAngle: 24, mountingType: "groundSpike", heightMm: 150, position: plant ? furniturePoint(plant, structure) : offset(center, -520, -620, structure), furnitureId: plant?.id, smartControl: true, dimming: true, source: plant ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("tree-uplight"), notes: "灯轴明确朝向树冠，避开根系与灌溉喷头，不得直射人眼；无植物数据时为待确认意图。" });
-    if (cabinet) add(outdoor, { key: "CABINET", name: `${outdoor.name}户外柜照明 / 操作灯`, lightType: "outdoorTaskLight", layer: "outdoor", colorTemperature: "3500K", beamAngle: 100, mountingType: "cabinetIntegrated", heightMm: 1450, position: furniturePoint(cabinet, structure), furnitureId: cabinet.id, smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("yard-task", { cri: 95 }), notes: "驱动置于柜内干区并可检修，柜体厂家同步深化。" });
+    if (cabinet) add(outdoor, { key: "CABINET", name: `${outdoor.name}户外柜照明 / 操作灯`, lightType: "outdoorTaskLight", layer: "outdoor", colorTemperature: "3000K", beamAngle: 100, mountingType: "cabinetIntegrated", heightMm: 1450, position: furniturePoint(cabinet, structure), furnitureId: cabinet.id, smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("yard-task", { cri: 95 }), notes: "驱动置于柜内干区并可检修，柜体厂家同步深化。" });
     if (table) add(outdoor, { key: "DINING", name: `${outdoor.name}户外餐桌照明`, lightType: "outdoorDiningPendant", layer: "outdoor", colorTemperature: "2700K", beamAngle: 60, mountingType: "pendant", heightMm: 2100, position: furniturePoint(table, structure), furnitureId: table.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("outdoor-wall", { waterproofRating: "IP65", cri: 90 }), notes: "以户外桌面为中心，控制眩光和溢出光；若无固定顶棚则改用便携低压灯具。" });
-    if (gate) add(outdoor, { key: "WELCOME", name: `${outdoor.name}院门迎宾灯`, lightType: "outdoorWallLight", layer: "outdoor", colorTemperature: "3000K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1800, position: furniturePoint(gate, structure), furnitureId: gate.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("outdoor-wall"), notes: "与门磁、人体感应或归家场景联动；不常亮高亮。" });
+    if (gate) add(outdoor, { key: "WELCOME", name: `${outdoor.name}院门迎宾灯`, lightType: "outdoorWallLight", layer: "outdoor", colorTemperature: "2700K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1800, position: furniturePoint(gate, structure), furnitureId: gate.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("outdoor-wall"), notes: "与门磁、人体感应或归家场景联动；不常亮高亮。" });
   });
   (structure.outdoorZones ?? []).forEach((zone) => {
     const items = furniture.filter((item) => item.outdoorZoneId === zone.id);
     const at = (item?: Furniture) => item ? furniturePoint(item, structure) : centerOf(zone);
     const push = (key: string, name: string, lightType: string, mountingType: LightMountingType, heightMm: number, furnitureId?: string, options: Partial<LightIntent> = {}) => intents.push({
-      key: `ZONE-${zone.id}-${key}`, name: `${zone.name}${name}`, lightType, layer: "outdoor", colorTemperature: options.colorTemperature ?? "3000K", beamAngle: options.beamAngle ?? 60, mountingType, heightMm, position: at(furnitureId ? items.find((item) => item.id === furnitureId) : undefined), roomId: zone.outdoorId, furnitureId, smartControl: true, dimming: options.dimming ?? true, source: furnitureId ? "generated-from-furniture" : "generated-from-room", lightSpec: options.lightSpec ?? spec(mountingType === "groundSpike" ? "tree-uplight" : mountingType === "bollard" ? "bollard" : "outdoor-wall"), notes: options.notes ?? "归入既有庭院灯光控制系统；实际出线、回路和防水节点施工前复核。"
+      key: `ZONE-${zone.id}-${key}`, name: `${zone.name}${name}`, lightType, layer: "outdoor", colorTemperature: options.colorTemperature ?? "2700K", beamAngle: options.beamAngle ?? 60, mountingType, heightMm, position: at(furnitureId ? items.find((item) => item.id === furnitureId) : undefined), roomId: zone.outdoorId, furnitureId, smartControl: true, dimming: options.dimming ?? true, source: furnitureId ? "generated-from-furniture" : "generated-from-room", lightSpec: options.lightSpec ?? spec(mountingType === "groundSpike" ? "tree-uplight" : mountingType === "bollard" ? "bollard" : "outdoor-wall"), notes: options.notes ?? "归入既有庭院灯光控制系统；实际出线、回路和防水节点施工前复核。"
     });
     if (zone.zoneType === "outdoorKitchen") {
       const island = items.find((item) => item.outdoorObjectType === "outdoorIsland");
-      push("TASK", " · 岛台顶部与操作面功能灯", "outdoorTaskLight", "cabinetIntegrated", 1850, island?.id, { colorTemperature: "3500K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }), notes: "覆盖 BBQ、操作台与水槽；柜下灯和台面灯同组，晚间可真实操作。" });
-      push("UNDER", " · 柜下工作灯", "outdoorTaskLight", "cabinetIntegrated", 980, island?.id, { colorTemperature: "3500K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }) });
+      push("TASK", " · 岛台顶部与操作面功能灯", "outdoorTaskLight", "cabinetIntegrated", 1850, island?.id, { colorTemperature: "3000K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }), notes: "覆盖 BBQ、操作台与水槽；柜下灯和台面灯同组，晚间可真实操作。" });
+      push("UNDER", " · 柜下工作灯", "outdoorTaskLight", "cabinetIntegrated", 980, island?.id, { colorTemperature: "3000K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }) });
     }
     if (zone.zoneType === "plant" || zone.zoneType === "garden") push("PLANT", " · 植物层次上照", "plantUplight", "groundSpike", 150, items.find((item) => item.outdoorObjectType === "planter" || item.outdoorObjectType === "raisedGardenBed")?.id, { colorTemperature: "2700K", beamAngle: 24, lightSpec: spec("tree-uplight"), notes: "地插射灯洗亮乔木、灌木与背景墙，控制眩光并避开根系。" });
     if (zone.zoneType === "relax") {
@@ -384,7 +384,7 @@ function collectYardIntents(structure: HouseStructure, furniture: Furniture[]) {
     }
     if (zone.zoneType === "laundry") {
       const laundry = items.find((item) => item.outdoorObjectType === "outdoorLaundry");
-      push("TASK", " · 洗衣顶部功能灯", "outdoorTaskLight", "surfaceMounted", 2200, laundry?.id, { colorTemperature: "3500K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }), notes: "遮棚内顶部与柜下工作灯，独立于休闲氛围灯。" });
+      push("TASK", " · 洗衣顶部功能灯", "outdoorTaskLight", "surfaceMounted", 2200, laundry?.id, { colorTemperature: "3000K", dimming: false, lightSpec: spec("yard-task", { cri: 95 }), notes: "遮棚内顶部与柜下工作灯，独立于休闲氛围灯。" });
     }
     if (zone.zoneType === "pet") push("SAFETY", " · 宠物低位安全灯", "bollardPathLight", "bollard", 450, undefined, { colorTemperature: "2700K", beamAngle: 90, lightSpec: spec("bollard"), notes: "宠物区低位安全照明，便于夜间查看且避免直射犬只。" });
   });

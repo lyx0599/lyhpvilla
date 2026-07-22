@@ -59,8 +59,24 @@ delete legacyLivingRoom.surfaceFinishes;
 const migratedLivingSurfaces = applyWorkspaceMigrations(legacyLivingSurfaces, { canonicalWorkspace: canonical });
 const migratedLivingRoom = migratedLivingSurfaces.workspace.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
 assert.equal(migratedLivingRoom.surfaceFinishes.floor.tileWidthMm, 600, "Legacy drafts must receive the living-room tile specification.");
-assert.equal(migratedLivingRoom.surfaceFinishes.wall.material, "mineralTextureWallpaper", "Legacy drafts must receive the living-room wall finish.");
+assert.equal(migratedLivingRoom.surfaceFinishes.wall.material, "limewash", "Legacy drafts must receive the living-room limewash finish.");
 assert.equal(migratedLivingSurfaces.sources.houseStructuresByFloor, "migration");
+
+const legacyWholeHouseSurfaces = structuredClone(canonical);
+legacyWholeHouseSurfaces.dataRevision = "2026-07-22-interior-door-designs-v10";
+for (const structure of Object.values(legacyWholeHouseSurfaces.houseStructuresByFloor)) {
+  for (const room of structure.rooms) delete room.surfaceFinishes;
+}
+const migratedWholeHouseSurfaces = applyWorkspaceMigrations(legacyWholeHouseSurfaces, { canonicalWorkspace: canonical });
+for (const structure of Object.values(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor)) {
+  for (const room of structure.rooms) {
+    assert.ok(room.surfaceFinishes?.floor, `${room.id} must receive a floor finish.`);
+    assert.ok(room.surfaceFinishes?.wall, `${room.id} must receive a wall finish.`);
+  }
+}
+assert.equal(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor.B2.rooms.find((room) => room.id === "ROOM-B2-001").surfaceFinishes.floor.material, "microcement");
+assert.equal(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor["2F"].rooms.find((room) => room.id === "ROOM-2F-006").surfaceFinishes.floor.material, "woodFloor");
+assert.equal(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-003").surfaceFinishes.floor.name, "浅米洞石纹防滑瓷砖");
 
 const customLivingSurfaces = structuredClone(legacyLivingSurfaces);
 const customLivingRoom = customLivingSurfaces.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
@@ -81,7 +97,10 @@ legacyLivingWindow.height = 1400;
 legacyLivingWindow.sillHeightMm = 900;
 const migratedLivingJoinery = applyWorkspaceMigrations(legacyLivingJoinery, { canonicalWorkspace: canonical });
 assert.equal(migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-waterbar-001").dimensions.width, 240);
-assert.equal(migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId, "doubleDoorPulloutPantry");
+assert.equal(
+  migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId,
+  canonical.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId
+);
 assert.equal(migratedLivingJoinery.workspace.houseStructuresByFloor["1F"].windows.find((window) => window.id === "WIN-1F-006").width, 3600);
 
 const legacyInteriorDoors = structuredClone(canonical);
@@ -93,10 +112,13 @@ const legacyMasterDoor = legacyInteriorDoors.houseStructuresByFloor["2F"].doors.
 legacyMasterDoor.width = 900;
 legacyMasterDoor.height = 2100;
 const migratedInteriorDoors = applyWorkspaceMigrations(legacyInteriorDoors, { canonicalWorkspace: canonical });
-assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["1F"].doors.find((door) => door.id === "D-1F-005").visual.style, "archedReededGlass");
-assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-003").visual.style, "wovenReliefWood");
-assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-008").width, 1600);
-assert.equal(migratedInteriorDoors.workspace.houseStructuresByFloor["2F"].doors.find((door) => door.id === "D-2F-008").visual.leafCount, 2);
+for (const [floorId, doorId] of [["1F", "D-1F-005"], ["2F", "D-2F-003"], ["2F", "D-2F-008"]]) {
+  const actual = migratedInteriorDoors.workspace.houseStructuresByFloor[floorId].doors.find((door) => door.id === doorId);
+  const expected = canonical.houseStructuresByFloor[floorId].doors.find((door) => door.id === doorId);
+  assert.equal(actual.visual.style, expected.visual.style);
+  assert.equal(actual.visual.leafCount, expected.visual.leafCount);
+  assert.equal(actual.width, expected.width);
+}
 
 const legacyStairLanes = structuredClone(canonical);
 legacyStairLanes.dataRevision = "2026-07-12-mobile-room-tour-v1";
