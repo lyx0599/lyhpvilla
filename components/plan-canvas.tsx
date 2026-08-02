@@ -4555,7 +4555,7 @@ export function PlanCanvas({
 
   return (
     <div
-      className={`relative min-h-0 flex-1 overscroll-contain ${mobilePresentationMode ? "h-full overflow-hidden bg-[#f7f3ec] p-0" : drawingDrivenMode ? "overflow-hidden bg-[#f2f1ed] p-2" : `overflow-auto bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}`}
+      className={`relative min-h-0 flex-1 overscroll-contain ${mobilePresentationMode ? "h-full overflow-hidden bg-[#f7f3ec] p-0" : drawingDrivenMode ? "overflow-hidden bg-[#ebe8e1] p-0" : `overflow-auto bg-[#ece5da] ${focusMode ? "p-3" : "p-3 pb-36 sm:p-5 lg:pb-5"}`}`}
       data-mobile-presentation={mobilePresentationMode ? "true" : "false"}
     >
       <div className={`${furnitureImmersiveMode || yardImmersiveMode || mobilePresentationMode || drawingDrivenMode ? "hidden" : "block"} absolute left-5 top-5 z-10 rounded-2xl border border-white/80 bg-white/80 px-4 py-2 text-sm text-stone-500 shadow-sm backdrop-blur`}>
@@ -4567,7 +4567,7 @@ export function PlanCanvas({
           className={`relative grid h-full items-start ${
             mobilePresentationMode
               ? "min-h-0 touch-none overflow-hidden bg-[#f8f4ec] p-0"
-              : `min-h-[calc(100vh-5.25rem)] overflow-auto border border-white/70 bg-white/60 shadow-inner sm:min-h-[560px] ${drawingDrivenMode ? "p-2" : "rounded-[1.75rem] p-3 pt-20 sm:pt-16"} ${
+              : `min-h-[calc(100vh-5.25rem)] overflow-auto sm:min-h-[560px] ${drawingDrivenMode ? "bg-[#f5f3ee] p-0" : "rounded-[1.75rem] border border-white/70 bg-white/60 p-3 pt-20 shadow-inner sm:pt-16"} ${
             showStructureDrawingPanel ? `gap-4 lg:justify-items-stretch ${focusMode ? "lg:grid-cols-[minmax(0,1fr)_280px]" : "lg:grid-cols-[260px_minmax(0,1fr)]"}` : "justify-items-center"
           }`
           }`}
@@ -6407,9 +6407,10 @@ export function PlanCanvas({
               {planCanvasModeFootnotes[sheetMode]}
             </div>}
             {isFurnitureSheetMode && plannerMode === "edit" && (
-              <div className="pointer-events-none absolute left-5 bottom-5 z-40 max-w-sm rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-xs leading-5 text-stone-600 shadow-sm backdrop-blur">
-                <p className="font-semibold text-ink">沉浸家具布置</p>
-                <p className="mt-1">拖动家具调整位置，单击家具显示/隐藏画布控制台，右侧模块库继续添加物品。</p>
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-40 flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-2 border border-stone-300 bg-[#fbfaf7]/95 px-3 py-2 text-[11px] text-stone-600 shadow-sm">
+                <p className="shrink-0 font-semibold text-slate-900">家具布置</p>
+                <span className="h-3 w-px bg-stone-300" />
+                <p className="truncate">拖动调整位置，点选后在属性面板编辑，物品库从左侧按需展开。</p>
               </div>
             )}
 

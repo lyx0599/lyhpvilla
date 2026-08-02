@@ -13,6 +13,8 @@ import { ContextToolBar } from "@/components/editor/context-toolbar";
 import { DrawingDirectory } from "@/components/editor/drawing-directory";
 import { EditorUtilityDialog } from "@/components/editor/editor-utility-dialog";
 import { MoreMenu, type EditorDialogKey } from "@/components/editor/more-menu";
+import { ModuleLibraryDrawer } from "@/components/editor/module-library-drawer";
+import { MaterialSwatchPicker } from "@/components/editor/material-swatch-picker";
 import { RightPanelFrame, RightPanelRail, type EditorRightPanelKey } from "@/components/editor/right-panel-frame";
 import { TopNavigation } from "@/components/editor/top-navigation";
 import { WorkspaceTabs } from "@/components/editor/workspace-tabs";
@@ -26,7 +28,7 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmptyStructure, createOutdoor, getLineLength, getPolygonArea } from "@/lib/house-geometry";
 import { applyFloorPlanPreset, floorPlanPresetLabels, getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import { enrichFurniture3DMeta } from "@/lib/render3d-assets";
+import { enrichFurniture3DMeta, render3DMaterialTokenCatalog } from "@/lib/render3d-assets";
 import { drawingItemCategoryLabels, generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
 import { generateLightingDesignV1, modernWarmFixtureFamilies } from "@/lib/lighting-design";
 import { createUnifiedCourtyardModel, courtyardViewFloorIds } from "@/lib/courtyard-model";
@@ -2053,10 +2055,10 @@ const b2DefaultFurniture: Furniture[] = [
     moduleType: "bookshelf",
     floorId: "B2",
     roomId: "ROOM-B2-005",
-    dimensions: { width: 260, depth: 38, height: 220, unit: "cm" },
+    dimensions: { width: 260, depth: 68, height: 220, unit: "cm" },
     material: "透明玻璃门 + 浅木层板 + 可调灯带",
-    note: "靠书房左侧墙布置，用来展示从全世界买回来的纪念品。",
-    constructionNote: "玻璃柜靠墙固定防倾倒，层板做可调孔位；柜内预留低压灯带和检修电源。",
+    note: "靠书房左侧墙布置；柜内直接设置两层大型乐高展位，上层放霍格沃茨城堡，下层放罗马斗兽场，其余格位继续展示旅行纪念品。",
+    constructionNote: "柜深加至 680mm；霍格沃茨层净空不小于 780x520x680mm，斗兽场层净空不小于 650x650x380mm，玻璃门、承重层板及灯带统一定制。",
     serviceRequirements: b2PowerOnly,
     position: { x: 10.6, y: 72.2, rotation: 90 },
     color: "#dbeafe",
@@ -2072,7 +2074,8 @@ const b2DefaultFurniture: Furniture[] = [
         { id: "memory-drawers", label: "记忆抽屉", role: "票根 / 明信片", widthPercent: 28, heightPercent: 36, detail: "纸质纪念品进浅抽屉，按国家或年份分隔。", serviceNote: "灯带电源走柜后隐藏。" }
       ],
       cautionNotes: ["玻璃柜必须防倾倒固定。", "纪念品多且重时，层板要控制跨度并选用更厚玻璃或木层板。"]
-    }
+    },
+    render3d: { assetType: "bookshelf", variantId: "b2MemorialLegoDisplay", detailLevel: "presentation", stylePreset: "tuscanWabiSabi", primaryMaterial: "warmOak", secondaryMaterial: "clearGlass", accentMaterial: "blackTitanium", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-study-slab-table-001",
@@ -2095,18 +2098,18 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-study-wine-cabinet-001",
     code: "WC-B2-01",
-    name: "B2 书房酒收纳柜",
+    name: "B2 书房整墙酒收纳柜",
     type: "cabinet",
     moduleCategory: "storage",
     moduleType: "cabinet",
     floorId: "B2",
     roomId: "ROOM-B2-005",
-    dimensions: { width: 80, depth: 40, height: 210, unit: "cm" },
-    material: "深胡桃木酒格 + 玻璃展示面 + 暖光层板",
-    note: "布置在书房南侧空墙最左端，方格横放酒瓶，下部封闭柜收纳酒具与备品。",
-    constructionNote: "柜体固定防倾倒，避开地漏；内部预留低压灯带电源并保持通风。",
+    dimensions: { width: 185, depth: 45, height: 240, unit: "cm" },
+    material: "通墙深胡桃木酒格 + 烟灰玻璃展示门 + 暖光层板 + 下部封闭酒具柜",
+    note: "向左扩展并占满书房 W-B2-011 墙段，整墙设置横放酒瓶格、立放展示格与下部封闭收纳。",
+    constructionNote: "按 W-B2-011 书房侧 1850mm 墙段满墙复尺定制，柜体到顶收口、防倾倒固定，预留低压灯带电源与通风缝。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 35.83, y: 84.22, rotation: 180 },
+    position: { x: 40.2, y: 84.17, rotation: 180 },
     color: "#6b4935",
     hostWallId: "W-B2-011",
     render3d: { assetType: "cabinet", variantId: "b2WineStorageCabinet", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
@@ -2114,39 +2117,21 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-study-handwash-001",
     code: "HW-B2-01",
-    name: "B2 书房迷你洗手台",
+    name: "B2 书房转角迷你水吧",
     type: "vanity",
     moduleCategory: "bath",
     moduleType: "vanity",
     floorId: "B2",
     roomId: "ROOM-B2-005",
-    dimensions: { width: 55, depth: 40, height: 85, unit: "cm" },
-    material: "暖木悬浮柜 + 一体式小台盆 + 古铜龙头",
-    note: "紧邻酒柜设置，供洗手、洗杯和简单清洁使用，不设置镜柜。",
-    constructionNote: "预留冷热水与墙排，台面和墙面交接处做防水收口。",
+    dimensions: { width: 120, depth: 55, height: 95, unit: "cm" },
+    material: "暖橡木水吧柜 + 洞石台面 + 小水槽 + 独立直饮龙头 + 杯具开放格",
+    note: "移到书房左侧 W-B2-008 与 W-B2-010 转角，集洗手、洗杯、常温直饮和热饮取水于一体。",
+    constructionNote: "1200mm 转角小水吧，预留冷热水、墙排、净水进水、设备排水及两组防溅插座；台下设置净水主机与即热设备检修位。",
     serviceRequirements: b2WetService,
-    position: { x: 41.5, y: 84.22, rotation: 180 },
+    position: { x: 12.92, y: 83.61, rotation: 180 },
     color: "#d8d1c6",
-    hostWallId: "W-B2-011",
-    render3d: { assetType: "bathroomVanity", variantId: "floating", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true, wetAreaVisual: { fixtureKind: "vanity", basinCount: 1, floating: true, mirrorStyle: "none", frameFinish: "bronze", mirrorHeightMm: 0, mirrorCabinetDepthMm: 0 } }
-  },
-  {
-    id: "furn-b2-study-water-dispenser-001",
-    code: "WD-B2-01",
-    name: "B2 书房直饮水机",
-    type: "custom",
-    moduleCategory: "decor",
-    floorId: "B2",
-    roomId: "ROOM-B2-005",
-    dimensions: { width: 40, depth: 36, height: 125, unit: "cm" },
-    material: "暖白机身 + 黑色触控面板 + 冷热直饮龙头",
-    note: "位于洗手台右侧，提供常温、冷水与热水，形成完整的书房酒水角。",
-    constructionNote: "预留净水进水、排水和独立五孔插座，设备两侧保留散热检修缝。",
-    serviceRequirements: b2WetService,
-    position: { x: 45.92, y: 84.22, rotation: 180 },
-    color: "#f2efe8",
-    hostWallId: "W-B2-011",
-    render3d: { assetType: "generic", variantId: "b2DrinkingWaterStation", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmWhiteCeramic", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+    hostWallId: "W-B2-010",
+    render3d: { assetType: "bathroomVanity", variantId: "b2MiniWaterBar", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true, wetAreaVisual: { fixtureKind: "vanity", basinCount: 1, floating: false, mirrorStyle: "none", frameFinish: "bronze", mirrorHeightMm: 0, mirrorCabinetDepthMm: 0 } }
   }
 ];
 
@@ -2360,9 +2345,9 @@ function RightPanelCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white text-sm shadow-sm">
+    <section className="border-b border-stone-200 bg-transparent text-sm last:border-b-0">
       <button
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-stone-50"
+        className="flex w-full items-center justify-between gap-3 px-1 py-3 text-left transition hover:text-slate-950"
         onClick={() => onToggle(id)}
         type="button"
       >
@@ -2371,9 +2356,9 @@ function RightPanelCard({
           <span className="mt-0.5 block font-semibold text-ink">{title}</span>
           <span className="mt-0.5 block truncate text-xs text-stone-500">{summary}</span>
         </span>
-        <span className={`grid size-7 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-stone-500 transition ${open ? "rotate-180" : ""}`}>⌄</span>
+        <span className={`grid size-6 shrink-0 place-items-center text-sm font-semibold text-stone-400 transition ${open ? "rotate-180" : ""}`}>⌄</span>
       </button>
-      {open && <div className="border-t border-stone-100 p-4">{children}</div>}
+      {open && <div className="pb-4">{children}</div>}
     </section>
   );
 }
@@ -2440,8 +2425,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [editorDialog, setEditorDialog] = useState<EditorDialogKey>(null);
   const [developerMode, setDeveloperMode] = useState(false);
-  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(true);
-  const [leftSidebarMode, setLeftSidebarMode] = useState<"objects" | "tools">("objects");
+  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(false);
+  const [leftDrawerMode, setLeftDrawerMode] = useState<"objects" | "resources" | null>(null);
+  const [moduleLibraryExpanded, setModuleLibraryExpanded] = useState(false);
+  const [recentModuleIds, setRecentModuleIds] = useState<string[]>([]);
   const [editorDisplayMode, setEditorDisplayMode] = useState<"edit" | "presentation">("edit");
   const [activeWorkspaceToolId, setActiveWorkspaceToolId] = useState("select");
   const [showAdvancedCanvasControls, setShowAdvancedCanvasControls] = useState(false);
@@ -3544,14 +3531,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       return;
     }
     if (toolConfig.action === "resources") {
-      setActiveEditorPanel("resources");
+      handleEditorPanelSelect("resources");
       return;
     }
     if (toolConfig.action === "validation") {
+      setLeftDrawerMode(null);
       setActiveEditorPanel("validation");
       return;
     }
     if (toolConfig.action === "ai") {
+      setLeftDrawerMode(null);
       setActiveEditorPanel("ai");
       return;
     }
@@ -4730,6 +4719,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setPlannerMode("edit");
     setDrawTool("select");
     setFurnitureImmersiveMode(true);
+    setRecentModuleIds((currentIds) => [item.id, ...currentIds.filter((id) => id !== item.id)].slice(0, 6));
+    setLeftDrawerMode(null);
     setOpenRightPanels((currentPanels) => ({
       ...currentPanels,
       object: true
@@ -4741,6 +4732,16 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       ...currentPanels,
       [panelId]: !currentPanels[panelId]
     }));
+  }
+
+  function handleEditorPanelSelect(panel: EditorRightPanelKey) {
+    if (panel === "resources" && activeDrawingWorkspace.category === "furniture") {
+      setActiveEditorPanel(null);
+      setLeftDrawerMode((currentMode) => currentMode === "resources" ? null : "resources");
+      return;
+    }
+    setLeftDrawerMode(null);
+    setActiveEditorPanel((currentPanel) => currentPanel === panel ? null : panel);
   }
 
   function toggleModuleCategory(category: InteriorModuleCategory) {
@@ -5834,7 +5835,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           <button aria-label="关闭导入错误" className="font-semibold" onClick={() => setWorkspaceImportError("")} type="button">关闭</button>
         </div>
       )}
-      <section className="grid h-full min-h-0 grid-rows-[56px_minmax(0,1fr)_28px] overflow-hidden bg-white">
+      <section className="grid h-full min-h-0 grid-rows-[52px_minmax(0,1fr)_26px] overflow-hidden bg-[#f3f0ea]">
         <span className="sr-only">发布代码版本</span>
         <TopNavigation
           projectName="林屿湖畔"
@@ -5845,31 +5846,31 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           saveTone={editorSaveTone}
           canUndo={Boolean(pendingHistoryBaseRef.current[selectedFloorId] || floorHistory.past.length)}
           canRedo={floorHistory.future.length > 0}
+          viewMode={viewMode}
+          displayMode={editorDisplayMode}
           onSelectFloor={handleFloorChange}
           onOpenDirectory={() => setDrawingDirectoryOpen(true)}
+          onSelectViewMode={setViewMode}
+          onSelectDisplayMode={setDisplayMode}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          onExport={downloadWorkspace}
+          onToggleMore={() => setMoreMenuOpen((open) => !open)}
         />
-        <section className={`relative grid min-h-0 ${leftSidebarMode === "objects"
-          ? activeEditorPanel ? "lg:grid-cols-[288px_minmax(0,1fr)_336px_88px]" : "lg:grid-cols-[288px_minmax(0,1fr)_88px]"
-          : contextToolbarExpanded
-            ? activeEditorPanel ? "lg:grid-cols-[176px_minmax(0,1fr)_336px_88px]" : "lg:grid-cols-[176px_minmax(0,1fr)_88px]"
-            : activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_336px_88px]" : "lg:grid-cols-[56px_minmax(0,1fr)_88px]"}`}>
-          <div className="relative z-30 hidden min-h-0 border-r border-stone-200/80 bg-white lg:block">
-            <div className="grid h-10 grid-cols-2 border-b border-stone-200 p-1">
-              <button className={`rounded-md text-[11px] font-semibold ${leftSidebarMode === "objects" ? "bg-slate-900 text-white" : "text-stone-500 hover:bg-stone-100"}`} onClick={() => setLeftSidebarMode("objects")} type="button">对象列表</button>
-              <button className={`rounded-md text-[11px] font-semibold ${leftSidebarMode === "tools" ? "bg-slate-900 text-white" : "text-stone-500 hover:bg-stone-100"}`} onClick={() => setLeftSidebarMode("tools")} type="button">创建工具</button>
-            </div>
-            <div className="h-[calc(100%-40px)] min-h-0">
-              {leftSidebarMode === "objects" ? <UnifiedObjectList items={workspaceObjectItems} selectedObjectId={activeObjectId} selectedFloorId={selectedFloorId} lightRuntimeState={lightingRuntimeState} onSelect={handleUnifiedObjectListSelect} onToggleLight={handleUnifiedLightToggle} /> : <ContextToolBar
-                workspace={activeDrawingWorkspace}
-                activeToolId={activeWorkspaceToolId}
-                expanded={contextToolbarExpanded}
-                onToggleExpanded={() => setContextToolbarExpanded((expanded) => !expanded)}
-                onSelectTool={handleWorkspaceToolSelect}
-              />}
-            </div>
+        <section className={`relative grid min-h-0 ${activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_320px_72px]" : "lg:grid-cols-[56px_minmax(0,1fr)_72px]"}`}>
+          <div className="relative z-[60] hidden min-h-0 border-r border-stone-200/80 bg-[#fbfaf7] lg:block">
+            <ContextToolBar
+              workspace={activeDrawingWorkspace}
+              activeToolId={activeWorkspaceToolId}
+              expanded={contextToolbarExpanded}
+              onToggleExpanded={() => setContextToolbarExpanded((expanded) => !expanded)}
+              onSelectTool={handleWorkspaceToolSelect}
+              onOpenObjects={() => setLeftDrawerMode((mode) => mode === "objects" ? null : "objects")}
+              onOpenResources={activeDrawingWorkspace.category === "furniture" ? () => setLeftDrawerMode((mode) => mode === "resources" ? null : "resources") : undefined}
+            />
           </div>
+          {leftDrawerMode === "objects" && <aside className="absolute inset-y-0 left-14 z-[58] hidden w-[288px] min-h-0 border-r border-stone-200 bg-[#fbfaf7] shadow-[12px_0_28px_rgba(28,25,23,0.08)] lg:flex lg:flex-col"><header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 px-3"><div><p className="text-sm font-semibold text-slate-900">项目对象</p><p className="text-[10px] text-stone-500">按楼层与类型浏览</p></div><button aria-label="关闭对象列表" className="grid size-8 place-items-center rounded-md text-lg text-stone-400 hover:bg-stone-100" onClick={() => setLeftDrawerMode(null)} type="button">×</button></header><div className="min-h-0 flex-1"><UnifiedObjectList items={workspaceObjectItems} selectedObjectId={activeObjectId} selectedFloorId={selectedFloorId} lightRuntimeState={lightingRuntimeState} onSelect={(item) => { handleUnifiedObjectListSelect(item); setLeftDrawerMode(null); }} onToggleLight={handleUnifiedLightToggle} /></div></aside>}
+          {leftDrawerMode === "resources" && activeDrawingWorkspace.category === "furniture" ? <ModuleLibraryDrawer groups={visibleModuleCatalogGroups} recentIds={recentModuleIds} targetLabel={moduleTargetLabel} floorCounts={floorFurnitureByCategory} expanded={moduleLibraryExpanded} openCategories={openModuleCategories} onToggleExpanded={() => setModuleLibraryExpanded((expanded) => !expanded)} onToggleCategory={toggleModuleCategory} onAdd={addModuleFromCatalog} onClose={() => setLeftDrawerMode(null)} /> : null}
           <div className="absolute bottom-3 left-3 z-[65] lg:hidden">
             <ContextToolBar
               workspace={activeDrawingWorkspace}
@@ -5881,18 +5882,6 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           </div>
         <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <WorkspaceTabs tabs={getDrawingWorkspace(activeDrawingWorkspaceId).tabs} activeTabId={activeDrawingWorkspace.activeTabId} onSelect={selectWorkspaceTab} />
-          <div className="absolute right-3 top-12 z-[64] flex max-w-[calc(100%-24px)] items-center gap-1 rounded-xl border border-stone-200 bg-white/95 p-1 shadow-sm backdrop-blur" aria-label="画布视图控制">
-            <button className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold ${viewMode === "2d" ? "bg-slate-900 text-white" : "text-stone-600 hover:bg-stone-100"}`} onClick={() => setViewMode("2d")} type="button">2D</button>
-            <button className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold ${viewMode === "3d" ? "bg-slate-900 text-white" : "text-stone-600 hover:bg-stone-100"}`} onClick={() => setViewMode("3d")} type="button">3D</button>
-            <span className="mx-0.5 h-5 w-px bg-stone-200" />
-            <button className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold ${editorDisplayMode === "edit" ? "bg-blue-50 text-blue-700" : "text-stone-600 hover:bg-stone-100"}`} onClick={() => setDisplayMode("edit")} type="button">编辑</button>
-            <button className={`rounded-lg px-2.5 py-1.5 text-[11px] font-semibold ${editorDisplayMode === "presentation" ? "bg-amber-50 text-amber-800" : "text-stone-600 hover:bg-stone-100"}`} onClick={() => setDisplayMode("presentation")} type="button">展示</button>
-            {viewMode === "3d" && <button className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100" onClick={enterExplorationMode} type="button">探索模式</button>}
-            <button className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100" onClick={() => setEditorDialog("layers")} type="button">图层</button>
-            <button className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100" onClick={() => setActiveEditorPanel("validation")} type="button">检查</button>
-            <button className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100" onClick={() => setEditorDialog("package")} type="button">图纸包</button>
-            <button className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-stone-600 hover:bg-stone-100" onClick={() => setMoreMenuOpen((open) => !open)} type="button">更多</button>
-          </div>
           <PlanCanvas
               floor={currentFloor}
               floors={floors}
@@ -5969,7 +5958,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             activePanel={activeEditorPanel}
             title={activeDrawingWorkspace.name}
             onClose={() => setActiveEditorPanel(null)}
-            onSelect={setActiveEditorPanel}
+            onSelect={handleEditorPanelSelect}
           >
           <div className="space-y-3">
             {focusMode && (
@@ -6027,34 +6016,11 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
             </RightPanelCard>}
 
             {isFurnitureWorkspace && (
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-xs leading-5 text-emerald-900">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold">方案保存</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${draftSaveState.status === "error" ? "bg-red-100 text-red-700" : isPublishedCodeWorkspace || isCurrentDraftSaved ? "bg-white text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{draftSaveLabel}</span>
-                </div>
-                <p className={`mt-2 rounded-lg px-2 py-1 font-semibold ${isCurrentCodeVerified ? "bg-white text-emerald-800" : codeSaveState.status === "error" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`}>{codeSaveLabel}</p>
-                {showSeparateCodeDirty && <p className="mt-2 font-semibold text-amber-800">{unwrittenCodeLabel}</p>}
-                <p className="mt-2 text-[11px] text-emerald-800/70">{codeWriteTargetLabel}</p>
-                <p className="mt-2">页面修改先保存为浏览器草稿；只有代码文件写入并回读一致后，才会显示“代码已验证”。</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100 disabled:text-stone-300" disabled={localCodeFileStatus === "checking" || localCodeFileStatus === "syncing"} onClick={bindLocalCodeFile} type="button">{localCodeFileLabel}</button>
-                  <button className={`rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${localCodeAutoSync ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-emerald-800 hover:bg-emerald-100"} disabled:bg-stone-100 disabled:text-stone-300`} disabled={!localCodeFileReady} onClick={toggleLocalCodeAutoSync} type="button">
-                    自动写代码：{localCodeAutoSync ? "开" : "关"}
-                  </button>
-                </div>
-                <button
-                  className={`mt-3 w-full rounded-xl px-3 py-2 font-semibold ring-1 ring-emerald-100 ${
-                    showFurnitureLabels ? "bg-emerald-700 text-white hover:bg-emerald-800" : "bg-white text-emerald-800 hover:bg-emerald-100"
-                  }`}
-                  onClick={() => setShowFurnitureLabels((visible) => !visible)}
-                  type="button"
-                >
-                  家具标签：{showFurnitureLabels ? "显示中" : "已隐藏"}
-                </button>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button className="rounded-xl bg-white px-3 py-2 font-semibold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-100" onClick={() => setFurnitureImmersiveMode(false)} type="button">退出家具沉浸</button>
-                  <button className="rounded-xl bg-emerald-700 px-3 py-2 font-semibold text-white hover:bg-emerald-800 disabled:bg-stone-300" disabled={!hasLoadedWebWorkspace || codeSaveState.status === "saving" || Boolean(workspaceConflict)} onClick={solidifyDefaultWorkspace} type="button">保存到代码文件</button>
-                </div>
+              <div className="flex items-center gap-2 border-b border-stone-200 pb-3 text-xs">
+                <span className="min-w-0 flex-1 font-semibold text-slate-900">家具布置模式</span>
+                <button className="whitespace-nowrap rounded-md border border-stone-200 bg-white px-2.5 py-1.5 font-semibold text-stone-700 hover:border-stone-300" onClick={() => setShowFurnitureLabels((visible) => !visible)} type="button">标签 {showFurnitureLabels ? "开" : "关"}</button>
+                <button className="whitespace-nowrap rounded-md bg-slate-900 px-2.5 py-1.5 font-semibold text-white" onClick={() => { setActiveEditorPanel(null); setLeftDrawerMode("resources"); }} type="button">打开物品库</button>
+                <button className="whitespace-nowrap rounded-md px-2 py-1.5 font-semibold text-stone-500 hover:bg-stone-100" onClick={() => setFurnitureImmersiveMode(false)} type="button">退出</button>
               </div>
             )}
 
@@ -6431,7 +6397,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
 	                        <div className="min-w-0">
 	                          <p className="text-xs font-semibold text-emerald-900">{activeFurniture.moduleCategory ? "物品模块" : "家具对象"}</p>
 	                          <p className="mt-1 truncate text-sm font-semibold text-ink">{activeFurniture.name}</p>
-	                          <p className="mt-1 text-xs font-semibold text-emerald-800">占地 {activeFurnitureArea} 平米 · 角度 {Math.round(activeFurniture.position.rotation)}°</p>
+	                          <p className="mt-1 text-xs font-semibold text-emerald-800">{floorHouseStructure.rooms.find((room) => room.id === activeFurniture.roomId)?.name ?? activeFurniture.roomId ?? "未归属房间"} · 占地 {activeFurnitureArea} 平米 · 角度 {Math.round(activeFurniture.position.rotation)}°</p>
 	                        </div>
 	                      </div>
 	                      <label className="mt-3 block text-xs text-stone-500">
@@ -6627,6 +6593,18 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                             材质
                             <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400" disabled={activeFurniture.locked} value={activeFurniture.material} onChange={(event) => updateActiveObject({ material: event.target.value })} />
                           </label>
+                          <MaterialSwatchPicker
+                            disabled={activeFurniture.locked}
+                            value={activeFurniture.render3d?.primaryMaterial}
+                            onChange={(token) => {
+                              const definition = render3DMaterialTokenCatalog[token];
+                              updateActiveObject({
+                                material: definition.label,
+                                color: definition.color,
+                                render3d: { ...activeFurniture.render3d, primaryMaterial: token, styleSource: "manual" }
+                              });
+                            }}
+                          />
 	                        </div>
 	                      </details>
 	                      <FurnitureMetadataEditor
@@ -6881,10 +6859,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           </RightPanelFrame>
         </aside>}
         <div className="relative z-40 hidden border-l border-stone-200/80 bg-white lg:block">
-          <RightPanelRail activePanel={activeEditorPanel} errorCount={editorErrorCount} onSelect={(panel) => setActiveEditorPanel((currentPanel) => currentPanel === panel ? null : panel)} />
+          <RightPanelRail activePanel={activeEditorPanel} errorCount={editorErrorCount} onSelect={handleEditorPanelSelect} />
         </div>
         <div className="absolute right-3 top-3 z-[65] lg:hidden">
-          <RightPanelRail activePanel={activeEditorPanel} errorCount={editorErrorCount} onSelect={(panel) => setActiveEditorPanel((currentPanel) => currentPanel === panel ? null : panel)} />
+          <RightPanelRail activePanel={activeEditorPanel} errorCount={editorErrorCount} onSelect={handleEditorPanelSelect} />
         </div>
       </section>
 

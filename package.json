@@ -45,6 +45,7 @@
     "test:outdoor-living": "node --experimental-strip-types scripts/test-outdoor-living-system.mjs",
     "test:model-refinement-round3": "node --experimental-strip-types scripts/test-model-refinement-round3.mjs",
     "test:model-refinement-round4": "node --experimental-strip-types scripts/test-model-refinement-round4.mjs",
+    "test:phase2-visual": "node --experimental-strip-types scripts/test-phase2-visual-system.mjs",
     "test:mobile": "playwright test tests/mobile-presentation.spec.ts --workers=1",
     "audit:schema-coverage": "python3 scripts/schema-coverage-report.py",
     "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:dimension-verification && pnpm test:furniture-placement && pnpm test:furniture-variants && pnpm test:furniture-heights && pnpm test:wet-area-orientation && pnpm test:construction-anchors && pnpm test:reusable-room-visuals && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:lighting-design && pnpm test:construction-export && pnpm test:save-service && pnpm test:object-sync && pnpm test:unified-scene && pnpm test:3d-structure && pnpm test:scene-heights && pnpm test:drawing-3d && pnpm test:room-tour && pnpm test:exploration && pnpm test:floor-camera && pnpm test:stair-systems && pnpm test:tuscan-surfaces",

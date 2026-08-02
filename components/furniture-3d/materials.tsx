@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import type { ResolvedRender3DMaterialLayer, Render3DMaterialRole } from "@/lib/render3d-assets";
+import { useProceduralPbrMaps, type ProceduralPbrKind } from "@/components/scene-3d/procedural-pbr";
 
 type Props = {
   layer: ResolvedRender3DMaterialLayer;
@@ -127,14 +128,39 @@ function drawFurnitureTexture(layer: ResolvedRender3DMaterialLayer, role: Render
 }
 
 export function FurnitureMaterial({ layer, role = layer.role, color, repeat = [1, 1], roughness, metalness, opacity, emissiveIntensity, side }: Props) {
-  const texture = useMemo(() => drawFurnitureTexture(layer, role), [layer.color, layer.token, role]);
-  useEffect(() => () => texture?.dispose(), [texture]);
-  if (texture) texture.repeat.set(repeat[0], repeat[1]);
+  const pbrKind: ProceduralPbrKind | null = ["wood", "fabric", "leather", "stone", "metal", "glass", "ceramic"].includes(role)
+    ? role as ProceduralPbrKind
+    : role === "generic" ? "wall" : null;
+  const maps = useProceduralPbrMaps({ kind: pbrKind, baseColor: color ?? layer.color, repeat });
   const resolvedOpacity = opacity ?? layer.opacity ?? 1;
+  if (role === "glass") {
+    return (
+      <meshPhysicalMaterial
+        color={color ?? layer.color}
+        map={maps?.map}
+        roughnessMap={maps?.roughnessMap}
+        roughness={roughness ?? layer.roughness}
+        metalness={metalness ?? layer.metalness}
+        transmission={0.72}
+        thickness={0.018}
+        ior={1.48}
+        envMapIntensity={1.05}
+        transparent
+        opacity={resolvedOpacity}
+        depthWrite={false}
+        side={side ?? THREE.DoubleSide}
+      />
+    );
+  }
   return (
     <meshStandardMaterial
       color={color ?? layer.color}
-      map={texture ?? undefined}
+      map={maps?.map}
+      normalMap={maps?.normalMap}
+      normalScale={new THREE.Vector2(role === "fabric" ? 0.22 : role === "wood" ? 0.16 : 0.12, role === "fabric" ? 0.22 : role === "wood" ? 0.16 : 0.12)}
+      roughnessMap={maps?.roughnessMap}
+      aoMap={maps?.aoMap}
+      aoMapIntensity={role === "fabric" ? 0.32 : 0.22}
       roughness={roughness ?? layer.roughness}
       metalness={metalness ?? layer.metalness}
       transparent={resolvedOpacity < 1}

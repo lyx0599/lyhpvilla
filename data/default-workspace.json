@@ -11499,13 +11499,13 @@
       "roomId": "ROOM-B2-005",
       "dimensions": {
         "width": 260,
-        "depth": 38,
+        "depth": 68,
         "height": 220,
         "unit": "cm"
       },
       "material": "暖橡木方格柜体 + 超白透明玻璃门 + 黑钛细框 + 暖光层板灯",
-      "note": "按 5 列 × 4 行设计 20 个接近正方形的纪念展示格；每格设透明玻璃门，大小纪念品分散陈列。",
-      "constructionNote": "2600x380x2200mm，5x4 方格；玻璃门采用安全玻璃与缓冲铰链，逐排设置可检修暖光灯带。",
+      "note": "柜内直接设置两层大型乐高展位：上层放 71043 霍格沃茨城堡，下层放 10276 罗马斗兽场；其余格位继续展示旅行纪念品。",
+      "constructionNote": "柜深加至 680mm；霍格沃茨层净空不小于 780x520x680mm，斗兽场层净空不小于 650x650x380mm，玻璃门、承重层板及灯带统一定制。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -11571,7 +11571,7 @@
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "glassDisplay",
+        "variantId": "b2MemorialLegoDisplay",
         "variationSeed": 2245613984,
         "styleSource": "manual",
         "cabinetVisual": {
@@ -11610,7 +11610,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "260x38x220cm",
+        "reserveSize": "260x68x220cm",
         "wallDependency": "绑定 W-B2-008，安装前按墙面完成面复尺并复核收口。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -11618,7 +11618,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "2600x380x2200mm，5x4 方格；玻璃门采用安全玻璃与缓冲铰链，逐排设置可检修暖光灯带。"
+        "notes": "霍格沃茨城堡与罗马斗兽场直接陈列在柜内两层大型展位；层板按大型模型重量复核，玻璃门保留安全拿取空间。"
       },
       "constructionAnchors": {
         "points": [
@@ -19336,21 +19336,21 @@
     {
       "id": "furn-b2-study-wine-cabinet-001",
       "code": "WC-B2-01",
-      "name": "B2 书房酒收纳柜",
+      "name": "B2 书房整墙酒收纳柜",
       "type": "cabinet",
       "moduleCategory": "storage",
       "moduleType": "cabinet",
       "floorId": "B2",
       "roomId": "ROOM-B2-005",
       "dimensions": {
-        "width": 80,
-        "depth": 40,
-        "height": 210,
+        "width": 185,
+        "depth": 45,
+        "height": 240,
         "unit": "cm"
       },
-      "material": "深胡桃木酒格 + 玻璃展示面 + 暖光层板",
-      "note": "布置在书房南侧空墙最左端，方格横放酒瓶，下部封闭柜收纳酒具与备品。",
-      "constructionNote": "柜体固定防倾倒，内部预留低压灯带电源并保持通风。",
+      "material": "通墙深胡桃木酒格 + 烟灰玻璃展示门 + 暖光层板 + 下部封闭酒具柜",
+      "note": "向左扩展并占满书房 W-B2-011 墙段，整墙设置横放酒瓶格、立放展示格与下部封闭收纳。",
+      "constructionNote": "按 W-B2-011 书房侧 1850mm 墙段满墙复尺定制，柜体到顶收口、防倾倒固定，预留低压灯带电源与通风缝。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -19358,8 +19358,8 @@
         "exhaust": false
       },
       "position": {
-        "x": 35.8333333333,
-        "y": 84.2222222222,
+        "x": 40.1958333333,
+        "y": 84.1666666667,
         "rotation": 180
       },
       "color": "#6b4935",
@@ -19383,21 +19383,21 @@
     {
       "id": "furn-b2-study-handwash-001",
       "code": "HW-B2-01",
-      "name": "B2 书房迷你洗手台",
+      "name": "B2 书房转角迷你水吧",
       "type": "vanity",
       "moduleCategory": "bath",
       "moduleType": "vanity",
       "floorId": "B2",
       "roomId": "ROOM-B2-005",
       "dimensions": {
-        "width": 55,
-        "depth": 40,
-        "height": 85,
+        "width": 120,
+        "depth": 55,
+        "height": 95,
         "unit": "cm"
       },
-      "material": "暖木悬浮柜 + 一体式小台盆 + 古铜龙头",
-      "note": "紧邻酒柜设置，供洗手、洗杯和简单清洁使用，不设置镜柜。",
-      "constructionNote": "预留冷热水与墙排，台面和墙面交接处做防水收口。",
+      "material": "暖橡木水吧柜 + 洞石台面 + 小水槽 + 独立直饮龙头 + 杯具开放格",
+      "note": "移到书房左侧 W-B2-008 与 W-B2-010 转角，集洗手、洗杯、常温直饮和热饮取水于一体。",
+      "constructionNote": "1200mm 转角小水吧，预留冷热水、墙排、净水进水、设备排水及两组防溅插座；台下设置净水主机与即热设备检修位。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -19405,15 +19405,15 @@
         "exhaust": false
       },
       "position": {
-        "x": 41.5,
-        "y": 84.2222222222,
+        "x": 12.9166666667,
+        "y": 83.6111111111,
         "rotation": 180
       },
       "color": "#d8d1c6",
-      "hostWallId": "W-B2-011",
+      "hostWallId": "W-B2-010",
       "render3d": {
         "assetType": "bathroomVanity",
-        "variantId": "floating",
+        "variantId": "b2MiniWaterBar",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
         "primaryMaterial": "warmOak",
@@ -19427,7 +19427,7 @@
         "wetAreaVisual": {
           "fixtureKind": "vanity",
           "basinCount": 1,
-          "floating": true,
+          "floating": false,
           "mirrorStyle": "none",
           "frameFinish": "bronze",
           "mirrorHeightMm": 0,
@@ -19436,8 +19436,9 @@
         "variationSeed": 1539144998
       },
       "mepMeta": {
-        "needsSocket": false,
-        "socketCount": 0,
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 1100,
         "needsSwitch": false,
         "switchControl": [],
         "needsLighting": false,
@@ -19448,8 +19449,8 @@
         "needsNetwork": false,
         "needsVentilation": false,
         "needsSmartControl": false,
-        "relatedCircuit": "防溅/防水回路",
-        "notes": "供洗手和洗杯使用，墙排优先，不设置镜柜。"
+        "relatedCircuit": "水吧小家电/防溅回路",
+        "notes": "集成洗手、洗杯与直饮功能；台下净水主机和即热设备必须保留可拆检修口。"
       },
       "constructionAnchors": {
         "points": [
@@ -19491,71 +19492,8 @@
           "width": 180,
           "depth": 160
         },
-        "installationHeightMm": 850,
-        "notes": "冷热水与墙排随小台盆移动同步，墙面交接处做防水收口。"
-      }
-    },
-    {
-      "id": "furn-b2-study-water-dispenser-001",
-      "code": "WD-B2-01",
-      "name": "B2 书房直饮水机",
-      "type": "custom",
-      "moduleCategory": "appliance",
-      "floorId": "B2",
-      "roomId": "ROOM-B2-005",
-      "dimensions": {
-        "width": 40,
-        "depth": 36,
-        "height": 125,
-        "unit": "cm"
-      },
-      "material": "暖白机身 + 黑色触控面板 + 冷热直饮龙头",
-      "note": "位于洗手台右侧，提供常温、冷水与热水，形成完整的书房酒水角。",
-      "constructionNote": "预留净水进水、排水和独立五孔插座，设备两侧保留散热检修缝。",
-      "serviceRequirements": {
-        "water": true,
-        "drainage": true,
-        "power": true,
-        "exhaust": false
-      },
-      "position": {
-        "x": 45.9166666667,
-        "y": 84.2222222222,
-        "rotation": 180
-      },
-      "color": "#f2efe8",
-      "hostWallId": "W-B2-011",
-      "render3d": {
-        "assetType": "generic",
-        "variantId": "b2DrinkingWaterStation",
-        "detailLevel": "presentation",
-        "stylePreset": "modernNatural",
-        "primaryMaterial": "warmWhiteCeramic",
-        "secondaryMaterial": "smokedGlass",
-        "accentMaterial": "brushedBronze",
-        "visibleIn3d": true,
-        "selectableIn3d": true,
-        "childrenMode": "grouped",
-        "styleSource": "manual",
-        "styleLocked": true,
-        "variationSeed": 2415945029
-      },
-      "mepMeta": {
-        "needsSocket": true,
-        "socketCount": 1,
-        "socketHeight": 500,
-        "needsSwitch": false,
-        "switchControl": [],
-        "needsLighting": false,
-        "needsWaterSupply": true,
-        "waterSupplyType": "cold",
-        "needsDrainage": true,
-        "drainageType": "equipmentDrain",
-        "needsNetwork": false,
-        "needsVentilation": false,
-        "needsSmartControl": false,
-        "relatedCircuit": "厨房/水吧小家电回路",
-        "notes": "净水进水、设备排水和插座集中在设备背后可检修区。"
+        "installationHeightMm": 950,
+        "notes": "冷热水、净水进水、设备排水与墙排随转角水吧同步迁移，墙面交接处做防水收口。"
       }
     },
     {
@@ -27684,7 +27622,7 @@
       "description": "近距离观察模块坐垫、独立靠背、底座和不对称靠包。"
     }
   ],
-  "updatedAt": "2026-07-14T08:00:00.000Z",
+  "updatedAt": "2026-08-02T00:00:00.000Z",
   "lightingDesign": {
     "version": "modern-warm-v1",
     "style": "modern-warm",
@@ -31535,5 +31473,5 @@
       "灯槽、风口和检修口综合定位"
     ]
   },
-  "revision": 7
+  "revision": 8
 }

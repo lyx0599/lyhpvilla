@@ -5,6 +5,8 @@ import type { Dispatch, PointerEvent as ReactPointerEvent, ReactNode, SetStateAc
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { FurnitureFamily3D } from "@/components/furniture-family-3d";
 import { ConstructionAnchorLayer } from "@/components/furniture-3d/construction-anchor-layer";
+import { SelectionBounds } from "@/components/scene-3d/selection-bounds";
+import { useProceduralPbrMaps, type ProceduralPbrKind } from "@/components/scene-3d/procedural-pbr";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -612,7 +614,10 @@ function SelectableFurnitureGroup({
   rotation: number;
   children: ReactNode;
 }) {
-  const { item, resolvedAsset, onSelect, onHover, onClearHover } = props;
+  const { item, resolvedAsset, onSelect, onHover, onClearHover, selected } = props;
+  const selectionWidth = Math.max(0.12, item.dimensions.width / 100);
+  const selectionDepth = Math.max(0.08, item.dimensions.depth / 100);
+  const selectionHeight = getFurnitureActualHeight(item);
   const childContent = resolvedAsset.childrenMode === "grouped"
     ? <group name={`${item.id}-render3d-children`} userData={{ childrenMode: "grouped" }}>{children}</group>
     : children;
@@ -636,6 +641,7 @@ function SelectableFurnitureGroup({
       }}
     >
       {childContent}
+      {selected && <SelectionBounds width={selectionWidth} height={selectionHeight} depth={selectionDepth} />}
     </group>
   );
 }
@@ -2098,12 +2104,26 @@ function RoomFloorMesh({
     floorStyle.kind === "wood" ? 4.8 : floorStyle.kind === "microcement" ? 2.2 : floorStyle.textureScale ?? 3.2,
     floorStyle.kind === "wood" ? 1.5 : floorStyle.kind === "microcement" ? 2.2 : floorStyle.textureScale ?? 3.2
   );
+  const floorPbr = useProceduralPbrMaps({
+    kind: floorStyle.kind === "wood" ? "wood" : floorStyle.kind === "microcement" ? "microcement" : "stone",
+    baseColor: floorStyle.base,
+    accentColor: floorStyle.joint,
+    repeat: [
+      floorStyle.kind === "wood" ? 4.8 : floorStyle.textureScale ?? 3.2,
+      floorStyle.kind === "wood" ? 1.5 : floorStyle.textureScale ?? 3.2
+    ]
+  });
   return (
     <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018 + index * 0.002, 0]}>
       <primitive object={geometry} attach="geometry" />
       <meshStandardMaterial
         color={floorStyle.base}
-        map={floorTexture ?? undefined}
+        map={floorPbr?.map ?? floorTexture ?? undefined}
+        normalMap={floorPbr?.normalMap}
+        normalScale={new THREE.Vector2(floorStyle.kind === "wood" ? 0.18 : 0.12, floorStyle.kind === "wood" ? 0.18 : 0.12)}
+        roughnessMap={floorPbr?.roughnessMap}
+        aoMap={floorPbr?.aoMap}
+        aoMapIntensity={0.26}
         roughness={floorStyle.roughness}
         metalness={0.03}
       />
@@ -2986,6 +3006,13 @@ function LineBox({
   const width = Math.max(0.025, widthMm * MM_TO_M);
   const height = Math.max(0.04, heightMm * MM_TO_M);
   const texture = useProceduralTexture(textureKind, color, textureAccent ?? "#8a8075", Math.max(1.2, metrics.length * 0.9) * textureScale, Math.max(1, height * 1.8) * textureScale);
+  const pbrKind: ProceduralPbrKind | null = textureKind === "wood" ? "wood" : textureKind === "stone" ? "stone" : textureKind === "fabric" ? "fabric" : textureKind === "microcement" ? "microcement" : textureKind === "wall" ? "wall" : null;
+  const pbrMaps = useProceduralPbrMaps({
+    kind: pbrKind,
+    baseColor: color,
+    accentColor: textureAccent,
+    repeat: [Math.max(1.2, metrics.length * 0.9) * textureScale, Math.max(1, height * 1.8) * textureScale]
+  });
   return (
     <mesh
       castShadow={selected || opacity >= 0.72}
@@ -3007,8 +3034,13 @@ function LineBox({
     >
       <boxGeometry args={[metrics.length, height, width]} />
       <meshStandardMaterial
-        color={selected ? "#2563eb" : color}
-        map={texture ?? undefined}
+        color={color}
+        map={pbrMaps?.map ?? texture ?? undefined}
+        normalMap={pbrMaps?.normalMap}
+        normalScale={new THREE.Vector2(textureKind === "wood" ? 0.16 : 0.1, textureKind === "wood" ? 0.16 : 0.1)}
+        roughnessMap={pbrMaps?.roughnessMap}
+        aoMap={pbrMaps?.aoMap}
+        aoMapIntensity={0.2}
         depthWrite={opacity >= 0.72}
         transparent={opacity < 1}
         opacity={opacity}
@@ -3789,11 +3821,11 @@ function OpeningMesh({
   const isGlassDoor = isDoor && "material" in opening && opening.material?.toLowerCase().includes("glass");
   const doorVisual = isDoor ? (opening as HouseDoor).visual : undefined;
   const doorStyle = doorVisual?.style ?? "standard";
-  const color = selected ? "#2563eb" : isDoor ? (isGlassDoor ? "#8fd3e8" : effectMaterialCatalog.doorWood.color) : "#b6ddeb";
+  const color = isDoor ? (isGlassDoor ? "#8fd3e8" : effectMaterialCatalog.doorWood.color) : "#b6ddeb";
   const opacity = isDoor ? (isGlassDoor ? 0.44 : 1) : 0.42;
   const woodTexture = useProceduralTexture(isDoor && !isGlassDoor ? "wood" : null, effectMaterialCatalog.doorWood.color, "#b59b7f", 1.2, 2.2);
-  const doorWoodColor = selected ? "#2563eb" : doorVisual?.woodColor ?? color;
-  const frameColor = selected ? "#2563eb" : doorVisual?.frameColor ?? effectMaterialCatalog.blackMetal.color;
+  const doorWoodColor = doorVisual?.woodColor ?? color;
+  const frameColor = doorVisual?.frameColor ?? effectMaterialCatalog.blackMetal.color;
   const doorHardwareColor = doorVisual?.hardwareColor ?? "#c9a46a";
   const doorGlassColor = doorVisual?.glassColor ?? "#d7c7aa";
   const frameWidth = Math.min(0.065, Math.max(0.035, width * 0.045));
@@ -3810,10 +3842,10 @@ function OpeningMesh({
   const windowFrameDepth = Math.min(0.115, Math.max(0.082, host.thickness * MM_TO_M * 0.46));
   const windowPanelWidth = Math.max(0.12, (width - windowOuterFrameWidth * 2) / windowPanelCount);
   const windowGlassHeight = Math.max(0.16, height - windowOuterFrameWidth * 2 - windowSashWidth * 1.4);
-  const windowFrameColor = selected ? "#2563eb" : "#493f35";
-  const windowGasketColor = selected ? "#1d4ed8" : "#28241f";
-  const windowGlassColor = selected ? "#93c5fd" : "#d8ddd7";
-  const windowSillColor = selected ? "#bfdbfe" : "#cbb89b";
+  const windowFrameColor = "#493f35";
+  const windowGasketColor = "#28241f";
+  const windowGlassColor = "#d8ddd7";
+  const windowSillColor = "#cbb89b";
 
   return (
     <group
@@ -3832,6 +3864,11 @@ function OpeningMesh({
         onClearHover(opening.id);
       }}
     >
+      {selected && (
+        <group position={[0, isDoor ? height / 2 : sillHeight + height / 2, 0]}>
+          <SelectionBounds width={width + 0.14} height={height + 0.08} depth={Math.max(0.14, host.thickness * MM_TO_M + 0.08)} />
+        </group>
+      )}
       {isDoor ? (
         <>
           {[-1, 1].map((xSide) => (
@@ -3982,7 +4019,7 @@ function OpeningMesh({
           {/* Soft plaster return above the recessed frame; the side returns are supplied by the host wall opening. */}
           <mesh castShadow receiveShadow position={[0, height / 2 + 0.019, -0.002]}>
             <boxGeometry args={[width + 0.075, 0.038, Math.max(0.11, host.thickness * MM_TO_M + 0.025)]} />
-            <meshStandardMaterial color={selected ? "#bfdbfe" : "#d8d2c7"} roughness={0.84} metalness={0.005} />
+            <meshStandardMaterial color="#d8d2c7" roughness={0.84} metalness={0.005} />
           </mesh>
         </group>
       )}
@@ -4665,7 +4702,9 @@ function FurnitureBlock({
   const assetType = resolvedAsset.assetType;
   const renderVariant = getFurnitureRenderVariant(item, palette, resolvedAsset.materials);
   const materialStyle = getFurnitureMaterialStyle(item, materialPreview, designStyle);
-  const useSelectionTint = selected && !materialPreview;
+  // Selection is expressed by a thin bounds outline in SelectableFurnitureGroup,
+  // so the real material remains readable in both edit and material-preview modes.
+  const useSelectionTint = false;
   const color = useSelectionTint ? "#2563eb" : materialStyle.color;
   const opacity = useSelectionTint ? Math.max(0.78, materialStyle.opacity) : materialStyle.opacity;
   const transparent = opacity < 1;
@@ -6179,6 +6218,24 @@ function Desk3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function BathroomVanity3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2MiniWaterBar") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+    const floorY = -height / 2;
+    const frontZ = depth / 2 + 0.02;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width, height * 0.78, depth]} position={[0, floorY + height * 0.39, 0]} radius={0.03} color={renderVariant.wood} roughness={0.54} />
+        <RoundedBoxMesh args={[width * 1.02, 0.065, depth * 1.02]} position={[0, floorY + height * 0.81, 0]} radius={0.018} color="#c9b49a" roughness={0.3} />
+        <mesh position={[-width * 0.22, floorY + height * 0.845, 0]}><cylinderGeometry args={[Math.min(0.19, width * 0.17), Math.min(0.19, width * 0.17), 0.035, 32]} /><meshStandardMaterial color="#aeb8b6" roughness={0.2} metalness={0.42} /></mesh>
+        <mesh position={[-width * 0.22, floorY + height * 0.98, -depth * 0.12]}><torusGeometry args={[0.085, 0.013, 10, 24, Math.PI]} /><meshStandardMaterial color={renderVariant.metal} roughness={0.2} metalness={0.76} /></mesh>
+        <mesh position={[width * 0.16, floorY + height * 0.98, -depth * 0.12]}><torusGeometry args={[0.07, 0.011, 10, 24, Math.PI]} /><meshStandardMaterial color="#b7c4c6" roughness={0.16} metalness={0.78} /></mesh>
+        <RoundedBoxMesh args={[width * 0.22, height * 0.22, 0.025]} position={[width * 0.27, floorY + height * 0.58, frontZ]} radius={0.01} color="#20292c" roughness={0.16} metalness={0.2} />
+        {[-0.28, 0, 0.28].map((ratio) => <RoundedBoxMesh key={`waterbar-door-${ratio}`} args={[width * 0.27, height * 0.58, 0.022]} position={[ratio * width, floorY + height * 0.39, frontZ]} radius={0.01} color={ratio === 0 ? "#d9c7ad" : renderVariant.wood} roughness={0.5} />)}
+        <RoundedBoxMesh args={[width * 0.32, 0.028, 0.02]} position={[width * 0.27, floorY + height * 0.82, frontZ + 0.02]} radius={0.005} color="#ffd695" emissive="#ffc96b" emissiveIntensity={0.5} roughness={0.2} />
+      </SelectableFurnitureGroup>
+    );
+  }
   return <VariantFurniture3DGroup {...props} />;
 }
 
@@ -6430,6 +6487,29 @@ function Pegboard3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2MemorialLegoDisplay") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+    const floorY = -height / 2;
+    const frontZ = depth / 2 + 0.022;
+    const shelfY = floorY + height * 0.36;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width, height, depth]} radius={0.028} color={renderVariant.wood} roughness={0.54} />
+        <RoundedBoxMesh args={[width * 0.9, height * 0.88, 0.035]} position={[0, floorY + height * 0.52, frontZ]} radius={0.014} color="#b9d2d4" transparent opacity={0.22} roughness={0.06} metalness={0.1} />
+        <RoundedBoxMesh args={[width * 0.9, 0.045, depth * 0.88]} position={[0, shelfY, 0]} radius={0.008} color="#b9976f" roughness={0.46} />
+        <group position={[0, floorY + height * 0.16, 0]}>
+          <mesh><cylinderGeometry args={[width * 0.29, width * 0.33, height * 0.17, 40]} /><meshStandardMaterial color="#c9ad83" roughness={0.68} /></mesh>
+          {Array.from({ length: 12 }, (_, index) => <mesh key={`colosseum-arch-${index}`} position={[(index % 6 - 2.5) * width * 0.1, (Math.floor(index / 6) - 0.5) * height * 0.075, depth * 0.29]}><boxGeometry args={[width * 0.055, height * 0.05, 0.02]} /><meshStandardMaterial color="#6b5844" roughness={0.7} /></mesh>)}
+        </group>
+        <group position={[0, floorY + height * 0.66, 0]}>
+          <RoundedBoxMesh args={[width * 0.72, height * 0.18, depth * 0.58]} radius={0.012} color="#a89578" roughness={0.7} />
+          {[-0.3, -0.1, 0.12, 0.31].map((ratio, index) => <group key={`hogwarts-tower-${ratio}`} position={[ratio * width, height * (0.12 + (index % 2) * 0.04), 0]}><mesh><cylinderGeometry args={[width * 0.055, width * 0.07, height * (0.22 + (index % 2) * 0.08), 12]} /><meshStandardMaterial color="#81745f" roughness={0.72} /></mesh><mesh position={[0, height * (0.14 + (index % 2) * 0.04), 0]}><coneGeometry args={[width * 0.075, height * 0.12, 12]} /><meshStandardMaterial color="#454d4c" roughness={0.62} /></mesh></group>)}
+        </group>
+        {[-0.18, 0.22].map((ratio) => <RoundedBoxMesh key={`lego-light-${ratio}`} args={[width * 0.78, 0.022, 0.02]} position={[0, floorY + height * (0.38 + ratio), frontZ + 0.02]} radius={0.005} color="#ffd796" emissive="#ffc96b" emissiveIntensity={0.58} roughness={0.2} />)}
+      </SelectableFurnitureGroup>
+    );
+  }
   if (props.item.render3d?.cabinetVisual?.layout === "squareGrid") return <FineVariantFurniture3DGroup {...props} />;
   return <VariantFurniture3DGroup {...props} />;
 }

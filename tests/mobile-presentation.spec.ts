@@ -79,8 +79,11 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(page.getByRole("button", { name: "自由浏览", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "2D 图纸", exact: true }).click();
 
-  const furniture = page.locator("[data-furniture-id]").first();
-  await expect(furniture).toBeVisible();
+  const firstFurniture = page.locator("[data-furniture-id]").first();
+  await expect(firstFurniture).toBeVisible();
+  const furnitureId = await firstFurniture.getAttribute("data-furniture-id");
+  expect(furnitureId).toBeTruthy();
+  const furniture = page.locator(`[data-furniture-id="${furnitureId}"]`);
   const styleBefore = await furniture.getAttribute("style");
   await furniture.click({ force: true });
   await expect(page.getByRole("button", { name: "关闭信息卡" })).toBeVisible();
