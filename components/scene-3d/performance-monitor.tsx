@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { getPbrMaterialCacheStats } from "./pbr-material";
 import { getProceduralPbrCacheStats } from "./procedural-pbr";
+import { getReflectionEnvironmentStats } from "./reflection-environment";
 
 export type ScenePerformanceSnapshot = {
   mode: "edit" | "presentation";
@@ -23,7 +24,16 @@ export type ScenePerformanceSnapshot = {
   triangles: number;
   dpr: number;
   textureCacheEntries: number;
+  activeTextureCacheEntries: number;
   materialCacheEntries: number;
+  activeMaterialCacheEntries: number;
+  textureCacheEvictions: number;
+  materialCacheEvictions: number;
+  pbrMapGenerations: number;
+  pbrMaterialCreations: number;
+  pbrMaterialCacheHits: number;
+  pmremGenerations: number;
+  shaderPrograms: number;
   estimatedTextureCacheBytes: number;
   usedJsHeapBytes: number | null;
   measuredAt: string;
@@ -122,7 +132,16 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
       triangles: gl.info.render.triangles,
       dpr: gl.getPixelRatio(),
       textureCacheEntries: proceduralCache.entries,
+      activeTextureCacheEntries: proceduralCache.activeEntries,
       materialCacheEntries: materialCache.materialInstances,
+      activeMaterialCacheEntries: materialCache.activeMaterialInstances,
+      textureCacheEvictions: proceduralCache.evictions,
+      materialCacheEvictions: materialCache.evictions,
+      pbrMapGenerations: proceduralCache.generatedMaps,
+      pbrMaterialCreations: materialCache.createdMaterials,
+      pbrMaterialCacheHits: materialCache.cacheHits,
+      pmremGenerations: getReflectionEnvironmentStats().pmremGenerations,
+      shaderPrograms: gl.info.programs?.length ?? 0,
       estimatedTextureCacheBytes: proceduralCache.estimatedBytes,
       usedJsHeapBytes: memory?.usedJSHeapSize ?? null,
       measuredAt: new Date().toISOString()

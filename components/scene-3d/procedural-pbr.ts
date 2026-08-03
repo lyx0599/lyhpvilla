@@ -62,6 +62,8 @@ type PbrMapCacheEntry = {
 const MAX_PBR_MAP_CACHE_ENTRIES = 32;
 const pbrMapCache = new Map<string, PbrMapCacheEntry>();
 let pruneTimer: number | null = null;
+let pbrMapGenerationCount = 0;
+let pbrMapEvictionCount = 0;
 
 function disposePbrMaps(maps: ProceduralPbrMaps) {
   [maps.map, maps.normalMap, maps.roughnessMap, maps.aoMap, maps.bumpMap].forEach((texture) => texture?.dispose());
@@ -77,6 +79,7 @@ function prunePbrMapCache() {
     const [key, entry] = idleEntries.shift()!;
     pbrMapCache.delete(key);
     disposePbrMaps(entry.maps);
+    pbrMapEvictionCount += 1;
   }
 }
 
@@ -129,6 +132,7 @@ function buildPbrMaps(
   neutralColor = false
 ) {
   if (typeof document === "undefined") return null;
+  pbrMapGenerationCount += 1;
   const resource = getShowroomMaterialResource(resourceId);
   const unified = getPbrMaterialDefinition(token).definition;
   const resolvedBase = neutralColor ? "#ffffff" : resource?.baseColor ?? baseColor ?? unified.baseColor;
@@ -506,6 +510,7 @@ export function useProceduralPbrMaps({
           refs: 0,
           lastUsed: Date.now()
         });
+        schedulePbrMapPrune();
       }
       return generated;
     },
@@ -534,6 +539,8 @@ export function getProceduralPbrCacheStats() {
     entries: pbrMapCache.size,
     activeEntries: Array.from(pbrMapCache.values()).filter((entry) => entry.refs > 0).length,
     maxEntries: MAX_PBR_MAP_CACHE_ENTRIES,
-    estimatedBytes: Array.from(pbrMapCache.values()).reduce((sum, entry) => sum + entry.estimatedBytes, 0)
+    evictions: pbrMapEvictionCount,
+    estimatedBytes: Array.from(pbrMapCache.values()).reduce((sum, entry) => sum + entry.estimatedBytes, 0),
+    generatedMaps: pbrMapGenerationCount
   };
 }

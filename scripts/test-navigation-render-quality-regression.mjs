@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [planner, toolbar, scene, pbr, procedural, primitives] = await Promise.all([
+const [planner, toolbar, scene, pbr, procedural, primitives, reflection] = await Promise.all([
   readFile(new URL("../components/space-planner.tsx", import.meta.url), "utf8"),
   readFile(new URL("../components/editor/context-toolbar.tsx", import.meta.url), "utf8"),
   readFile(new URL("../components/floor-3d-view.tsx", import.meta.url), "utf8"),
   readFile(new URL("../components/scene-3d/pbr-material.tsx", import.meta.url), "utf8"),
   readFile(new URL("../components/scene-3d/procedural-pbr.ts", import.meta.url), "utf8"),
-  readFile(new URL("../components/furniture-3d/primitives.tsx", import.meta.url), "utf8")
+  readFile(new URL("../components/furniture-3d/primitives.tsx", import.meta.url), "utf8"),
+  readFile(new URL("../components/scene-3d/reflection-environment.tsx", import.meta.url), "utf8")
 ]);
 
 assert.match(planner, /useState\(true\).*contextToolbarExpanded|contextToolbarExpanded[^\n]*useState\(true\)/s, "desktop toolbar should default to expanded");
@@ -32,5 +33,7 @@ assert.match(pbr, /MAX_PBR_MATERIAL_CACHE_ENTRIES = 192/, "material cache should
 assert.match(pbr, /makeRoomForMaterial\(\)/, "material insertion should enforce the hard cache capacity");
 assert.match(pbr, /entry\.material\.dispose\(\)/, "evicted materials should be disposed");
 assert.doesNotMatch(primitives, /quality=\{surface\.quality \?\? detailLevel\}/, "geometry detail must not force presentation texture quality");
+assert.match(reflection, /refs: number/, "shared PMREM resources must track active references");
+assert.match(reflection, /pmremGenerationCount/, "PMREM generation count should be observable for fair measurement");
 
 console.log("navigation and render quality regression checks passed");

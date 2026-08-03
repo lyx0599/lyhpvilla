@@ -48,6 +48,9 @@ type CachedPbrMaterial = {
 const MAX_PBR_MATERIAL_CACHE_ENTRIES = 192;
 const materialCache = new Map<string, CachedPbrMaterial>();
 let materialPruneTimer: number | null = null;
+let pbrMaterialCreationCount = 0;
+let pbrMaterialCacheHitCount = 0;
+let pbrMaterialEvictionCount = 0;
 
 function pruneMaterialCache() {
   materialPruneTimer = null;
@@ -59,6 +62,7 @@ function pruneMaterialCache() {
     const [key, entry] = idleEntries.shift()!;
     materialCache.delete(key);
     if (typeof entry.material?.dispose === "function") entry.material.dispose();
+    pbrMaterialEvictionCount += 1;
   }
 }
 
@@ -74,6 +78,7 @@ function makeRoomForMaterial() {
     const [key, entry] = idleEntries.shift()!;
     materialCache.delete(key);
     if (typeof entry.material?.dispose === "function") entry.material.dispose();
+    pbrMaterialEvictionCount += 1;
   }
 }
 
@@ -214,6 +219,7 @@ export function PbrMaterial({
     const cached = materialCache.get(cacheKey);
     if (cached) {
       cached.lastUsed = Date.now();
+      pbrMaterialCacheHitCount += 1;
       return cached.material;
     }
     const common: THREE.MeshPhysicalMaterialParameters = {
@@ -250,6 +256,7 @@ export function PbrMaterial({
         clearcoatRoughness: clearcoatRoughness ?? definition.clearcoatRoughness ?? 0.5
       })
       : new THREE.MeshStandardMaterial(common);
+    pbrMaterialCreationCount += 1;
     created.name = `pbr:${resolved.token}:${resolvedQuality}:${resolvedDevice}`;
     created.userData = {
       materialToken: resolved.token,
@@ -265,7 +272,7 @@ export function PbrMaterial({
       materialCache.set(cacheKey, { material: created, refs: 0, lastUsed: Date.now() });
     }
     return created;
-  }, [cacheKey, clearcoat, clearcoatRoughness, clippingPlanes, definition, depthWrite, emissive, emissiveIntensity, envMapIntensity, maps, metalness, resolved.token, resolvedDevice, resolvedNormalStrength, resolvedOpacity, resolvedQuality, resolvedTransmission, roughness, side, thicknessMm, transform.repeat, transform.rotation]);
+  }, [cacheKey, clearcoat, clearcoatRoughness, clippingPlanes, definition, depthWrite, emissive, emissiveIntensity, envMapIntensity, maps, metalness, resolved.token, resolvedDevice, resolvedNormalStrength, resolvedOpacity, resolvedQuality, resolvedTransmission, roughness, side, thicknessMm, transform.repeat[0], transform.repeat[1], transform.rotation]);
 
   useEffect(() => {
     const entry = materialCache.get(cacheKey);
@@ -294,6 +301,9 @@ export function getPbrMaterialCacheStats() {
   return {
     materialInstances: materialCache.size,
     activeMaterialInstances: Array.from(materialCache.values()).filter((entry) => entry.refs > 0).length,
-    maxMaterialInstances: MAX_PBR_MATERIAL_CACHE_ENTRIES
+    maxMaterialInstances: MAX_PBR_MATERIAL_CACHE_ENTRIES,
+    createdMaterials: pbrMaterialCreationCount,
+    cacheHits: pbrMaterialCacheHitCount,
+    evictions: pbrMaterialEvictionCount
   };
 }

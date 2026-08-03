@@ -9,10 +9,10 @@ import { SelectionBounds } from "@/components/scene-3d/selection-bounds";
 import { useProceduralPbrMaps, type ProceduralPbrKind } from "@/components/scene-3d/procedural-pbr";
 import { PbrMaterial, PbrQualityProvider } from "@/components/scene-3d/pbr-material";
 import { ScenePerformanceMonitor } from "@/components/scene-3d/performance-monitor";
+import { SceneReflectionEnvironment } from "@/components/scene-3d/reflection-environment";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
 import { getShowroomMaterialResource } from "@/lib/showroom-material-resources";
 import { resolvePbrMaterialToken, type MaterialRole } from "@/lib/material-system";
@@ -7526,27 +7526,6 @@ function RenderToneMapping({
     gl.shadowMap.enabled = !mobilePresentationMode || mobileQuality === "high";
     gl.shadowMap.type = THREE.PCFSoftShadowMap;
   }, [exposure, gl, mobilePresentationMode, mobileQuality, presentationMode]);
-  return null;
-}
-
-function SceneReflectionEnvironment({ presentationMode, intensity }: { presentationMode: boolean; intensity?: number }) {
-  const { gl, scene } = useThree();
-  useEffect(() => {
-    const generator = new THREE.PMREMGenerator(gl);
-    generator.compileEquirectangularShader();
-    const environment = new RoomEnvironment();
-    const target = generator.fromScene(environment, 0.035);
-    const previousEnvironment = scene.environment;
-    const previousIntensity = scene.environmentIntensity;
-    scene.environment = target.texture;
-    scene.environmentIntensity = intensity ?? (presentationMode ? 0.72 : 0.46);
-    return () => {
-      scene.environment = previousEnvironment;
-      scene.environmentIntensity = previousIntensity;
-      target.dispose();
-      generator.dispose();
-    };
-  }, [gl, intensity, presentationMode, scene]);
   return null;
 }
 
