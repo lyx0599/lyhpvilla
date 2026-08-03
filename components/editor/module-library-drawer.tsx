@@ -14,6 +14,7 @@ type Props = {
   targetLabel: string;
   floorCounts: Record<InteriorModuleCategory, number>;
   expanded: boolean;
+  toolbarExpanded?: boolean;
   openCategories: Record<InteriorModuleCategory, boolean>;
   onToggleExpanded: () => void;
   onToggleCategory: (category: InteriorModuleCategory) => void;
@@ -41,12 +42,12 @@ function ModuleRow({ item, onAdd }: { item: InteriorModuleCatalogItem; onAdd: (i
   </div>;
 }
 
-export function ModuleLibraryDrawer({ groups, recentIds, targetLabel, floorCounts, expanded, openCategories, onToggleExpanded, onToggleCategory, onAdd, onClose }: Props) {
+export function ModuleLibraryDrawer({ groups, recentIds, targetLabel, floorCounts, expanded, toolbarExpanded = false, openCategories, onToggleExpanded, onToggleCategory, onAdd, onClose }: Props) {
   const allItems = groups.flatMap((group) => group.items);
   const recentItems = recentIds.map((id) => allItems.find((item) => item.id === id)).filter((item): item is InteriorModuleCatalogItem => Boolean(item));
   const commonItems = (recentItems.length ? recentItems : allItems.slice(0, 6)).slice(0, 6);
 
-  return <aside className="absolute inset-y-0 left-14 z-[58] flex w-[288px] min-h-0 flex-col border-r border-stone-200 bg-[#fbfaf7] shadow-[12px_0_28px_rgba(28,25,23,0.08)]" aria-label="物品模块库">
+  return <aside className={`absolute inset-y-0 z-[58] flex w-[288px] min-h-0 flex-col border-r border-stone-200 bg-[#fbfaf7] shadow-[12px_0_28px_rgba(28,25,23,0.08)] ${toolbarExpanded ? "left-[192px]" : "left-14"}`} aria-label="物品模块库">
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 px-3">
       <div className="min-w-0"><p className="text-sm font-semibold text-slate-900">物品库</p><p className="truncate text-[10px] text-stone-500">添加到 {targetLabel}</p></div>
       <button aria-label="关闭物品库" className="grid size-8 place-items-center rounded-md text-lg text-stone-400 hover:bg-stone-100" onClick={onClose} type="button">×</button>

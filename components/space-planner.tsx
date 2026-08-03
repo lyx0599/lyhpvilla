@@ -196,6 +196,7 @@ const LOCAL_CODE_FILE_DB_NAME = "villa-space-local-code-file";
 const LOCAL_CODE_FILE_STORE_NAME = "handles";
 const LOCAL_CODE_FILE_HANDLE_KEY = "default-workspace";
 const LOCAL_CODE_AUTO_SYNC_KEY = "villa-space-local-code-auto-sync";
+const CONTEXT_TOOLBAR_EXPANDED_KEY = "lyhp-editor-context-toolbar-expanded";
 const LOCAL_CODE_SYNC_ENDPOINT = "http://127.0.0.1:3011/default-workspace";
 const LOCAL_CODE_SYNC_HEALTH_ENDPOINT = "http://127.0.0.1:3011/health";
 const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
@@ -1167,19 +1168,19 @@ const oneFloorUKitchenDesign: CabinetDesign = {
   title: "1F U 型橱柜设计",
   designThinking: "把厨房压缩成清晰的 U 型工作三角：左侧负责烹饪，靠窗顶端负责洗涤，右侧和右下角承担备餐、冰箱和高频取物。",
   recommendedPlacement: "布置在 1F 厨房内，U 型顶端贴近北侧窗，灶台在左侧柜段，冰箱落在右下角。",
-  layoutNotes: ["靠窗顶端放两个水槽，适合洗菜、沥水和分区清洗", "左侧灶台两边留落锅和调味空间", "右下角冰箱靠近入口和备餐台，拿取后能直接进入台面操作"],
+  layoutNotes: ["靠窗顶端放一个大单槽，主龙头与净水龙头分设", "左侧灶台两边留落锅和调味空间", "右下角冰箱靠近入口和备餐台，拿取后能直接进入台面操作"],
   zones: [
     { id: "cook-left", label: "左侧灶台", role: "烹饪 / 排烟", widthPercent: 30, heightPercent: 100, detail: "左侧柜段嵌入灶台，下方收锅具，旁边留调味和落锅台面。", serviceNote: "确认燃气/电源、排烟方向和止逆阀位置。" },
-    { id: "window-sinks", label: "靠窗双水槽", role: "洗菜 / 沥水 / 净水", widthPercent: 40, heightPercent: 100, detail: "顶端靠窗设置两个水槽，一个主洗，一个辅助/沥水，采光好也便于通风。", serviceNote: "集中预留冷热水、净水、排水和洗碗机可能的电源。" },
+    { id: "window-sink", label: "靠窗大单槽", role: "洗菜 / 沥水 / 净水", widthPercent: 40, heightPercent: 100, detail: "顶端靠窗设置一个大单槽，主龙头与独立净水龙头分设。", serviceNote: "集中预留冷热水、净水、排水和洗碗机可能的电源。" },
     { id: "fridge-right", label: "右下角冰箱", role: "冷藏 / 高柜", widthPercent: 30, heightPercent: 100, detail: "冰箱放在 U 型右下角，避免打断靠窗操作面，也方便从客厅/餐桌拿取。", serviceNote: "冰箱建议独立回路，背部和侧边按设备要求留散热。" }
   ],
-  cautionNotes: ["U 型内部通道后续要用精确户型尺寸复核，尽量保证 900 mm 以上。", "双水槽必须结合现场上下水位置确认，排水坡度不够时要调整水槽或洗碗机位置。"]
+  cautionNotes: ["U 型内部通道后续要用精确户型尺寸复核，尽量保证 900 mm 以上。", "大单槽必须结合现场上下水位置确认，排水坡度不够时要调整水槽或洗碗机位置。"]
 };
 
 const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
   "furn-kitchen-run-001": {
     code: "KC-1F-U-T",
-    name: "U型橱柜靠窗双水槽段",
+    name: "U型橱柜靠窗大单槽（水槽）段",
     type: "kitchenCabinet",
     catalogId: "kitchen-base-cabinet",
     moduleCategory: "kitchen",
@@ -1187,8 +1188,8 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
     roomId: "ROOM-1F-002",
     dimensions: { width: 210, depth: 55, height: 90, unit: "cm" },
     material: "浅灰防潮柜体 + 石英石台面",
-    note: "U 型顶端靠窗，作为双水槽和主要洗涤台面。",
-    constructionNote: "靠窗顶端布置双水槽，集中复核冷热水、净水、排水和窗台高度。",
+    note: "U 型顶端靠窗，作为大单槽和主要洗涤台面。",
+    constructionNote: "靠窗顶端布置大单槽，集中复核冷热水、净水、排水和窗台高度。",
     serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
     position: { x: 54.5, y: 7.5, rotation: 0 },
     color: "#d9ddd5",
@@ -1238,7 +1239,7 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
     roomId: "ROOM-1F-002",
     dimensions: { width: 90, depth: 52, height: 12, unit: "cm" },
     material: "燃气灶 / 电磁灶预留",
-    note: "灶台放在 U 型左侧，和靠窗双水槽形成洗切炒动线。",
+    note: "灶台放在 U 型左侧，和靠窗大单槽形成洗切炒动线。",
     constructionNote: "左侧灶台需和烟道、燃气阀、电源及排烟路径一起复核。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: true },
     position: { x: 48.5, y: 24, rotation: 90 },
@@ -1246,35 +1247,19 @@ const oneFloorKitchenFurnitureOverrides: Record<string, Partial<Furniture>> = {
   },
   "furn-sink-001": {
     code: "SK-1F-01",
-    name: "靠窗左水槽",
+    name: "靠窗大单槽",
     type: "sink",
     catalogId: "kitchen-sink",
     moduleCategory: "kitchen",
     moduleType: "sink",
     roomId: "ROOM-1F-002",
-    dimensions: { width: 72, depth: 48, height: 20, unit: "cm" },
+    dimensions: { width: 80, depth: 48, height: 20, unit: "cm" },
     material: "不锈钢台下盆",
-    note: "靠窗顶端左侧水槽，作为主洗菜盆。",
-    constructionNote: "与右水槽共用给排水集中校核。",
+    note: "靠窗顶端居中设置大单槽，主龙头与净水龙头分设。",
+    constructionNote: "按 800×480mm 大单槽复尺，集中校核冷热水、净水、排水和检修空间。",
     serviceRequirements: { water: true, drainage: true, power: false, exhaust: false },
-    position: { x: 51.5, y: 7.5, rotation: 0 },
+    position: { x: 54.4, y: 7.5, rotation: 0 },
     color: "#9cc7d9"
-  },
-  "furn-sink-002": {
-    code: "SK-1F-02",
-    name: "靠窗右水槽",
-    type: "sink",
-    catalogId: "kitchen-sink",
-    moduleCategory: "kitchen",
-    moduleType: "sink",
-    roomId: "ROOM-1F-002",
-    dimensions: { width: 72, depth: 48, height: 20, unit: "cm" },
-    material: "不锈钢台下盆",
-    note: "靠窗顶端右侧水槽，作为辅助清洗/沥水盆。",
-    constructionNote: "双水槽下方预留排水汇合、净水和检修空间。",
-    serviceRequirements: { water: true, drainage: true, power: false, exhaust: false },
-    position: { x: 57.2, y: 7.5, rotation: 0 },
-    color: "#8fbdd0"
   },
   "furn-fridge-001": {
     code: "RF-1F-R",
@@ -1358,20 +1343,6 @@ const oneFloorBathroomDefaultFurniture = Object.entries(oneFloorBathroomFurnitur
 })) as Furniture[];
 
 const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
-  "furn-living-rug-natural-001": {
-    code: "RG-1F-01",
-    name: "客厅低饱和羊毛地毯",
-    type: "custom",
-    moduleCategory: "living",
-    roomId: "ROOM-1F-005",
-    dimensions: { width: 310, depth: 210, height: 2, unit: "cm" },
-    material: "低饱和羊毛地毯",
-    note: "作为客厅活动区的视觉底盘，先用低饱和浅米灰压住大理石地砖反光。",
-    constructionNote: "后期按真实坐具和茶几尺寸调整地毯边界，避免跨到房间或主要通道。",
-    serviceRequirements: { water: false, drainage: false, power: false, exhaust: false },
-    position: { x: 35, y: 60.5, rotation: 0 },
-    color: "#d8d1c3"
-  },
   "furn-living-coffee-table-001": {
     code: "CT-1F-01",
     name: "客厅浅木椭圆茶几",
@@ -1926,7 +1897,7 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-living-tv-console-001",
     code: "TV-B2-01",
-    name: "B2 W-B2-001 带收纳电视墙",
+    name: "B2样板间石材木饰面分区悬浮电视墙",
     type: "cabinet",
     catalogId: "living-storage-tv-wall",
     moduleCategory: "living",
@@ -1934,14 +1905,15 @@ const b2DefaultFurniture: Furniture[] = [
     floorId: "B2",
     roomId: "ROOM-B2-001",
     dimensions: { width: 360, depth: 42, height: 240, unit: "cm" },
-    material: "暖橡木高柜 + 暖白电视背板 + 悬浮影音低柜 + 玻璃展示格",
-    note: "中央留出完整 100 寸电视位，左右高柜和下方悬浮低柜承担影音与杂物收纳。",
-    constructionNote: "中央净空按 100 寸屏幕约 2214x1245mm 控制，预留影音散热、隐藏线管和检修口。",
+    material: "中部暖米色石材大板 + 两侧浅橡木饰面 + 窄阴影缝 + 烟灰玻璃展示格 + 悬浮影音低柜",
+    note: "保持现有电视墙位置与3600mm总宽，通过石材/木饰面分区、材料阴影缝、悬浮低柜和柜底灯带提升样板间表达。",
+    constructionNote: "石材分缝、阴影缝宽度、柜底标高与100寸电视检修空间需深化复尺。",
     serviceRequirements: b2PowerOnly,
     position: { x: 47, y: 6.44, rotation: 0 },
     color: "#d8c2a4",
     hostWallId: "W-B2-001",
-    render3d: { assetType: "cabinet", variantId: "b2StorageTvWall", detailLevel: "presentation", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped" }
+    cabinetHeight: { kind: "fullHeight", topClosureMm: 30, source: "explicit" },
+    render3d: { assetType: "cabinet", variantId: "b2StorageTvWall", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "smokedGlass", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-living-large-tv-001",
@@ -2078,24 +2050,6 @@ const b2DefaultFurniture: Furniture[] = [
     render3d: { assetType: "bookshelf", variantId: "b2MemorialLegoDisplay", detailLevel: "presentation", stylePreset: "tuscanWabiSabi", primaryMaterial: "warmOak", secondaryMaterial: "clearGlass", accentMaterial: "blackTitanium", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
-    id: "furn-b2-study-slab-table-001",
-    code: "DT-B2-01",
-    name: "B2 书房 2.3m 实木大板桌",
-    type: "table",
-    moduleCategory: "decor",
-    moduleType: "table",
-    floorId: "B2",
-    roomId: "ROOM-B2-005",
-    dimensions: { width: 230, depth: 80, height: 80, unit: "cm" },
-    material: "长方形原木大板桌 + 黑色金属桌脚",
-    note: "按真实 2300×800×800mm 落位的整块实木大板桌，用于阅读、整理旅行纪念品和多人讨论。",
-    constructionNote: "桌边预留地插或墙插，椅后保持通行；南端避开新增酒水墙操作区。",
-    serviceRequirements: b2PowerOnly,
-    position: { x: 25, y: 68.61, rotation: 90 },
-    color: "#b9824d",
-    render3d: { assetType: "slabTable", variantId: "rectTimber", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
-  },
-  {
     id: "furn-b2-study-wine-cabinet-001",
     code: "WC-B2-01",
     name: "B2 书房整墙酒收纳柜",
@@ -2105,33 +2059,15 @@ const b2DefaultFurniture: Furniture[] = [
     floorId: "B2",
     roomId: "ROOM-B2-005",
     dimensions: { width: 185, depth: 45, height: 240, unit: "cm" },
-    material: "通墙深胡桃木酒格 + 烟灰玻璃展示门 + 暖光层板 + 下部封闭酒具柜",
-    note: "向左扩展并占满书房 W-B2-011 墙段，整墙设置横放酒瓶格、立放展示格与下部封闭收纳。",
+    material: "通墙深胡桃木竖纹柜体 + 烟灰玻璃门 + 暖光层板 + 内收踢脚 + 顶部阴影收口",
+    note: "保持当前柜体位置和1850mm宽度，完善门板分缝、烟灰玻璃、灯带受光面、内收踢脚和顶部阴影缝。",
     constructionNote: "按 W-B2-011 书房侧 1850mm 墙段满墙复尺定制，柜体到顶收口、防倾倒固定，预留低压灯带电源与通风缝。",
     serviceRequirements: b2PowerOnly,
     position: { x: 40.2, y: 84.17, rotation: 180 },
     color: "#6b4935",
     hostWallId: "W-B2-011",
+    cabinetHeight: { kind: "fullHeight", topClosureMm: 30, source: "explicit" },
     render3d: { assetType: "cabinet", variantId: "b2WineStorageCabinet", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
-  },
-  {
-    id: "furn-b2-study-handwash-001",
-    code: "HW-B2-01",
-    name: "B2 书房转角迷你水吧",
-    type: "vanity",
-    moduleCategory: "bath",
-    moduleType: "vanity",
-    floorId: "B2",
-    roomId: "ROOM-B2-005",
-    dimensions: { width: 120, depth: 55, height: 95, unit: "cm" },
-    material: "暖橡木水吧柜 + 洞石台面 + 小水槽 + 独立直饮龙头 + 杯具开放格",
-    note: "移到书房左侧 W-B2-008 与 W-B2-010 转角，集洗手、洗杯、常温直饮和热饮取水于一体。",
-    constructionNote: "1200mm 转角小水吧，预留冷热水、墙排、净水进水、设备排水及两组防溅插座；台下设置净水主机与即热设备检修位。",
-    serviceRequirements: b2WetService,
-    position: { x: 12.92, y: 83.61, rotation: 180 },
-    color: "#d8d1c6",
-    hostWallId: "W-B2-010",
-    render3d: { assetType: "bathroomVanity", variantId: "b2MiniWaterBar", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true, wetAreaVisual: { fixtureKind: "vanity", basinCount: 1, floating: false, mirrorStyle: "none", frameFinish: "bronze", mirrorHeightMm: 0, mirrorCabinetDepthMm: 0 } }
   }
 ];
 
@@ -2425,7 +2361,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [editorDialog, setEditorDialog] = useState<EditorDialogKey>(null);
   const [developerMode, setDeveloperMode] = useState(false);
-  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(false);
+  const [contextToolbarExpanded, setContextToolbarExpanded] = useState(true);
+  const [contextToolbarPreferenceReady, setContextToolbarPreferenceReady] = useState(false);
   const [leftDrawerMode, setLeftDrawerMode] = useState<"objects" | "resources" | null>(null);
   const [moduleLibraryExpanded, setModuleLibraryExpanded] = useState(false);
   const [recentModuleIds, setRecentModuleIds] = useState<string[]>([]);
@@ -2543,6 +2480,8 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   useEffect(() => {
     try {
       setDeveloperMode(window.localStorage.getItem("lyhp-editor-developer-mode") === "true");
+      const rememberedToolbar = window.localStorage.getItem(CONTEXT_TOOLBAR_EXPANDED_KEY);
+      if (rememberedToolbar === "false") setContextToolbarExpanded(false);
       const rememberedPanel = window.localStorage.getItem("lyhp-editor-last-panel") as EditorRightPanelKey | null;
       if (rememberedPanel && ["properties", "resources", "validation", "ai"].includes(rememberedPanel)) {
         // Remember the last destination without reopening it on startup.
@@ -2550,8 +2489,19 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
       }
     } catch {
       // Storage can be unavailable in privacy mode; editor defaults remain safe.
+    } finally {
+      setContextToolbarPreferenceReady(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!contextToolbarPreferenceReady) return;
+    try {
+      window.localStorage.setItem(CONTEXT_TOOLBAR_EXPANDED_KEY, String(contextToolbarExpanded));
+    } catch {
+      // Non-essential UI preference.
+    }
+  }, [contextToolbarExpanded, contextToolbarPreferenceReady]);
 
   useEffect(() => {
     if (!activeEditorPanel) return;
@@ -5857,7 +5807,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
           onExport={downloadWorkspace}
           onToggleMore={() => setMoreMenuOpen((open) => !open)}
         />
-        <section className={`relative grid min-h-0 ${activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_320px_72px]" : "lg:grid-cols-[56px_minmax(0,1fr)_72px]"}`}>
+        <section className={`relative grid min-h-0 ${contextToolbarExpanded ? activeEditorPanel ? "lg:grid-cols-[192px_minmax(0,1fr)_320px_72px]" : "lg:grid-cols-[192px_minmax(0,1fr)_72px]" : activeEditorPanel ? "lg:grid-cols-[56px_minmax(0,1fr)_320px_72px]" : "lg:grid-cols-[56px_minmax(0,1fr)_72px]"}`}>
           <div className="relative z-[60] hidden min-h-0 border-r border-stone-200/80 bg-[#fbfaf7] lg:block">
             <ContextToolBar
               workspace={activeDrawingWorkspace}
@@ -5869,13 +5819,14 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onOpenResources={activeDrawingWorkspace.category === "furniture" ? () => setLeftDrawerMode((mode) => mode === "resources" ? null : "resources") : undefined}
             />
           </div>
-          {leftDrawerMode === "objects" && <aside className="absolute inset-y-0 left-14 z-[58] hidden w-[288px] min-h-0 border-r border-stone-200 bg-[#fbfaf7] shadow-[12px_0_28px_rgba(28,25,23,0.08)] lg:flex lg:flex-col"><header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 px-3"><div><p className="text-sm font-semibold text-slate-900">项目对象</p><p className="text-[10px] text-stone-500">按楼层与类型浏览</p></div><button aria-label="关闭对象列表" className="grid size-8 place-items-center rounded-md text-lg text-stone-400 hover:bg-stone-100" onClick={() => setLeftDrawerMode(null)} type="button">×</button></header><div className="min-h-0 flex-1"><UnifiedObjectList items={workspaceObjectItems} selectedObjectId={activeObjectId} selectedFloorId={selectedFloorId} lightRuntimeState={lightingRuntimeState} onSelect={(item) => { handleUnifiedObjectListSelect(item); setLeftDrawerMode(null); }} onToggleLight={handleUnifiedLightToggle} /></div></aside>}
-          {leftDrawerMode === "resources" && activeDrawingWorkspace.category === "furniture" ? <ModuleLibraryDrawer groups={visibleModuleCatalogGroups} recentIds={recentModuleIds} targetLabel={moduleTargetLabel} floorCounts={floorFurnitureByCategory} expanded={moduleLibraryExpanded} openCategories={openModuleCategories} onToggleExpanded={() => setModuleLibraryExpanded((expanded) => !expanded)} onToggleCategory={toggleModuleCategory} onAdd={addModuleFromCatalog} onClose={() => setLeftDrawerMode(null)} /> : null}
+          {leftDrawerMode === "objects" && <aside className={`absolute inset-y-0 z-[58] hidden w-[288px] min-h-0 border-r border-stone-200 bg-[#fbfaf7] shadow-[12px_0_28px_rgba(28,25,23,0.08)] lg:flex lg:flex-col ${contextToolbarExpanded ? "left-[192px]" : "left-14"}`}><header className="flex h-12 shrink-0 items-center justify-between border-b border-stone-200 px-3"><div><p className="text-sm font-semibold text-slate-900">项目对象</p><p className="text-[10px] text-stone-500">按楼层与类型浏览</p></div><button aria-label="关闭对象列表" className="grid size-8 place-items-center rounded-md text-lg text-stone-400 hover:bg-stone-100" onClick={() => setLeftDrawerMode(null)} type="button">×</button></header><div className="min-h-0 flex-1"><UnifiedObjectList items={workspaceObjectItems} selectedObjectId={activeObjectId} selectedFloorId={selectedFloorId} lightRuntimeState={lightingRuntimeState} onSelect={(item) => { handleUnifiedObjectListSelect(item); setLeftDrawerMode(null); }} onToggleLight={handleUnifiedLightToggle} /></div></aside>}
+          {leftDrawerMode === "resources" && activeDrawingWorkspace.category === "furniture" ? <ModuleLibraryDrawer groups={visibleModuleCatalogGroups} recentIds={recentModuleIds} targetLabel={moduleTargetLabel} floorCounts={floorFurnitureByCategory} expanded={moduleLibraryExpanded} toolbarExpanded={contextToolbarExpanded} openCategories={openModuleCategories} onToggleExpanded={() => setModuleLibraryExpanded((expanded) => !expanded)} onToggleCategory={toggleModuleCategory} onAdd={addModuleFromCatalog} onClose={() => setLeftDrawerMode(null)} /> : null}
           <div className="absolute bottom-3 left-3 z-[65] lg:hidden">
             <ContextToolBar
               workspace={activeDrawingWorkspace}
               activeToolId={activeWorkspaceToolId}
               expanded={contextToolbarExpanded}
+              compact
               onToggleExpanded={() => setContextToolbarExpanded((expanded) => !expanded)}
               onSelectTool={handleWorkspaceToolSelect}
             />

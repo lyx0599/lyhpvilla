@@ -68,7 +68,7 @@ export function TopNavigation({
           {(["2d", "3d"] as ViewMode[]).map((mode) => <button key={mode} aria-pressed={viewMode === mode} className={`h-7 rounded px-2.5 text-[11px] font-semibold ${viewMode === mode ? "bg-white text-slate-900 shadow-sm" : "text-stone-500 hover:text-slate-800"}`} onClick={() => onSelectViewMode(mode)} type="button">{mode.toUpperCase()}</button>)}
         </div>
         <div className="ml-1 flex h-8 items-center rounded-md bg-stone-200/65 p-0.5" aria-label="编辑与展示模式">
-          {(["edit", "presentation"] as const).map((mode) => <button key={mode} aria-pressed={displayMode === mode} className={`h-7 rounded px-2.5 text-[11px] font-semibold ${displayMode === mode ? "bg-slate-900 text-white" : "text-stone-500 hover:text-slate-800"}`} onClick={() => onSelectDisplayMode(mode)} type="button">{mode === "edit" ? "编辑" : "展示"}</button>)}
+          {(["edit", "presentation"] as const).map((mode) => <button key={mode} aria-pressed={displayMode === mode} className={`h-7 rounded px-2.5 text-[11px] font-semibold ${displayMode === mode ? "bg-slate-900 text-white" : "text-stone-500 hover:text-slate-800"}`} onClick={() => onSelectDisplayMode(mode)} title={mode === "edit" ? "流畅编辑：优先相机与选择响应" : "精致展示：完整 PBR 与高质量阴影"} type="button">{mode === "edit" ? "流畅编辑" : "精致展示"}</button>)}
         </div>
       </div>
       <div className="ml-auto flex min-w-0 items-center gap-1">
