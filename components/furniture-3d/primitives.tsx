@@ -22,6 +22,8 @@ type SurfaceProps = {
   metalness?: number;
   opacity?: number;
   emissiveIntensity?: number;
+  name?: string;
+  userData?: THREE.Object3D["userData"];
 };
 
 function boxSurfaceSize(size: Vec3): readonly [number, number] {
@@ -46,7 +48,7 @@ export function RoundedPart({ size, position = [0, 0, 0], rotation, radius = 0.0
   }, [detailLevel, radius, size[0], size[1], size[2]]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh castShadow={castShadow} receiveShadow={receiveShadow} position={position} rotation={rotation}>
+    <mesh name={surface.name} userData={surface.userData} castShadow={castShadow} receiveShadow={receiveShadow} position={position} rotation={rotation}>
       <primitive object={geometry} attach="geometry" />
       <FurnitureMaterial
         layer={material}
@@ -67,7 +69,7 @@ export function CylinderPart({ radiusTop, radiusBottom = radiusTop, height, posi
   sides?: number;
 }) {
   return (
-    <mesh castShadow receiveShadow position={position} rotation={rotation}>
+    <mesh name={surface.name} userData={surface.userData} castShadow receiveShadow position={position} rotation={rotation}>
       <cylinderGeometry args={[radiusTop, radiusBottom, height, sides]} />
       <FurnitureMaterial layer={material} {...surface} surfaceSizeM={surface.surfaceSizeM ?? [Math.PI * (radiusTop + radiusBottom), height]} />
     </mesh>
@@ -82,7 +84,7 @@ export function SpherePart({ radius, position, rotation, scale = [1, 1, 1], segm
   segments?: number;
 }) {
   return (
-    <mesh castShadow receiveShadow position={position} rotation={rotation} scale={scale}>
+    <mesh name={surface.name} userData={surface.userData} castShadow receiveShadow position={position} rotation={rotation} scale={scale}>
       <sphereGeometry args={[radius, segments, Math.max(12, Math.round(segments * 0.55))]} />
       <FurnitureMaterial layer={material} {...surface} surfaceSizeM={surface.surfaceSizeM ?? [Math.PI * radius * 2 * scale[0], Math.PI * radius * scale[1]]} />
     </mesh>

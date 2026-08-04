@@ -32,6 +32,8 @@ export type ScenePerformanceSnapshot = {
   pbrMapGenerations: number;
   pbrMaterialCreations: number;
   pbrMaterialCacheHits: number;
+  distinctMaterialKeys?: number;
+  materialCacheMisses?: number;
   pmremGenerations: number;
   shaderPrograms: number;
   estimatedTextureCacheBytes: number;
@@ -50,6 +52,7 @@ declare global {
         materialCanonicalKeys: Record<string, number>;
         instanceMappings: number;
       };
+      namedHandleObjects?: number;
       measuredAt: string;
     };
   }
@@ -107,6 +110,7 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
     let shadowLights = 0;
     let visibleMeshes = 0;
     let cabinetHandleCount = 0;
+    let namedHandleObjects = 0;
     let cabinetHandleInstanceMappings = 0;
     const cabinetHandleParents = new Set<string>();
     const cabinetHandleGeometrySignatures = new Map<string, number>();
@@ -118,6 +122,7 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
       }
       if (!(object instanceof THREE.Mesh)) return;
       visibleMeshes += 1;
+      if (/handle|拉手/i.test(object.name ?? "")) namedHandleObjects += 1;
       const semantic = object.userData?.sceneSemantic;
       if (semantic?.category === "cabinetHandle") {
         const instanceCount = object instanceof THREE.InstancedMesh ? object.count : 1;
@@ -168,6 +173,8 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
       pbrMapGenerations: proceduralCache.generatedMaps,
       pbrMaterialCreations: materialCache.createdMaterials,
       pbrMaterialCacheHits: materialCache.cacheHits,
+      distinctMaterialKeys: materialCache.distinctMaterialKeys,
+      materialCacheMisses: materialCache.cacheMisses,
       pmremGenerations: getReflectionEnvironmentStats().pmremGenerations,
       shaderPrograms: gl.info.programs?.length ?? 0,
       estimatedTextureCacheBytes: proceduralCache.estimatedBytes,
@@ -183,9 +190,11 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
         materialCanonicalKeys: Object.fromEntries(cabinetHandleMaterialKeys),
         instanceMappings: cabinetHandleInstanceMappings
       },
+      namedHandleObjects,
       measuredAt: snapshot.measuredAt
     };
     gl.domElement.dataset.performanceSnapshot = JSON.stringify(snapshot);
+    gl.domElement.dataset.semanticStats = JSON.stringify(window.__villa3dSemanticStats);
     if (interactionActive) {
       gl.domElement.dataset.interactionPerformanceSnapshot = JSON.stringify(snapshot);
     }

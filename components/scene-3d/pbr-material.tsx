@@ -45,12 +45,18 @@ type CachedPbrMaterial = {
   lastUsed: number;
 };
 
-const MAX_PBR_MATERIAL_CACHE_ENTRIES = 192;
+// The editor's two-floor working set is larger than the old 192-entry cap,
+// but still bounded well below the full scene material count. Keeping this
+// window wide enough for a warm floor switch avoids recreating hundreds of
+// otherwise identical materials while retaining explicit LRU disposal.
+const MAX_PBR_MATERIAL_CACHE_ENTRIES = 768;
 const materialCache = new Map<string, CachedPbrMaterial>();
 let materialPruneTimer: number | null = null;
 let pbrMaterialCreationCount = 0;
 let pbrMaterialCacheHitCount = 0;
 let pbrMaterialEvictionCount = 0;
+const materialKeysSeen = new Set<string>();
+let materialCacheMissCount = 0;
 
 function pruneMaterialCache() {
   materialPruneTimer = null;
@@ -222,6 +228,7 @@ export function PbrMaterial({
       pbrMaterialCacheHitCount += 1;
       return cached.material;
     }
+    materialKeysSeen.add(cacheKey);
     const common: THREE.MeshPhysicalMaterialParameters = {
       color: maps ? resolvedColor : definition.fallback.color,
       map: maps?.map ?? null,
@@ -268,9 +275,19 @@ export function PbrMaterial({
     };
     applyMaterialUvTransform(created, transform.repeat, transform.rotation);
     makeRoomForMaterial();
-    if (materialCache.size < MAX_PBR_MATERIAL_CACHE_ENTRIES) {
+    // During a React scene swap the old tree may still hold references while
+    // the new tree is being committed. Cache the new material temporarily;
+    // the deferred LRU pass will evict only entries whose refs have reached 0.
+    // This prevents an uncached burst (and visible recompilation) on every
+    // floor switch without allowing unbounded growth.
+    const alreadyCached = materialCache.has(cacheKey);
+    if (alreadyCached) {
+      materialCache.get(cacheKey)!.lastUsed = Date.now();
+    } else {
       materialCache.set(cacheKey, { material: created, refs: 0, lastUsed: Date.now() });
+      if (materialCache.size > MAX_PBR_MATERIAL_CACHE_ENTRIES) scheduleMaterialPrune();
     }
+    if (!alreadyCached) materialCacheMissCount += 1;
     return created;
   }, [cacheKey, clearcoat, clearcoatRoughness, clippingPlanes, definition, depthWrite, emissive, emissiveIntensity, envMapIntensity, maps, metalness, resolved.token, resolvedDevice, resolvedNormalStrength, resolvedOpacity, resolvedQuality, resolvedTransmission, roughness, side, thicknessMm, transform.repeat[0], transform.repeat[1], transform.rotation]);
 
@@ -304,6 +321,8 @@ export function getPbrMaterialCacheStats() {
     maxMaterialInstances: MAX_PBR_MATERIAL_CACHE_ENTRIES,
     createdMaterials: pbrMaterialCreationCount,
     cacheHits: pbrMaterialCacheHitCount,
-    evictions: pbrMaterialEvictionCount
+    evictions: pbrMaterialEvictionCount,
+    distinctMaterialKeys: materialKeysSeen.size,
+    cacheMisses: materialCacheMissCount
   };
 }

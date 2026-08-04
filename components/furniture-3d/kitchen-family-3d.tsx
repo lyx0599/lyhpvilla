@@ -1,6 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { ResolvedRender3DMaterialLayer, Render3DMaterialRole } from "@/lib/render3d-assets";
 import type { KitchenVisualConfig } from "@/types/space";
 import { FurnitureMaterial } from "./materials";
@@ -16,12 +18,101 @@ function kitchenConfig(props: FurnitureFamily3DProps): KitchenVisualConfig {
   return props.item.render3d?.kitchenVisual ?? {};
 }
 
+function cabinetHandleSemantic(
+  props: FurnitureFamily3DProps,
+  style: "bar" | "edgePull",
+  size: [number, number, number],
+  detailLevel: NonNullable<FurnitureFamily3DProps["asset"]["detailLevel"]>,
+  material: ResolvedRender3DMaterialLayer,
+  color?: string,
+  radius = 0.004
+) {
+  const segments = detailLevel === "presentation" ? 5 : detailLevel === "standard" ? 3 : 2;
+  return {
+    materialPart: "cabinet-door-handle",
+    sceneSemantic: {
+      category: "cabinetHandle",
+      subtype: "door",
+      handleStyle: style,
+      owningObjectId: props.item.id,
+      floorId: props.item.floorId,
+      roomId: props.item.roomId,
+      selectableParentId: props.item.id,
+      geometrySignature: `roundedBox:${size.map((value) => value.toFixed(5)).join(":")}:radius=${radius.toFixed(4)}:segments=${segments}`,
+      materialCanonicalKey: `furniture:${material.pbrToken ?? material.token}:color=${color ?? material.color ?? "layer"}:roughness=${material.roughness ?? "layer"}:metalness=${material.metalness ?? "layer"}`
+    }
+  };
+}
+
 function WarmTaskStrip({ width, y, z, material }: { width: number; y: number; z: number; material: ResolvedRender3DMaterialLayer }) {
   return (
     <mesh position={[0, y, z]}>
       <boxGeometry args={[width, 0.016, 0.022]} />
       <FurnitureMaterial layer={material} role="light" color="#ffe4ad" emissiveIntensity={0.82} roughness={0.18} />
     </mesh>
+  );
+}
+
+function ParametricCabinetHandleInstances({
+  props,
+  positions,
+  size,
+  handleStyle,
+  color,
+  radius,
+  detailLevel,
+  material
+}: {
+  props: FurnitureFamily3DProps;
+  positions: Array<[number, number, number]>;
+  size: [number, number, number];
+  handleStyle: "bar" | "edgePull";
+  color?: string;
+  radius: number;
+  detailLevel: NonNullable<FurnitureFamily3DProps["asset"]["detailLevel"]>;
+  material: ResolvedRender3DMaterialLayer;
+}) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const segments = detailLevel === "presentation" ? 5 : detailLevel === "standard" ? 3 : 2;
+  const geometry = useMemo(() => {
+    const safeRadius = Math.min(radius, Math.max(0.003, Math.min(...size) * 0.44));
+    return new RoundedBoxGeometry(size[0], size[1], size[2], segments, safeRadius);
+  }, [radius, segments, size[0], size[1], size[2]]);
+
+  useEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const matrix = new THREE.Matrix4();
+    positions.forEach((position, index) => {
+      matrix.makeTranslation(position[0], position[1], position[2]);
+      mesh.setMatrixAt(index, matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.name = `${props.item.id}-cabinet-door-handle-instances`;
+    mesh.userData = {
+      materialPart: "cabinet-door-handle",
+      sceneSemantic: {
+        category: "cabinetHandle",
+        subtype: "door",
+        handleStyle,
+        owningObjectId: props.item.id,
+        floorId: props.item.floorId,
+        roomId: props.item.roomId,
+        selectableParentId: props.item.id,
+        geometrySignature: `roundedBox:${size.map((value) => value.toFixed(5)).join(":")}:radius=${radius.toFixed(4)}:segments=${segments}`,
+        materialCanonicalKey: `furniture:${material.pbrToken ?? material.token}:color=${color ?? material.color ?? "layer"}:roughness=${material.roughness ?? "layer"}:metalness=${material.metalness ?? "layer"}`,
+        instanceParentIds: positions.map(() => props.item.id)
+      }
+    };
+  }, [color, handleStyle, material, positions, props.item, radius, segments, size]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <instancedMesh ref={ref} args={[undefined, undefined, positions.length]} castShadow receiveShadow>
+      <primitive object={geometry} attach="geometry" />
+      <FurnitureMaterial layer={material} role="metal" color={color} />
+    </instancedMesh>
   );
 }
 
@@ -70,18 +161,36 @@ export function ParametricCountertop({
   const backsplashHeight = Math.max(0, backsplashHeightMm / 1000);
   const thinEdge = config.countertopEdge === "thin";
   const slabThickness = thinEdge ? Math.min(0.026, thickness) : thickness;
+  const slabWidth = width + overhang * 2;
+  const slabDepth = depth + overhang * 1.4;
+  const cutout = config.countertopCutouts?.[0];
+  const cutoutWidth = cutout ? Math.min(slabWidth - 0.12, Math.max(0.12, cutout.widthMm / 1000)) : 0;
+  const cutoutDepth = cutout ? Math.min(slabDepth - 0.1, Math.max(0.1, cutout.depthMm / 1000)) : 0;
+  const cutoutX = cutout ? Math.max(-slabWidth / 2 + cutoutWidth / 2 + 0.045, Math.min(slabWidth / 2 - cutoutWidth / 2 - 0.045, (cutout.offsetMm ?? 0) / 1000)) : 0;
+  const leftWidth = cutout ? cutoutX - cutoutWidth / 2 + slabWidth / 2 : 0;
+  const rightWidth = cutout ? slabWidth / 2 - cutoutX - cutoutWidth / 2 : 0;
+  const frontBackDepth = cutout ? (slabDepth - cutoutDepth) / 2 : 0;
+  const countertopParts = cutout ? [
+    { key: "left", size: [leftWidth, slabThickness, slabDepth] as [number, number, number], position: [-slabWidth / 2 + leftWidth / 2, y - slabThickness / 2, overhang * 0.2] as [number, number, number] },
+    { key: "right", size: [rightWidth, slabThickness, slabDepth] as [number, number, number], position: [slabWidth / 2 - rightWidth / 2, y - slabThickness / 2, overhang * 0.2] as [number, number, number] },
+    { key: "rear", size: [cutoutWidth, slabThickness, frontBackDepth] as [number, number, number], position: [cutoutX, y - slabThickness / 2, overhang * 0.2 - cutoutDepth / 2 - frontBackDepth / 2] as [number, number, number] },
+    { key: "front", size: [cutoutWidth, slabThickness, frontBackDepth] as [number, number, number], position: [cutoutX, y - slabThickness / 2, overhang * 0.2 + cutoutDepth / 2 + frontBackDepth / 2] as [number, number, number] }
+  ].filter((part) => part.size[0] > 0.025 && part.size[2] > 0.025) : null;
   return (
     <group>
-      <RoundedPart
-        size={[width + overhang * 2, slabThickness, depth + overhang * 1.4]}
-        position={[0, y - slabThickness / 2, overhang * 0.2]}
-        radius={thinEdge ? 0.008 : 0.018}
-        detailLevel={props.asset.detailLevel}
-        material={stone}
-        role="stone"
-        repeat={[Math.max(2, width * 2.4), Math.max(1, depth * 2)]}
-        roughness={0.31}
-      />
+      {(countertopParts ?? [{ key: "slab", size: [slabWidth, slabThickness, slabDepth] as [number, number, number], position: [0, y - slabThickness / 2, overhang * 0.2] as [number, number, number] }]).map((part) => (
+        <RoundedPart
+          key={part.key}
+          size={part.size}
+          position={part.position}
+          radius={thinEdge ? 0.006 : Math.min(0.014, (cutout?.cornerRadiusMm ?? 14) / 1000)}
+          detailLevel={props.asset.detailLevel}
+          material={stone}
+          role="stone"
+          repeat={[Math.max(1, part.size[0] * 2.4), Math.max(1, part.size[2] * 2)]}
+          roughness={0.31}
+        />
+      ))}
       {config.showCountertopSeams !== false && width > 1.45 && [-0.25, 0.25].map((ratio) => (
         <RoundedPart key={ratio} size={[0.007, 0.006, depth * 0.84]} position={[ratio * width, y + 0.001, overhang * 0.2]} radius={0.002} detailLevel={props.asset.detailLevel} material={stone} role="stone" color="#9f978c" roughness={0.46} />
       ))}
@@ -115,7 +224,9 @@ function CabinetFrontPanel({
   appliance = false,
   openAmount = 0,
   openDistance = 0.3,
-  hingeSide = -1
+  hingeSide = -1,
+  useHandleBatch = false,
+  handleBatchStyle = "bar"
 }: {
   props: FurnitureFamily3DProps;
   width: number;
@@ -128,6 +239,8 @@ function CabinetFrontPanel({
   openAmount?: number;
   openDistance?: number;
   hingeSide?: -1 | 1;
+  useHandleBatch?: boolean;
+  handleBatchStyle?: "bar" | "edgePull";
 }) {
   const wood = layerFor(props, ["wood"], props.asset.materials.primary);
   const panel = layerFor(props, ["ceramic", "wood"], props.asset.materials.secondary);
@@ -173,8 +286,8 @@ function CabinetFrontPanel({
               <RoundedPart key={rib} size={[0.012, rowHeight * 0.86, 0.012]} position={[-width * 0.36 + rib * width * 0.144, 0, 0.028]} radius={0.003} detailLevel={props.asset.detailLevel} material={wood} role="wood" color="#8c735a" />
             ))}
             {config.showInternalShadowGap !== false && <RoundedPart size={[width * 0.92, 0.008, 0.008]} position={[0, -rowHeight * 0.46, 0.029]} radius={0.002} detailLevel={props.asset.detailLevel} material={metal} role="metal" color="#332f2b" />}
-            {handleStyle === "bar" && <RoundedPart size={[width * 0.48, 0.012, 0.016]} position={[0, rowHeight * 0.34, 0.035]} radius={0.004} detailLevel={props.asset.detailLevel} material={metal} role="metal" />}
-            {handleStyle === "edgePull" && <RoundedPart size={[width * 0.68, 0.018, 0.014]} position={[0, rowHeight * 0.43, 0.034]} radius={0.003} detailLevel={props.asset.detailLevel} material={metal} role="metal" color="#6f655b" />}
+            {handleStyle === "bar" && !(useHandleBatch && handleBatchStyle === "bar") && <RoundedPart name={`${props.item.id}-cabinet-door-handle-${index}`} userData={cabinetHandleSemantic(props, "bar", [width * 0.48, 0.012, 0.016], props.asset.detailLevel, metal)} size={[width * 0.48, 0.012, 0.016]} position={[0, rowHeight * 0.34, 0.035]} radius={0.004} detailLevel={props.asset.detailLevel} material={metal} role="metal" />}
+            {handleStyle === "edgePull" && !(useHandleBatch && handleBatchStyle === "edgePull") && <RoundedPart name={`${props.item.id}-cabinet-door-handle-${index}`} userData={cabinetHandleSemantic(props, "edgePull", [width * 0.68, 0.018, 0.014], props.asset.detailLevel, metal, "#6f655b", 0.003)} size={[width * 0.68, 0.018, 0.014]} position={[0, rowHeight * 0.43, 0.034]} radius={0.003} detailLevel={props.asset.detailLevel} material={metal} role="metal" color="#6f655b" />}
             {handleStyle === "groove" && <RoundedPart size={[width * 0.58, 0.016, 0.01]} position={[0, rowHeight * 0.34, 0.031]} radius={0.006} detailLevel={props.asset.detailLevel} material={metal} role="metal" color="#4a423a" />}
             {handleStyle === "knob" && <CylinderPart radiusTop={0.018} height={0.026} position={[width * 0.31, 0, 0.04]} rotation={[Math.PI / 2, 0, 0]} material={metal} role="metal" sides={16} />}
           </>;
@@ -204,7 +317,7 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
   const bodyHeight = Math.max(0.18, height - toeKick - topThickness);
   const bodyY = floorY + toeKick + bodyHeight / 2;
   const bayCount = Math.max(2, Math.min(7, config.doorCount ?? Math.round(width / (wallMounted ? 0.48 : 0.55))));
-  const gap = Math.min(0.018, width * 0.01);
+  const gap = Math.min(0.018, Math.max(0.003, (config.panelGapMm ?? 12) / 1000));
   const bayWidth = (width - gap * (bayCount + 1)) / bayCount;
   const frontZ = depth / 2 + 0.018;
   const wood = layerFor(props, ["wood"], asset.materials.primary);
@@ -212,6 +325,22 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
   const applianceIndex = Math.max(0, Math.min(bayCount - 1, Math.floor(bayCount * 0.22)));
   const appliancePanel = config.appliancePanel ?? (/水槽/.test(item.name) ? "dishwasher" : /灶/.test(item.name) ? "oven" : "none");
   const drawerRows = Math.max(0, Math.min(4, config.drawerCount ?? (island ? 3 : /灶|备餐/.test(item.name) ? 3 : 1)));
+  const handleStyle = config.handleStyle ?? "bar";
+  const handleInstancesDisabled = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("disableHandleInstances");
+  const handleBatchEnabled = !handleInstancesDisabled && (handleStyle === "bar" || handleStyle === "edgePull") && runtimeOpenAmount <= 0.01;
+  const handlePositions = handleBatchEnabled ? Array.from({ length: bayCount }, (_, index) => {
+    const appliance = appliancePanel !== "none" && index === applianceIndex;
+    if (appliance) return [];
+    const panelHeight = bodyHeight * 0.91;
+    const panelDrawerRows = index === bayCount - 1 || (island && index === 0) ? drawerRows : 0;
+    const rows = panelDrawerRows > 0 ? panelDrawerRows : 1;
+    const rowHeight = (panelHeight - 0.014 * (rows - 1)) / rows;
+    const x = -width / 2 + gap + bayWidth / 2 + index * (bayWidth + gap);
+      return Array.from({ length: rows }, (_, rowIndex) => {
+      const rowY = bodyY - panelHeight / 2 + rowHeight / 2 + rowIndex * (rowHeight + 0.014);
+      return [x, rowY + rowHeight * (handleStyle === "edgePull" ? 0.43 : 0.34), frontZ + (handleStyle === "edgePull" ? 0.034 : 0.035)] as [number, number, number];
+    });
+  }).flat() : [];
   return (
     <group name="parametric-cabinet">
       <RoundedPart size={[width, bodyHeight, depth * 0.92]} position={[0, bodyY, -depth * 0.02]} radius={0.016} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[Math.max(3, bayCount), 3]} />
@@ -234,9 +363,23 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
             openAmount={appliance ? 0 : runtimeOpenAmount}
             openDistance={Math.min(0.36, depth * 0.66)}
             hingeSide={index % 2 ? 1 : -1}
+            useHandleBatch={handleBatchEnabled}
+            handleBatchStyle={handleStyle === "edgePull" ? "edgePull" : "bar"}
           />
         );
       })}
+      {handleBatchEnabled && handlePositions.length > 0 && (
+        <ParametricCabinetHandleInstances
+          props={props}
+          positions={handlePositions}
+          size={[bayWidth * (handleStyle === "edgePull" ? 0.68 : 0.48), handleStyle === "edgePull" ? 0.018 : 0.012, handleStyle === "edgePull" ? 0.014 : 0.016]}
+          handleStyle={handleStyle === "edgePull" ? "edgePull" : "bar"}
+          color={handleStyle === "edgePull" ? "#6f655b" : undefined}
+          radius={handleStyle === "edgePull" ? 0.003 : 0.004}
+          detailLevel={asset.detailLevel}
+          material={metal}
+        />
+      )}
       {!wallMounted && <RoundedPart size={[width * 0.9, toeKick, depth * 0.74]} position={[0, floorY + toeKick / 2, -depth * 0.06]} radius={0.01} detailLevel={asset.detailLevel} material={metal} role="wood" color="#514b44" />}
       {!wallMounted && <RoundedPart size={[width * 0.84, 0.018, 0.022]} position={[0, floorY + toeKick + 0.01, depth * 0.42]} radius={0.004} detailLevel={asset.detailLevel} material={metal} role="metal" color="#302b27" />}
       {wallMounted ? (
@@ -260,13 +403,13 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
       )}
       {config.showUpperCabinets && !wallMounted && (
         <group position={[0, 1.27 - height / 2, -depth * 0.08]}>
-          <RoundedPart size={[width * 0.92, 0.72, depth * 0.54]} radius={0.014} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[Math.max(3, bayCount), 2]} />
+          <RoundedPart size={[width * 0.92, (config.upperCabinetHeightMm ?? 720) / 1000, Math.min(depth * 0.72, (config.upperCabinetDepthMm ?? 360) / 1000)]} radius={0.014} detailLevel={asset.detailLevel} material={wood} role="wood" repeat={[Math.max(3, bayCount), 2]} />
           {Array.from({ length: bayCount }, (_, index) => {
             const upperBayWidth = width * 0.86 / bayCount;
             const x = -width * 0.43 + upperBayWidth * (index + 0.5);
             return (
               <AnimatedKitchenLeaf key={index} position={[x, 0, depth * 0.285]} width={upperBayWidth - 0.012} hingeSide={index % 2 ? 1 : -1} openAmount={runtimeOpenAmount}>
-                <RoundedPart size={[upperBayWidth - 0.012, 0.64, 0.035]} radius={0.008} detailLevel={asset.detailLevel} material={index % 3 === 1 ? asset.materials.secondary : wood} role={index % 3 === 1 ? "ceramic" : "wood"} />
+                <RoundedPart size={[upperBayWidth - gap, Math.max(0.2, (config.upperCabinetHeightMm ?? 720) / 1000 - 0.08), 0.035]} radius={0.008} detailLevel={asset.detailLevel} material={index % 3 === 1 ? asset.materials.secondary : wood} role={index % 3 === 1 ? "ceramic" : "wood"} />
               </AnimatedKitchenLeaf>
             );
           })}

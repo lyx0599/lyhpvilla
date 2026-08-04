@@ -672,6 +672,94 @@ function cabinetHandleSemanticTag(
   };
 }
 
+function CabinetDoorHandleBatch({
+  item,
+  width,
+  height,
+  frontZ,
+  panelCount,
+  color
+}: {
+  item: Furniture;
+  width: number;
+  height: number;
+  frontZ: number;
+  panelCount: number;
+  color: string;
+}) {
+  const handleWidth = Math.min(0.18, width / (panelCount * 3));
+  const geometrySignature = `box:${handleWidth.toFixed(5)}:0.01800:0.01800`;
+  const materialCanonicalKey = `standard:${color.toLowerCase()}:roughness=0.28:metalness=0.58`;
+  const geometry = useMemo(() => new THREE.BoxGeometry(handleWidth, 0.018, 0.018), [handleWidth]);
+  const material = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.28, metalness: 0.58 }), [color]);
+  const mesh = useMemo(() => new THREE.InstancedMesh(geometry, material, panelCount), [geometry, material, panelCount]);
+
+  useEffect(() => {
+    const matrix = new THREE.Matrix4();
+    for (let index = 0; index < panelCount; index += 1) {
+      const x = -width / 2 + ((index + 0.5) * width) / panelCount;
+      matrix.makeTranslation(x, -height * 0.04, frontZ + 0.01);
+      mesh.setMatrixAt(index, matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.name = `${item.id}-cabinet-door-handle-instances`;
+    mesh.userData = {
+      materialPart: "cabinet-door-handle",
+      sceneSemantic: {
+        ...cabinetHandleSemanticTag(item, "door", geometrySignature, materialCanonicalKey),
+        instanceParentIds: Array.from({ length: panelCount }, () => item.id)
+      }
+    };
+  }, [frontZ, geometrySignature, height, item, mesh, materialCanonicalKey, panelCount, width]);
+
+  useEffect(() => () => {
+    geometry.dispose();
+    material.dispose();
+  }, [geometry, material]);
+
+  return <primitive object={mesh} castShadow receiveShadow />;
+}
+
+function CabinetDoorHandleMesh({
+  item,
+  index,
+  width,
+  height,
+  frontZ,
+  panelCount,
+  color
+}: {
+  item: Furniture;
+  index: number;
+  width: number;
+  height: number;
+  frontZ: number;
+  panelCount: number;
+  color: string;
+}) {
+  const handleWidth = Math.min(0.18, width / (panelCount * 3));
+  return (
+    <mesh
+      key={`${item.id}-handle-${index}`}
+      name={`${item.id}-cabinet-door-handle-${index}`}
+      userData={{
+        materialPart: "cabinet-door-handle",
+        sceneSemantic: cabinetHandleSemanticTag(
+          item,
+          "door",
+          `box:${handleWidth.toFixed(5)}:0.01800:0.01800`,
+          `standard:${color.toLowerCase()}:roughness=0.28:metalness=0.58`,
+          index
+        )
+      }}
+      position={[-width / 2 + ((index + 0.5) * width) / panelCount, -height * 0.04, frontZ + 0.01]}
+    >
+      <boxGeometry args={[handleWidth, 0.018, 0.018]} />
+      <meshStandardMaterial color={color} roughness={0.28} metalness={0.58} />
+    </mesh>
+  );
+}
+
 function SelectableFurnitureGroup({
   props,
   groupY,
@@ -5633,30 +5721,20 @@ function FurnitureBlock({
                   </mesh>
                 );
               })}
-              {Array.from({ length: panelCount }, (_, index) => {
-                const x = -width / 2 + ((index + 0.5) * width) / panelCount;
-                const handleWidth = Math.min(0.18, width / (panelCount * 3));
-                return (
-                  <mesh
+              {typeof window !== "undefined" && new URLSearchParams(window.location.search).get("disableHandleInstances") === "1"
+                ? Array.from({ length: panelCount }, (_, index) => (
+                  <CabinetDoorHandleMesh
                     key={`${item.id}-handle-${index}`}
-                    name={`${item.id}-cabinet-door-handle-${index}`}
-                    userData={{
-                      materialPart: "cabinet-door-handle",
-                      sceneSemantic: cabinetHandleSemanticTag(
-                        item,
-                        "door",
-                        `box:${handleWidth.toFixed(5)}:0.01800:0.01800`,
-                        `standard:${renderVariant.metal.toLowerCase()}:roughness=0.28:metalness=0.58`,
-                        index
-                      )
-                    }}
-                    position={[x, -height * 0.04, frontZ + 0.01]}
-                  >
-                    <boxGeometry args={[handleWidth, 0.018, 0.018]} />
-                    <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.58} />
-                  </mesh>
-                );
-              })}
+                    item={item}
+                    index={index}
+                    width={width}
+                    height={height}
+                    frontZ={frontZ}
+                    panelCount={panelCount}
+                    color={renderVariant.metal}
+                  />
+                ))
+                : <CabinetDoorHandleBatch item={item} width={width} height={height} frontZ={frontZ} panelCount={panelCount} color={renderVariant.metal} />}
               {Array.from({ length: Math.max(1, panelCount) }, (_, index) => {
                 const drawerWidth = width / panelCount;
                 const x = -width / 2 + drawerWidth * (index + 0.5);
@@ -12015,7 +12093,11 @@ export function Floor3DView({
       data-specialty-fallback={specialtyFallback ? "true" : "false"}
     >
       <Canvas
-        key={`${floor.id}-${presentationMode ? "presentation" : "edit"}-${mobileQuality}`}
+        // Keep the renderer and its GPU resource identity stable while the
+        // user switches floors. The scene contents can update in-place; a
+        // floor id in this key would tear down the Canvas and recreate the
+        // renderer, PMREM environment and shader programs on every switch.
+        key={`${presentationMode ? "presentation" : "edit"}-${mobileQuality}`}
         shadows={!mobilePresentationMode || mobileQuality === "high"}
         dpr={mobilePresentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : presentationMode ? [1.25, 2] : [1, 1.5]}
         camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}
