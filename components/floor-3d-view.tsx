@@ -130,7 +130,7 @@ type Floor3DViewProps = {
   showDebugTools?: boolean;
   onShowObjectIdsChange: (visible: boolean) => void;
   onSelectStructure: (objectId: string) => void;
-  onSelectFurniture: (furniture: Furniture) => void;
+  onSelectFurniture: (furniture: Furniture, part?: string) => void;
   onSelectDrawingItem: (drawingItemId: string) => void;
   onClearSelection?: () => void;
   onSelectFloor?: (floorId: Floor["id"]) => void;
@@ -628,6 +628,50 @@ function useFineAssetMetrics({ item, structure, designStyle, resolvedAsset, heig
   };
 }
 
+function getClickedFurniturePart(object: THREE.Object3D) {
+  let current: THREE.Object3D | null = object;
+  while (current) {
+    const candidate = current.userData?.materialPart;
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    current = current.parent;
+  }
+  const objectName = object.name?.trim();
+  if (objectName && !/render3d|mesh|geometry|group|root|children/i.test(objectName)) return objectName;
+  return undefined;
+}
+
+type SceneSemanticTag = {
+  category: "cabinetHandle";
+  subtype: "door" | "drawer";
+  owningObjectId: string;
+  floorId?: string;
+  roomId?: string;
+  selectableParentId: string;
+  geometrySignature: string;
+  materialCanonicalKey: string;
+  instanceId?: number;
+};
+
+function cabinetHandleSemanticTag(
+  item: Furniture,
+  subtype: SceneSemanticTag["subtype"],
+  geometrySignature: string,
+  materialCanonicalKey: string,
+  instanceId?: number
+): SceneSemanticTag {
+  return {
+    category: "cabinetHandle",
+    subtype,
+    owningObjectId: item.id,
+    floorId: item.floorId,
+    roomId: item.roomId,
+    selectableParentId: item.id,
+    geometrySignature,
+    materialCanonicalKey,
+    ...(instanceId === undefined ? {} : { instanceId })
+  };
+}
+
 function SelectableFurnitureGroup({
   props,
   groupY,
@@ -648,6 +692,7 @@ function SelectableFurnitureGroup({
   const childContent = resolvedAsset.childrenMode === "grouped"
     ? <group name={`${item.id}-render3d-children`} userData={{ childrenMode: "grouped" }}>{children}</group>
     : children;
+  const resolveClickedPart = getClickedFurniturePart;
   return (
     <group
       name={`${item.id}-render3d-root`}
@@ -656,7 +701,7 @@ function SelectableFurnitureGroup({
       rotation={[0, rotation, 0]}
       onClick={(event) => {
         event.stopPropagation();
-        if (resolvedAsset.selectableIn3d) onSelect(item);
+        if (resolvedAsset.selectableIn3d) onSelect(item, resolveClickedPart(event.object));
       }}
       onPointerOver={(event) => {
         event.stopPropagation();
@@ -3929,7 +3974,7 @@ function StyledDoorLeaf({
   if (style === "flushPanel") {
     return (
       <group position={[leafDirection * width / 2, height / 2, 0]}>
-        <mesh castShadow receiveShadow><boxGeometry args={[width, height * 0.995, 0.044]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.68} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh>
+        <mesh castShadow receiveShadow><boxGeometry args={[width, height * 0.995, 0.044]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh>
         {[-1, 1].map((side) => <mesh key={`flush-reveal-${side}`} position={[side * (width / 2 - 0.008), 0, 0.026]}><boxGeometry args={[0.008, height * 0.985, 0.008]} /><PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color="#4c443c" roughness={0.7} opacity={0.58} surfaceSizeM={[0.008, height]} /></mesh>)}
         <mesh position={[leafDirection * width * 0.42, 0, 0.035]}><boxGeometry args={[0.012, 0.22, 0.016]} /><PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={hardwareColor} roughness={0.28} metalness={0.64} surfaceSizeM={[0.012, 0.22]} /></mesh>
       </group>
@@ -3938,9 +3983,9 @@ function StyledDoorLeaf({
   if (style === "archedReededGlass") {
     return (
       <group position={[leafDirection * width / 2, height / 2, 0]}>
-        {[-1, 1].map((side) => <mesh key={`bath-door-side-${side}`} castShadow receiveShadow position={[side * (width / 2 - border / 2), 0, 0]}><boxGeometry args={[border, height * 0.985, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.58} surfaceSizeM={[border, height]} /></mesh>)}
-        <mesh castShadow receiveShadow position={[0, height * 0.44, 0]}><boxGeometry args={[width - border * 2, height * 0.105, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.58} surfaceSizeM={[width, height * 0.105]} /></mesh>
-        <mesh castShadow receiveShadow position={[0, -height * 0.445, 0]}><boxGeometry args={[width - border * 2, height * 0.095, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.58} surfaceSizeM={[width, height * 0.095]} /></mesh>
+        {[-1, 1].map((side) => <mesh key={`bath-door-side-${side}`} castShadow receiveShadow position={[side * (width / 2 - border / 2), 0, 0]}><boxGeometry args={[border, height * 0.985, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} surfaceSizeM={[border, height]} /></mesh>)}
+        <mesh castShadow receiveShadow position={[0, height * 0.44, 0]}><boxGeometry args={[width - border * 2, height * 0.105, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} surfaceSizeM={[width, height * 0.105]} /></mesh>
+        <mesh castShadow receiveShadow position={[0, -height * 0.445, 0]}><boxGeometry args={[width - border * 2, height * 0.095, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} surfaceSizeM={[width, height * 0.095]} /></mesh>
         <mesh position={[0, 0, doorDepth * 0.58]}>
           <shapeGeometry args={[archedInsetShape]} />
           <PbrMaterial token="smokedGlass" fallbackRole="glassMain" color={glassColor} transmission={0.58} opacity={0.62} roughness={0.24} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[insetWidth, insetHeight]} />
@@ -3957,7 +4002,7 @@ function StyledDoorLeaf({
   }
   return (
     <group position={[leafDirection * width / 2, height / 2, 0]}>
-      <mesh castShadow receiveShadow><boxGeometry args={[width, height * 0.985, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.62} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh>
+      <mesh castShadow receiveShadow><boxGeometry args={[width, height * 0.985, doorDepth]} /><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh>
       {style === "wovenReliefWood" && (
         <group position={[width * 0.18, 0, doorDepth * 0.62]}>
           {Array.from({ length: 30 }, (_, index) => {
@@ -4090,7 +4135,7 @@ function OpeningMesh({
                   <boxGeometry args={[width * 0.54, height * 0.98, 0.036]} />
                   {isGlassDoor
                     ? <PbrMaterial token="clearGlass" fallbackRole="glassMain" color={doorGlassColor} transmission={0.72} opacity={0.44} roughness={0.09} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[width * 0.54, height]} />
-                    : <PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.58} surfaceSizeM={[width * 0.54, height]} />}
+                    : <PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} surfaceSizeM={[width * 0.54, height]} />}
                 </mesh>
                 {doorStyle === "slimGlass" && (
                   <group>
@@ -4889,7 +4934,7 @@ type FurnitureAssetGroupProps = {
   designStyle: DesignStylePreset;
   selected: boolean;
   resolvedAsset: Resolved3DAsset;
-  onSelect: (item: Furniture) => void;
+  onSelect: (item: Furniture, part?: string) => void;
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 };
@@ -5010,7 +5055,7 @@ function FurnitureBlock({
       rotation={[0, rotation, 0]}
       onClick={(event) => {
         event.stopPropagation();
-        if (resolvedAsset.selectableIn3d) onSelect(item);
+        if (resolvedAsset.selectableIn3d) onSelect(item, getClickedFurniturePart(event.object));
       }}
       onPointerOver={(event) => {
         event.stopPropagation();
@@ -5590,9 +5635,24 @@ function FurnitureBlock({
               })}
               {Array.from({ length: panelCount }, (_, index) => {
                 const x = -width / 2 + ((index + 0.5) * width) / panelCount;
+                const handleWidth = Math.min(0.18, width / (panelCount * 3));
                 return (
-                  <mesh key={`${item.id}-handle-${index}`} position={[x, -height * 0.04, frontZ + 0.01]}>
-                    <boxGeometry args={[Math.min(0.18, width / (panelCount * 3)), 0.018, 0.018]} />
+                  <mesh
+                    key={`${item.id}-handle-${index}`}
+                    name={`${item.id}-cabinet-door-handle-${index}`}
+                    userData={{
+                      materialPart: "cabinet-door-handle",
+                      sceneSemantic: cabinetHandleSemanticTag(
+                        item,
+                        "door",
+                        `box:${handleWidth.toFixed(5)}:0.01800:0.01800`,
+                        `standard:${renderVariant.metal.toLowerCase()}:roughness=0.28:metalness=0.58`,
+                        index
+                      )
+                    }}
+                    position={[x, -height * 0.04, frontZ + 0.01]}
+                  >
+                    <boxGeometry args={[handleWidth, 0.018, 0.018]} />
                     <meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.58} />
                   </mesh>
                 );
@@ -5610,7 +5670,20 @@ function FurnitureBlock({
                       roughness={0.52}
                       metalness={0.02}
                     />
-                    <mesh position={[0, 0, 0.018]}>
+                    <mesh
+                      name={`${item.id}-cabinet-drawer-handle-${index}`}
+                      userData={{
+                        materialPart: "cabinet-drawer-handle",
+                        sceneSemantic: cabinetHandleSemanticTag(
+                          item,
+                          "drawer",
+                          `box:${Math.min(0.22, drawerWidth * 0.46).toFixed(5)}:0.01400:0.01800`,
+                          `standard:${renderVariant.metal.toLowerCase()}:roughness=0.24:metalness=0.68`,
+                          index
+                        )
+                      }}
+                      position={[0, 0, 0.018]}
+                    >
                       <boxGeometry args={[Math.min(0.22, drawerWidth * 0.46), 0.014, 0.018]} />
                       <meshStandardMaterial color={renderVariant.metal} roughness={0.24} metalness={0.68} />
                     </mesh>
@@ -9144,7 +9217,7 @@ function VillaOverviewLayer({
   selectedFurnitureId: string;
   onEnterRoom: (floorId: Floor["id"], roomId: string) => void;
   onSelectStructure: (id: string) => void;
-  onSelectFurniture: (item: Furniture) => void;
+  onSelectFurniture: (item: Furniture, part?: string) => void;
   onHoverObject: (id: string) => void;
   onClearHoverObject: (id: string) => void;
 }) {
@@ -9440,7 +9513,7 @@ function Floor3DScene({
   selectedObjectId: string;
   selectedFurnitureId: string;
   onSelectStructure: (objectId: string) => void;
-  onSelectFurniture: (furniture: Furniture) => void;
+  onSelectFurniture: (furniture: Furniture, part?: string) => void;
   onSelectDrawingItem: (drawingItemId: string) => void;
   onEnterRoom: (floorId: Floor["id"], roomId: string) => void;
   onToggleControlGroup: (groupId: string) => void;
@@ -11947,6 +12020,9 @@ export function Floor3DView({
         dpr={mobilePresentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : presentationMode ? [1.25, 2] : [1, 1.5]}
         camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}
         gl={{ antialias: presentationMode && (!mobilePresentationMode || mobileQuality === "high"), preserveDrawingBuffer: presentationMode, powerPreference: mobilePresentationMode && mobileQuality === "balanced" ? "low-power" : "high-performance" }}
+        onPointerMissed={() => {
+          if (!presentationMode && selectionAllowed()) onClearSelection?.();
+        }}
         onCreated={({ gl, scene, camera }) => {
           canvasElementRef.current = gl.domElement;
           rendererStateRef.current = { gl, scene, camera };
@@ -12011,8 +12087,8 @@ export function Floor3DView({
           onSelectStructure={(objectId) => {
             if (!presentationMode && selectionAllowed()) onSelectStructure(objectId);
           }}
-          onSelectFurniture={(item) => {
-            if (!presentationMode && selectionAllowed()) onSelectFurniture(item);
+          onSelectFurniture={(item, part) => {
+            if (!presentationMode && selectionAllowed()) onSelectFurniture(item, part);
           }}
           onSelectDrawingItem={(drawingItemId) => {
             if (!presentationMode && selectionAllowed()) onSelectDrawingItem(drawingItemId);

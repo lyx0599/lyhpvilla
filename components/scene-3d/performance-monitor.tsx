@@ -42,6 +42,16 @@ export type ScenePerformanceSnapshot = {
 declare global {
   interface Window {
     __villa3dPerformance?: ScenePerformanceSnapshot;
+    __villa3dSemanticStats?: {
+      cabinetHandles: {
+        total: number;
+        parentObjects: number;
+        geometrySignatures: Record<string, number>;
+        materialCanonicalKeys: Record<string, number>;
+        instanceMappings: number;
+      };
+      measuredAt: string;
+    };
   }
 }
 
@@ -96,6 +106,11 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
     let lights = 0;
     let shadowLights = 0;
     let visibleMeshes = 0;
+    let cabinetHandleCount = 0;
+    let cabinetHandleInstanceMappings = 0;
+    const cabinetHandleParents = new Set<string>();
+    const cabinetHandleGeometrySignatures = new Map<string, number>();
+    const cabinetHandleMaterialKeys = new Map<string, number>();
     scene.traverseVisible((object) => {
       if (object instanceof THREE.Light && object.intensity > 0) {
         lights += 1;
@@ -103,6 +118,19 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
       }
       if (!(object instanceof THREE.Mesh)) return;
       visibleMeshes += 1;
+      const semantic = object.userData?.sceneSemantic;
+      if (semantic?.category === "cabinetHandle") {
+        const instanceCount = object instanceof THREE.InstancedMesh ? object.count : 1;
+        cabinetHandleCount += instanceCount;
+        cabinetHandleInstanceMappings += instanceCount;
+        if (typeof semantic.owningObjectId === "string") cabinetHandleParents.add(semantic.owningObjectId);
+        if (typeof semantic.geometrySignature === "string") {
+          cabinetHandleGeometrySignatures.set(semantic.geometrySignature, (cabinetHandleGeometrySignatures.get(semantic.geometrySignature) ?? 0) + instanceCount);
+        }
+        if (typeof semantic.materialCanonicalKey === "string") {
+          cabinetHandleMaterialKeys.set(semantic.materialCanonicalKey, (cabinetHandleMaterialKeys.get(semantic.materialCanonicalKey) ?? 0) + instanceCount);
+        }
+      }
       const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
       objectMaterials.forEach((material) => {
         if (!material) return;
@@ -147,6 +175,16 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
       measuredAt: new Date().toISOString()
     };
     window.__villa3dPerformance = snapshot;
+    window.__villa3dSemanticStats = {
+      cabinetHandles: {
+        total: cabinetHandleCount,
+        parentObjects: cabinetHandleParents.size,
+        geometrySignatures: Object.fromEntries(cabinetHandleGeometrySignatures),
+        materialCanonicalKeys: Object.fromEntries(cabinetHandleMaterialKeys),
+        instanceMappings: cabinetHandleInstanceMappings
+      },
+      measuredAt: snapshot.measuredAt
+    };
     gl.domElement.dataset.performanceSnapshot = JSON.stringify(snapshot);
     if (interactionActive) {
       gl.domElement.dataset.interactionPerformanceSnapshot = JSON.stringify(snapshot);
