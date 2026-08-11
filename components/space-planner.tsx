@@ -28,7 +28,9 @@ import { autoRepairHouse, validateHouse } from "@/src/core/houseValidator";
 import { SITE_PLAN_MAX_Y_MM, SITE_PLAN_MIN_Y_MM, STRUCTURE_HEIGHT_MM, createEmptyStructure, createOutdoor, getLineLength, getPolygonArea } from "@/lib/house-geometry";
 import { applyFloorPlanPreset, floorPlanPresetLabels, getDefaultVisualSettings } from "@/lib/floor-plan-cleanup";
 import type { WallSyncOverrides } from "@/lib/villa-structure-sync";
-import { enrichFurniture3DMeta, render3DMaterialTokenCatalog } from "@/lib/render3d-assets";
+import { enrichFurniture3DMeta, render3DMaterialTokenCatalog, resolveCabinetMaterialLayer, resolveRender3DMaterials, type Render3DMaterialToken } from "@/lib/render3d-assets";
+import { getPbrMaterialDefinition } from "@/lib/material-system";
+import { cabinetInteriorModuleLabels, createDefaultCabinetInteriorLayout, getCabinetInteriorDisplayName, isEditableCabinetFurniture, normalizeCabinetInteriorLayout, validateCabinetInteriorLayout } from "@/lib/cabinet-interior";
 import { drawingItemCategoryLabels, generateDrawingItemsFromFurniture } from "@/lib/drawing-items";
 import { generateLightingDesignV1, modernWarmFixtureFamilies } from "@/lib/lighting-design";
 import { createUnifiedCourtyardModel, courtyardViewFloorIds } from "@/lib/courtyard-model";
@@ -82,7 +84,7 @@ import {
   verificationDisplayStateLabels
 } from "@/lib/dimension-verification";
 import type { VerificationDisplayState, VerificationTargetEntry } from "@/lib/dimension-verification";
-import type { AccessMode, CabinetDesign, CabinetDesignZone, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanPreset, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MobileDisplayLevel, MobileQuality, PlanCanvasMode, PlannerMode, Render3DAssetType, RoomTourView, SpaceData, StairLanding, StairOpening, StairSystem, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
+import type { AccessMode, CabinetDesign, CabinetDesignZone, CabinetInteriorLayout, CabinetInteriorModule, CabinetInteriorModuleKind, CabinetMaterialPart, CleanPatch, DrawingItem, DrawingPackage, DrawingSheetType, DrawTool, FixedCameraView, FloorId, FloorPlanPreset, FloorPlanVisualSettings, Furniture, HouseDoor, HouseOutdoor, HouseOutdoorSurface, HouseRoom, HouseSkylight, HouseStair, HouseStructure, HouseWall, HouseWindow, InteriorModuleCategory, MaterialRoleId, MobileDisplayLevel, MobileQuality, PlanCanvasMode, PlannerMode, Render3DAssetType, RoomTourView, SpaceData, StairLanding, StairOpening, StairSystem, ViewMode, WardrobeCellKind, WardrobeDesign } from "@/types/space";
 import type { SemanticObject } from "@/types/semantic-map";
 import type { LightingDesign, WorkspaceDocument } from "@/types/workspace";
 
@@ -130,6 +132,59 @@ type MobileProfessionalSheetMode = Extract<DrawingSheetType, "socketPlan" | "swi
 type MobileSheetTarget =
   | { kind: "project" }
   | { kind: "furniture" | "semantic" | "structure"; id: string };
+
+const roomFloorMaterialTokens: Render3DMaterialToken[] = [
+  "oakFloor",
+  "warmGreyStone",
+  "travertine",
+  "microCement",
+  "wetAreaTile",
+  "courtyardStone"
+];
+
+const roomWallMaterialTokens: Render3DMaterialToken[] = [
+  "warmWhiteMineral",
+  "microCement",
+  "warmOak",
+  "warmGreyStone",
+  "travertine",
+  "beigeFabric",
+  "wetAreaTile",
+  "oatTaupeLacquer"
+];
+
+function applyRoomMaterialToken(room: HouseRoom, surface: "floor" | "wall", token: Render3DMaterialToken): HouseRoom {
+  const { token: canonicalToken, definition } = getPbrMaterialDefinition(token, surface === "floor" ? "floorMain" : "wallBase");
+  const existing = room.surfaceFinishes?.[surface];
+  const existingFloorJointColor = surface === "floor" ? room.surfaceFinishes?.floor?.jointColor : undefined;
+  const materialRole: MaterialRoleId = surface === "floor"
+    ? (definition.roles.includes("floorWet") ? "floorWet" : "floorMain")
+    : (definition.roles.includes("wallFeature") ? "wallFeature" : "wallBase");
+  const common = {
+    ...existing,
+    material: canonicalToken,
+    materialToken: canonicalToken,
+    materialRole,
+    name: definition.label,
+    baseColor: definition.baseColor,
+    textureAccent: definition.accentColor,
+    roughness: definition.roughness,
+    textureScale: existing?.textureScale ?? 1,
+    physicalWidthMm: definition.physicalSizeMm[0],
+    physicalHeightMm: definition.physicalSizeMm[1],
+    uvRotationDeg: definition.uv.rotationDeg
+  };
+  const nextFinish = surface === "floor"
+    ? { ...common, jointColor: existingFloorJointColor ?? definition.accentColor }
+    : common;
+  return {
+    ...room,
+    surfaceFinishes: {
+      ...room.surfaceFinishes,
+      [surface]: nextFinish
+    }
+  } as HouseRoom;
+}
 type LocalCodeFileStatus = "checking" | "unsupported" | "unbound" | "bound" | "syncing" | "synced" | "error";
 type DraftSaveState = {
   status: "idle" | "saving" | "saved" | "error";
@@ -174,6 +229,22 @@ type LocalFilePickerWindow = Window & {
     types?: Array<{ description: string; accept: Record<string, string[]> }>;
   }) => Promise<LocalCodeFileHandle[]>;
 };
+
+const CABINET_MATERIAL_PART_LABELS: Record<CabinetMaterialPart, string> = {
+  door: "柜门",
+  carcass: "柜体板材",
+  countertop: "台面",
+  glass: "玻璃",
+  hardware: "拉手 / 五金"
+};
+
+function cabinetMaterialPartFromMeshPart(part?: string): CabinetMaterialPart | null {
+  if (part?.includes("glass")) return "glass";
+  if (part?.includes("handle") || part?.includes("hardware")) return "hardware";
+  if (part?.includes("body")) return "carcass";
+  if (part?.includes("door")) return "door";
+  return null;
+}
 
 const WEB_WORKSPACE_SCHEMA_VERSION = CURRENT_WORKSPACE_SCHEMA_VERSION;
 const DEFAULT_WORKSPACE_REVISION = CURRENT_WORKSPACE_DATA_REVISION;
@@ -935,44 +1006,6 @@ const b1OperableSkylights: HouseSkylight[] = [
   }
 ];
 
-const b2SkylightNote = "沿 W-B2-012 设置地下室采光井天窗，预留防水收边、排水坡度、电源、检修和防坠落措施。";
-const b2W012Skylights: HouseSkylight[] = [
-  {
-    id: "SKY-B2-W012-001",
-    floorId: "B2",
-    name: "W-B2-012 电动采光天窗 1",
-    geometryType: "polygon",
-    center: { x: 9140, y: 5200 },
-    width: 620,
-    depth: 950,
-    height: 120,
-    rotation: 90,
-    operation: "electricOperable",
-    openable: true,
-    motorized: true,
-    note: b2SkylightNote,
-    editable: true,
-    removable: true
-  },
-  {
-    id: "SKY-B2-W012-002",
-    floorId: "B2",
-    name: "W-B2-012 电动采光天窗 2",
-    geometryType: "polygon",
-    center: { x: 9140, y: 6820 },
-    width: 620,
-    depth: 950,
-    height: 120,
-    rotation: 90,
-    operation: "electricOperable",
-    openable: true,
-    motorized: true,
-    note: b2SkylightNote,
-    editable: true,
-    removable: true
-  }
-];
-
 const b1PowerOnly = { water: false, drainage: false, power: true, exhaust: false };
 const b1SeasonalWardrobeDesign: WardrobeDesign = {
   columns: 3,
@@ -1432,36 +1465,6 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
     position: { x: 77.65, y: 71.3, rotation: 90 },
     color: "#f0e7d8"
   },
-  "furn-kitchen-entry-island-001": {
-    code: "IS-1F-210",
-    name: "厨房门口加长储物岛台",
-    type: "island",
-    catalogId: "kitchen-island",
-    moduleCategory: "kitchen",
-    moduleType: "island",
-    roomId: "ROOM-1F-005",
-    dimensions: { width: 190, depth: 55, height: 80, unit: "cm" },
-    material: "岩板台面 + 下柜收纳",
-    note: "岛台柜体减深并向东侧移动，释放厨房入口的左转空间，兼顾备餐、端菜和储物。",
-    constructionNote: "先按可移动岛台校核通道，后续根据现场尺寸决定是否固定、是否预留电源。",
-    serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    position: { x: 57.5, y: 45.22, rotation: 0 },
-    color: "#cfd8d3",
-    cabinetDesign: {
-      template: "island",
-      title: "厨房门口加长储物岛台设计",
-      designThinking: "岛台加长后承担两件事：厨房出菜/备餐的连续台面，以及客厅侧可拿取的储物。内部用抽屉、开放格和拉篮分开，避免一个大空腔不好用。",
-      recommendedPlacement: "厨房推拉门外侧、客厅入口上方，长度与靠窗水槽段接近，四周仍要保留可绕行动线。",
-      layoutNotes: ["台面长度 1900mm，柜体深度 550mm，入口侧留出连续转身空间", "厨房侧放托盘、锅垫、备餐工具", "客厅侧放茶点、纸巾、杯垫和低频餐具"],
-      zones: [
-        { id: "drawer-stack", label: "三层抽屉", role: "餐具 / 小工具", widthPercent: 30, heightPercent: 100, detail: "靠厨房一侧做三层抽屉，上层餐具，中层保鲜袋/杯垫，下层锅垫和餐垫。" },
-        { id: "open-shelf", label: "开放隔层", role: "托盘 / 常用盘", widthPercent: 28, heightPercent: 100, detail: "中段做开放隔层，放托盘和常用盘，端菜时不用开门。" },
-        { id: "pull-basket", label: "抽拉篮", role: "零食 / 茶点", widthPercent: 22, heightPercent: 100, detail: "客厅侧设置窄拉篮，放茶点、纸巾、备用杯子，拉出后正面可见。" },
-        { id: "closed-cabinet", label: "封闭柜", role: "低频收纳", widthPercent: 20, heightPercent: 100, detail: "端头封闭柜收低频器具，外观保持整洁。", serviceNote: "端头预留插座，给电火锅或临时小电器使用。" }
-      ],
-      cautionNotes: ["加长后需要复核厨房门外侧通道和餐桌椅后退空间。", "如果后续做固定岛台，再决定是否预留地插或侧插。"]
-    }
-  },
   "furn-living-snack-pullout-001": {
     code: "SC-1F-01",
     name: "卫生间门左侧贴墙零食柜",
@@ -1493,7 +1496,7 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
   },
   "furn-entry-slim-hanging-001": {
     code: "EH-1F-01",
-    name: "W-1F-004 超薄木饰面挂衣区",
+    name: "W-1F-004 入户正对墙超薄木饰面挂衣区",
     type: "entryCabinet",
     catalogId: "storage-entry-cabinet",
     moduleCategory: "storage",
@@ -1501,16 +1504,16 @@ const oneFloorLivingFurnitureOverrides: Record<string, Partial<Furniture>> = {
     roomId: "ROOM-1F-001",
     dimensions: { width: 120, depth: 12, height: 200, unit: "cm" },
     material: "浅木竖向饰面 + 拉丝黄铜挂杆 + 折叠挂钩 + 弧角窄搁板",
-    note: "固定在 W-1F-004 玄关侧墙面，做成扁平狭长的外穿衣服临时挂放区，平时尽量不挡路。",
+    note: "固定在西侧入户门正对的 W-1F-004 墙面，中心与900mm入户门中心同轴，做成扁平狭长的外穿衣服临时挂放区。",
     constructionNote: "贴 W-1F-004 墙固定到基层，挂钩避开入户门扇、厨房推拉门和转身动线；下方悬空，方便清洁。",
     serviceRequirements: { water: false, drainage: false, power: true, exhaust: false },
-    position: { x: 44.35, y: 18.8, rotation: 90 },
+    position: { x: 44.35, y: 26.44, rotation: 90 },
     color: "#bfd7c9",
     cabinetDesign: {
       template: "entryCabinet",
       title: "W-1F-004 超薄外衣挂区设计",
       designThinking: "玄关墙面小，就不要做厚衣柜。沿 W-1F-004 做一条很浅的长挂板，用折叠挂钩和高处窄搁板把外套临时挂放需求压在墙面上，保持地面和通道空出来。",
-      recommendedPlacement: "贴 W-1F-004 的玄关侧墙面，避开入户门和厨房推拉门通行线。",
+      recommendedPlacement: "贴西侧入户门正对的 W-1F-004 墙面，中心与入户门中心同轴，避开厨房推拉门通行线。",
       layoutNotes: ["1200mm 横向展开，深度控制在 100mm 左右", "挂钩折叠，没人挂衣服时几乎不凸出", "上方窄搁板放帽子、口罩和香氛", "下方悬空，不放厚鞋柜，减少堵路感"],
       zones: [
         { id: "fold-hooks", label: "折叠挂钩", role: "外套 / 包", widthPercent: 100, heightPercent: 48, detail: "只负责临时外衣，不承担全季衣柜功能。" },
@@ -1575,28 +1578,30 @@ const twoFloorNoService = { water: false, drainage: false, power: false, exhaust
 
 const twoFloorDefaultFurnitureOverrides: Record<string, Partial<Furniture>> = {
   "module-2f-cloak-left": {
-    name: "2F 衣帽间西墙挂衣柜",
+    name: "衣帽间西侧全深色玻璃衣柜",
     roomId: "ROOM-2F-002",
-    dimensions: { width: 258, depth: 60, height: 240, unit: "cm" },
-    note: "已挪入衣帽间西墙：长衣、短衣双层挂、顶部被子和包包开放格，叠放区极少。",
-    constructionNote: "沿衣帽间西侧墙布置，按 600mm 深度复核中间通道；顶部预留换季被子和行李。",
+    dimensions: { width: 258, depth: 60, height: 275, unit: "cm" },
+    note: "整面采用深茶灰透明玻璃门、细黑钛框和暖色柜内感应灯；能看见衣物层次，但不做不透光黑柜。",
+    constructionNote: "沿衣帽间西侧墙布置，按600mm深度复核中间通道；玻璃门、灯带驱动和顶封板均需可检修。",
     position: { x: 47.36, y: 18.89, rotation: 90 }
   },
   "module-2f-cloak-right": {
-    name: "2F 衣帽间东墙包被收纳柜",
+    name: "衣帽间东侧全深色玻璃衣柜",
     roomId: "ROOM-2F-002",
-    dimensions: { width: 258, depth: 60, height: 240, unit: "cm" },
-    note: "已挪入衣帽间东墙：以挂衣、包包展示和被褥收纳为主，不单独设置大面积叠放区。",
-    constructionNote: "沿衣帽间东侧墙布置，局部玻璃门展示包包，顶柜和窄高柜收被子、行李箱、换季物。",
+    dimensions: { width: 258, depth: 60, height: 275, unit: "cm" },
+    note: "整面采用深茶灰透明玻璃门、细黑钛框和暖色柜内感应灯；能看见衣物层次，但不做不透光黑柜。",
+    constructionNote: "沿衣帽间东侧墙布置，按600mm深度复核中间通道；柜内以挂衣、包被和行李收纳为主。",
     position: { x: 61.51, y: 18.89, rotation: 90 }
   },
   "module-2f-window-desk": {
-    name: "2F 窗边标准梳妆台",
+    name: "2F 衣帽间窗边 1800×700 实木升降电脑桌",
     roomId: "ROOM-2F-002",
-    dimensions: { width: 120, depth: 50, height: 80, unit: "cm" },
-    note: "采用正常梳妆台尺度并增加醒目的大镜面；台面可高于窗下沿。",
-    constructionNote: "靠窗预留双插、充电位和化妆镜灯电源，复核窗扇开启。",
-    position: { x: 54.95, y: 7.15, rotation: 0 }
+    dimensions: { width: 180, depth: 70, height: 75, unit: "cm" },
+    material: "40mm 白橡木实木大板 + 黑色双电机升降桌架 + 桌下理线槽",
+    note: "采用标准 1800×700mm 大木板升降电脑桌，支持双人并排或电脑加手作；高度调节范围约 650–1250mm。",
+    constructionNote: "成品双电机升降桌；桌板 1800×700×40mm，靠窗居中，预留独立五孔、网络、桌下理线和升降行程，复核窗扇开启。",
+    position: { x: 54.43, y: 7.78, rotation: 0 },
+    render3d: { assetType: "desk", variantId: "electricSitStandWood", detailLevel: "presentation", stylePreset: "tuscanWabiSabi", primaryMaterial: "warmOak", secondaryMaterial: "blackTitanium", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual" }
   }
 };
 
@@ -1616,9 +1621,9 @@ const twoFloorMasterBedroomLegacyFurniturePositions: Record<string, Furniture["p
 };
 
 const twoFloorMasterBedroomVisibleFurniturePositions: Record<string, Furniture["position"]> = {
-  "furn-2f-master-bedroom-bed-001": { x: 71.55, y: 75.2, rotation: 0 },
-  "furn-2f-master-bedroom-large-wardrobe-001": { x: 76.55, y: 48.8, rotation: 90 },
-  "furn-2f-master-bedroom-chest-001": { x: 71.25, y: 36.8, rotation: 0 }
+  "furn-2f-master-bedroom-bed-001": { x: 62.85, y: 71.94, rotation: 270 },
+  "furn-2f-master-bedroom-large-wardrobe-001": { x: 76.63, y: 46.67, rotation: 90 },
+  "furn-2f-master-bedroom-chest-001": { x: 77.67, y: 63.33, rotation: 90 }
 };
 
 function furniturePositionAlmostEquals(position: Furniture["position"], target: Furniture["position"]) {
@@ -1692,7 +1697,7 @@ const twoFloorDefaultFurniture: Furniture[] = [
   {
     id: "furn-2f-master-shower-001",
     code: "SH-2F-M01",
-    name: "主卫左上玻璃淋浴间",
+    name: "主卫东北角 900mm 无框玻璃淋浴间",
     type: "shower",
     catalogId: "bath-shower",
     moduleCategory: "bath",
@@ -1701,28 +1706,28 @@ const twoFloorDefaultFurniture: Furniture[] = [
     roomId: "ROOM-2F-003",
     dimensions: { width: 90, depth: 90, height: 210, unit: "cm" },
     material: "无框超白玻璃 + 暖灰防滑砖 + 壁龛灯",
-    note: "主卫左上角做无框玻璃淋浴间，墙地面延续暖灰石材感，壁龛用暖光提氛围。",
+    note: "参考样板房，900mm无框玻璃淋浴位于东北角，入口朝南并与浴缸错开。",
     constructionNote: "复核淋浴冷热水、地漏坡度、挡水条、玻璃隔断开启方向和壁龛灯低压电源。",
     serviceRequirements: twoFloorWetNoPower,
-    position: { x: 68.2, y: 9, rotation: 0 },
+    position: { x: 75.38, y: 8.89, rotation: 0 },
     color: "#9fcdda"
   },
   {
     id: "furn-2f-master-bathtub-001",
     code: "BT-2F-M01",
-    name: "主卫左侧浴缸",
+    name: "主卫西墙 1700mm 独立浴缸",
     type: "bathtub",
     catalogId: "bath-bathtub",
     moduleCategory: "bath",
     moduleType: "bathtub",
     floorId: "2F",
     roomId: "ROOM-2F-003",
-    dimensions: { width: 170, depth: 75, height: 58, unit: "cm" },
+    dimensions: { width: 170, depth: 70, height: 58, unit: "cm" },
     material: "暖白亚克力浴缸 + 暖灰石材背景",
-    note: "浴缸沿主卫左侧竖向布置，用暖灰墙面和低位线性光弱化体量。",
+    note: "按用户确认保留浴缸，并参考样板房沿西墙纵向放置1700×700mm独立浴缸。",
     constructionNote: "校核上下水、检修口、防水翻边、浴缸侧边通道和低位灯带检修。",
     serviceRequirements: twoFloorWetNoPower,
-    position: { x: 67.15, y: 24.2, rotation: 90 },
+    position: { x: 66.93, y: 13.33, rotation: 270 },
     color: "#f7f4ee"
   },
   {
@@ -1735,30 +1740,30 @@ const twoFloorDefaultFurniture: Furniture[] = [
     moduleType: "vanity",
     floorId: "2F",
     roomId: "ROOM-2F-003",
-    dimensions: { width: 160, depth: 55, height: 85, unit: "cm" },
+    dimensions: { width: 160, depth: 50, height: 85, unit: "cm" },
     material: "浅木悬浮双盆柜 + 白色岩板台面 + 大面镜柜 + 上下线性灯",
     note: "按要求沿 W-2F-006 东侧墙布置双人台盆，视觉重点放在浅木柜体、长镜柜和暖光灯带。",
     constructionNote: "沿 W-2F-006 复核双盆冷热水、双下水、镜柜灯、吹风插座、防溅距离和悬浮柜承重。",
     serviceRequirements: twoFloorBathService,
-    position: { x: 76.83, y: 14.8, rotation: 90 },
+    position: { x: 77.04, y: 24.11, rotation: 90 },
     color: "#a9764c"
   },
   {
     id: "furn-2f-master-toilet-001",
     code: "WC-2F-M01",
-    name: "主卫右下马桶",
+    name: "主卫西南侧紧凑壁排马桶",
     type: "toilet",
     catalogId: "bath-toilet",
     moduleCategory: "bath",
     moduleType: "toilet",
     floorId: "2F",
     roomId: "ROOM-2F-003",
-    dimensions: { width: 70, depth: 75, height: 78, unit: "cm" },
+    dimensions: { width: 60, depth: 70, height: 78, unit: "cm" },
     material: "暖白智能马桶 + 暖灰石材背景墙",
-    note: "马桶放在主卫右下侧，尽量收进较安静的位置，避开双盆主操作区。",
+    note: "马桶移到浴缸南侧并向北收，避开主卫唯一门洞；入口处保持连续通行。",
     constructionNote: "复核坑距、给水角阀、智能马桶电源、门扇开启范围和墙面检修口。",
     serviceRequirements: twoFloorBathService,
-    position: { x: 76.55, y: 28.3, rotation: 90 },
+    position: { x: 66.93, y: 26.67, rotation: 270 },
     color: "#f4f0ea"
   },
   {
@@ -1776,67 +1781,83 @@ const twoFloorDefaultFurniture: Furniture[] = [
     note: "床头贴墙布置，后续复核床侧通道、床头插座和衣柜开门空间。",
     constructionNote: "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 16.25, y: 70.4, rotation: 270 },
+    position: { x: 16.25, y: 77.22, rotation: 270 },
     color: "#c8a887"
   },
   {
     id: "furn-2f-bedroom1-wardrobe-001",
     code: "WD-2F-01",
-    name: "卧室1 衣柜",
+    name: "卧室1 左上角 1200mm 通顶移门衣柜",
     type: "wardrobe",
     catalogId: "storage-wardrobe",
     moduleCategory: "storage",
     moduleType: "wardrobe",
     floorId: "2F",
     roomId: "ROOM-2F-004",
-    dimensions: { width: 240, depth: 60, height: 240, unit: "cm" },
+    dimensions: { width: 120, depth: 60, height: 275, unit: "cm" },
     material: "定制柜体 + 平开/移门",
     note: "衣柜贴墙布置，避开床侧通道和门洞开启范围。",
     constructionNote: "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 30, y: 72, rotation: 90 },
+    position: { x: 13.75, y: 60.56, rotation: 0 },
     color: "#c8a887"
   },
   {
     id: "furn-2f-bedroom2-bed-001",
     code: "BD-2F-02",
-    name: "卧室2 靠墙双人床",
+    name: "卧室2 右墙 1200mm 儿童抽拉床",
     type: "bed",
     catalogId: "bedroom-bed",
     moduleCategory: "bedroom",
     moduleType: "bed",
     floorId: "2F",
     roomId: "ROOM-2F-005",
-    dimensions: { width: 150, depth: 200, height: 95, unit: "cm" },
+    dimensions: { width: 120, depth: 200, height: 78, unit: "cm" },
     material: "木质床架 + 软包床头",
-    note: "床头贴墙布置，后续复核床侧通道、床头插座和衣柜开门空间。",
-    constructionNote: "床头两侧预留插座、双控和夜灯；床尾通道后续按现场尺寸复核。",
+    note: "床体沿右墙纵向布置，左侧保留房门至阳台的连续通道；抽拉副床仅在需要第二睡位时展开。",
+    constructionNote: "采用圆角低位抽拉床，复核抽拉方向、右墙踢脚线和阳台入口；床侧预留五孔、USB-C与夜灯。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 45.6, y: 70.4, rotation: 270 },
+    position: { x: 49.52, y: 75, rotation: 0 },
     color: "#c8a887"
   },
   {
     id: "furn-2f-bedroom2-wardrobe-001",
     code: "WD-2F-02",
-    name: "卧室2 衣柜",
+    name: "卧室2 右上角 1400mm 通顶移门衣柜",
     type: "wardrobe",
     catalogId: "storage-wardrobe",
     moduleCategory: "storage",
     moduleType: "wardrobe",
     floorId: "2F",
     roomId: "ROOM-2F-005",
-    dimensions: { width: 240, depth: 60, height: 240, unit: "cm" },
+    dimensions: { width: 140, depth: 55, height: 275, unit: "cm" },
     material: "定制柜体 + 平开/移门",
     note: "衣柜贴墙布置，避开床侧通道和门洞开启范围。",
     constructionNote: "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 52.016666666666666, y: 72, rotation: 90 },
+    position: { x: 48.68, y: 60.28, rotation: 0 },
     color: "#c8a887"
+  },
+  {
+    id: "furn-2f-bedroom2-desk-001",
+    code: "DS-2F-C01",
+    name: "卧室2 左墙浅儿童书桌",
+    type: "custom",
+    floorId: "2F",
+    roomId: "ROOM-2F-005",
+    dimensions: { width: 100, depth: 45, height: 75, unit: "cm" },
+    material: "浅橡木桌面 + 暖白抽屉 + 圆角护边",
+    note: "位于左墙中段并避开房门扇和阳台入口；桌前与右墙抽拉床之间保留约 1000mm 通道。",
+    constructionNote: "书桌深度控制 450mm，桌角倒圆；预留双插、USB-C和台灯位。",
+    serviceRequirements: { ...twoFloorNoService, power: true },
+    position: { x: 34.35, y: 72.22, rotation: 90 },
+    color: "#c8a887",
+    render3d: { assetType: "desk", variantId: "slimWritingDesk", detailLevel: "presentation", stylePreset: "tuscanWabiSabi", primaryMaterial: "lightOak", secondaryMaterial: "warmWhiteCeramic", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual" }
   },
   {
     id: "furn-2f-master-bedroom-bed-001",
     code: "BD-2F-MB01",
-    name: "主卧 最里面双人床",
+    name: "主卧 西墙床头 1800mm 双人床",
     type: "bed",
     catalogId: "bedroom-bed",
     moduleCategory: "bedroom",
@@ -1845,10 +1866,10 @@ const twoFloorDefaultFurniture: Furniture[] = [
     roomId: "ROOM-2F-006",
     dimensions: { width: 180, depth: 200, height: 95, unit: "cm" },
     material: "木质床架 + 软包床头",
-    note: "床放在主卧最里面的南侧深处，床尾朝向主卧入口动线，避开主卫门口。",
-    constructionNote: "床头两侧预留插座、双控和夜灯；复核床边衣柜与床侧通道的净宽。",
+    note: "床头移至西侧 W-2F-016，床身向东展开；东墙北段布置大衣柜，床尾南段保留约950mm主通道。",
+    constructionNote: "床头靠西墙定位，左右各预留插座、USB-C、双控和阅读灯；不得新增侧窗。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 71.55, y: 75.2, rotation: 0 },
+    position: { x: 62.85, y: 71.94, rotation: 270 },
     color: "#c8a887"
   },
   {
@@ -1861,31 +1882,53 @@ const twoFloorDefaultFurniture: Furniture[] = [
     moduleType: "wardrobe",
     floorId: "2F",
     roomId: "ROOM-2F-006",
-    dimensions: { width: 260, depth: 60, height: 240, unit: "cm" },
+    dimensions: { width: 220, depth: 60, height: 275, unit: "cm" },
     material: "定制大衣柜 + 顶柜 + 感应灯带",
-    note: "大衣柜沿主卧东侧长墙布置，靠近主卫但不压主卫门洞，承担主要挂衣和换季收纳。",
-    constructionNote: "复核东墙柜体深度、开门/移门方式、主卫门套收口和床侧通道。",
+    note: "参考样板房，将2200mm大衣柜放在东墙北段，不与西墙床体正对重叠；承担主卧常穿衣物和换季收纳。",
+    constructionNote: "2200×600mm柜体自北端留50mm收口起布置；南侧衔接浅五斗橱，复核主卫门套和顶封板。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 76.55, y: 48.8, rotation: 90 },
+    hidden: false,
+    visible: true,
+    position: { x: 76.63, y: 46.67, rotation: 90 },
     color: "#d8c2a4"
   },
   {
     id: "furn-2f-master-bedroom-chest-001",
     code: "DR-2F-MB01",
-    name: "主卧 主卫门旁五斗橱",
+    name: "主卧 主卫连接处五斗橱",
     type: "sideboard",
     catalogId: "storage-sideboard",
     moduleCategory: "storage",
     moduleType: "sideboard",
     floorId: "2F",
     roomId: "ROOM-2F-006",
-    dimensions: { width: 100, depth: 45, height: 90, unit: "cm" },
+    dimensions: { width: 80, depth: 35, height: 90, unit: "cm" },
     material: "木色五斗橱 + 金属拉手",
-    note: "五斗橱位于接近主卫的北侧靠墙处，用来收小件衣物、睡衣和护理用品。",
-    constructionNote: "靠主卫墙边但避开门洞开启，顶部可预留镜子或小夜灯电源。",
+    note: "五斗橱接在东墙大衣柜南侧，350mm浅体减少对床尾通道的挤压，用于睡衣和护理用品。",
+    constructionNote: "按800×350×900mm控制；与衣柜留10–20mm收口缝，顶部预留小夜灯或挂画灯电源。",
     serviceRequirements: twoFloorNoService,
-    position: { x: 71.25, y: 36.8, rotation: 0 },
+    position: { x: 77.67, y: 63.33, rotation: 90 },
     color: "#d7c6a8"
+  },
+  {
+    id: "furn-2f-master-bay-bench-001",
+    code: "BN-2F-MB01",
+    name: "主卧下方飘窗坐垫抽屉坐榻",
+    type: "cabinet",
+    catalogId: "storage-sideboard",
+    moduleCategory: "storage",
+    moduleType: "sideboard",
+    floorId: "2F",
+    roomId: "ROOM-2F-006",
+    dimensions: { width: 160, depth: 55, height: 45, unit: "cm" },
+    material: "浅橡木抽屉底柜 + 燕麦色可拆洗坐垫",
+    note: "坐榻贴图纸下方飘窗 W-2F-020 设置，保留阅读和临时置物功能，不设置酒店式沙发。",
+    constructionNote: "按 1600×550×450mm 深化，抽屉向室内开启；复核飘窗窗扇、窗帘和墙角收口。",
+    serviceRequirements: twoFloorNoService,
+    position: { x: 66.75, y: 83.61, rotation: 0 },
+    color: "#d7c6a8",
+    render3d: { assetType: "sideboard", variantId: "floating", detailLevel: "presentation", stylePreset: "tuscanWabiSabi", primaryMaterial: "warmOak", secondaryMaterial: "beigeFabric", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual" },
+    hostWallId: "W-2F-020"
   }
 ];
 
@@ -1897,19 +1940,19 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-living-tv-console-001",
     code: "TV-B2-01",
-    name: "B2样板间石材木饰面分区悬浮电视墙",
+    name: "B2 轻薄悬浮微水泥电视墙",
     type: "cabinet",
     catalogId: "living-storage-tv-wall",
     moduleCategory: "living",
     moduleType: "cabinet",
     floorId: "B2",
     roomId: "ROOM-B2-001",
-    dimensions: { width: 360, depth: 42, height: 240, unit: "cm" },
-    material: "中部暖米色石材大板 + 两侧浅橡木饰面 + 窄阴影缝 + 烟灰玻璃展示格 + 悬浮影音低柜",
-    note: "保持现有电视墙位置与3600mm总宽，通过石材/木饰面分区、材料阴影缝、悬浮低柜和柜底灯带提升样板间表达。",
-    constructionNote: "石材分缝、阴影缝宽度、柜底标高与100寸电视检修空间需深化复尺。",
+    dimensions: { width: 314, depth: 42, height: 240, unit: "cm" },
+    material: "暖灰微水泥圆角悬浮背板 + 右侧浅橡木薄设备柜 + 胡桃木无拉手悬浮影音低柜 + 香槟古铜阴影缝",
+    note: "电视墙中心右移至 x≈6040mm并保持3140mm总宽；取消左右对称高柜和厚重火箱造型，让100寸黑色屏幕、轻薄背板与一条悬浮低柜成为主体。",
+    constructionNote: "微水泥背板厚约80mm并做15mm背光阴影缝；右侧薄设备柜控制在320mm宽，低柜离地约260mm，预留影音散热与检修。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 47, y: 6.44, rotation: 0 },
+    position: { x: 53.5, y: 6.44, rotation: 0 },
     color: "#d8c2a4",
     hostWallId: "W-B2-001",
     cabinetHeight: { kind: "fullHeight", topClosureMm: 30, source: "explicit" },
@@ -1928,7 +1971,7 @@ const b2DefaultFurniture: Furniture[] = [
     note: "真实独立大屏幕电视，居中安装在收纳电视墙中央，正对长沙发。",
     constructionNote: "屏幕底边标高约 800mm，预留安装基层、隐藏插座、网口和影音线管。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 47, y: 9.06, rotation: 0 },
+    position: { x: 53.5, y: 9.06, rotation: 0 },
     color: "#111827",
     hostWallId: "W-B2-001",
     render3d: { assetType: "generic", variantId: "tv100InchDisplay", detailLevel: "presentation", elevationMm: 800, visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped" }
@@ -1936,39 +1979,73 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-living-long-sofa-001",
     code: "SF-B2-01",
-    name: "B2 客厅棕色真皮贵妃沙发",
+    name: "B2 客厅四人位黑色宽座软牛皮沙发",
     type: "sofa",
     catalogId: "living-sofa",
     moduleCategory: "living",
     moduleType: "sofa",
     floorId: "B2",
     roomId: "ROOM-B2-001",
-    dimensions: { width: 360, depth: 105, height: 80, unit: "cm" },
-    material: "棕色头层真皮 + 单侧贵妃榻 + 深棕皮革滚边",
-    note: "沙发对齐 W-B2-001 电视墙中心线，后方仍保留去书房、楼梯间和活动区的通行。",
-    constructionNote: "沙发侧边预留五孔插座和落地灯电源；正前方保留体感游戏和多人观影的净距。",
+    dimensions: { width: 305, depth: 108, height: 80, unit: "cm" },
+    material: "黑色头层宽纹牛皮 + 羽绒感宽座包 + 低矮内收底座 + 四人位软靠包",
+    note: "3.05米直排四人位黑色牛皮沙发与右移后的电视墙同轴，强调宽座和松弛感。",
+    constructionNote: "沙发侧边预留五孔插座和落地灯电源；有效座深控制在560-600mm，西侧及后方保留主通道。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 47.92, y: 42.22, rotation: 180 },
-    color: "#7b4428",
-    render3d: { assetType: "sofa", variantId: "sectionalLShape", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "cognacLeather", secondaryMaterial: "cognacLeather", accentMaterial: "darkBrownLeather", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+    position: { x: 54, y: 42.22, rotation: 180 },
+    color: "#171717",
+    render3d: { assetType: "sofa", variantId: "b2FourSeatLeather", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "blackLeather", secondaryMaterial: "semiAnilineLeather", accentMaterial: "darkWalnut", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-living-coffee-table-001",
     code: "CT-B2-01",
-    name: "B2 客厅透明玻璃茶几",
+    name: "B2 客厅现代悬浮双拼茶几",
     type: "table",
     moduleCategory: "living",
     moduleType: "table",
     floorId: "B2",
     roomId: "ROOM-B2-001",
-    dimensions: { width: 120, depth: 70, height: 38, unit: "cm" },
-    material: "双层低铁透明玻璃 + 黑钛金属细框",
-    note: "位于真皮沙发与 100 寸电视之间，通透材质减轻大尺度客厅的体量感。",
-    constructionNote: "茶几到沙发前沿预留约 400mm，避免挡住客厅去楼梯间和活动区的动线。",
+    dimensions: { width: 105, depth: 62, height: 40, unit: "cm" },
+    material: "浅烟灰超白玻椭圆主几 + 奶油洞石圆几 + 深古铜纤细底座",
+    note: "1050×620mm双件套错位叠放，主几轻薄悬浮、圆几略高，视觉更现代且没有厚重木底座。",
+    constructionNote: "主几边缘圆角、钢架内收；圆几可轻微移动，复核与真皮沙发前沿及玄关动线的净距。",
     serviceRequirements: b2NoService,
-    position: { x: 47.92, y: 28.33, rotation: 0 },
+    position: { x: 57, y: 27.7777777778, rotation: 0 },
     color: "#c9e7e8",
-    render3d: { assetType: "coffeeTable", variantId: "clearGlassTop", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "clearGlass", secondaryMaterial: "smokedGlass", accentMaterial: "blackTitanium", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+    render3d: { assetType: "coffeeTable", variantId: "b2ModernNestedCoffeeTable", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "smokedGlass", secondaryMaterial: "travertine", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+  },
+  {
+    id: "furn-b2-entry-slim-foyer-cabinet-001",
+    code: "EC-B2-01",
+    name: "B2 电视墙一体式轻薄L形玄关屏风",
+    type: "entryCabinet",
+    catalogId: "storage-entry-cabinet",
+    moduleCategory: "storage",
+    moduleType: "entryCabinet",
+    floorId: "B2",
+    roomId: "ROOM-B2-001",
+    dimensions: { width: 148, depth: 20, height: 240, unit: "cm" },
+    material: "浅白蜡木20mm圆角细框 + 暖白下部薄板 + 40%通透竖向格栅 + 香槟古铜挂衣杆 + 窄幅圆角镜 + 燕麦色悬浮换鞋凳",
+    note: "南侧1000mm功能段中心继续对准 D-B2-001 门洞，北端增加480mm轻薄通透段接至电视墙左端；门前约930mm净空不变。",
+    constructionNote: "总长1480mm、深200mm、高2400mm；北端480mm以下部薄板和上部疏格栅连接电视墙，交接留20mm阴影缝；南侧保留开放挂衣、圆角镜、置物托盘和悬浮换鞋凳。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 39.5, y: 16.9777777778, rotation: 90 },
+    color: "#e1d3bf",
+    cabinetHeight: { kind: "tall", source: "explicit" },
+    cabinetDesign: {
+      template: "entryCabinet",
+      title: "B2 电视墙一体式轻薄L形玄关",
+      designThinking: "把原来悬浮在空间里的衣帽屏风向北延伸到电视墙左端，让它从一件家具变成清晰的玄关边界；功能段仍正对入户，延伸段用下实上透的轻构造保持观影区开敞。",
+      recommendedPlacement: "南侧1000mm功能段中心对准 D-B2-001 门洞，柜前沿距门墙完成面约930mm；北端480mm延伸至电视墙左端，并以20mm阴影缝柔性收口。",
+      layoutNotes: ["总长1480mm、深200mm、高2400mm", "南侧1000mm开放挂衣、圆角镜与换鞋凳", "北端480mm下部薄板、上部约40%通透格栅", "与电视墙左端对齐并留20mm阴影缝"],
+      zones: [
+        { id: "open-hanging", label: "开放挂衣", role: "外套 / 包", widthPercent: 42, heightPercent: 68, detail: "挂衣杆与挂钩面向入户，满足日常及周末客衣临时悬挂。" },
+        { id: "shoe-drawers", label: "悬浮换鞋", role: "常穿鞋 / 拖鞋", widthPercent: 42, heightPercent: 32, detail: "换鞋凳下保留单层鞋抽，底部悬空便于清洁。" },
+        { id: "living-back", label: "圆角镜端景", role: "整理 / 随手置物", widthPercent: 20, heightPercent: 72, detail: "正对门保持浅色、轻薄和完整，衣物不暴露给观影区。" },
+        { id: "tv-wall-link", label: "通透连接段", role: "玄关边界 / 电视墙收口", widthPercent: 32, heightPercent: 100, detail: "下部薄板遮挡杂物，上部疏格栅借景，形成真正的L形玄关。" }
+      ],
+      cautionNotes: ["开放式正面不设置柜门，挂衣不得侵占门前净空。", "与电视墙只做阴影缝和隐藏连接，不让两种饰面硬碰。", "延伸段上部保持通透，避免形成封闭窄走廊。"]
+    },
+    render3d: { assetType: "entryCabinet", variantId: "b2OpenFoyerRack", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "greigeLinen", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-activity-outdoor-pegboard-001",
@@ -2012,7 +2089,7 @@ const b2DefaultFurniture: Furniture[] = [
     dimensions: { width: 260, depth: 170, height: 4, unit: "cm" },
     material: "低矮可卷收软垫 / 体感游戏区",
     note: "柱子右侧保留为主要活动净空，只用可移动软垫定义游戏、拉伸、儿童活动和临时运动区域。",
-    constructionNote: "软垫不做固定家具；地面建议耐磨防滑，靠 W-B2-012 天窗区域避免布置高柜。",
+    constructionNote: "软垫不做固定家具；地面建议耐磨防滑，活动区中央保持开敞并避开两根承重柱。",
     serviceRequirements: b2NoService,
     position: { x: 67.5, y: 68.5, rotation: 0 },
     color: "#a7d8de"
@@ -2020,19 +2097,19 @@ const b2DefaultFurniture: Furniture[] = [
   {
     id: "furn-b2-study-souvenir-cabinet-001",
     code: "SC-B2-01",
-    name: "B2 书房透明纪念品收纳柜",
+    name: "B2 书房五联圆角玻璃纪念品墙柜",
     type: "cabinet",
     catalogId: "storage-bookshelf",
     moduleCategory: "storage",
     moduleType: "bookshelf",
     floorId: "B2",
     roomId: "ROOM-B2-005",
-    dimensions: { width: 260, depth: 68, height: 220, unit: "cm" },
-    material: "透明玻璃门 + 浅木层板 + 可调灯带",
-    note: "靠书房左侧墙布置；柜内直接设置两层大型乐高展位，上层放霍格沃茨城堡，下层放罗马斗兽场，其余格位继续展示旅行纪念品。",
-    constructionNote: "柜深加至 680mm；霍格沃茨层净空不小于 780x520x680mm，斗兽场层净空不小于 650x650x380mm，玻璃门、承重层板及灯带统一定制。",
+    dimensions: { width: 205, depth: 52, height: 240, unit: "cm" },
+    material: "深胡桃木五联内龛 + 浅白蜡木圆角竖框 + 超白玻璃门 + 古铜细框 + 暖光层板灯 + 下部记忆抽屉",
+    note: "沿西侧墙从 W-B2-009 南侧做到墙角圆弧切点，形成2050mm五联圆角纪念品展示墙。",
+    constructionNote: "柜深520mm、通高2400mm；南端在距墙角600mm处与对称圆弧酒柜相切，五联内龛、抽屉和灯带统一定制。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 10.6, y: 72.2, rotation: 90 },
+    position: { x: 10.6, y: 68.6111111111, rotation: 270 },
     color: "#dbeafe",
     cabinetDesign: {
       template: "bookshelf",
@@ -2047,27 +2124,82 @@ const b2DefaultFurniture: Furniture[] = [
       ],
       cautionNotes: ["玻璃柜必须防倾倒固定。", "纪念品多且重时，层板要控制跨度并选用更厚玻璃或木层板。"]
     },
-    render3d: { assetType: "bookshelf", variantId: "b2MemorialLegoDisplay", detailLevel: "presentation", stylePreset: "tuscanWabiSabi", primaryMaterial: "warmOak", secondaryMaterial: "clearGlass", accentMaterial: "blackTitanium", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+    render3d: { assetType: "bookshelf", variantId: "b2MemorialLegoDisplay", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "clearGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   },
   {
     id: "furn-b2-study-wine-cabinet-001",
     code: "WC-B2-01",
-    name: "B2 书房整墙酒收纳柜",
+    name: "B2 墙角45°轴对称圆弧玻璃酒柜",
     type: "cabinet",
     moduleCategory: "storage",
     moduleType: "cabinet",
     floorId: "B2",
     roomId: "ROOM-B2-005",
-    dimensions: { width: 185, depth: 45, height: 240, unit: "cm" },
-    material: "通墙深胡桃木竖纹柜体 + 烟灰玻璃门 + 暖光层板 + 内收踢脚 + 顶部阴影收口",
-    note: "保持当前柜体位置和1850mm宽度，完善门板分缝、烟灰玻璃、灯带受光面、内收踢脚和顶部阴影缝。",
-    constructionNote: "按 W-B2-011 书房侧 1850mm 墙段满墙复尺定制，柜体到顶收口、防倾倒固定，预留低压灯带电源与通风缝。",
+    dimensions: { width: 60, depth: 60, height: 240, unit: "cm" },
+    material: "600mm半径扇形深胡桃木底座 + 90°连续凸弧烟灰玻璃 + 香槟古铜径向细框 + 三层扇形暖光展示层",
+    note: "以西南墙角的45°角平分线为对称轴，沿西墙和南墙各占600mm，在两侧直柜之间形成完全对称的圆弧转角。",
+    constructionNote: "圆心落在墙角完成面交点，弧形正面半径600mm；两端分别与520mm深纪念品柜、550mm深水吧做切线收口，底座防倾倒固定并预留通风。",
     serviceRequirements: b2PowerOnly,
-    position: { x: 40.2, y: 84.17, rotation: 180 },
+    position: { x: 10.4166666667, y: 83.3333333333, rotation: 0 },
     color: "#6b4935",
-    hostWallId: "W-B2-011",
+    hostWallId: "W-B2-010",
     cabinetHeight: { kind: "fullHeight", topClosureMm: 30, source: "explicit" },
-    render3d: { assetType: "cabinet", variantId: "b2WineStorageCabinet", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+    render3d: { assetType: "cabinet", variantId: "b2CurvedCornerWineCabinet", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "smokedGlass", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+  },
+  {
+    id: "furn-b2-study-handwash-001",
+    code: "HW-B2-01",
+    name: "B2 L型柜悬浮精品水吧",
+    type: "vanity",
+    moduleCategory: "storage",
+    moduleType: "vanity",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 165, depth: 55, height: 95, unit: "cm" },
+    material: "圆角悬浮胡桃木无拉手柜体 + 30mm奶油洞石薄台面与低挡水 + 台下浅盆 + 古铜龙头 + 单层烟玻置物板",
+    note: "1650mm水吧从墙角对称圆弧柜的南墙切点连续展开；用一整块圆角悬浮柜和薄台面保留咖啡、直饮和洗杯操作面。",
+    constructionNote: "水槽靠转角一侧，右侧留约700mm完整操作台；台下保留净水主机、即热设备和可拆检修板，墙面仅做300mm洞石低挡水与一层烟玻架。",
+    serviceRequirements: { water: true, drainage: true, power: true, exhaust: false },
+    position: { x: 19.7916666667, y: 83.6111111111, rotation: 180 },
+    color: "#6b4935",
+    hostWallId: "W-B2-010",
+    render3d: { assetType: "bathroomVanity", variantId: "b2MiniWaterBar", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "travertine", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+  },
+  {
+    id: "furn-b2-study-slab-table-001",
+    code: "DT-B2-01",
+    name: "B2 书房 2.4m 六人位实木大板桌",
+    type: "table",
+    moduleCategory: "decor",
+    moduleType: "table",
+    floorId: "B2",
+    roomId: "ROOM-B2-005",
+    dimensions: { width: 240, depth: 90, height: 75, unit: "cm" },
+    material: "整块深胡桃木大板桌面 + 内收黑钛金属桌脚 + 六把暖胡桃木靠背椅",
+    note: "桌面长边永久保持南北向（rotation=90°），所有2D、3D和渲染机位共用这一方向；日常六把椅子，周末可在两端临时扩展至八人。",
+    constructionNote: "桌脚内收避免端位顶腿，复核纪念柜、水吧、承重柱和拉椅净距。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 25, y: 64.4444444444, rotation: 90 },
+    color: "#765038",
+    render3d: { assetType: "slabTable", variantId: "b2GrandSlabDining", seatCount: 6, detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "walnut", secondaryMaterial: "walnutDiningChair", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
+  },
+  {
+    id: "furn-b2-under-stair-room-shell-001",
+    code: "RM-B2-ST-01",
+    name: "B2 楼梯下封闭储藏间外壳与隐形矮门",
+    type: "bookshelf",
+    moduleCategory: "storage",
+    moduleType: "bookshelf",
+    floorId: "B2",
+    roomId: "ROOM-B2-004",
+    dimensions: { width: 140, depth: 105, height: 210, unit: "cm" },
+    material: "暖石灰漆斜顶围护 + 700×1250mm同墙色隐形矮门 + 内嵌古铜拉手",
+    note: "公共空间只见顺楼梯斜度收口的封闭墙面和与墙同色的隐形矮门。",
+    constructionNote: "门洞与外壳准确对齐，矮门位于净高较高一端并右侧外开，内部配置可调货架、感应灯和吸尘器位。",
+    serviceRequirements: b2PowerOnly,
+    position: { x: 13.75, y: 39.7222222222, rotation: 0 },
+    color: "#ded4c6",
+    render3d: { assetType: "bookshelf", variantId: "b2UnderStairRoomShell", detailLevel: "presentation", stylePreset: "modernNatural", primaryMaterial: "warmOak", secondaryMaterial: "limewash", accentMaterial: "brushedBronze", visibleIn3d: true, selectableIn3d: true, childrenMode: "grouped", styleSource: "manual", styleLocked: true }
   }
 ];
 
@@ -2406,8 +2538,17 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [modernNaturalAction, setModernNaturalAction] = useState<{ before: Furniture[]; after: Furniture[]; status: "applied" | "undone" } | null>(null);
   const [command, setCommand] = useState("");
   const [activeObjectId, setActiveObjectId] = useState("");
+  const [cabinetMaterialPart, setCabinetMaterialPart] = useState<CabinetMaterialPart>("door");
+  const [cabinetMaterialFeedback, setCabinetMaterialFeedback] = useState("");
   const [verificationFilter, setVerificationFilter] = useState<VerificationDisplayState | "all" | "unconfirmed">("unconfirmed");
   const [wardrobeDesignFurnitureId, setWardrobeDesignFurnitureId] = useState("");
+  const [cabinetInteriorFurnitureId, setCabinetInteriorFurnitureId] = useState("");
+  const [cabinetInteriorView, setCabinetInteriorView] = useState<"front" | "side" | "3d">("front");
+  const [cabinetInteriorSelectedModuleId, setCabinetInteriorSelectedModuleId] = useState("");
+  const [cabinetInteriorDraftLayout, setCabinetInteriorDraftLayout] = useState<CabinetInteriorLayout | null>(null);
+  const [cabinetInteriorHistory, setCabinetInteriorHistory] = useState<{ past: CabinetInteriorLayout[]; future: CabinetInteriorLayout[] }>({ past: [], future: [] });
+  const [cabinetInteriorDoorVisibility, setCabinetInteriorDoorVisibility] = useState<"normal" | "transparent" | "hidden">("transparent");
+  const [cabinetInteriorFeedback, setCabinetInteriorFeedback] = useState("");
   const [designPageRequest, setDesignPageRequest] = useState<DesignPageRequest | null>(null);
   const [locateObjectRequest, setLocateObjectRequest] = useState<{ id: string; nonce: number } | null>(null);
   const [lightingObjectControlRequest, setLightingObjectControlRequest] = useState<LightingObjectControlRequest | null>(null);
@@ -2450,6 +2591,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const suppressHistoryRef = useRef(false);
   const workspaceChangeVersionRef = useRef(0);
   const workspaceHashRequestRef = useRef(0);
+  const workspaceConflictResolutionRef = useRef<"draft" | "code" | null>(null);
   const latestWorkspaceRef = useRef<PersistedWebWorkspace | null>(null);
   const workspaceImportInputRef = useRef<HTMLInputElement | null>(null);
   const wardrobeCanvasRef = useRef<HTMLDivElement | null>(null);
@@ -2705,6 +2847,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     activeStructureObject ? findVerificationTarget(floorHouseStructure, activeStructureObject.id) : null
   ), [activeStructureObject, floorHouseStructure]);
   const activeFurniture = floorFurniture.find((item) => item.id === activeObjectId) ?? null;
+  const activeFurnitureIsCabinet = Boolean(activeFurniture && (
+    ["kitchenCabinet", "wardrobe", "cabinet", "entryCabinet", "sideboard", "snackCabinet", "tallCabinet"].includes(activeFurniture.moduleType ?? "") ||
+    ["wardrobe", "walkInCloset", "cabinet", "wallCabinet", "kitchenCabinet", "island", "sideboard", "entryCabinet", "snackCabinet"].includes(activeFurniture.render3d?.assetType ?? "")
+  ));
+  const activeCabinetMaterialLayer = activeFurnitureIsCabinet && activeFurniture
+    ? resolveCabinetMaterialLayer(activeFurniture, resolveRender3DMaterials(activeFurniture), cabinetMaterialPart)
+    : null;
   const activeDrawingItem = floorDrawingItems.find((item) => item.id === activeObjectId) ?? null;
   const activeCredibility = useMemo(() => {
     const verificationMeta = activeVerificationTarget?.object.verificationMeta ?? activeFurniture?.verificationMeta ?? activeDrawingItem?.verificationMeta;
@@ -2797,9 +2946,25 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const wardrobeDesign = normalizeWardrobeDesign(wardrobeDesignFurniture?.wardrobeDesign);
   const wardrobeColumnWidths = wardrobeDesign.columnWidths ?? normalizeWardrobeColumnWidths(undefined, wardrobeDesign.columns);
   const wardrobeColumnMetrics = getWardrobeColumnMetrics(wardrobeColumnWidths);
+  const cabinetInteriorFurniture = floorFurniture.find((item) => item.id === cabinetInteriorFurnitureId) ?? null;
+  const cabinetInteriorLayout = cabinetInteriorFurniture
+    ? cabinetInteriorDraftLayout ?? normalizeCabinetInteriorLayout(cabinetInteriorFurniture.cabinetInterior, cabinetInteriorFurniture)
+    : null;
+  const cabinetInteriorChecks = cabinetInteriorFurniture && cabinetInteriorLayout
+    ? validateCabinetInteriorLayout(cabinetInteriorFurniture, cabinetInteriorLayout)
+    : [];
+  const cabinetInteriorSelectedModule = cabinetInteriorLayout?.modules.find((module) => module.id === cabinetInteriorSelectedModuleId) ?? cabinetInteriorLayout?.modules[0] ?? null;
   const activeRoomObject = activeStructureObject && "spaceType" in activeStructureObject && activeStructureObject.spaceType === "Room"
     ? activeStructureObject
     : null;
+  const activeRoomFloorFinish = activeRoomObject?.surfaceFinishes?.floor;
+  const activeRoomWallFinish = activeRoomObject?.surfaceFinishes?.wall;
+  const activeRoomFloorMaterialToken = activeRoomFloorFinish
+    ? getPbrMaterialDefinition(activeRoomFloorFinish.materialToken ?? activeRoomFloorFinish.material, "floorMain").token
+    : undefined;
+  const activeRoomWallMaterialToken = activeRoomWallFinish
+    ? getPbrMaterialDefinition(activeRoomWallFinish.materialToken ?? activeRoomWallFinish.material, "wallBase").token
+    : undefined;
   const activeWallObject = isHouseWallObject(activeStructureObject) ? activeStructureObject : null;
   const floorStructureRooms = useMemo(
     () => [...floorHouseStructure.rooms].sort((left, right) => left.roomNumber.localeCompare(right.roomNumber, "zh-CN", { numeric: true })),
@@ -3021,7 +3186,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
         setDraftSaveState({ status: "saved", lastSavedAt: draft.savedAt, hash: draftHash });
         const draftTimestamp = getKnownWorkspaceTimestamp(draft);
         const codeTimestamp = getKnownWorkspaceTimestamp(codeWorkspace);
-        if (draftHash !== codeHash && (draftTimestamp === null || codeTimestamp === null || draftTimestamp > codeTimestamp)) {
+        if (workspaceConflictResolutionRef.current === null && draftHash !== codeHash && (draftTimestamp === null || codeTimestamp === null || draftTimestamp > codeTimestamp)) {
           setWorkspaceConflict({
             draft,
             code: codeWorkspace,
@@ -4000,6 +4165,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     if (!canMutateWorkspace || !canPersistDraft || !workspaceConflict) return;
     const draft = workspaceConflict.draft;
     const draftHash = await getWorkspaceHash(draft);
+    workspaceConflictResolutionRef.current = "draft";
     applyWorkspaceToEditor(draft);
     setWorkspaceConflict(null);
     setWorkspaceSource("draft");
@@ -4012,6 +4178,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   async function discardDraftAndUseCode() {
     if (!canMutateWorkspace || !canPersistDraft || !workspaceConflict) return;
     const codeWorkspace = workspaceConflict.code;
+    workspaceConflictResolutionRef.current = "code";
     const archived = archiveAndClearStoredWorkspaceDrafts(workspaceConflict.draft);
     if (!archived) {
       downloadJsonFile(`villa-space-discarded-draft-${new Date().toISOString().slice(0, 10)}.json`, workspaceConflict.draft);
@@ -4178,7 +4345,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setConfirmSelfCheckOverwrite(false);
   }
 
-  function handleFurnitureSelect(furniture: Furniture) {
+  function handleFurnitureSelect(furniture: Furniture, part?: string) {
     if (activeObjectId === furniture.id) {
       setActiveObjectId("");
       setOpenRightPanels((currentPanels) => ({
@@ -4193,6 +4360,10 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     setSelectedFurnitureId(furniture.id);
     setSelectedSemanticObjectId("");
     setActiveObjectId(furniture.id);
+    if (furniture.moduleType === "kitchenCabinet" || furniture.moduleType === "wardrobe" || furniture.moduleType === "cabinet" || furniture.moduleType === "entryCabinet" || furniture.moduleType === "sideboard" || furniture.moduleType === "snackCabinet" || furniture.moduleType === "tallCabinet" || furniture.render3d?.assetType === "walkInCloset") {
+      setCabinetMaterialPart(cabinetMaterialPartFromMeshPart(part) ?? "door");
+      setCabinetMaterialFeedback("");
+    }
     setOpenRightPanels((currentPanels) => ({
       ...currentPanels,
       object: true
@@ -4743,6 +4914,12 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     });
   }
 
+  function updateActiveRoomFinish(surface: "floor" | "wall", token: Render3DMaterialToken) {
+    if (!activeRoomObject || activeRoomObject.locked) return;
+    const updatedRoom = applyRoomMaterialToken(activeRoomObject, surface, token);
+    updateActiveObject({ surfaceFinishes: updatedRoom.surfaceFinishes });
+  }
+
   function locateVerificationEntry(entry: VerificationTargetEntry) {
     setSelectedFloorId(entry.floorId);
     setActiveObjectId(entry.object.id);
@@ -4825,19 +5002,126 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
     }));
   }
 
-  function openWardrobeDesigner(furnitureId: string) {
+  function openCabinetInteriorDesigner(furnitureId: string) {
     if (!canMutateWorkspace) return;
     const target = furniture.find((item) => item.id === furnitureId);
-    if (!target) return;
+    if (!target || !isEditableCabinetFurniture(target)) return;
     setSelectedFloorId(target.floorId);
     setSelectedFurnitureId(target.id);
     setActiveObjectId(target.id);
-    setWardrobeDesignFurnitureId(target.id);
+    setCabinetInteriorFurnitureId(target.id);
+    setCabinetInteriorView("front");
+    setCabinetInteriorSelectedModuleId("");
+    const nextLayout = normalizeCabinetInteriorLayout(target.cabinetInterior ?? createDefaultCabinetInteriorLayout(target), target);
+    setCabinetInteriorDraftLayout(nextLayout);
+    setCabinetInteriorHistory({ past: [], future: [] });
+    setCabinetInteriorFeedback("");
     setFurnitureImmersiveMode(true);
-    const normalizedDesign = normalizeWardrobeDesign(target.wardrobeDesign);
-    if (JSON.stringify(target.wardrobeDesign) !== JSON.stringify(normalizedDesign)) {
-      setFurniture((currentFurniture) => currentFurniture.map((item) => item.id === target.id ? { ...item, wardrobeDesign: normalizedDesign } : item));
+    if (!target.cabinetInterior) {
+      handleFloorFurnitureChange(furniture.filter((item) => item.floorId === target.floorId).map((item) => item.id === target.id ? { ...item, cabinetInterior: nextLayout } : item));
     }
+  }
+
+  function openWardrobeDesigner(furnitureId: string) {
+    openCabinetInteriorDesigner(furnitureId);
+  }
+
+  function updateCabinetInteriorLayout(patch: Partial<CabinetInteriorLayout>) {
+    if (!canMutateWorkspace || !cabinetInteriorFurniture || cabinetInteriorFurniture.locked) return;
+    const nextLayout = normalizeCabinetInteriorLayout({ ...cabinetInteriorLayout, ...patch } as CabinetInteriorLayout, cabinetInteriorFurniture);
+    if (cabinetInteriorLayout) setCabinetInteriorHistory((history) => ({ past: [...history.past.slice(-19), cabinetInteriorLayout], future: [] }));
+    setCabinetInteriorDraftLayout(nextLayout);
+    setCabinetInteriorFeedback("");
+  }
+
+  function saveCabinetInteriorLayout() {
+    if (!canMutateWorkspace || !cabinetInteriorFurniture || !cabinetInteriorLayout || cabinetInteriorFurniture.locked) return;
+    const checks = validateCabinetInteriorLayout(cabinetInteriorFurniture, cabinetInteriorLayout);
+    if (checks.some((check) => check.severity === "error")) {
+      setCabinetInteriorFeedback("存在越界、穿插或关键安装空间不足，修正后才能保存。");
+      return;
+    }
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === cabinetInteriorFurniture.id ? { ...item, cabinetInterior: cabinetInteriorLayout } : item));
+    setCabinetInteriorDraftLayout(null);
+    setCabinetInteriorHistory({ past: [], future: [] });
+    setCabinetInteriorFeedback("内部布局已保存。");
+    setCabinetInteriorFurnitureId("");
+    setFurnitureImmersiveMode(false);
+  }
+
+  function cancelCabinetInteriorDraft() {
+    setCabinetInteriorDraftLayout(null);
+    setCabinetInteriorHistory({ past: [], future: [] });
+    setCabinetInteriorFeedback("");
+  }
+
+  function undoCabinetInteriorDraft() {
+    if (!cabinetInteriorLayout) return;
+    setCabinetInteriorHistory((history) => {
+      const previous = history.past.at(-1);
+      if (!previous) return history;
+      setCabinetInteriorDraftLayout(previous);
+      return { past: history.past.slice(0, -1), future: [cabinetInteriorLayout, ...history.future].slice(0, 20) };
+    });
+  }
+
+  function redoCabinetInteriorDraft() {
+    if (!cabinetInteriorLayout) return;
+    setCabinetInteriorHistory((history) => {
+      const next = history.future[0];
+      if (!next) return history;
+      setCabinetInteriorDraftLayout(next);
+      return { past: [...history.past, cabinetInteriorLayout].slice(-20), future: history.future.slice(1) };
+    });
+  }
+
+  function updateCabinetInteriorModule(moduleId: string, patch: Partial<CabinetInteriorModule>) {
+    if (!cabinetInteriorLayout) return;
+    updateCabinetInteriorLayout({ modules: cabinetInteriorLayout.modules.map((module) => module.id === moduleId ? { ...module, ...patch } : module) });
+  }
+
+  function addCabinetInteriorModule(kind: CabinetInteriorModuleKind) {
+    if (!cabinetInteriorLayout) return;
+    const id = `cabinet-module-${Date.now().toString(36)}`;
+    const module: CabinetInteriorModule = {
+      id,
+      kind,
+      label: cabinetInteriorModuleLabels[kind],
+      x: 0,
+      y: Math.max(0, cabinetInteriorLayout.interiorHeightMm - 180),
+      z: 0,
+      width: Math.min(cabinetInteriorLayout.interiorWidthMm, 420),
+      height: kind === "shelf" || kind === "divider" ? cabinetInteriorLayout.panelThicknessMm : 180,
+      depth: Math.min(cabinetInteriorLayout.interiorDepthMm, kind === "clearance" ? 300 : cabinetInteriorLayout.interiorDepthMm),
+      adjustable: true
+    };
+    updateCabinetInteriorLayout({ modules: [...cabinetInteriorLayout.modules, module] });
+    setCabinetInteriorSelectedModuleId(id);
+  }
+
+  function removeCabinetInteriorModule(moduleId: string) {
+    if (!cabinetInteriorLayout) return;
+    updateCabinetInteriorLayout({ modules: cabinetInteriorLayout.modules.filter((module) => module.id !== moduleId) });
+    setCabinetInteriorSelectedModuleId("");
+  }
+
+  function resetCabinetInteriorLayout() {
+    if (!cabinetInteriorFurniture) return;
+    updateCabinetInteriorLayout(createDefaultCabinetInteriorLayout(cabinetInteriorFurniture));
+    setCabinetInteriorSelectedModuleId("");
+  }
+
+  function toggleCabinetInteriorDoors(open: boolean) {
+    if (!cabinetInteriorLayout) return;
+    const doorStates = Object.fromEntries(Array.from({ length: Math.max(1, cabinetInteriorLayout.doorCount) }, (_, index) => [`door-${index + 1}`, open]));
+    updateCabinetInteriorLayout({ doorStates });
+  }
+
+  function updateCabinetInteriorExternalDimension(field: keyof Furniture["dimensions"], value: number) {
+    if (!cabinetInteriorFurniture || cabinetInteriorFurniture.locked) return;
+    const dimensions = { ...cabinetInteriorFurniture.dimensions, [field]: Math.max(1, Math.round(value) || 1) };
+    handleFloorFurnitureChange(floorFurniture.map((item) => item.id === cabinetInteriorFurniture.id ? { ...item, dimensions } : item));
+    setCabinetInteriorDraftLayout(normalizeCabinetInteriorLayout(cabinetInteriorLayout ?? undefined, { ...cabinetInteriorFurniture, dimensions }));
   }
 
   function openFurnitureDesignPage(furnitureId: string) {
@@ -5621,6 +5905,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onSelectFloor={handleFloorChange}
               onActiveObjectChange={handleMobileActiveObjectChange}
               onSelectStructureObject={handleStructureObjectSelect}
+              onClearObjectSelection={() => { setSelectedFurnitureId(""); setActiveObjectId(""); setSelectedSemanticObjectId(""); }}
               onUndo={canMutateWorkspace ? handleUndo : () => undefined}
               onRedo={canMutateWorkspace ? handleRedo : () => undefined}
               onPlannerModeChange={(mode) => {
@@ -5878,6 +6163,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
               onSelectFloor={handleFloorChange}
               onActiveObjectChange={setActiveObjectId}
               onSelectStructureObject={handleStructureObjectSelect}
+              onClearObjectSelection={() => { setSelectedFurnitureId(""); setActiveObjectId(""); setSelectedSemanticObjectId(""); }}
               onUndo={handleUndo}
               onRedo={handleRedo}
               onPlannerModeChange={setPlannerMode}
@@ -6327,6 +6613,28 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                         房间名称
                         <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400" placeholder="例如：厨房" value={activeRoomObject.name} onChange={(event) => updateActiveObject({ name: event.target.value })} />
                       </label>
+                      <details className="mt-3 overflow-hidden rounded-xl border border-blue-100 bg-white/80" open={activeDrawingWorkspace.id === "finishes"}>
+                        <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-blue-900 [&::-webkit-details-marker]:hidden">材质与真实感</summary>
+                        <div className="border-t border-blue-100 p-3">
+                          <p className="text-[10px] leading-4 text-blue-800">选择后会同时更新房间的 2D 材质身份、3D PBR 材质和材料索引。</p>
+                          <MaterialSwatchPicker
+                            description="地面材质会保留当前房间的铺装方向、分缝和收口参数。"
+                            disabled={!canMutateWorkspace || Boolean(activeRoomObject.locked)}
+                            label="地面材质"
+                            onChange={(token) => updateActiveRoomFinish("floor", token)}
+                            tokens={roomFloorMaterialTokens}
+                            value={activeRoomFloorMaterialToken}
+                          />
+                          <MaterialSwatchPicker
+                            description="墙面材质会保留当前墙面范围、分缝和收口参数。"
+                            disabled={!canMutateWorkspace || Boolean(activeRoomObject.locked)}
+                            label="墙面材质"
+                            onChange={(token) => updateActiveRoomFinish("wall", token)}
+                            tokens={roomWallMaterialTokens}
+                            value={activeRoomWallMaterialToken}
+                          />
+                        </div>
+                      </details>
                       <p className="mt-2 text-xs leading-5 text-blue-800">输入后会在房间标签和对象台账里同步显示，改完记得固化默认户型。</p>
                     </div>
 	                  ) : activeFurniture ? (
@@ -6521,13 +6829,13 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                           {getFurnitureDesignButtonLabel(activeFurniture)}
                         </button>
                       )}
-	                      {(activeFurniture.type === "wardrobe" || activeFurniture.moduleType === "wardrobe") && (
+                      {isEditableCabinetFurniture(activeFurniture) && (
 	                        <button
 	                          className="mt-3 w-full rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
-	                          onClick={() => openWardrobeDesigner(activeFurniture.id)}
+	                          onClick={() => openCabinetInteriorDesigner(activeFurniture.id)}
 	                          type="button"
 	                        >
-	                          进入衣柜设计
+	                          进入柜体设计
 	                        </button>
 	                      )}
 	                      <details className="mt-3 overflow-hidden rounded-xl border border-stone-200 bg-white/75">
@@ -6544,18 +6852,51 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                             材质
                             <input className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 font-semibold text-ink outline-none focus:border-blue-400 disabled:bg-stone-100 disabled:text-stone-400" disabled={activeFurniture.locked} value={activeFurniture.material} onChange={(event) => updateActiveObject({ material: event.target.value })} />
                           </label>
+                          {activeFurnitureIsCabinet && activeCabinetMaterialLayer && (
+                            <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 p-2.5">
+                              <p className="text-[11px] font-semibold text-blue-900">材质选择目标</p>
+                              <p className="mt-1 text-[10px] leading-4 text-blue-800">当前对象：{activeFurniture.name}</p>
+                              <label className="mt-2 block text-[11px] text-blue-800">
+                                当前目标部位
+                                <select
+                                  className="mt-1 w-full rounded-lg border border-blue-200 bg-white px-2 py-2 font-semibold text-ink"
+                                  disabled={activeFurniture.locked}
+                                  value={cabinetMaterialPart}
+                                  onChange={(event) => setCabinetMaterialPart(event.target.value as CabinetMaterialPart)}
+                                >
+                                  {(Object.keys(CABINET_MATERIAL_PART_LABELS) as CabinetMaterialPart[]).map((part) => (
+                                    <option key={part} value={part}>{CABINET_MATERIAL_PART_LABELS[part]}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <p className="mt-2 text-[10px] leading-4 text-blue-800">当前项目材质：<span className="font-semibold">{activeCabinetMaterialLayer.label}</span></p>
+                              <p className="mt-1 text-[10px] leading-4 text-blue-700">临时预览材质：点击下方卡片后立即作用于当前目标部位；仅当前柜体实例生效。</p>
+                            </div>
+                          )}
                           <MaterialSwatchPicker
                             disabled={activeFurniture.locked}
-                            value={activeFurniture.render3d?.primaryMaterial}
+                            value={activeCabinetMaterialLayer?.token ?? activeFurniture.render3d?.primaryMaterial}
                             onChange={(token) => {
                               const definition = render3DMaterialTokenCatalog[token];
+                              const nextRender3d = activeFurnitureIsCabinet
+                                ? {
+                                    ...activeFurniture.render3d,
+                                    cabinetMaterialOverrides: {
+                                      ...activeFurniture.render3d?.cabinetMaterialOverrides,
+                                      [cabinetMaterialPart]: token
+                                    },
+                                    styleSource: "manual" as const
+                                  }
+                                : { ...activeFurniture.render3d, primaryMaterial: token, styleSource: "manual" as const };
                               updateActiveObject({
                                 material: definition.label,
                                 color: definition.color,
-                                render3d: { ...activeFurniture.render3d, primaryMaterial: token, styleSource: "manual" }
+                                render3d: nextRender3d
                               });
+                              if (activeFurnitureIsCabinet) setCabinetMaterialFeedback(`已应用：${CABINET_MATERIAL_PART_LABELS[cabinetMaterialPart]} · ${definition.label}`);
                             }}
                           />
+                          {activeFurnitureIsCabinet && cabinetMaterialFeedback && <p className="mt-2 rounded-lg bg-emerald-50 px-2 py-1.5 text-[10px] font-semibold leading-4 text-emerald-800">{cabinetMaterialFeedback} · 当前实例已保存</p>}
 	                        </div>
 	                      </details>
 	                      <FurnitureMetadataEditor
@@ -7014,6 +7355,87 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
                     ))}
                   </div>
                 </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {cabinetInteriorFurniture && cabinetInteriorLayout && (
+        <section className="fixed inset-3 z-[82] overflow-hidden rounded-2xl border border-white/80 bg-white shadow-soft lg:inset-6">
+          <div className="flex h-full flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-slate-50 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Cabinet Interior</p>
+                <h2 className="mt-1 truncate text-lg font-semibold text-ink">{cabinetInteriorFurniture.name} · {getCabinetInteriorDisplayName(cabinetInteriorLayout.template)}</h2>
+                <p className="mt-1 text-xs text-stone-500">当前对象：{cabinetInteriorFurniture.name} · 当前目标部位：柜体内部布局</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-stone-700 ring-1 ring-stone-200 disabled:opacity-40" disabled={!cabinetInteriorHistory.past.length} onClick={undoCabinetInteriorDraft} type="button">撤销</button>
+                <button className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-stone-700 ring-1 ring-stone-200 disabled:opacity-40" disabled={!cabinetInteriorHistory.future.length} onClick={redoCabinetInteriorDraft} type="button">重做</button>
+                <button className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-200" onClick={resetCabinetInteriorLayout} type="button">恢复默认</button>
+                <button className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-stone-700 ring-1 ring-stone-200" onClick={cancelCabinetInteriorDraft} type="button">取消修改</button>
+                <button className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:bg-stone-300" disabled={cabinetInteriorFurniture.locked} onClick={saveCabinetInteriorLayout} type="button">保存并返回户型</button>
+                <button className="rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-white hover:bg-clay" onClick={() => { cancelCabinetInteriorDraft(); setCabinetInteriorFurnitureId(""); setFurnitureImmersiveMode(false); }} type="button">退出</button>
+              </div>
+            </div>
+
+            <div className="grid min-h-0 flex-1 gap-4 overflow-auto bg-[#edf3f1] p-4 lg:grid-cols-[minmax(0,1fr)_390px]">
+              <div className="flex min-h-[560px] min-w-0 flex-col rounded-2xl border border-white/80 bg-white/90 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+                    {([['front', '正面'], ['side', '侧面'], ['3d', '三维']] as const).map(([view, label]) => <button key={view} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${cabinetInteriorView === view ? 'bg-white text-emerald-800 shadow-sm' : 'text-stone-500'}`} onClick={() => setCabinetInteriorView(view)} type="button">{label}</button>)}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1 text-[11px] font-semibold text-stone-500">
+                    <span>柜门显示</span>
+                    {([['normal', '正常'], ['transparent', '半透明'], ['hidden', '隐藏']] as const).map(([mode, label]) => <button key={mode} className={`rounded-lg px-2 py-1 ${cabinetInteriorDoorVisibility === mode ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-stone-500'}`} onClick={() => setCabinetInteriorDoorVisibility(mode)} type="button">{label}</button>)}
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-stone-500">外部宽×高×深</p><p className="mt-1 font-semibold text-ink">{cabinetInteriorFurniture.dimensions.width} × {cabinetInteriorFurniture.dimensions.height} × {cabinetInteriorFurniture.dimensions.depth} cm</p></div>
+                  <div className="rounded-xl bg-emerald-50 p-3"><p className="text-emerald-700">内部净宽×高×深</p><p className="mt-1 font-semibold text-emerald-950">{cabinetInteriorLayout.interiorWidthMm} × {cabinetInteriorLayout.interiorHeightMm} × {cabinetInteriorLayout.interiorDepthMm} mm</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-stone-500">板材厚度</p><p className="mt-1 font-semibold text-ink">{cabinetInteriorLayout.panelThicknessMm} mm</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-stone-500">模块数量</p><p className="mt-1 font-semibold text-ink">{cabinetInteriorLayout.modules.length} 个</p></div>
+                </div>
+                <div className={`relative mt-4 flex min-h-[410px] flex-1 items-center justify-center overflow-hidden rounded-2xl border-[12px] border-[#718678] bg-[#f8faf8] p-8 shadow-inner ${cabinetInteriorView === '3d' ? '[perspective:900px]' : ''}`}>
+                  <div className={`relative h-full w-full max-w-4xl rounded-lg border-4 border-[#8b6f47] bg-[#f4eee5] ${cabinetInteriorView === '3d' ? 'rotate-x-2 skew-y-[-4deg] shadow-2xl' : ''}`}>
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(139,111,71,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(139,111,71,0.16)_1px,transparent_1px)] bg-[size:10%_10%]" />
+                    {cabinetInteriorLayout.modules.map((module) => {
+                      const horizontalSize = cabinetInteriorView === "side" ? cabinetInteriorLayout.interiorDepthMm : cabinetInteriorLayout.interiorWidthMm;
+                      const horizontalStart = cabinetInteriorView === "side" ? module.z : module.x;
+                      const horizontalLength = cabinetInteriorView === "side" ? module.depth : module.width;
+                      const left = Math.max(0, Math.min(100, (horizontalStart / horizontalSize) * 100));
+                      const width = Math.max(2, Math.min(100 - left, (horizontalLength / horizontalSize) * 100));
+                      const top = Math.max(0, Math.min(100, 100 - ((module.y + module.height) / cabinetInteriorLayout.interiorHeightMm) * 100));
+                      const height = Math.max(3, Math.min(100 - top, (module.height / cabinetInteriorLayout.interiorHeightMm) * 100));
+                      const selected = module.id === cabinetInteriorSelectedModule?.id;
+                      return <button key={module.id} className={`absolute overflow-hidden rounded-md border-2 p-1 text-left text-[10px] font-semibold transition ${selected ? 'z-20 border-emerald-600 ring-2 ring-emerald-300' : 'z-10 border-[#8b6f47]/45'} ${module.kind === 'clearance' || module.kind === 'void' ? 'border-dashed bg-amber-100/35 text-amber-800' : module.kind === 'plumbing' || module.kind === 'appliance' ? 'bg-blue-100/55 text-blue-900' : 'bg-white/65 text-stone-700'}`} style={{ left: `${left}%`, top: `${top}%`, width: `${width}%`, height: `${height}%` }} onClick={() => setCabinetInteriorSelectedModuleId(module.id)} type="button"><span className="block truncate">{module.label}</span><span className="block truncate text-[9px] font-normal">{module.width}×{module.height}×{module.depth}</span></button>;
+                    })}
+                    {cabinetInteriorDoorVisibility !== "hidden" && <div className="pointer-events-none absolute inset-[-4px] rounded-md border-4 border-[#a68a68]" style={{ opacity: cabinetInteriorDoorVisibility === "transparent" ? 0.18 : 0.78 }} />}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500"><span>拖动或输入数值调整模块；当前视图为编辑示意，不新增相机系统。</span><span className="font-semibold text-emerald-700">门状态：{Object.values(cabinetInteriorLayout.doorStates ?? {}).some(Boolean) ? "已打开" : "已关闭"}</span></div>
+              </div>
+
+              <aside className="min-w-0 rounded-2xl border border-white/80 bg-white p-4 text-sm shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Cabinet Controls</p>
+                <h3 className="mt-1 text-base font-semibold text-ink">柜体参数与内部模块</h3>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {([['width', '宽'], ['height', '高'], ['depth', '深']] as const).map(([field, label]) => <label key={field} className="text-xs font-semibold text-stone-500">{label}<input className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 text-sm font-semibold text-ink" min="1" type="number" value={cabinetInteriorFurniture.dimensions[field]} onChange={(event) => updateCabinetInteriorExternalDimension(field, Number(event.target.value))} /></label>)}
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <label className="text-xs font-semibold text-stone-500">柜门数量<input className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 font-semibold text-ink" min="0" max="8" type="number" value={cabinetInteriorLayout.doorCount} onChange={(event) => updateCabinetInteriorLayout({ doorCount: Math.max(0, Math.min(8, Number(event.target.value) || 0)) })} /></label>
+                  <label className="text-xs font-semibold text-stone-500">抽屉数量<input className="mt-1 w-full rounded-lg border border-stone-200 px-2 py-2 font-semibold text-ink" min="0" max="16" type="number" value={cabinetInteriorFurniture.render3d?.cabinetVisual?.drawerCount ?? 0} onChange={(event) => updateActiveFurniture((item) => item.id === cabinetInteriorFurniture.id ? { ...item, render3d: item.render3d ? { ...item.render3d, cabinetVisual: { ...item.render3d.cabinetVisual, drawerCount: Math.max(0, Math.min(16, Number(event.target.value) || 0)) } } : item.render3d } : item)} /></label>
+                </div>
+                <label className="mt-3 block text-xs font-semibold text-stone-500">开启方式<select className="mt-1 w-full rounded-lg border border-stone-200 bg-white px-2 py-2 font-semibold text-ink" value={cabinetInteriorLayout.openingMode} onChange={(event) => updateCabinetInteriorLayout({ openingMode: event.target.value as CabinetInteriorLayout['openingMode'] })}><option value="swing">平开门</option><option value="doubleSwing">对开门</option><option value="sliding">推拉门</option><option value="drawer">抽屉</option><option value="liftUp">上翻门</option><option value="dropDown">下翻门</option><option value="open">开放无门</option></select></label>
+                <div className="mt-3 grid grid-cols-2 gap-2"><button className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-stone-700" onClick={() => toggleCabinetInteriorDoors(true)} type="button">全部打开</button><button className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-stone-700" onClick={() => toggleCabinetInteriorDoors(false)} type="button">全部关闭</button></div>
+                <div className="mt-4 rounded-xl border border-stone-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold text-ink">内部模块</p><select className="max-w-[150px] rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink" value="" onChange={(event) => addCabinetInteriorModule(event.target.value as CabinetInteriorModuleKind)}><option value="" disabled>添加模块</option>{(Object.entries(cabinetInteriorModuleLabels) as Array<[CabinetInteriorModuleKind, string]>).map(([kind, label]) => <option key={kind} value={kind}>{label}</option>)}</select></div>
+                  <div className="mt-2 max-h-48 space-y-1 overflow-auto pr-1">{cabinetInteriorLayout.modules.map((module, index) => <button key={module.id} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs ${module.id === cabinetInteriorSelectedModule?.id ? 'bg-emerald-100 text-emerald-900' : 'bg-white text-stone-700'}`} onClick={() => setCabinetInteriorSelectedModuleId(module.id)} type="button"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-slate-900 text-[10px] font-black text-white">{String(index + 1).padStart(2, '0')}</span><span className="min-w-0 flex-1 truncate">{module.label}</span><span className="text-[10px] text-stone-400">{module.kind}</span></button>)}</div>
+                </div>
+                {cabinetInteriorSelectedModule && <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3"><div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold text-emerald-950">选中模块：{cabinetInteriorSelectedModule.label}</p><button className="rounded-lg bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700" onClick={() => removeCabinetInteriorModule(cabinetInteriorSelectedModule.id)} type="button">删除</button></div><input className="mt-2 w-full rounded-lg border border-emerald-200 bg-white px-2 py-1.5 text-xs font-semibold text-ink" value={cabinetInteriorSelectedModule.label} onChange={(event) => updateCabinetInteriorModule(cabinetInteriorSelectedModule.id, { label: event.target.value })} /><div className="mt-2 grid grid-cols-3 gap-1">{([['x', 'X'], ['y', 'Y'], ['z', 'Z'], ['width', '宽'], ['height', '高'], ['depth', '深']] as const).map(([field, label]) => <label key={field} className="text-[10px] font-semibold text-emerald-900">{label}<input className="mt-1 w-full rounded border border-emerald-200 bg-white px-1.5 py-1.5 text-xs font-semibold text-ink" min="0" type="number" value={cabinetInteriorSelectedModule[field]} onChange={(event) => updateCabinetInteriorModule(cabinetInteriorSelectedModule.id, { [field]: Math.max(0, Math.round(Number(event.target.value) || 0)) } as Partial<CabinetInteriorModule>)} /></label>)}</div><p className="mt-2 text-[10px] leading-4 text-emerald-900">部位材质：{cabinetInteriorSelectedModule.materialPart ?? 'carcass'} · 坐标与尺寸单位：mm</p></div>}
+                <div className="mt-3 rounded-xl border border-stone-200 p-3"><p className="text-xs font-semibold text-ink">规则与碰撞检查</p><div className="mt-2 space-y-1.5">{[...cabinetInteriorChecks, ...activeFurniturePlacementWarnings.filter((warning) => warning.furnitureId === cabinetInteriorFurniture.id).map((warning) => ({ code: warning.code, severity: 'warning' as const, message: warning.message }))].length ? [...cabinetInteriorChecks, ...activeFurniturePlacementWarnings.filter((warning) => warning.furnitureId === cabinetInteriorFurniture.id).map((warning) => ({ code: warning.code, severity: 'warning' as const, message: warning.message }))].map((check) => <p key={`${check.code}-${check.message}`} className={`rounded-lg px-2 py-1.5 text-[11px] leading-4 ${check.severity === 'error' ? 'bg-red-50 font-semibold text-red-800' : 'bg-amber-50 text-amber-900'}`}>{check.severity === 'error' ? '禁止保存 · ' : '提示 · '}{check.message}</p>) : <p className="rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] font-semibold text-emerald-800">尺寸、板件边界和当前摆放未发现问题。</p>}</div></div>
+                {cabinetInteriorFeedback && <p className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold leading-5 text-blue-900">{cabinetInteriorFeedback}</p>}
               </aside>
             </div>
           </div>

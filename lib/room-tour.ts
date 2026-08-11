@@ -63,7 +63,10 @@ function semanticNameForSpace(source: SpaceSource, semanticObjects: SemanticObje
 
 function cameraForSpace(source: SpaceSource, cameraViews: FixedCameraView[]) {
   const sourceName = normalizeName(source.name);
-  return cameraViews.find((view) => {
+  // Designer camera presets are floor-level composition options. Keep them
+  // available in the floor camera picker without replacing authored room-tour
+  // bindings that already carry room-specific direction and metadata.
+  return cameraViews.filter((view) => !view.id.startsWith("designer-camera-")).find((view) => {
     if (view.floor !== source.floorId) return false;
     const viewName = normalizeName(view.name);
     return Boolean(sourceName && viewName && (sourceName.includes(viewName) || viewName.includes(sourceName)));
@@ -115,7 +118,9 @@ function createSpaceNode(source: SpaceSource, structure: HouseStructure, semanti
 function createOverviewNode(floor: Floor, structure: HouseStructure, cameraViews: FixedCameraView[]): RoomTourView {
   const width = (structure.coordinateSystem?.width || 12000) * MM_TO_M;
   const depth = (structure.coordinateSystem?.height || 9000) * MM_TO_M;
-  const preferred = cameraViews.find((view) => view.floor === floor.id && (view.targetArea === "all" || /总览|全院/.test(view.name)));
+  const preferred = cameraViews
+    .filter((view) => !view.id.startsWith("designer-camera-"))
+    .find((view) => view.floor === floor.id && (view.targetArea === "all" || /总览|全院/.test(view.name)));
   const target = preferred?.target ?? { x: 0, y: 0.4, z: 0 };
   const cameraPosition = preferred?.cameraPosition ?? { x: -width * 0.58, y: Math.max(5.8, Math.max(width, depth) * 0.7), z: depth * 0.62 };
   const rotation = angles(cameraPosition, target);

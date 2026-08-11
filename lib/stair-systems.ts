@@ -16,6 +16,9 @@ export const STAIR_TOTAL_STEP_COUNT = 20;
 export const STAIR_FLIGHT_STEP_COUNT = 10;
 export const STAIR_FLIGHT_RISE_MM = STAIR_FLOOR_TO_FLOOR_HEIGHT_MM / 2;
 export const STAIR_RISER_HEIGHT_MM = STAIR_FLOOR_TO_FLOOR_HEIGHT_MM / STAIR_TOTAL_STEP_COUNT;
+export const STAIR_FLIGHT_CLEAR_WIDTH_MM = 900;
+export const STAIR_CENTER_GAP_MM = 70;
+export const STAIR_HALF_LANDING_DEPTH_MM = 900;
 
 type StairPairDefinition = {
   id: string;
@@ -217,9 +220,11 @@ export function normalizeManagedStairFlights(structuresByFloor: Record<FloorId, 
   const next = clone(structuresByFloor);
   const topArrival = next["2F"]?.stairs.find((stair) => stair.id === "ST-2F-001");
   if (topArrival) {
-    const laneOffset = topArrival.width;
-    topArrival.start = { ...topArrival.start, y: 3575 + laneOffset };
-    topArrival.end = { ...topArrival.end, y: 3575 + laneOffset };
+    const pairedLowerFlight = next["1F"]?.stairs.find((stair) => stair.id === "ST-1F-001");
+    const laneOffset = topArrival.width + STAIR_CENTER_GAP_MM;
+    const lowerLaneCenterY = pairedLowerFlight?.start.y ?? 3575;
+    topArrival.start = { ...topArrival.start, y: lowerLaneCenterY + laneOffset };
+    topArrival.end = { ...topArrival.end, y: lowerLaneCenterY + laneOffset };
     topArrival.name = "2F 下行至 1F 梯段";
     topArrival.direction = "down";
   }
@@ -389,13 +394,28 @@ export function validateStairSystems(input: {
     if (getFurnitureSemanticKind(item) === "rug") return;
     const structure = input.structuresByFloor[item.floorId];
     if (!structure) return;
+    const assignedRoom = structure.rooms.find((room) => room.id === item.roomId);
+    // Purpose-built under-stair storage occupies the plan footprint by design;
+    // its safety check is vertical headroom, not a false-positive 2D clash.
+    if (/楼梯下/.test(`${assignedRoom?.name ?? ""} ${item.name}`)) return;
     const center = furnitureCenterMm(item, structure);
     const stair = structure.stairs.find((candidate) => {
       const length = lineLength(candidate.start, candidate.end);
       if (length <= 0) return false;
-      const t = Math.max(0, Math.min(1, ((center.x - candidate.start.x) * (candidate.end.x - candidate.start.x) + (center.y - candidate.start.y) * (candidate.end.y - candidate.start.y)) / (length * length)));
-      const closest = { x: candidate.start.x + (candidate.end.x - candidate.start.x) * t, y: candidate.start.y + (candidate.end.y - candidate.start.y) * t };
-      return lineLength(center, closest) < candidate.width / 2 + Math.max(item.dimensions.width, item.dimensions.depth) * 5;
+      const direction = { x: (candidate.end.x - candidate.start.x) / length, y: (candidate.end.y - candidate.start.y) / length };
+      const normal = { x: -direction.y, y: direction.x };
+      const angle = (item.position.rotation ?? 0) * Math.PI / 180;
+      const widthAxis = { x: Math.cos(angle), y: Math.sin(angle) };
+      const depthAxis = { x: -Math.sin(angle), y: Math.cos(angle) };
+      const halfWidthMm = item.dimensions.width * 5;
+      const halfDepthMm = item.dimensions.depth * 5;
+      const projectedHalfAlong = Math.abs(direction.x * widthAxis.x + direction.y * widthAxis.y) * halfWidthMm + Math.abs(direction.x * depthAxis.x + direction.y * depthAxis.y) * halfDepthMm;
+      const projectedHalfNormal = Math.abs(normal.x * widthAxis.x + normal.y * widthAxis.y) * halfWidthMm + Math.abs(normal.x * depthAxis.x + normal.y * depthAxis.y) * halfDepthMm;
+      const delta = { x: center.x - candidate.start.x, y: center.y - candidate.start.y };
+      const along = delta.x * direction.x + delta.y * direction.y;
+      if (along + projectedHalfAlong < 0 || along - projectedHalfAlong > length) return false;
+      const normalDistance = Math.abs(delta.x * normal.x + delta.y * normal.y);
+      return normalDistance < candidate.width / 2 + projectedHalfNormal;
     });
     if (stair) warn(item.floorId, item.id, "FURNITURE_IN_STAIR_CLEARANCE", `家具 ${item.id} 侵入梯段 ${stair.id} 的踏步或净空范围。`, stair.stairSystemId);
   });

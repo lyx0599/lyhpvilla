@@ -68,13 +68,74 @@ function SculpturalBoucleSofa3D(props: FurnitureFamily3DProps) {
   );
 }
 
+function ContinuousLowCurvedSofa3D(props: FurnitureFamily3DProps) {
+  const { asset, width, depth, height } = props;
+  const floorY = -height / 2;
+  const seatY = floorY + height * 0.38;
+  const upholsteryRole = asset.materials.primary.role === "leather" ? "leather" : "fabric";
+  const segments = asset.detailLevel === "presentation" ? 52 : 36;
+  return (
+    <group name="continuous-low-curved-sofa">
+      <SpherePart
+        radius={0.5}
+        position={[0, floorY + height * 0.2, depth * 0.04]}
+        scale={[width * 0.91, height * 0.34, depth * 0.68]}
+        segments={segments}
+        material={asset.materials.accent}
+        role={upholsteryRole}
+        roughness={0.96}
+      />
+      <SpherePart
+        radius={0.5}
+        position={[0, seatY, depth * 0.08]}
+        scale={[width * 0.87, height * 0.42, depth * 0.72]}
+        segments={segments}
+        material={asset.materials.primary}
+        role={upholsteryRole}
+        roughness={0.98}
+      />
+      <SpherePart
+        radius={0.5}
+        position={[0, floorY + height * 0.66, -depth * 0.31]}
+        rotation={[0.05, 0, 0]}
+        scale={[width * 0.78, height * 0.5, depth * 0.24]}
+        segments={segments}
+        material={asset.materials.primary}
+        role={upholsteryRole}
+        roughness={0.99}
+      />
+      {[-1, 1].map((side) => (
+        <SpherePart
+          key={`continuous-wrap-arm-${side}`}
+          radius={0.5}
+          position={[side * width * 0.43, floorY + height * 0.48, depth * 0.01]}
+          rotation={[0, side * 0.24, 0]}
+          scale={[width * 0.19, height * 0.52, depth * 0.62]}
+          segments={segments}
+          material={asset.materials.primary}
+          role={upholsteryRole}
+          roughness={0.99}
+        />
+      ))}
+      <RoundedPart
+        size={[width * 0.58, 0.055, depth * 0.42]}
+        position={[0, floorY + 0.03, depth * 0.02]}
+        radius={0.025}
+        detailLevel={asset.detailLevel}
+        material={asset.materials.accent}
+        role="wood"
+      />
+    </group>
+  );
+}
+
 function getModuleLayout(props: FurnitureFamily3DProps) {
   const { item, asset, width, depth } = props;
   const resolved = resolveFurnitureVariant(item, asset.assetType);
   const variant = resolved.variant.id;
   const compact = variant === "compactLoveseat";
   const deep = variant === "deepLounge";
-  const curved = variant === "curvedSofa";
+  const curved = variant === "curvedSofa" || variant === "lowCurvedSofa";
   const sectional = variant === "sectionalLShape";
   const modules = compact ? 2 : Math.max(3, Math.min(5, Math.round(width / (deep ? 0.82 : 0.72))));
   const gap = 0.035;
@@ -100,10 +161,12 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
   const variant = resolved.variant.id;
   if (variant === "beanBag") return <BeanBagSofa3D {...props} />;
   if (variant === "boucleCurve") return <SculpturalBoucleSofa3D {...props} />;
+  if (variant === "lowCurvedSofa") return <ContinuousLowCurvedSofa3D {...props} />;
   const floorY = -height / 2;
   const slim = variant === "slimLegSofa";
   const deep = variant === "deepLounge";
-  const curved = variant === "curvedSofa";
+  const curved = variant === "curvedSofa" || variant === "lowCurvedSofa";
+  const lowCurved = variant === "lowCurvedSofa";
   const modular = variant === "lowModular" || variant === "sectionalLShape";
   const compact = variant === "compactLoveseat";
   const modules = getModuleLayout(props);
@@ -111,7 +174,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
   const baseY = floorY + (slim ? 0.26 : 0.12) + baseHeight / 2;
   const seatHeight = deep ? 0.2 : 0.17;
   const seatY = baseY + baseHeight / 2 + seatHeight / 2 + 0.025;
-  const backHeight = height * (deep ? 0.55 : slim ? 0.46 : 0.48);
+  const backHeight = height * (lowCurved ? 0.34 : deep ? 0.55 : slim ? 0.46 : 0.48);
   const armWidth = compact ? 0.11 : slim ? 0.09 : deep ? 0.2 : 0.14;
   const baseDepth = depth * (deep ? 0.75 : 0.62);
   const upholsteryRole = asset.materials.primary.role === "leather" ? "leather" : "fabric";
@@ -125,7 +188,6 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
         detailLevel={asset.detailLevel}
         material={asset.materials.accent}
         role={slim ? "wood" : "fabric"}
-        color={slim ? undefined : "#746a60"}
         repeat={[5, 3]}
       />
       {modules.map((module, index) => (
@@ -146,13 +208,12 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
             detailLevel={asset.detailLevel}
             material={asset.materials.accent}
             role={upholsteryRole}
-            color="#8b8177"
           />
           {!module.chaise && (
             <group>
               <RoundedPart
                 size={[module.width * 0.92, backHeight, deep ? 0.18 : 0.145]}
-                position={[0, seatY + backHeight * 0.48, -depth * (deep ? 0.34 : 0.31)]}
+                position={[0, seatY + backHeight * (lowCurved ? 0.34 : 0.48), -depth * (deep ? 0.34 : 0.31)]}
                 rotation={[0.08, 0, 0]}
                 radius={0.07}
                 detailLevel={asset.detailLevel}
@@ -160,12 +221,12 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
                 role={upholsteryRole}
                 repeat={[2, 2]}
               />
-              <RoundedPart size={[module.width * 0.78, 0.012, 0.012]} position={[0, seatY + backHeight * 0.5, -depth * (deep ? 0.425 : 0.38)]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" color="#81776e" />
+              <RoundedPart size={[module.width * 0.78, 0.012, 0.012]} position={[0, seatY + backHeight * 0.5, -depth * (deep ? 0.425 : 0.38)]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role="fabric" />
             </group>
           )}
         </group>
       ))}
-      {asset.detailLevel === "presentation" && modules.slice(0, Math.min(3, modules.length)).map((module, index) => (
+      {asset.detailLevel === "presentation" && !lowCurved && modules.slice(0, Math.min(3, modules.length)).map((module, index) => (
         <group
           key={`throw-pillow-${index}`}
           position={[module.x + (index % 2 ? -0.08 : 0.08), seatY + backHeight * 0.42, -depth * 0.25]}
@@ -180,7 +241,7 @@ export function SofaFamily3D(props: FurnitureFamily3DProps) {
             role={upholsteryRole}
             roughness={0.92}
           />
-          <RoundedPart size={[Math.min(0.3, module.width * 0.55), 0.012, 0.012]} position={[0, 0, -0.061]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role={upholsteryRole} color="#786f67" />
+          <RoundedPart size={[Math.min(0.3, module.width * 0.55), 0.012, 0.012]} position={[0, 0, -0.061]} radius={0.005} detailLevel={asset.detailLevel} material={asset.materials.accent} role={upholsteryRole} />
         </group>
       ))}
       {!modular && [-1, 1].map((side) => {

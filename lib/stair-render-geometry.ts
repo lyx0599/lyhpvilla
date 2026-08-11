@@ -219,7 +219,11 @@ export function buildStairRenderSystemGeometry(input: {
   const currentFloorWorldY = getFloorWorldElevationMm(input.currentFloorId);
   const lowerFloorWorldY = getFloorWorldElevationMm(input.system.lowerFloorId);
   const landingWorldElevationMm = lowerFloorWorldY + STAIR_FLIGHT_RISE_MM;
-  const landing = input.landing && input.mode === "system-analysis" ? {
+  // A half-level landing is real geometry, not an analysis-only annotation.
+  // Hiding it in ordinary floor views made the up/down flights appear detached
+  // or twisted even though their elevations were numerically synchronized.
+  const hasCurrentFloorFlight = rawLower?.sourceFloorId === input.currentFloorId || rawUpper?.sourceFloorId === input.currentFloorId;
+  const landing = input.landing && (input.mode === "system-analysis" || hasCurrentFloorFlight) ? {
     landing: input.landing,
     worldElevationMm: landingWorldElevationMm,
     realYMm: landingWorldElevationMm - currentFloorWorldY,

@@ -90,9 +90,7 @@ function skylight(id: string, name: string, center: { x: number; y: number }, fl
     operation: "electricOperable",
     openable: true,
     motorized: true,
-    note: floorId === "B2"
-      ? "沿 W-B2-012 设置地下室采光井天窗，预留防水收边、排水坡度、电源、检修和防坠落措施。"
-      : "电动可活动天窗，预留防水收边、排水坡度、电源和控制线路。",
+    note: "电动可活动天窗，预留防水收边、排水坡度、电源和控制线路。",
     editable: true,
     removable: true
   };
@@ -135,16 +133,16 @@ function stair(id: string, floorId: FloorId, start: { x: number; y: number }, en
 
 const stairStackRuns = {
   upper: {
-    start: { x: 3676, y: 3575 },
-    end: { x: 950, y: 3575 },
-    width: 1050,
-    landingDepthMm: 600
+    start: { x: 4123, y: 3500 },
+    end: { x: 950, y: 3500 },
+    width: 900,
+    landingDepthMm: 900
   },
   lower: {
-    start: { x: 3676, y: 4625 },
-    end: { x: 950, y: 4625 },
-    width: 1050,
-    landingDepthMm: 600
+    start: { x: 4123, y: 4470 },
+    end: { x: 950, y: 4470 },
+    width: 900,
+    landingDepthMm: 900
   }
 } as const;
 
@@ -295,9 +293,32 @@ const b2DefinedRooms: HouseRoom[] = [
 
 const b2SupportColumns: HouseColumn[] = [
   {
-    ...column("COL-B2-001", "B2", { x: 5750, y: 6200 }, 360),
-    name: "B2圆柱立柱 / 支撑B1",
-    supportsFloorId: "B1"
+    ...column("COL-B2-001", "B2", { x: 5750, y: 6200 }, 300),
+    name: "B2客厅侧承重柱 / 装饰壁炉包覆（视频估算）",
+    supportsFloorId: "B1",
+    visualStyle: "concealedByFinish",
+    finishColor: "#cbbba6",
+    accentColor: "#9b7446",
+    verificationMeta: {
+      status: "estimated",
+      source: "visual-estimate",
+      sourceNote: "依据B2整体视频0.3–1.8秒，装饰壁炉包覆柱位于客厅侧；用户于2026-08-03确认与楼梯/吧台侧圆角柱交换身份。柱心保留现有视频估算点位，无实测尺寸",
+      toleranceMm: 500
+    }
+  },
+  {
+    ...column("COL-B2-002", "B2", { x: 4300, y: 5050 }, 360),
+    name: "B2楼梯/吧台侧圆角承重柱 / 支撑B1（视频估算）",
+    supportsFloorId: "B1",
+    visualStyle: "showroomLightStone",
+    finishColor: "#d8c8b4",
+    accentColor: "#a78358",
+    verificationMeta: {
+      status: "estimated",
+      source: "visual-estimate",
+      sourceNote: "依据B2整体视频2.8秒及23–24秒，普通圆角柱与吧台、楼梯关系更近；用户于2026-08-03确认与客厅侧装饰壁炉柱交换身份。柱心保留现有视频估算点位，无实测尺寸",
+      toleranceMm: 500
+    }
   }
 ];
 
@@ -400,10 +421,39 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
       door("D-2F-002", "2F", "W-2F-009", 0.36, 900),
       door("D-2F-003", "2F", "W-2F-012", 0.78, 900),
       door("D-2F-004", "2F", "W-2F-013", 0.18, 900),
-      door("D-2F-005", "2F", "W-2F-014", 0.38, 900)
+      door("D-2F-005", "2F", "W-2F-014", 0.38, 900),
+      {
+        ...door("D-2F-009", "2F", "W-2F-018", 0.72, 1500),
+        name: "父母房通共享阳台窄框双扇移门",
+        height: 2300,
+        operation: "sliding",
+        material: "glass",
+        transparency: 0.76,
+        visual: { style: "slimGlass", frameColor: "#74675b", hardwareColor: "#6a5b4d", glassColor: "#d7ddd9", leafCount: 2, jambMode: "minimal", thresholdHeightMm: 18 }
+      },
+      {
+        ...door("D-2F-010", "2F", "W-2F-019", 0.29, 1500),
+        name: "儿童房通共享阳台窄框双扇移门",
+        height: 2300,
+        operation: "sliding",
+        material: "glass",
+        transparency: 0.76,
+        visual: { style: "slimGlass", frameColor: "#74675b", hardwareColor: "#6a5b4d", glassColor: "#d7ddd9", leafCount: 2, jambMode: "minimal", thresholdHeightMm: 18 }
+      }
     ],
     windows: [windowObject("WIN-2F-001", "2F", "W-2F-001", 0.5, 1200), windowObject("WIN-2F-002", "2F", "W-2F-002", 0.7, 1200)],
-    bayWindows: [bayWindow("BW-2F-001", "2F", "W-2F-011", 0.84, 1200)],
+    bayWindows: [bayWindow("BW-2F-002", "2F", "W-2F-020", 0.497, 1600)],
+    outdoors: [
+      outdoor("OD-2F-SHARED-BALCONY-001", "2F", "父母房 / 儿童房共享连通阳台", [{ x: 950, y: 7800 }, { x: 6542, y: 7800 }, { x: 6542, y: 9300 }, { x: 950, y: 9300 }])
+    ],
+    fences: [
+      { ...fence("FN-2F-BALCONY-SOUTH-001", "2F", "共享阳台南侧通透金属护栏", { x: 950, y: 9300 }, { x: 6542, y: 9300 }), material: "metal", height: 1100, thickness: 70 },
+      { ...fence("FN-2F-BALCONY-WEST-001", "2F", "共享阳台西侧通透金属护栏", { x: 950, y: 7800 }, { x: 950, y: 9300 }), material: "metal", height: 1100, thickness: 70 },
+      { ...fence("FN-2F-BALCONY-EAST-001", "2F", "共享阳台东侧通透金属护栏", { x: 6542, y: 7800 }, { x: 6542, y: 9300 }), material: "metal", height: 1100, thickness: 70 }
+    ],
+    outdoorSurfaces: [
+      { ...surface("OS-2F-SHARED-BALCONY-TILE-001", "2F", "共享阳台暖灰防滑砖铺装", "hardscape", [{ x: 950, y: 7800 }, { x: 6542, y: 7800 }, { x: 6542, y: 9300 }, { x: 950, y: 9300 }]), material: "tile", materialToken: "wetAreaTile", materialRole: "floorWet", notes: "父母房与儿童房分别进入，中间不设隔断。" },
+    ],
     stairs: topFloorArrivalStair("2F")
   }),
   "B1": structure("B1", [
@@ -455,10 +505,7 @@ const rawInitialHouseStructures: Record<FloorId, HouseStructure> = {
     columns: b2SupportColumns,
     rooms: b2DefinedRooms,
     doors: [door("D-B2-001", "B2", "W-B2-003", 0.525, 900)],
-    skylights: [
-      skylight("SKY-B2-W012-001", "W-B2-012 电动采光天窗 1", { x: 9140, y: 5200 }, "B2", 620, 950, 90),
-      skylight("SKY-B2-W012-002", "W-B2-012 电动采光天窗 2", { x: 9140, y: 6820 }, "B2", 620, 950, 90)
-    ]
+    skylights: []
   }),
   "YARD": structure("YARD", [], [], {
     outdoors: [createOutdoor("OD-YARD-001", "YARD", [{ x: 900, y: 850 }, { x: 10700, y: 850 }, { x: 10700, y: 7100 }, { x: 900, y: 7100 }])],

@@ -1,13 +1,14 @@
-import type { DrawingItem, Floor, FloorId, HouseStructure, LightingLayer } from "@/types/space";
+import type { DrawingItem, Floor, FloorId, HouseStructure, LightingLayer, MaterialRoleId, WallSurfaceFinish } from "@/types/space";
 import type { LightingDesign, WorkspaceDataCategory, WorkspaceDataSourceReport, WorkspaceDocument } from "@/types/workspace";
 import { normalizeVerificationMeta, verificationTargetCollections } from "./dimension-verification.ts";
 import { getDrawingItemGeneratedFingerprint, getLegacyDrawingItemGeneratedFingerprintV13 } from "./drawing-items.ts";
 import { generateLightingDesignV1 } from "./lighting-design.ts";
 import { withFurnitureVariantDefaults } from "./furniture-variants.ts";
 import { buildManagedStairInfrastructure, normalizeManagedStairFlights } from "./stair-systems.ts";
+import { resolvePbrMaterialToken } from "./material-system.ts";
 
-export const CURRENT_WORKSPACE_SCHEMA_VERSION = 18;
-export const CURRENT_WORKSPACE_DATA_REVISION = "2026-07-23-yard-realism-v2";
+export const CURRENT_WORKSPACE_SCHEMA_VERSION = 19;
+export const CURRENT_WORKSPACE_DATA_REVISION = "2026-08-03-unified-pbr-material-language-v1";
 
 const trackedCategories: WorkspaceDataCategory[] = [
   "floors",
@@ -214,6 +215,73 @@ function migrateWholeHouseSurfaceFinishes(workspace: Partial<WorkspaceDocument>,
   return changed;
 }
 
+function migrateUnifiedMaterialIdentity(workspace: Partial<WorkspaceDocument>) {
+  let changed = false;
+  const assignFinish = (
+    finish: (WallSurfaceFinish & { jointColor?: string }) | NonNullable<NonNullable<HouseStructure["rooms"][number]["surfaceFinishes"]>["floor"]> | undefined,
+    role: MaterialRoleId
+  ) => {
+    if (!finish) return;
+    if (!finish.materialRole) {
+      finish.materialRole = role;
+      changed = true;
+    }
+    if (!finish.materialToken) {
+      finish.materialToken = resolvePbrMaterialToken(finish.materialResourceId ?? `${finish.material} ${finish.name}`, role);
+      changed = true;
+    }
+  };
+  const wallRole = (finish: WallSurfaceFinish): MaterialRoleId => /wood|veneer|stone|travertine|textile|fabric|panel|木|石|布|织物|软包/i.test(`${finish.material} ${finish.name}`)
+    ? "wallFeature"
+    : "wallBase";
+
+  Object.values(workspace.houseStructuresByFloor ?? {}).forEach((structure) => {
+    if (!structure) return;
+    structure.rooms.forEach((room) => {
+      const wet = /卫|浴|淋浴|bath|shower/i.test(room.name);
+      assignFinish(room.surfaceFinishes?.floor, wet ? "floorWet" : "floorMain");
+      if (room.surfaceFinishes?.wall) assignFinish(room.surfaceFinishes.wall, wallRole(room.surfaceFinishes.wall));
+    });
+    structure.walls.forEach((wall) => {
+      if (wall.surfaceFinish) assignFinish(wall.surfaceFinish, wallRole(wall.surfaceFinish));
+      Object.values(wall.surfaceFinishByRoomId ?? {}).forEach((finish) => assignFinish(finish, wallRole(finish)));
+    });
+    structure.outdoorSurfaces.forEach((surface) => {
+      if (!["stone", "slate", "tile", "wood", "concrete"].includes(surface.material)) return;
+      if (!surface.materialRole) {
+        surface.materialRole = "floorMain";
+        changed = true;
+      }
+      if (!surface.materialToken) {
+        surface.materialToken = resolvePbrMaterialToken(surface.material === "wood" ? "warmOak" : "courtyardStone", "floorMain");
+        changed = true;
+      }
+    });
+  });
+
+  (workspace.drawingItems ?? []).forEach((item) => {
+    const role: MaterialRoleId | null = item.category === "floorFinish"
+      ? "floorMain"
+      : item.category === "wallFinish"
+        ? "wallBase"
+        : item.category === "ceiling"
+          ? "ceilingBase"
+          : item.category === "cabinet"
+            ? "joineryMain"
+            : null;
+    if (!role) return;
+    if (!item.materialRole) {
+      item.materialRole = role;
+      changed = true;
+    }
+    if (!item.materialToken) {
+      item.materialToken = resolvePbrMaterialToken(item.materialId ?? item.material ?? item.label, role);
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 function migrateLivingWindowAndWaterbar(workspace: Partial<WorkspaceDocument>, canonical?: WorkspaceDocument) {
   if (!workspace.furniture || !canonical?.furniture) return false;
   const managedFurnitureIds = new Set([
@@ -271,7 +339,7 @@ function migrateFurniturePlacement(workspace: Partial<WorkspaceDocument>) {
   let changed = false;
   const furnitureById = new Map(workspace.furniture.map((item) => [item.id, item]));
   workspace.furniture.forEach((item) => {
-    if (!item.outdoorId && item.roomId.startsWith("OD-")) {
+    if (!item.outdoorId && item.roomId?.startsWith("OD-")) {
       item.outdoorId = item.roomId;
       changed = true;
     }
@@ -369,6 +437,57 @@ function migrateYardRealismLayout(workspace: Partial<WorkspaceDocument>) {
   return changed;
 }
 
+/** Repack the legacy yard layout once so the service objects do not pinch the
+ * primary operating and walking paths. A complete legacy fingerprint is used
+ * to avoid overwriting a deliberate user edit in a saved draft. */
+function migrateYardCirculationLayout(workspace: Partial<WorkspaceDocument>) {
+  const furniture = workspace.furniture;
+  if (!furniture) return false;
+  const legacy: Record<string, { x: number; y: number; rotation?: number }> = {
+    "ph-1f-north-outdoor-socket": { x: 32, y: -9 },
+    "OUT-N-STORAGE": { x: 37, y: -9.1 },
+    "OUT-S-LAUNDRY": { x: 23, y: 103.2, rotation: 0 },
+    "OUT-S-PET-WASH": { x: 75, y: 116 }
+  };
+  const legacyItems = Object.entries(legacy).map(([id, position]) => {
+    const item = furniture.find((candidate) => candidate.id === id && candidate.floorId === "YARD");
+    return item && item.position.x === position.x && item.position.y === position.y
+      && (position.rotation === undefined || (item.position.rotation ?? 0) === position.rotation);
+  });
+  if (legacyItems.length !== Object.keys(legacy).length || legacyItems.some((matches) => !matches)) return false;
+
+  const nextPositions: Record<string, { x: number; y: number; rotation?: number }> = {
+    "ph-1f-north-outdoor-socket": { x: 32, y: -13 },
+    "OUT-N-STORAGE": { x: 36.9, y: -9.1 },
+    "OUT-S-LAUNDRY": { x: 20, y: 103.2, rotation: 180 },
+    "OUT-S-PET-WASH": { x: 65.7, y: 116 }
+  };
+  let changed = false;
+  furniture.forEach((item) => {
+    const next = nextPositions[item.id];
+    if (!next || item.floorId !== "YARD") return;
+    const nextPosition = { ...item.position, ...next };
+    if (JSON.stringify(nextPosition) !== JSON.stringify(item.position)) {
+      item.position = nextPosition;
+      changed = true;
+    }
+  });
+  const yard = workspace.houseStructuresByFloor?.YARD;
+  const petWashCenter = yard ? {
+    x: Math.round(yard.coordinateSystem.origin.x + yard.coordinateSystem.width * 65.7 / 100),
+    y: Math.round(yard.coordinateSystem.origin.y + yard.coordinateSystem.height * 116 / 100)
+  } : null;
+  if (petWashCenter) {
+    workspace.drawingItems?.forEach((item) => {
+      if (item.relatedFurnitureId !== "OUT-S-PET-WASH") return;
+      if (item.relatedFurniturePositionMm?.x === petWashCenter.x && item.relatedFurniturePositionMm?.y === petWashCenter.y) return;
+      item.relatedFurniturePositionMm = petWashCenter;
+      changed = true;
+    });
+  }
+  return changed;
+}
+
 /** Aligns the north-yard buildable edge with 1F wall W-003 and repacks its program. */
 function migrateNorthYardW003Alignment(workspace: Partial<WorkspaceDocument>) {
   const yard = workspace.houseStructuresByFloor?.YARD;
@@ -412,14 +531,14 @@ function migrateNorthYardW003Alignment(workspace: Partial<WorkspaceDocument>) {
     yard.skylights = skylights;
     changed = true;
   }
-  const positions: Record<string, { x: number; y: number }> = {
+  const positions: Record<string, { x: number; y: number; rotation?: number }> = {
     "ph-1f-north-outdoor-socket": { x: 32, y: -9 },
     "OUT-N-KITCHEN-ISLAND": { x: 54, y: -13.6 },
     "OUT-N-BBQ": { x: 60, y: -13 },
     "OUT-N-TAP": { x: 48, y: -12.2 },
     "OUT-N-STORAGE": { x: 37, y: -9.1 },
     "OUT-N-HOSE": { x: 38, y: -9.2 },
-    "OUT-S-LAUNDRY": { x: 23, y: 103.2 }
+    "OUT-S-LAUNDRY": { x: 23, y: 103.2, rotation: 0 }
   };
   const depths: Record<string, number> = {
     "OUT-N-KITCHEN-ISLAND": 80,
@@ -440,6 +559,26 @@ function migrateNorthYardW003Alignment(workspace: Partial<WorkspaceDocument>) {
   return changed;
 }
 
+/** Converts only the legacy diagonal south-yard connector into the approved straight path.
+ * A user-edited/custom path is intentionally left untouched. */
+function migrateSouthYardStraightPath(workspace: Partial<WorkspaceDocument>) {
+  const surface = workspace.houseStructuresByFloor?.YARD?.outdoorSurfaces.find((candidate) => candidate.id === "OS-YARD-SOUTH-PATH");
+  if (!surface) return false;
+  const legacy = [[3450, 8950], [4200, 8700], [5850, 9400], [5600, 10150], [4050, 9550]];
+  const isLegacy = surface.polygon.length === legacy.length && surface.polygon.every((point, index) => point.x === legacy[index][0] && point.y === legacy[index][1]);
+  if (!isLegacy) return false;
+  surface.polygon = [
+    { x: 3600, y: 8950 },
+    { x: 5300, y: 8950 },
+    { x: 5300, y: 9850 },
+    { x: 3600, y: 9850 }
+  ];
+  surface.area = 1_530_000;
+  surface.pathWidthMm = 900;
+  surface.notes = "横向直线连接洗衣平台与休闲平台；暖灰自然石板顺直错缝铺设，砾石与少量地被填缝，保持 900mm 有效通行宽度。";
+  return true;
+}
+
 function migrateFurnitureVariants(workspace: Partial<WorkspaceDocument>) {
   if (!workspace.furniture) return false;
   let changed = false;
@@ -449,6 +588,39 @@ function migrateFurnitureVariants(workspace: Partial<WorkspaceDocument>) {
     return withFurnitureVariantDefaults(item);
   });
   return changed;
+}
+
+function migrateRemovedLivingIsland(workspace: Partial<WorkspaceDocument>) {
+  const removedFurnitureId = "furn-kitchen-entry-island-001";
+  const hadFurniture = workspace.furniture?.some((item) => item.id === removedFurnitureId) ?? false;
+  const relatedDrawingIds = new Set((workspace.drawingItems ?? [])
+    .filter((item) => item.relatedFurnitureId === removedFurnitureId)
+    .map((item) => item.id));
+  const removedControlGroupIds = new Set((workspace.drawingItems ?? [])
+    .filter((item) => relatedDrawingIds.has(item.id))
+    .map((item) => item.controlGroupId)
+    .filter((id): id is string => Boolean(id)));
+  const hadDrawingReferences = relatedDrawingIds.size > 0 || (workspace.drawingItems ?? []).some((item) => item.controlGroupId === "CG-1F-1F-005-ISLAND");
+  const hadSceneReferences = workspace.lightingDesign?.scenes.some((scene) => scene.groupStates.some((state) => (
+    state.controlGroupId === "CG-1F-1F-005-ISLAND" || removedControlGroupIds.has(state.controlGroupId)
+  ))) ?? false;
+  if (!hadFurniture && !hadDrawingReferences && !hadSceneReferences) return false;
+
+  workspace.furniture = (workspace.furniture ?? []).filter((item) => item.id !== removedFurnitureId);
+  workspace.drawingItems = (workspace.drawingItems ?? []).filter((item) => (
+    !relatedDrawingIds.has(item.id) && item.controlGroupId !== "CG-1F-1F-005-ISLAND"
+      && !(item.category === "switch" && removedControlGroupIds.has(item.controlGroupId ?? ""))
+  ));
+  const validDrawingItemIds = new Set((workspace.drawingItems ?? []).map((item) => item.id));
+  if (workspace.drawingPackage) {
+    workspace.drawingPackage.drawingItemIds = workspace.drawingPackage.drawingItemIds.filter((id) => validDrawingItemIds.has(id));
+  }
+  workspace.lightingDesign?.scenes.forEach((scene) => {
+    scene.groupStates = scene.groupStates.filter((state) => (
+      state.controlGroupId !== "CG-1F-1F-005-ISLAND" && !removedControlGroupIds.has(state.controlGroupId)
+    ));
+  });
+  return true;
 }
 
 function inferLightingLayer(item: DrawingItem): LightingLayer {
@@ -684,6 +856,10 @@ export function applyWorkspaceMigrations(
   }
   if (canMigrate && migrateDimensionVerification(workspace)) structureMigrated = true;
   if (canMigrate && migrateWholeHouseSurfaceFinishes(workspace, canonical)) structureMigrated = true;
+  if (canMigrate && migrateUnifiedMaterialIdentity(workspace)) {
+    structureMigrated = true;
+    sources.drawingItems = "migration";
+  }
   if (canMigrate && migrateLivingWindowAndWaterbar(workspace, canonical)) {
     structureMigrated = true;
     sources.furniture = "migration";
@@ -697,9 +873,17 @@ export function applyWorkspaceMigrations(
     sources.houseStructuresByFloor = "migration";
     sources.furniture = "migration";
   }
+  if (migrateSouthYardStraightPath(workspace)) sources.houseStructuresByFloor = "migration";
+  if (migrateRemovedLivingIsland(workspace)) {
+    sources.furniture = "migration";
+    sources.drawingItems = "migration";
+    sources.drawingPackage = "migration";
+    sources.lightingDesign = "migration";
+  }
   if (canMigrate && migrateOutdoorObjectBoundaries(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateOutdoorLandscapeEdgeLayout(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateYardRealismLayout(workspace)) sources.furniture = "migration";
+  if (migrateYardCirculationLayout(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateFurnitureVariants(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
   if (migrateMepSchemePositioning(workspace)) sources.drawingItems = "migration";

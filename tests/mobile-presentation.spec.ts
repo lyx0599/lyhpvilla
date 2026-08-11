@@ -55,10 +55,10 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(page.locator('[data-villa-stack-floor-count="4"]')).toBeVisible();
   await expect(page.locator('[data-mobile-wall-treatment="full-height-translucent"]')).toBeVisible();
   await expect(page.getByRole("button", { name: "自由浏览", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "鸟瞰", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "空间视角", exact: true })).toBeVisible();
   await expect(page.locator("canvas")).toHaveCSS("touch-action", "none");
 
-  await page.getByTestId("mobile-camera-bar").getByRole("button", { name: /^更多/ }).click();
+  await page.getByTestId("mobile-camera-bar").getByRole("button", { name: "空间视角", exact: true }).click();
   const tourPanel = page.getByTestId("tour-room-panel");
   await expect(tourPanel).toBeVisible();
   const roomButton = tourPanel.getByRole("button").filter({ hasText: "房间" }).last();
@@ -67,10 +67,9 @@ test("mobile presentation remains strictly view-only", async ({ page }) => {
   await expect(page.locator('[data-villa-overview-mode="singleFloor"]')).toBeVisible();
   await expect(page.getByTestId("mobile-tour-title")).toContainText("B1 /");
   await expect(page.locator('[data-room-tour-active="true"]')).toBeVisible();
-  await expect(page.getByTestId("tour-hotspots")).toBeVisible();
-  const nextRoomHotspot = page.getByTestId("tour-hotspots").getByRole("button", { name: /^去/ }).first();
-  await expect(nextRoomHotspot).toBeVisible();
-  await nextRoomHotspot.click();
+  await page.getByTestId("mobile-camera-bar").getByRole("button", { name: "空间视角", exact: true }).click();
+  await expect(tourPanel).toBeVisible();
+  await tourPanel.getByRole("button", { name: /^走廊/ }).first().click();
   await expect(page.getByTestId("mobile-tour-title")).toContainText("B1 /");
   await page.getByRole("button", { name: "自由浏览", exact: true }).click();
   await expect(page.locator('[data-room-tour-active="false"]')).toBeVisible();

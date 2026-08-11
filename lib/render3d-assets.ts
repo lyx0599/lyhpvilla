@@ -1,4 +1,5 @@
 import type {
+  CabinetMaterialPart,
   ConstructionMeta,
   Furniture,
   MepMeta,
@@ -13,6 +14,16 @@ import {
   stableFurnitureSeed
 } from "./furniture-variants.ts";
 import type { FurnitureFamily } from "./furniture-variants.ts";
+import { showroomMaterialResources, type ShowroomMaterialResource } from "./showroom-material-resources.ts";
+import {
+  pbrMaterialCatalog,
+  resolvePbrMaterialToken,
+  type MaterialRole,
+  type MaterialTextureChannel,
+  type MaterialTextureDirection,
+  type PbrMaterialDefinition,
+  type PbrMaterialToken
+} from "./material-system.ts";
 
 export type Resolved3DAsset = {
   assetType: Render3DAssetType;
@@ -30,6 +41,8 @@ export type Resolved3DAsset = {
   selectableIn3d: boolean;
   childrenMode: NonNullable<Render3DMeta["childrenMode"]>;
   complexGroup: boolean;
+  modelAssetId?: string;
+  assetUrl?: string;
 };
 
 export type Render3DMaterialRole = "wood" | "fabric" | "leather" | "stone" | "metal" | "glass" | "ceramic" | "light" | "plant" | "generic";
@@ -43,11 +56,31 @@ export type Render3DMaterialDefinition = {
   opacity?: number;
   emissive?: string;
   emissiveIntensity?: number;
+  resourceId?: string;
+  physicalSizeMm?: readonly [number, number];
+  preferredResolution?: number;
+  mobileResolution?: number;
+  license?: string;
+  pbrToken?: PbrMaterialToken;
+  materialRoles?: readonly MaterialRole[];
+  channels?: Readonly<Record<MaterialTextureChannel, string | null>>;
+  textureDirection?: MaterialTextureDirection;
+  uvScale?: readonly [number, number];
+  uvRotationDeg?: number;
+  normalStrength?: number;
+  heightScaleMm?: number;
+  transmission?: number;
+  thicknessMm?: number;
+  ior?: number;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  sourceNote?: string;
+  fallbackColor?: string;
 };
 
 export type ResolvedRender3DMaterialLayer = Render3DMaterialDefinition & {
   token: string;
-  source: "render3d" | "material" | "color" | "fallback";
+  source: "render3d" | "material" | "color" | "fallback" | "instance";
 };
 
 export type ResolvedRender3DMaterials = {
@@ -60,34 +93,197 @@ export type ResolvedRender3DMaterials = {
   summary: string;
 };
 
+export function resolveCabinetMaterialLayer(
+  item: Furniture,
+  materials: ResolvedRender3DMaterials,
+  part: CabinetMaterialPart
+): ResolvedRender3DMaterialLayer {
+  const override = item.render3d?.cabinetMaterialOverrides?.[part];
+  const fallback = part === "carcass"
+    ? materials.primary
+    : part === "hardware"
+      ? materials.accent
+      : materials.secondary;
+  if (!override) return fallback;
+  const token = normalizeMaterialToken(override);
+  return token ? materialFromToken(token, "instance") : fallback;
+}
+
+function fromPbrMaterial(token: PbrMaterialToken, role: Render3DMaterialRole): Render3DMaterialDefinition {
+  const material: PbrMaterialDefinition = pbrMaterialCatalog[token];
+  return {
+    label: material.label,
+    role,
+    color: material.baseColor,
+    roughness: material.roughness,
+    metalness: material.metalness,
+    opacity: material.opacity,
+    physicalSizeMm: material.physicalSizeMm,
+    preferredResolution: material.quality.presentation.desktop,
+    mobileResolution: material.quality.presentation.mobile,
+    license: material.source.license,
+    pbrToken: token,
+    materialRoles: material.roles,
+    channels: material.channels,
+    textureDirection: material.direction,
+    uvScale: material.uv.scale,
+    uvRotationDeg: material.uv.rotationDeg,
+    normalStrength: material.normalStrength,
+    heightScaleMm: material.heightScaleMm,
+    transmission: material.transmission,
+    thicknessMm: material.thicknessMm,
+    ior: material.ior,
+    clearcoat: material.clearcoat,
+    clearcoatRoughness: material.clearcoatRoughness,
+    sourceNote: material.source.note,
+    fallbackColor: material.fallback.color
+  };
+}
+
 export const render3DMaterialTokenCatalog = {
-  warmOak: { label: "浅橡木", role: "wood", color: "#c8ad8b", roughness: 0.52, metalness: 0.02 },
+  warmWhiteMineral: fromPbrMaterial("warmWhiteMineral", "generic"),
+  warmOak: fromPbrMaterial("warmOak", "wood"),
+  lightOak: fromPbrMaterial("lightOak", "wood"),
+  darkWalnut: fromPbrMaterial("darkWalnut", "wood"),
+  oakFloor: fromPbrMaterial("oakFloor", "wood"),
   walnut: { label: "低饱和胡桃木", role: "wood", color: "#927965", roughness: 0.5, metalness: 0.02 },
   honeyWood: { label: "蜂蜜木", role: "wood", color: "#c5a47d", roughness: 0.54, metalness: 0.02 },
   creamFabric: { label: "奶油布艺", role: "fabric", color: "#eee3d6", roughness: 0.92, metalness: 0 },
-  creamBoucle: { label: "奶油羊羔绒", role: "fabric", color: "#e8dece", roughness: 0.98, metalness: 0 },
-  beigeFabric: { label: "米灰布艺", role: "fabric", color: "#d8cabc", roughness: 0.94, metalness: 0 },
+  creamBoucle: fromPbrMaterial("creamBoucle", "fabric"),
+  beigeFabric: fromPbrMaterial("beigeFabric", "fabric"),
+  greigeLinen: fromPbrMaterial("greigeLinen", "fabric"),
   taupeFabric: { label: "灰褐布艺", role: "fabric", color: "#aa9786", roughness: 0.93, metalness: 0 },
   camelFabric: { label: "浅驼软装", role: "fabric", color: "#b99876", roughness: 0.9, metalness: 0 },
-  cognacLeather: { label: "棕色头层真皮", role: "leather", color: "#7b4428", roughness: 0.46, metalness: 0.01 },
-  darkBrownLeather: { label: "深棕真皮", role: "leather", color: "#4f2d20", roughness: 0.5, metalness: 0.01 },
-  warmGreyStone: { label: "暖灰石材", role: "stone", color: "#d8d1c6", roughness: 0.34, metalness: 0.04 },
-  travertine: { label: "米色洞石", role: "stone", color: "#ded2bd", roughness: 0.38, metalness: 0.03 },
-  microCement: { label: "暖灰微水泥", role: "stone", color: "#cbc3b8", roughness: 0.72, metalness: 0.02 },
-  warmWhiteCeramic: { label: "暖白陶瓷", role: "ceramic", color: "#fbf8f1", roughness: 0.26, metalness: 0.01 },
-  oatTaupeLacquer: { label: "浅燕麦灰褐哑光饰面", role: "ceramic", color: "#b6a68f", roughness: 0.74, metalness: 0.01 },
-  smokedOatTaupe: { label: "烟熏燕麦灰褐哑光饰面", role: "ceramic", color: "#9f8f7b", roughness: 0.76, metalness: 0.01 },
-  blackTitanium: { label: "黑钛金属", role: "metal", color: "#343331", roughness: 0.28, metalness: 0.68 },
-  brushedBronze: { label: "拉丝古铜", role: "metal", color: "#a17f5b", roughness: 0.26, metalness: 0.72 },
-  agedBrass: { label: "做旧黄铜", role: "metal", color: "#8a6844", roughness: 0.48, metalness: 0.58 },
+  cognacLeather: fromPbrMaterial("cognacLeather", "leather"),
+  darkBrownLeather: fromPbrMaterial("darkBrownLeather", "leather"),
+  blackTopGrainLeather: fromPbrMaterial("blackTopGrainLeather", "leather"),
+  warmGreyStone: fromPbrMaterial("warmGreyStone", "stone"),
+  travertine: fromPbrMaterial("travertine", "stone"),
+  microCement: fromPbrMaterial("microCement", "stone"),
+  wetAreaTile: fromPbrMaterial("wetAreaTile", "ceramic"),
+  courtyardStone: fromPbrMaterial("courtyardStone", "stone"),
+  warmWhiteCeramic: fromPbrMaterial("warmWhiteCeramic", "ceramic"),
+  oatTaupeLacquer: fromPbrMaterial("oatTaupeLacquer", "generic"),
+  smokedOatTaupe: fromPbrMaterial("oatTaupeLacquer", "generic"),
+  blackTitanium: fromPbrMaterial("blackTitanium", "metal"),
+  brushedBronze: fromPbrMaterial("brushedBronze", "metal"),
+  agedBrass: fromPbrMaterial("agedBrass", "metal"),
   terracotta: { label: "低饱和陶土", role: "stone", color: "#a76646", roughness: 0.84, metalness: 0 },
   oliveFabric: { label: "橄榄绿亚麻", role: "fabric", color: "#69705a", roughness: 0.95, metalness: 0 },
-  clearGlass: { label: "低铁玻璃", role: "glass", color: "#c9e7e8", roughness: 0.04, metalness: 0.02, opacity: 0.34 },
-  smokedGlass: { label: "茶色玻璃", role: "glass", color: "#8f8379", roughness: 0.08, metalness: 0.04, opacity: 0.38 },
+  clearGlass: fromPbrMaterial("clearGlass", "glass"),
+  smokedGlass: fromPbrMaterial("smokedGlass", "glass"),
   graySmokedGlass: { label: "灰色透明玻璃", role: "glass", color: "#9ca5a8", roughness: 0.07, metalness: 0.05, opacity: 0.3 },
   mirror: { label: "镜面", role: "glass", color: "#b9c4c4", roughness: 0.06, metalness: 0.82, opacity: 0.68 },
   warmLightEmissive: { label: "2700K-3000K 暖光", role: "light", color: "#ffe7b0", roughness: 0.18, metalness: 0, emissive: "#ffe7b0", emissiveIntensity: 0.74 },
-  plantSoftGreen: { label: "低饱和绿植", role: "plant", color: "#7f936c", roughness: 0.72, metalness: 0 }
+  plantSoftGreen: { label: "低饱和绿植", role: "plant", color: "#7f936c", roughness: 0.72, metalness: 0 },
+  showroomWarmOak: {
+    label: showroomMaterialResources.showroomWarmOakVertical.label,
+    role: "wood",
+    color: showroomMaterialResources.showroomWarmOakVertical.baseColor,
+    roughness: showroomMaterialResources.showroomWarmOakVertical.roughness,
+    metalness: showroomMaterialResources.showroomWarmOakVertical.metalness,
+    resourceId: showroomMaterialResources.showroomWarmOakVertical.id,
+    physicalSizeMm: showroomMaterialResources.showroomWarmOakVertical.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomWarmOakVertical.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomWarmOakVertical.mobileResolution,
+    license: showroomMaterialResources.showroomWarmOakVertical.license
+  },
+  showroomBurl: {
+    label: showroomMaterialResources.showroomBurlAmber.label,
+    role: "wood",
+    color: showroomMaterialResources.showroomBurlAmber.baseColor,
+    roughness: showroomMaterialResources.showroomBurlAmber.roughness,
+    metalness: showroomMaterialResources.showroomBurlAmber.metalness,
+    resourceId: showroomMaterialResources.showroomBurlAmber.id,
+    physicalSizeMm: showroomMaterialResources.showroomBurlAmber.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomBurlAmber.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomBurlAmber.mobileResolution,
+    license: showroomMaterialResources.showroomBurlAmber.license
+  },
+  showroomOatTaupe: {
+    label: showroomMaterialResources.showroomOatTaupeLacquer.label,
+    role: "ceramic",
+    color: showroomMaterialResources.showroomOatTaupeLacquer.baseColor,
+    roughness: showroomMaterialResources.showroomOatTaupeLacquer.roughness,
+    metalness: showroomMaterialResources.showroomOatTaupeLacquer.metalness,
+    resourceId: showroomMaterialResources.showroomOatTaupeLacquer.id,
+    physicalSizeMm: showroomMaterialResources.showroomOatTaupeLacquer.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomOatTaupeLacquer.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomOatTaupeLacquer.mobileResolution,
+    license: showroomMaterialResources.showroomOatTaupeLacquer.license
+  },
+  showroomVeinedStone: {
+    label: showroomMaterialResources.showroomWarmVeinedStone.label,
+    role: "stone",
+    color: showroomMaterialResources.showroomWarmVeinedStone.baseColor,
+    roughness: showroomMaterialResources.showroomWarmVeinedStone.roughness,
+    metalness: showroomMaterialResources.showroomWarmVeinedStone.metalness,
+    resourceId: showroomMaterialResources.showroomWarmVeinedStone.id,
+    physicalSizeMm: showroomMaterialResources.showroomWarmVeinedStone.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomWarmVeinedStone.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomWarmVeinedStone.mobileResolution,
+    license: showroomMaterialResources.showroomWarmVeinedStone.license
+  },
+  showroomWovenFabric: {
+    label: showroomMaterialResources.showroomWovenHeadboard.label,
+    role: "fabric",
+    color: showroomMaterialResources.showroomWovenHeadboard.baseColor,
+    roughness: showroomMaterialResources.showroomWovenHeadboard.roughness,
+    metalness: showroomMaterialResources.showroomWovenHeadboard.metalness,
+    resourceId: showroomMaterialResources.showroomWovenHeadboard.id,
+    physicalSizeMm: showroomMaterialResources.showroomWovenHeadboard.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomWovenHeadboard.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomWovenHeadboard.mobileResolution,
+    license: showroomMaterialResources.showroomWovenHeadboard.license
+  },
+  showroomBotanicalTextile2F: {
+    label: showroomMaterialResources.showroomBotanicalTextile2F.label,
+    role: "fabric",
+    color: showroomMaterialResources.showroomBotanicalTextile2F.baseColor,
+    roughness: showroomMaterialResources.showroomBotanicalTextile2F.roughness,
+    metalness: showroomMaterialResources.showroomBotanicalTextile2F.metalness,
+    resourceId: showroomMaterialResources.showroomBotanicalTextile2F.id,
+    physicalSizeMm: showroomMaterialResources.showroomBotanicalTextile2F.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomBotanicalTextile2F.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomBotanicalTextile2F.mobileResolution,
+    license: showroomMaterialResources.showroomBotanicalTextile2F.license
+  },
+  showroomRustStripe2F: {
+    label: showroomMaterialResources.showroomRustStripeUpholstery2F.label,
+    role: "fabric",
+    color: showroomMaterialResources.showroomRustStripeUpholstery2F.baseColor,
+    roughness: showroomMaterialResources.showroomRustStripeUpholstery2F.roughness,
+    metalness: showroomMaterialResources.showroomRustStripeUpholstery2F.metalness,
+    resourceId: showroomMaterialResources.showroomRustStripeUpholstery2F.id,
+    physicalSizeMm: showroomMaterialResources.showroomRustStripeUpholstery2F.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomRustStripeUpholstery2F.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomRustStripeUpholstery2F.mobileResolution,
+    license: showroomMaterialResources.showroomRustStripeUpholstery2F.license
+  },
+  showroomBoucleCream2F: {
+    label: showroomMaterialResources.showroomBoucleCream2F.label,
+    role: "fabric",
+    color: showroomMaterialResources.showroomBoucleCream2F.baseColor,
+    roughness: showroomMaterialResources.showroomBoucleCream2F.roughness,
+    metalness: showroomMaterialResources.showroomBoucleCream2F.metalness,
+    resourceId: showroomMaterialResources.showroomBoucleCream2F.id,
+    physicalSizeMm: showroomMaterialResources.showroomBoucleCream2F.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomBoucleCream2F.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomBoucleCream2F.mobileResolution,
+    license: showroomMaterialResources.showroomBoucleCream2F.license
+  },
+  showroomDarkBronze: {
+    label: showroomMaterialResources.showroomDarkBronze.label,
+    role: "metal",
+    color: showroomMaterialResources.showroomDarkBronze.baseColor,
+    roughness: showroomMaterialResources.showroomDarkBronze.roughness,
+    metalness: showroomMaterialResources.showroomDarkBronze.metalness,
+    resourceId: showroomMaterialResources.showroomDarkBronze.id,
+    physicalSizeMm: showroomMaterialResources.showroomDarkBronze.physicalSizeMm,
+    preferredResolution: showroomMaterialResources.showroomDarkBronze.preferredResolution,
+    mobileResolution: showroomMaterialResources.showroomDarkBronze.mobileResolution,
+    license: showroomMaterialResources.showroomDarkBronze.license
+  }
 } satisfies Record<string, Render3DMaterialDefinition>;
 
 export type Render3DMaterialToken = keyof typeof render3DMaterialTokenCatalog;
@@ -133,6 +329,7 @@ const knownAssetTypes = new Set<Render3DAssetType>([
   "bookshelf",
   "snackCabinet",
   "plant",
+  "piano",
   "generic"
 ]);
 
@@ -167,10 +364,15 @@ const groupedAssetTypes = new Set<Render3DAssetType>([
   "drainPoint",
   "pegboard",
   "bookshelf",
-  "snackCabinet"
+  "snackCabinet",
+  "piano"
 ]);
 
 const materialAliases: Record<string, Render3DMaterialToken> = {
+  smokedWalnut: "darkWalnut",
+  champagneBronze: "brushedBronze",
+  warmTaupeLeather: "brushedBronze",
+  darkBronze: "blackTitanium",
   wood: "warmOak",
   "wood-finish": "warmOak",
   "interior-wood": "honeyWood",
@@ -243,6 +445,7 @@ function materialFallbackTokens(assetType: Render3DAssetType): [Render3DMaterial
   if (assetType === "dogHouse" || assetType === "outdoorCabinet") return ["warmOak", "warmGreyStone", "blackTitanium"];
   if (assetType === "paving" || assetType === "yardModule") return ["warmGreyStone", "microCement", "blackTitanium"];
   if (assetType === "plant") return ["plantSoftGreen", "warmOak", "warmGreyStone"];
+  if (assetType === "piano") return ["blackTitanium", "warmOak", "brushedBronze"];
   return ["warmOak", "beigeFabric", "brushedBronze"];
 }
 
@@ -271,6 +474,38 @@ function resolveMaterialLayer(value: string | undefined, fallbackToken: Render3D
   if (token) return materialFromToken(token, source);
   if (value?.trim()) return materialFromCustom(value.trim(), item, source);
   return materialFromToken(fallbackToken, "fallback");
+}
+
+function withExplicitMaterialResource(layer: ResolvedRender3DMaterialLayer, resourceId: string | undefined): ResolvedRender3DMaterialLayer {
+  if (!resourceId || !(resourceId in showroomMaterialResources)) return layer;
+  const resource: ShowroomMaterialResource = showroomMaterialResources[resourceId as keyof typeof showroomMaterialResources];
+  const role: Render3DMaterialRole = resource.family === "fabric" || resource.family === "wallcovering"
+    ? "fabric"
+    : resource.family === "wood" || resource.family === "burlWood"
+      ? "wood"
+      : resource.family === "stone" || resource.family === "floor" || resource.family === "plaster"
+        ? "stone"
+        : resource.family === "metal"
+          ? "metal"
+          : resource.family === "glass"
+            ? "glass"
+            : resource.family === "lacquer"
+              ? "ceramic"
+              : layer.role;
+  return {
+    ...layer,
+    label: resource.label,
+    role,
+    color: resource.baseColor,
+    roughness: resource.roughness,
+    metalness: resource.metalness,
+    resourceId: resource.id,
+    physicalSizeMm: resource.physicalSizeMm,
+    preferredResolution: resource.preferredResolution,
+    mobileResolution: resource.mobileResolution,
+    license: resource.license,
+    pbrToken: layer.pbrToken ?? resolvePbrMaterialToken(resource.id, role === "fabric" ? "fabricMain" : role === "wood" ? "joineryMain" : role === "glass" ? "glassMain" : role === "metal" ? "trimMetal" : role === "ceramic" ? "floorWet" : "wallFeature")
+  };
 }
 
 function searchableText(item: Furniture) {
@@ -328,6 +563,7 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
   if (moduleType === "bookshelf") return "bookshelf";
   if (moduleType === "snackCabinet") return "snackCabinet";
   if (moduleType === "plant") return item.floorId === "YARD" ? "yardModule" : "plant";
+  if (moduleType === "piano") return "piano";
   if (moduleType === "cabinet" || item.type === "cabinet") return "cabinet";
   if (item.type === "chair") return "diningChair";
 
@@ -359,6 +595,7 @@ export function infer3DAssetType(item: Furniture): Render3DAssetType {
   if (includesAny(nameText, ["冰箱", "fridge", "refrigerator"])) return "fridge";
   if (includesAny(nameText, ["洞洞板", "pegboard"])) return "pegboard";
   if (includesAny(nameText, ["书架", "书柜", "bookshelf"])) return "bookshelf";
+  if (includesAny(nameText, ["钢琴", "piano"])) return "piano";
   if (includesAny(nameText, ["铺装", "硬化", "平台", "小路", "paving"])) return "paving";
   if (includesAny(nameText, ["休闲活动桌椅", "户外桌椅", "outdoor dining", "lounge set"])) return "outdoorDiningSet";
   if (includesAny(nameText, ["晾晒架", "晾衣架", "drying rack"])) return "dryingRack";
@@ -647,9 +884,18 @@ export function getDefaultConstructionMeta(item: Furniture): ConstructionMeta {
 
 export function resolveRender3DMaterials(item: Furniture, assetType: Render3DAssetType = infer3DAssetType(item)): ResolvedRender3DMaterials {
   const [primaryFallback, secondaryFallback, accentFallback] = materialFallbackTokens(assetType);
-  const primary = resolveMaterialLayer(item.render3d?.primaryMaterial ?? item.material, primaryFallback, item, item.render3d?.primaryMaterial ? "render3d" : item.material ? "material" : "fallback");
-  const secondary = resolveMaterialLayer(item.render3d?.secondaryMaterial, secondaryFallback, item, item.render3d?.secondaryMaterial ? "render3d" : "fallback");
-  const accent = resolveMaterialLayer(item.render3d?.accentMaterial, accentFallback, item, item.render3d?.accentMaterial ? "render3d" : "fallback");
+  const primary = withExplicitMaterialResource(
+    resolveMaterialLayer(item.render3d?.primaryMaterial ?? item.material, primaryFallback, item, item.render3d?.primaryMaterial ? "render3d" : item.material ? "material" : "fallback"),
+    item.render3d?.primaryMaterialResourceId
+  );
+  const secondary = withExplicitMaterialResource(
+    resolveMaterialLayer(item.render3d?.secondaryMaterial, secondaryFallback, item, item.render3d?.secondaryMaterial ? "render3d" : "fallback"),
+    item.render3d?.secondaryMaterialResourceId
+  );
+  const accent = withExplicitMaterialResource(
+    resolveMaterialLayer(item.render3d?.accentMaterial, accentFallback, item, item.render3d?.accentMaterial ? "render3d" : "fallback"),
+    item.render3d?.accentMaterialResourceId
+  );
   const stylePreset = normalizeStylePreset(item.render3d?.stylePreset);
   const styleLabel = render3DStyleLabels[item.render3d?.stylePreset ?? ""] ?? render3DStyleLabels[stylePreset] ?? stylePreset;
   const childrenMode = item.render3d?.childrenMode ?? "merged";
@@ -691,7 +937,10 @@ export function enrichFurniture3DMeta(item: Furniture): Furniture {
     render3d: {
       ...defaultRender3d,
       ...item.render3d,
-      assetType: normalizeAssetType(item.render3d?.assetType) ?? defaultRender3d.assetType
+      assetType: (() => {
+        const explicitAssetType = normalizeAssetType(item.render3d?.assetType);
+        return explicitAssetType && explicitAssetType !== "generic" ? explicitAssetType : defaultRender3d.assetType;
+      })()
     },
     mepMeta: {
       ...defaultMepMeta,
@@ -709,7 +958,8 @@ export function enrichFurniture3DMeta(item: Furniture): Furniture {
 
 export function resolve3DAsset(item: Furniture): Resolved3DAsset {
   const render3d = getDefaultRender3DMeta(item);
-  const assetType = normalizeAssetType(item.render3d?.assetType) ?? render3d.assetType as Render3DAssetType;
+  const explicitAssetType = normalizeAssetType(item.render3d?.assetType);
+  const assetType = explicitAssetType && explicitAssetType !== "generic" ? explicitAssetType : render3d.assetType as Render3DAssetType;
   const materials = resolveRender3DMaterials(item, assetType);
   return {
     assetType,
@@ -726,6 +976,8 @@ export function resolve3DAsset(item: Furniture): Resolved3DAsset {
     visibleIn3d: item.render3d?.visibleIn3d ?? true,
     selectableIn3d: item.render3d?.selectableIn3d ?? true,
     childrenMode: materials.childrenMode,
-    complexGroup: groupedAssetTypes.has(assetType)
+    complexGroup: groupedAssetTypes.has(assetType),
+    modelAssetId: item.render3d?.modelAssetId,
+    assetUrl: item.render3d?.assetUrl
   };
 }

@@ -4,6 +4,9 @@ import {
   getFlightLocalEndpointHeights,
   STAIR_FLIGHT_RISE_MM,
   STAIR_FLIGHT_STEP_COUNT,
+  STAIR_FLIGHT_CLEAR_WIDTH_MM,
+  STAIR_CENTER_GAP_MM,
+  STAIR_HALF_LANDING_DEPTH_MM,
   STAIR_RISER_HEIGHT_MM,
   STAIR_TOTAL_STEP_COUNT,
   validateStairSystems
@@ -26,6 +29,9 @@ const validate = (value, includeFurniture = false) => validateStairSystems({
 
 assert.equal(STAIR_RISER_HEIGHT_MM, 140);
 assert.equal(STAIR_FLIGHT_RISE_MM, 1400);
+assert.equal(STAIR_FLIGHT_CLEAR_WIDTH_MM, 900);
+assert.equal(STAIR_CENTER_GAP_MM, 70);
+assert.equal(STAIR_HALF_LANDING_DEPTH_MM, 900);
 assert.equal(workspace.stairSystems.length, 3);
 assert.deepEqual(validate(workspace), [], "The canonical stair systems must have no structural warnings.");
 assert.equal(validate(workspace, true).some((issue) => /rug/i.test(issue.objectId) || /地毯/.test(issue.message)), false, "Rugs must not trigger stair-clearance warnings.");
@@ -42,6 +48,11 @@ for (const system of workspace.stairSystems) {
   assert.equal(system.totalStepCount, STAIR_TOTAL_STEP_COUNT);
   assert.equal(lower.height, STAIR_FLIGHT_RISE_MM);
   assert.equal(upper.height, STAIR_FLIGHT_RISE_MM);
+  assert.equal(lower.width, STAIR_FLIGHT_CLEAR_WIDTH_MM);
+  assert.equal(upper.width, STAIR_FLIGHT_CLEAR_WIDTH_MM);
+  assert.equal(lower.landingDepthMm, STAIR_HALF_LANDING_DEPTH_MM);
+  assert.equal(upper.landingDepthMm, STAIR_HALF_LANDING_DEPTH_MM);
+  assert.equal(Math.abs(lower.start.y - upper.start.y), STAIR_FLIGHT_CLEAR_WIDTH_MM + STAIR_CENTER_GAP_MM);
   assert.equal(lower.landingId, system.landingId);
   assert.equal(upper.landingId, system.landingId);
   const lowerHeights = getFlightLocalEndpointHeights(lower);
@@ -112,7 +123,12 @@ const b1CurrentLayer = workspace.stairSystems
     mode: "current-floor"
   }));
 assert.equal(b1CurrentLayer.flatMap((system) => [system.lowerFlight, system.upperFlight].filter(Boolean)).length, 2, "B1 ordinary 3D must only render its two current-floor stair flights.");
-assert.ok(b1CurrentLayer.every((system) => !system.landing), `B1 ordinary 3D must not render remote half-level floating landings.\n${b1CurrentLayer.map(formatStairRenderDebug).join("\n\n")}`);
+assert.ok(b1CurrentLayer.every((system) => system.landing), `B1 ordinary 3D must render the two real half-level landings that connect its up/down flights.\n${b1CurrentLayer.map(formatStairRenderDebug).join("\n\n")}`);
+assert.deepEqual(
+  b1CurrentLayer.map((system) => system.landing?.finalYMm).sort((a, b) => a - b),
+  [-STAIR_FLIGHT_RISE_MM, STAIR_FLIGHT_RISE_MM],
+  "B1 ordinary 3D must place the lower and upper half-landings at their true elevations."
+);
 assert.ok(b1CurrentLayer.some((system) => system.upperFlight?.stair.id === "ST-B1-002"), "B1 ordinary 3D must keep the left/down path toward B2.");
 assert.ok(b1CurrentLayer.some((system) => system.lowerFlight?.stair.id === "ST-B1-001"), "B1 ordinary 3D must keep the right/up path toward 1F.");
 const b1DownFlight = b1CurrentLayer.flatMap((system) => [system.lowerFlight, system.upperFlight].filter(Boolean)).find((flight) => flight.stair.id === "ST-B1-002");

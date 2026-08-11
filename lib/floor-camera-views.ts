@@ -1,5 +1,7 @@
 import { tourNodeToCameraView } from "./room-tour.ts";
-import type { DrawingSheetType, FixedCameraView, Floor, FloorId, HouseStructure, RoomTourView } from "@/types/space";
+import { composeCameraView, compositionToFixedView } from "./camera-composition.ts";
+import type { CameraCompositionResult, CameraViewport } from "./camera-composition.ts";
+import type { DrawingSheetType, FixedCameraView, Floor, FloorId, Furniture, HouseStructure, RoomTourView } from "@/types/space";
 
 export type FloorCameraViewCategory = "general" | "room" | "feature" | "lighting-scene";
 export type FloorCameraViewMode = "orbit" | "fixed" | "walkthrough" | "tour";
@@ -23,6 +25,7 @@ export type FloorCameraView = {
   priority: number;
   recommendedLightingScene?: "dayWithLights" | "dusk" | "night" | "artificialOnly";
   recommendedLightingSceneId?: string;
+  composition?: CameraCompositionResult;
 };
 
 type BuildFloorCameraViewsInput = {
@@ -31,6 +34,9 @@ type BuildFloorCameraViewsInput = {
   sheetType: DrawingSheetType;
   cameraViews: FixedCameraView[];
   roomTourViews: RoomTourView[];
+  furniture?: Furniture[];
+  viewport?: CameraViewport;
+  compositionMargin?: number;
 };
 
 const everySheetType: DrawingSheetType[] = [
@@ -76,29 +82,26 @@ function generalView(
   floor: Floor,
   structure: HouseStructure,
   id: "overview" | "front" | "right" | "back" | "left",
-  preferredOverview?: RoomTourView
+  preferredOverview?: RoomTourView,
+  viewport?: CameraViewport,
+  compositionMargin?: number
 ): FloorCameraView {
-  const width = (structure.coordinateSystem?.width || 12000) / 1000;
-  const depth = (structure.coordinateSystem?.height || 9000) / 1000;
-  const distance = Math.max(8, Math.max(width, depth) * 0.86);
-  const target = preferredOverview?.target ?? { x: 0, y: 0.45, z: 0 };
-  const positions = {
-    overview: preferredOverview?.cameraPosition ?? { x: width * 0.56, y: Math.max(6.4, distance * 0.78), z: depth * 0.62 },
-    front: { x: 0, y: Math.max(4.8, distance * 0.5), z: distance },
-    right: { x: distance, y: Math.max(4.8, distance * 0.5), z: 0 },
-    back: { x: 0, y: Math.max(4.8, distance * 0.5), z: -distance },
-    left: { x: -distance, y: Math.max(4.8, distance * 0.5), z: 0 }
-  };
   const labels = { overview: "鸟瞰", front: "前", right: "右", back: "后", left: "左" };
-  const fixedView: FixedCameraView = {
+  const composition = composeCameraView({
+    kind: id === "overview" ? "floorOverview" : "floorDirection",
+    structure,
+    direction: id === "overview" ? undefined : id,
+    viewport,
+    margin: compositionMargin,
+    preferredView: preferredOverview
+  });
+  const fixedView = compositionToFixedView({
     id: `camera-${floor.id}-${id}`,
     name: `${floor.label} ${labels[id]}`,
     floor: floor.id,
-    cameraPosition: positions[id],
-    target,
-    mode: "perspective",
-    description: id === "overview" ? `${floor.label}整体鸟瞰` : `${floor.label}${labels[id]}向通用视角`
-  };
+    composition,
+    description: id === "overview" ? `${floor.label}按当前可见结构动态适配的整体鸟瞰` : `${floor.label}${labels[id]}向动态通用视角`
+  });
   return {
     id: fixedView.id,
     floorId: floor.id,
@@ -106,11 +109,12 @@ function generalView(
     category: "general",
     cameraMode: "orbit",
     cameraPosition: fixedView.cameraPosition,
-    target,
+    target: fixedView.target,
     supportedSheetTypes: everySheetType,
     defaultForFloor: id === "overview",
     description: fixedView.description,
     fixedView,
+    composition,
     primary: id === "overview",
     priority: id === "overview" ? -100 : 1000
   };
@@ -122,8 +126,29 @@ function categoryForTour(node: RoomTourView, sheetType: DrawingSheetType): Floor
   return "room";
 }
 
-function tourViewToConfig(node: RoomTourView, floorId: FloorId, sheetType: DrawingSheetType): FloorCameraView {
-  const fixedView = tourNodeToCameraView(node);
+function tourViewToConfig(
+  node: RoomTourView,
+  floorId: FloorId,
+  sheetType: DrawingSheetType,
+  structure: HouseStructure,
+  furniture: Furniture[],
+  viewport?: CameraViewport,
+  compositionMargin?: number
+): FloorCameraView {
+  const usesAutomaticRoomComposition = node.compositionMode !== "authored" && !node.isFloorOverview && (Boolean(node.roomId || node.outdoorId)) && node.type !== "stair" && node.type !== "viewpoint";
+  const composition = usesAutomaticRoomComposition ? composeCameraView({
+    kind: "room",
+    structure,
+    furniture,
+    roomId: node.roomId,
+    outdoorId: node.outdoorId,
+    viewport,
+    margin: compositionMargin,
+    preferredView: { cameraPosition: node.cameraPosition, target: node.target, fov: node.fov }
+  }) : undefined;
+  const fixedView = composition
+    ? compositionToFixedView({ id: node.id, name: node.name, floor: floorId, composition, description: node.description, targetArea: node.targetArea })
+    : tourNodeToCameraView(node);
   const priority = semanticScore(node.name, floorId, sheetType);
   const isStairInspection = node.type === "stair" || Boolean(node.targetArea?.startsWith("stair"));
   return {
@@ -131,13 +156,14 @@ function tourViewToConfig(node: RoomTourView, floorId: FloorId, sheetType: Drawi
     floorId,
     name: cleanViewName(node.name, floorId),
     category: categoryForTour(node, sheetType),
-    cameraMode: node.isFloorOverview ? "orbit" : isStairInspection ? "fixed" : "tour",
-    cameraPosition: node.cameraPosition,
-    target: node.target,
+    cameraMode: node.isFloorOverview ? "orbit" : isStairInspection || node.compositionMode === "authored" ? "fixed" : "tour",
+    cameraPosition: fixedView.cameraPosition,
+    target: fixedView.target,
     roomId: node.roomId,
     outdoorId: node.outdoorId,
     description: node.description,
     fixedView,
+    composition,
     tourView: node,
     primary: !node.isFloorOverview && priority < 70,
     priority,
@@ -164,26 +190,21 @@ function fixedViewToConfig(view: FixedCameraView, sheetType: DrawingSheetType): 
   };
 }
 
-function specialtyViews(floor: Floor, structure: HouseStructure, sheetType: DrawingSheetType): FloorCameraView[] {
+function specialtyViews(floor: Floor, structure: HouseStructure, sheetType: DrawingSheetType, furniture: Furniture[], viewport?: CameraViewport, compositionMargin?: number): FloorCameraView[] {
   if (sheetType !== "ceilingPlan" && sheetType !== "structurePlan") return [];
-  const height = Math.max(...structure.walls.map((wall) => wall.height || 2800), 2800) / 1000;
   if (sheetType === "ceilingPlan") {
-    const fixedView: FixedCameraView = {
-      id: `camera-${floor.id}-ceiling-up`,
-      name: `${floor.label} 顶面观察`,
-      floor: floor.id,
-      cameraPosition: { x: 0, y: 0.9, z: 2.8 },
-      target: { x: 0, y: height, z: 0 },
-      mode: "perspective",
-      description: "从室内向上检查吊顶区域、灯槽、风口和检修口。"
-    };
+    const composition = composeCameraView({ kind: "ceiling", structure, furniture, viewport, margin: compositionMargin });
+    const fixedView = compositionToFixedView({
+      id: `camera-${floor.id}-ceiling-up`, name: `${floor.label} 顶面观察`, floor: floor.id, composition,
+      description: "按当前房间边界从合理室内高度向上检查吊顶区域、灯槽、风口和检修口。"
+    });
     return [{
       id: fixedView.id, floorId: floor.id, name: "顶面观察", category: "feature", cameraMode: "fixed",
       cameraPosition: fixedView.cameraPosition, target: fixedView.target, supportedSheetTypes: ["ceilingPlan"],
-      defaultForFloor: true, description: fixedView.description, fixedView, primary: true, priority: -80
+      defaultForFloor: true, description: fixedView.description, fixedView, composition, primary: true, priority: -80
     }];
   }
-  const overview = generalView(floor, structure, "overview");
+  const overview = generalView(floor, structure, "overview", undefined, viewport, compositionMargin);
   const fixedView = { ...overview.fixedView, id: `camera-${floor.id}-structure-cutaway`, name: `${floor.label} 剖切结构`, description: "突出墙、柱、楼板、楼梯与结构开口。" };
   return [{
     id: fixedView.id, floorId: floor.id, name: "剖切结构", category: "feature", cameraMode: "fixed",
@@ -194,6 +215,7 @@ function specialtyViews(floor: Floor, structure: HouseStructure, sheetType: Draw
 
 /** Builds the current floor's presentation list without copying workspace camera data. */
 export function buildFloorCameraViews(input: BuildFloorCameraViewsInput): FloorCameraView[] {
+  const floorFurniture = (input.furniture ?? []).filter((item) => item.floorId === input.floor.id);
   const validRoomIds = new Set(input.structure.rooms.map((room) => room.id));
   const validOutdoorIds = new Set(input.structure.outdoors.map((outdoor) => outdoor.id));
   const sameFloorTourViews = input.roomTourViews.filter((node) => node.floorId === input.floor.id && node.status === "active");
@@ -201,7 +223,7 @@ export function buildFloorCameraViews(input: BuildFloorCameraViewsInput): FloorC
     (!node.roomId || validRoomIds.has(node.roomId)) && (!node.outdoorId || validOutdoorIds.has(node.outdoorId)) && (!node.supportedSheetTypes || node.supportedSheetTypes.includes(input.sheetType))
   );
   const overviewNode = currentTourViews.find((node) => node.isFloorOverview);
-  const general = (["overview", "front", "right", "back", "left"] as const).map((id) => generalView(input.floor, input.structure, id, overviewNode));
+  const general = (["overview", "front", "right", "back", "left"] as const).map((id) => generalView(input.floor, input.structure, id, overviewNode, input.viewport, input.compositionMargin));
   // Even when a referenced room was removed, remember that its legacy fixed view
   // belonged to that room so it cannot reappear as an unbound fallback button.
   const sourceViewIds = new Set(sameFloorTourViews.map((node) => node.sourceCameraViewId).filter((id): id is string => Boolean(id)));
@@ -210,12 +232,12 @@ export function buildFloorCameraViews(input: BuildFloorCameraViewsInput): FloorC
       ? input.structure.rooms.find((room) => room.id === node.roomId)?.name
       : node.outdoorId ? input.structure.outdoors.find((outdoor) => outdoor.id === node.outdoorId)?.name : undefined;
     const isGeneratedSpaceNode = node.id.startsWith(`tour-${input.floor.id}-`) && !node.id.includes("floor-overview");
-    return tourViewToConfig(isGeneratedSpaceNode && sourceName ? { ...node, name: sourceName } : node, input.floor.id, input.sheetType);
+    return tourViewToConfig(isGeneratedSpaceNode && sourceName ? { ...node, name: sourceName } : node, input.floor.id, input.sheetType, input.structure, floorFurniture, input.viewport, input.compositionMargin);
   });
   const fixedOnly = input.cameraViews
     .filter((view) => view.floor === input.floor.id && !sourceViewIds.has(view.id))
     .map((view) => fixedViewToConfig(view, input.sheetType));
-  const specialty = specialtyViews(input.floor, input.structure, input.sheetType);
+  const specialty = specialtyViews(input.floor, input.structure, input.sheetType, floorFurniture, input.viewport, input.compositionMargin);
   const views = [...general, ...specialty, ...derived, ...fixedOnly].filter((view) => !view.supportedSheetTypes || view.supportedSheetTypes.includes(input.sheetType));
   const seen = new Set<string>();
   const unique = views.filter((view) => !seen.has(view.id) && Boolean(seen.add(view.id))).sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name, "zh-CN"));

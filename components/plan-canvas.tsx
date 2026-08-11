@@ -60,6 +60,8 @@ import {
 import { createDrawingItem, drawingItemCategories, drawingItemCategoryLabels, drawingItemStatuses, drawingItemStatusLabels, floorFinishMaterialLabels, getDrawingItemCategoriesForSheet, wallFinishMaterialOptions } from "@/lib/drawing-items";
 import { lightMountingTypeLabels, lightMountingTypes, lightingLayerLabels, lightingLayers } from "@/lib/lighting-design";
 import { getStairSyncRule, getWallSyncLegend, getWallSyncRule } from "@/lib/villa-structure-sync";
+import { getDoorOpeningRenderPolicy } from "@/lib/opening-render-policy";
+import { materialIndexRows, materialRoleLabels, pbrMaterialCatalog } from "@/lib/material-system";
 import {
   applyPlanDelta,
   normalizeObjectForSync,
@@ -101,6 +103,7 @@ import { constructionPackageToCsv, constructionPackageToHtml, constructionPackag
 import { constructionAnchorLabel, constructionAnchorToPlanPoint, getConstructionAnchorsForSheet } from "@/lib/construction-anchors";
 import { getVerificationDisplayState, verificationDisplayStateLabels, verificationDisplayStyles } from "@/lib/dimension-verification";
 import { getFurnitureCenterMm, getRelatedDrawingItemSyncState, validateFurniturePlacement } from "@/lib/furniture-placement";
+import { getFurnitureMaterialInspectorData, getStructureMaterialInspectorData, type MaterialInspectorData } from "@/lib/material-inspector";
 import type { Boundary, Point, SemanticObject } from "@/types/semantic-map";
 import type { WorkspaceDocument } from "@/types/workspace";
 
@@ -163,6 +166,7 @@ type Props = {
   onSelectFloor: (floorId: Floor["id"]) => void;
   onActiveObjectChange: (objectId: string) => void;
   onSelectStructureObject?: (objectId: string) => void;
+  onClearObjectSelection?: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onPlannerModeChange: (mode: PlannerMode) => void;
@@ -172,7 +176,7 @@ type Props = {
   onWallSyncOverridesChange: (overrides: WallSyncOverrides) => void;
   onFloorPlanVisualSettingsChange: (settings: FloorPlanVisualSettings) => void;
   onCleanPatchesChange: (patches: CleanPatch[]) => void;
-  onSelectFurniture: (furniture: Furniture) => void;
+  onSelectFurniture: (furniture: Furniture, part?: string) => void;
   onFurnitureChange: (furniture: Furniture[]) => void;
   onFurnitureDragEnd: (furniture: Furniture, deltaMm: MmPoint) => void;
   onDrawingItemsChange: (drawingItems: DrawingItem[]) => void;
@@ -249,9 +253,9 @@ const defaultPlanBounds: PlanBounds = { x: 0, y: 0, width: STRUCTURE_WIDTH_MM, h
 
 const outdoorSurfaceMaterialOptions: Array<{ material: OutdoorSurfaceMaterial; label: string; tool: OutdoorSurfaceDrawTool; swatch: string }> = [
   { material: "pebble", label: "鹅卵石", tool: "path", swatch: "#d7c2a3" },
-  { material: "stone", label: "石板", tool: "hardscape", swatch: "#a8a29e" },
-  { material: "wood", label: "木板", tool: "hardscape", swatch: "#b98254" },
-  { material: "concrete", label: "水泥地", tool: "hardscape", swatch: "#cbd5e1" },
+  { material: "stone", label: pbrMaterialCatalog.courtyardStone.label, tool: "hardscape", swatch: pbrMaterialCatalog.courtyardStone.baseColor },
+  { material: "wood", label: pbrMaterialCatalog.warmOak.label, tool: "hardscape", swatch: pbrMaterialCatalog.warmOak.baseColor },
+  { material: "concrete", label: pbrMaterialCatalog.microCement.label, tool: "hardscape", swatch: pbrMaterialCatalog.microCement.baseColor },
   { material: "grass", label: "草坪", tool: "planting", swatch: "#86c37a" },
   { material: "shrub", label: "花境", tool: "planting", swatch: "#5fb069" }
 ];
@@ -593,6 +597,65 @@ function isClickDrawTool(tool: DrawTool): tool is ClickDrawTool {
   return tool === "wall-straight" || tool === "wall-arc" || tool === "partition" || tool === "stair" || tool === "fence";
 }
 
+function MaterialInspectorPanel({ data, mobile, onClose }: { data: MaterialInspectorData; mobile: boolean; onClose: () => void }) {
+  return (
+    <aside
+      className={mobile
+        ? "absolute inset-x-3 bottom-3 z-[90] max-h-[62%] overflow-y-auto rounded-3xl border border-white/90 bg-[#faf8f4]/98 p-4 shadow-[0_16px_44px_rgba(39,34,28,0.24)] backdrop-blur"
+        : "absolute right-4 top-16 z-[90] w-[min(21rem,calc(100%-2rem))] max-h-[calc(100%-5rem)] overflow-y-auto rounded-2xl border border-white/90 bg-white/96 p-4 shadow-[0_16px_44px_rgba(39,34,28,0.18)] backdrop-blur"}
+      data-testid="material-inspector"
+      aria-label="材质信息"
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-stone-200 pb-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">材质信息</p>
+          <h3 className="mt-1 truncate text-base font-black text-stone-900">{data.objectLabel}</h3>
+          {data.currentPart && <p className="mt-1 truncate text-xs text-stone-500">点击部位：{data.currentPart}</p>}
+        </div>
+        <button aria-label="关闭材质信息" className="grid size-8 shrink-0 place-items-center rounded-full bg-stone-100 text-lg text-stone-600" onClick={onClose} type="button">×</button>
+      </div>
+      <div className="mt-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-400">使用材质</p>
+        <div className="mt-2 space-y-2">
+          {data.parts.map((part) => (
+            <div key={`${part.part}-${part.material}`} className="rounded-xl border border-stone-200 bg-stone-50/80 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-stone-600">{part.part}</span>
+                <span className="text-right text-sm font-black text-stone-900">{part.material}</span>
+              </div>
+              <div className="mt-1 text-[10px] text-stone-500">{part.detail.source === "canonical" ? "统一材质系统" : "当前项目材质"}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <details className="mt-3 rounded-xl border border-stone-200 bg-white">
+        <summary className="cursor-pointer px-3 py-2 text-xs font-bold text-stone-600">详细信息</summary>
+        <div className="space-y-3 border-t border-stone-200 px-3 py-3">
+          {data.parts.map((part) => (
+            <div key={`detail-${part.part}-${part.material}`} className="space-y-1 text-[10px] leading-4 text-stone-600">
+              <div className="font-black text-stone-900">{part.part} · {part.material}</div>
+              <div>身份：{part.detail.source === "canonical" ? "统一材质系统" : part.detail.source}</div>
+              {part.detail.token && <div>canonical token：{part.detail.token}</div>}
+              {part.detail.sourceName && <div>来源说明：{part.detail.sourceName}</div>}
+              <div className="grid grid-cols-2 gap-x-3">
+                <span>Base Color：{part.detail.color}</span>
+                <span>Roughness：{part.detail.roughness.toFixed(2)}</span>
+                <span>Normal Strength：{part.detail.normalStrength?.toFixed(2) ?? "—"}</span>
+                <span>Metalness：{part.detail.metalness.toFixed(2)}</span>
+                <span>Transmission：{part.detail.transmission?.toFixed(2) ?? "—"}</span>
+                <span>Thickness：{part.detail.thicknessMm ? `${part.detail.thicknessMm} mm` : "—"}</span>
+                <span>IOR：{part.detail.ior?.toFixed(2) ?? "—"}</span>
+                <span>程序纹理：{part.detail.proceduralTexture}</span>
+              </div>
+              <div>质量档位：{part.detail.quality}</div>
+            </div>
+          ))}
+        </div>
+      </details>
+    </aside>
+  );
+}
+
 export function PlanCanvas({
   floor,
   floors,
@@ -645,6 +708,7 @@ export function PlanCanvas({
   onSelectFloor,
   onActiveObjectChange,
   onSelectStructureObject,
+  onClearObjectSelection,
   onUndo: requestUndo,
   onRedo: requestRedo,
   onPlannerModeChange: requestPlannerModeChange,
@@ -727,6 +791,7 @@ export function PlanCanvas({
   const [outdoorSurfaceMaterial, setOutdoorSurfaceMaterial] = useState<OutdoorSurfaceMaterial>("pebble");
   const [outdoorPathWidth, setOutdoorPathWidth] = useState(800);
   const [selectedStructureId, setSelectedStructureId] = useState("");
+  const [materialInspector, setMaterialInspector] = useState<MaterialInspectorData | null>(null);
   const [selectedDrawingItemId, setSelectedDrawingItemId] = useState("");
   const [structureMessage, setStructureMessage] = useState("");
   const [showObjectIds, setShowObjectIds] = useState(false);
@@ -4176,12 +4241,11 @@ export function PlanCanvas({
     if (sheetMode === "materialPlan") {
       const legendX = planBounds.x + 720;
       const legendY = planBounds.y + 720;
-      const materialRows = [
-        ["M-01", "地面", "木地板 / 防滑砖 / 户外石材"],
-        ["M-02", "墙面", "乳胶漆 / 墙砖 / 石材 / 木饰面"],
-        ["C-01", "吊顶", "局部吊顶 / 灯槽 / 风口 / 检修口"],
-        ["E/L/W", "机电", "插座 / 开关 / 灯光 / 给排水点位"]
-      ];
+      const materialRows = materialIndexRows.map((row) => [
+        row.code,
+        row.label,
+        `${row.roles.map((role) => materialRoleLabels[role]).join(" / ")} · ${row.physicalSize}`
+      ]);
       return (
         <g data-layer="MaterialPlanOverlay" pointerEvents="none">
           <rect x={legendX - 180} y={legendY - 300} width={5200} height={materialRows.length * 390 + 520} rx={180} fill="rgba(255,255,255,0.92)" stroke="rgba(148,163,184,0.45)" strokeWidth={24} />
@@ -5365,6 +5429,28 @@ export function PlanCanvas({
                         onMouseEnter={() => hoverObject(surface.id)}
                         onMouseLeave={() => clearHoverObject(surface.id)}
                       />
+                      {surface.id === "OS-YARD-SOUTH-PATH" && (
+                        <g pointerEvents="none" opacity={0.94}>
+                          {[
+                            { x: 3900, y: 9400, width: 500, length: 860, rotation: 0 },
+                            { x: 4450, y: 9400, width: 500, length: 900, rotation: 0 },
+                            { x: 5000, y: 9400, width: 500, length: 860, rotation: 0 }
+                          ].map((slab, index) => (
+                            <rect
+                              key={`south-yard-plan-slab-${index}`}
+                              x={slab.x - slab.width / 2}
+                              y={slab.y - slab.length / 2}
+                              width={slab.width}
+                              height={slab.length}
+                              rx={34}
+                              fill={index % 2 ? "#a69e94" : "#aea69c"}
+                              stroke="#817970"
+                              strokeWidth={26}
+                              transform={`rotate(${slab.rotation} ${slab.x} ${slab.y})`}
+                            />
+                          ))}
+                        </g>
+                      )}
                       {(hovered || selected) && (
                         <text
                           x={surface.polygon.reduce((sum, point) => sum + point.x, 0) / surface.polygon.length}
@@ -6017,7 +6103,8 @@ export function PlanCanvas({
                   const isSelected = isObjectSelected(door.id);
                   const isHovered = isObjectHovered(door.id);
                   const locked = objectIsLocked(door.id);
-                  const isSlidingDoor = door.operation === "sliding";
+                  const renderPolicy = getDoorOpeningRenderPolicy(door);
+                  const isSlidingDoor = renderPolicy.drawTrack;
                   const doorStroke = locked ? "#9ca3af" : isSelected ? "#2563eb" : isHovered ? "#0f172a" : isSlidingDoor ? "#38bdf8" : "#64748b";
                   const glassOpacity = door.transparency ?? 0.45;
                   const trackOffset = Math.max(26, host.thickness * 0.24);
@@ -6027,7 +6114,7 @@ export function PlanCanvas({
                       onClick={(event) => {
                         event.stopPropagation();
                         if (shouldIgnoreStructureSelection("opening")) return;
-                        selectStructureObject(door.id, `${door.name} · ${door.width} mm${isSlidingDoor ? " · 推拉门" : ""}`);
+                        selectStructureObject(door.id, `${door.name} · ${door.width} mm${renderPolicy.mode === "openPassage" ? " · 开放洞口" : isSlidingDoor ? " · 推拉门" : ""}`);
                       }}
                       onMouseEnter={() => hoverObject(door.id)}
                       onMouseLeave={() => clearHoverObject(door.id)}
@@ -6041,7 +6128,7 @@ export function PlanCanvas({
                       }}
                     >
                       <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="#ffffff" strokeLinecap="round" strokeWidth={host.thickness + 44} />
-                      {isSlidingDoor ? (
+                      {renderPolicy.mode === "openPassage" ? null : isSlidingDoor ? (
                         <>
                           <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="#dbeafe" strokeLinecap="round" strokeOpacity={glassOpacity} strokeWidth={Math.max(54, host.thickness * 0.62)} />
                           <line x1={segment.start.x + segment.normal.x * trackOffset} y1={segment.start.y + segment.normal.y * trackOffset} x2={segment.end.x + segment.normal.x * trackOffset} y2={segment.end.y + segment.normal.y * trackOffset} stroke={doorStroke} strokeLinecap="round" strokeWidth={isSelected || isHovered ? 18 : 12} />
@@ -6184,9 +6271,29 @@ export function PlanCanvas({
                     const wallStart = wall && "start" in wall ? wall.start : null;
                     const wallEnd = wall && "end" in wall ? wall.end : null;
                     const polygon = item.polygon?.length && item.polygon.length >= 3 ? item.polygon : null;
+                    const parameterPath = item.linearLightPath?.pathMm?.length && item.linearLightPath.pathMm.length >= 2
+                      ? item.linearLightPath.pathMm
+                      : item.coveProfile?.pathMm?.length && item.coveProfile.pathMm.length >= 2
+                        ? item.coveProfile.pathMm
+                        : null;
+                    const wallLength = wallStart && wallEnd ? Math.max(1, Math.hypot(wallEnd.x - wallStart.x, wallEnd.y - wallStart.y)) : 0;
+                    const wallZoneStart = wallStart && wallEnd && item.wallFinishZone
+                      ? {
+                          x: wallStart.x + (wallEnd.x - wallStart.x) * (item.wallFinishZone.startOffsetMm ?? 0) / wallLength,
+                          y: wallStart.y + (wallEnd.y - wallStart.y) * (item.wallFinishZone.startOffsetMm ?? 0) / wallLength
+                        }
+                      : wallStart;
+                    const wallZoneEnd = wallStart && wallEnd && item.wallFinishZone
+                      ? {
+                          x: wallStart.x + (wallEnd.x - wallStart.x) * Math.min(wallLength, item.wallFinishZone.endOffsetMm ?? wallLength) / wallLength,
+                          y: wallStart.y + (wallEnd.y - wallStart.y) * Math.min(wallLength, item.wallFinishZone.endOffsetMm ?? wallLength) / wallLength
+                        }
+                      : wallEnd;
                     const anchor = polygon
                       ? { x: polygon.reduce((sum, point) => sum + point.x, 0) / polygon.length, y: polygon.reduce((sum, point) => sum + point.y, 0) / polygon.length }
-                      : wallStart && wallEnd ? { x: (wallStart.x + wallEnd.x) / 2, y: (wallStart.y + wallEnd.y) / 2 } : item.positionMm;
+                      : parameterPath
+                        ? { x: parameterPath.reduce((sum, point) => sum + point.x, 0) / parameterPath.length, y: parameterPath.reduce((sum, point) => sum + point.y, 0) / parameterPath.length }
+                        : wallZoneStart && wallZoneEnd ? { x: (wallZoneStart.x + wallZoneEnd.x) / 2, y: (wallZoneStart.y + wallZoneEnd.y) / 2 } : item.positionMm;
                     const detailSummary = item.category === "switch"
                       ? `控制 ${(item.controlledLightIds?.length ?? 0)} 灯${item.controlGroupId ?? item.lightGroupId ? ` / ${item.controlGroupId ?? item.lightGroupId}` : ""}`
                       : item.category === "light" ? `${item.lightType ?? item.type} · ${item.colorTemperature ?? item.lightColorTemperature ?? "色温待定"} · ${item.controlGroupId ?? item.lightGroupId ?? "未分组"}`
@@ -6197,13 +6304,13 @@ export function PlanCanvas({
                     return (
                       <g
                         key={item.id}
-                        className={workspaceMutationAllowed && plannerMode === "edit" && !polygon && !wall ? "cursor-move" : "cursor-pointer"}
+                        className={workspaceMutationAllowed && plannerMode === "edit" && !polygon && !wall && !parameterPath ? "cursor-move" : "cursor-pointer"}
                         transform={`translate(${anchor.x} ${anchor.y})`}
                         onPointerDown={(event) => {
                           event.stopPropagation();
                           setSelectedDrawingItemId(item.id);
                           onActiveObjectChange(item.id);
-                          if (workspaceMutationAllowed && plannerMode === "edit" && !polygon && !wall) {
+                          if (workspaceMutationAllowed && plannerMode === "edit" && !polygon && !wall && !parameterPath) {
                             drawingItemDragRef.current = { pointerId: event.pointerId, objectId: item.id };
                             event.currentTarget.setPointerCapture(event.pointerId);
                           }
@@ -6226,7 +6333,8 @@ export function PlanCanvas({
                           return light ? <line key={lightId} x1={0} y1={0} x2={light.positionMm.x - anchor.x} y2={light.positionMm.y - anchor.y} stroke="#2563eb" strokeDasharray="90 65" strokeWidth={28} opacity={0.7} /> : null;
                         })}
                         {polygon && <polygon points={polygon.map((point) => `${point.x - anchor.x},${point.y - anchor.y}`).join(" ")} fill={item.category === "ceiling" ? "rgba(14,165,233,0.12)" : "rgba(180,83,9,0.12)"} stroke={statusColor} strokeDasharray={item.category === "ceiling" ? "100 70" : undefined} strokeWidth={selected ? 58 : 34} />}
-                        {wallStart && wallEnd && <line x1={wallStart.x - anchor.x} y1={wallStart.y - anchor.y} x2={wallEnd.x - anchor.x} y2={wallEnd.y - anchor.y} stroke={statusColor} strokeWidth={selected ? 150 : 105} opacity={0.65} />}
+                        {parameterPath && <polyline points={parameterPath.map((point) => `${point.x - anchor.x},${point.y - anchor.y}`).join(" ")} fill="none" stroke={statusColor} strokeWidth={selected ? 76 : 48} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={item.coveProfile ? "110 45" : undefined} opacity={0.88} />}
+                        {wallZoneStart && wallZoneEnd && <line x1={wallZoneStart.x - anchor.x} y1={wallZoneStart.y - anchor.y} x2={wallZoneEnd.x - anchor.x} y2={wallZoneEnd.y - anchor.y} stroke={statusColor} strokeWidth={selected ? 150 : 105} opacity={0.65} />}
                         <circle r={selected || relatedToSelectedFurniture ? 190 : 160} fill="#ffffff" stroke={statusColor} strokeWidth={selected || relatedToSelectedFurniture ? 55 : 38} />
                         <text y={58} fill={statusColor} fontSize={170} fontWeight={900} textAnchor="middle">{drawingItemCategoryLabels[item.category].slice(0, 1)}</text>
                         <text y={-235} fill="#0f172a" fontSize={150} fontWeight={800} paintOrder="stroke" stroke="#ffffff" strokeWidth={42} textAnchor="middle">
@@ -6912,7 +7020,8 @@ export function PlanCanvas({
           </div>
         </div>
       ) : (
-        <Floor3DView
+        <>
+          <Floor3DView
           floor={floor}
           houseStructure={houseStructure}
           houseStructuresByFloor={constructionExportWorkspace.houseStructuresByFloor}
@@ -6942,17 +7051,36 @@ export function PlanCanvas({
           onSelectStructure={(objectId) => {
             setSelectedDrawingItemId("");
             setSelectedStructureId(objectId);
+            setMaterialInspector(getStructureMaterialInspectorData(houseStructure, objectId) ?? {
+              objectLabel: "未命名构件",
+              objectKind: "未命名构件",
+              parts: [{
+                part: "未命名部件",
+                material: "当前绑定材质",
+                detail: {
+                  source: "内联材质",
+                  sourceName: objectId,
+                  label: "当前绑定材质",
+                  color: "—",
+                  roughness: 0.7,
+                  metalness: 0,
+                  proceduralTexture: "未确认",
+                  quality: "当前质量档位"
+                }
+              }]
+            });
             selectObject(objectId);
             onSelectStructureObject?.(objectId);
             onActiveObjectChange(objectId);
             setStructureMessage(`已在 3D 效果中选择 ${objectId}。`);
           }}
-          onSelectFurniture={(item) => {
+          onSelectFurniture={(item, part) => {
             setSelectedDrawingItemId("");
             setSelectedStructureId("");
+            setMaterialInspector(getFurnitureMaterialInspectorData(item, part));
             setInteractionState((currentState) => ({ ...currentState, selectedObjectId: item.id, editingObjectId: item.id }));
             selectObject(item.id);
-            onSelectFurniture(item);
+            onSelectFurniture(item, part);
           }}
           onSelectDrawingItem={(drawingItemId) => {
             setSelectedDrawingItemId(drawingItemId);
@@ -6961,13 +7089,31 @@ export function PlanCanvas({
             onActiveObjectChange(drawingItemId);
             setStructureMessage(`已在 3D 专项中选择 ${drawingItemId}。`);
           }}
+          onClearSelection={() => {
+            setSelectedDrawingItemId("");
+            setSelectedStructureId("");
+            setMaterialInspector(null);
+            onClearObjectSelection?.();
+            selectObject("");
+            onActiveObjectChange("");
+          }}
           onSelectFloor={onSelectFloor}
           onHoverObject={hoverObject}
           onClearHoverObject={clearHoverObject}
           onSelectCameraView={onSelectCameraView}
           onSceneSettingsChange={onSceneSettingsChange}
           onLightingRuntimeStateChange={onLightingRuntimeStateChange}
-        />
+          />
+          {materialInspector && (
+            <MaterialInspectorPanel data={materialInspector} mobile={mobilePresentationMode} onClose={() => {
+              setMaterialInspector(null);
+              setSelectedDrawingItemId("");
+              setSelectedStructureId("");
+              selectObject("");
+              onClearObjectSelection?.();
+            }} />
+          )}
+        </>
       )}
     </div>
   );

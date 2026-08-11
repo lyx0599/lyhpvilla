@@ -28,7 +28,7 @@ for (const phrase of ["餐桌吊灯", "厨房台面功能灯", "餐边柜灯带"
   assert.ok(lights.some((item) => item.label.includes(phrase)), `Lighting draft must include ${phrase}.`);
 }
 assert.equal(workspace.drawingItems.some((item) => item.controlGroupId === "CG-1F-1F-005-ISLAND"), false, "The removed horizontal kitchen pendant and its dedicated switch must stay absent.");
-assert.equal(workspace.furniture.find((item) => item.id === "furn-kitchen-entry-island-001")?.lightingDesignExcluded, true, "The kitchen island must not regenerate the removed pendant.");
+assert.equal(workspace.furniture.some((item) => item.id === "furn-kitchen-entry-island-001"), false, "The removed living-room island must not return through lighting generation.");
 assert.ok(workspace.lightingDesign.scenes.every((scene) => scene.groupStates.every((state) => state.controlGroupId !== "CG-1F-1F-005-ISLAND")), "Lighting scenes must not retain the removed island group.");
 const kitchenLights = lights.filter((item) => item.relatedRoomId === "ROOM-1F-002");
 assert.ok(kitchenLights.every((item) => item.lightingLayer !== "mirrorLight" && !/镜前灯|镜柜灯|马桶夜灯/.test(item.label)), "Kitchen sinks must not make the kitchen inherit bathroom mirror or toilet lighting.");
@@ -47,8 +47,13 @@ assert.ok(packageData.tables.smartControlNotes.length > 0, "Smart control notes 
 assert.ok(packageData.tables.lightingScenes.length > 0, "Lighting scene control table must be exported.");
 
 assert.equal(workspace.lightingDesign.fixtureFamilies.length, 18, "Modern warm v1 must provide the restrained fixture family library.");
-for (const name of ["全开清洁", "日常", "会客", "用餐", "烹饪", "观影", "阅读", "睡前", "起夜", "迎宾", "庭院休闲", "离家"]) {
+for (const name of ["全开清洁", "日常", "会客", "阅读", "起夜", "迎宾", "庭院休闲", "离家"]) {
   assert.ok(workspace.lightingDesign.scenes.some((scene) => scene.name === name), `Lighting scenes must include ${name}.`);
+}
+for (const key of ["DAYLIGHT", "DAILY", "ACTIVITY", "NIGHT", "CLEANING"]) {
+  const scene = workspace.lightingDesign.scenes.find((candidate) => candidate.id === `SCENE-MWN-V1-1F-${key}`);
+  assert.ok(scene, `1F must use the shared modern-warm-natural ${key.toLowerCase()} scene.`);
+  assert.ok(scene.groupStates.every((state) => state.controlGroupId.startsWith("CG-1F-")), `${scene.id} must only reference 1F control groups.`);
 }
 for (const name of ["1F 客厅会客", "1F 客厅观影", "1F 餐厅用餐", "1F 厨房烹饪", "主卧睡前", "主卫夜间", "地下室休闲", "楼梯起夜", "南院休闲", "北院迎宾"]) {
   const view = workspace.roomTourViews.find((candidate) => candidate.name === name);

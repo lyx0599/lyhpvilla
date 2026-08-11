@@ -98,7 +98,7 @@ export const legacySemanticObjectFallback: SemanticObject[] = [
     floorId: "B2",
     category: "Room",
     type: "living",
-    notes: "B2 入户门所在区域，作为地下二层电视游戏客厅；W-B2-001 做电视墙，沙发正对大屏。",
+    notes: "B2 入户门所在区域，作为地下二层电视游戏客厅；入户正对1100×450mm薄型玄关衣帽柜，W-B2-001电视墙与沙发整体右移并保持中心对齐。",
     position: { x: 59, y: 38 },
     details: { area: 20.17, boundary: [{ x: 30.6, y: 3.9 }, { x: 63.4, y: 3.9 }, { x: 63.4, y: 46.9 }, { x: 79.1, y: 46.9 }, { x: 79.1, y: 57.2 }, { x: 32.5, y: 57.2 }, { x: 32.5, y: 33.9 }, { x: 30.6, y: 33.9 }] }
   },
@@ -138,7 +138,7 @@ export const legacySemanticObjectFallback: SemanticObject[] = [
     floorId: "B2",
     category: "Room",
     type: "activity",
-    notes: "活动区圆柱右侧保持为主要活动净空，W-B2-011 做户外用品洞洞板，W-B2-012 设置两个采光天窗。",
+    notes: "活动区圆柱右侧保持为主要活动净空，W-B2-011 做户外用品洞洞板；B2 不设置天窗，天窗归 B1。",
     position: { x: 64, y: 72 },
     details: { area: 9.92, boundary: [{ x: 47.9, y: 57.2 }, { x: 79.1, y: 57.2 }, { x: 79.1, y: 86.7 }, { x: 47.9, y: 86.7 }] }
   },

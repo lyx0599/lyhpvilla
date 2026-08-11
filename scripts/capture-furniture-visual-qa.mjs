@@ -16,8 +16,8 @@ console.log(`visual QA: ${probeMode ? "probe" : "capture"} -> ${outputDir}`);
 
 const scenes = [
   { id: "1f-living", floorId: "1F", viewName: "1F 沙发模块细节", buttonName: "沙发模块细节", buttonCategory: "结构 / 特征视角" },
-  { id: "1f-dining", floorId: "1F", viewName: "1F 中岛 + 餐桌", buttonName: "中岛 + 餐桌", buttonCategory: "结构 / 特征视角" },
-  { id: "2f-master-bedroom", floorId: "2F", viewName: "2F 主卧", buttonName: "主卧", buttonCategory: "房间视角" }
+  { id: "1f-dining", floorId: "1F", viewName: "1F 餐桌", buttonName: "餐桌", buttonCategory: "结构 / 特征视角" },
+  { id: "2f-master-bedroom", floorId: "2F", viewName: "卧室", buttonName: "卧室", buttonCategory: "房间视角" }
 ];
 
 function cacheBustedUrl(url) {
@@ -37,9 +37,9 @@ async function selectFloor(page, floorId) {
 }
 
 async function selectCameraView(page, viewName, buttonName, buttonCategory) {
-  const moreViews = page.getByRole("button", { name: /^更多/ });
-  if (await moreViews.count()) await moreViews.first().click();
-  const viewButton = page.locator("button").filter({ hasText: buttonName }).filter({ hasText: buttonCategory });
+  const picker = page.getByTestId("tour-room-panel");
+  if (!(await picker.isVisible().catch(() => false))) await page.getByRole("button", { name: "空间视角", exact: true }).first().click();
+  const viewButton = picker.getByRole("button", { name: new RegExp(`^${buttonName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }).filter({ hasText: buttonCategory });
   if (!(await viewButton.count())) {
     const labels = (await page.locator("button").allTextContents()).filter((label) => /视角|1F|2F|客厅|餐桌|主卧/.test(label));
     throw new Error(`Camera view not found: ${viewName}\n${labels.join("\n")}`);
@@ -90,7 +90,8 @@ if (await dialog.count() && await dialog.first().isVisible()) {
   await page.waitForTimeout(1200);
   console.log(`dialog accepted: ${labels[preferredIndex >= 0 ? preferredIndex : labels.length - 1] ?? "unknown"}`);
 }
-await page.getByRole("button", { name: "效果3D", exact: true }).click();
+const view3dButton = page.locator("button").filter({ hasText: "3D" }).first();
+await view3dButton.click({ force: true });
 await page.locator("canvas").last().waitFor({ state: "visible", timeout: 90_000 });
 const cleanAxon = page.getByRole("button", { name: "干净轴测", exact: true });
 if (await cleanAxon.count()) await cleanAxon.click();

@@ -47,7 +47,7 @@ assert.deepEqual(invariantFailures, [], "Normalized project state must pass ceil
 
 assert.doesNotMatch(rendererSource, /WALL_PREVIEW_HEIGHT_MM|WALL_SELECTED_HEIGHT_MM|CUTAWAY_OBJECT_MAX_HEIGHT|getFurnitureCutawayHeight|getFurnitureVisualHeight|getFurnitureVisualElevation/);
 assert.match(rendererSource, /localClippingEnabled = true/, "Wall cutaway must use renderer clipping.");
-assert.match(rendererSource, /clippingPlanes=\{clippingPlanes \?\? null\}/, "Materials without a wall cut plane must retain Three.js's null clipping default.");
+assert.match(rendererSource, /clippingPlanes=\{clippingPlanes\}/, "Materials must receive the optional wall clipping plane without changing geometry heights.");
 assert.match(rendererSource, /const explorationWallDisplayMode: Drawing3DWallMode = "full"/, "Exploration must keep walls at their real full height.");
 assert.match(plannerSource, /furnitureHeightMode: "actual"/, "All shared 3D scenes must use actual furniture dimensions.");
 assert.match(plannerSource, /validateSceneHeightSystem/, "Automatic height validation must be connected to project findings.");

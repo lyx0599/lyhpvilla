@@ -46,12 +46,10 @@ assert.match(floor3dSource, /toggleLightingItem/, "Lighting experience must supp
 assert.match(floor3dSource, /已开 \{selectedLightingSpace\.enabledLightCount\} \/ \{selectedLightingSpace\.totalLightCount\} 盏/, "Room view must show enabled and total fixture counts together.");
 assert.match(floor3dSource, /data-testid="lighting-blackout-overlay"/, "Night mode with every scoped fixture off must render a perceptible blackout state.");
 assert.match(floor3dSource, /lightingSummary\.enabledLights === 0/, "The blackout state must derive from the shared per-light runtime state.");
-assert.match(floor3dSource, /data-testid="lighting-free-browse-minimap"/, "Lighting free browse must expose the draggable floor-plan minimap.");
-assert.match(floor3dSource, /cameraMode === "orbit" && !activeCameraViewId/, "The lighting minimap must only appear in free browse.");
-assert.match(floor3dSource, /navigationRequest\.targetX - controls\.target\.x/, "Dragging the minimap must translate the camera focus without changing its relative view.");
+assert.doesNotMatch(floor3dSource, /lighting-free-browse-minimap/, "Lighting free browse must use the shared canvas controls instead of a duplicate minimap.");
 assert.doesNotMatch(floor3dSource, /threeDDrawingItems|drawingItems3D\s*=/, "3D must not create a separate drawing item store.");
 assert.match(floor3dSource, /filterSceneFurniture/, "All 3D modes must resolve furniture through the unified scene visibility layer.");
-assert.match(floor3dSource, /sceneLod=\{sceneVisibility\.lod\}/, "Current-floor views must keep a shared semantic asset while applying view-only LOD.");
+assert.match(floor3dSource, /sceneLod=\{presentationMode \? sceneVisibility\.lod : "balanced"\}/, "Current-floor views must keep a shared semantic asset while applying presentation-only LOD.");
 assert.match(floor3dSource, /notifySelection && view\.fixedView/, "A selected fixed camera view must notify the shared workspace state.");
 
 const spacePlannerSource = await readFile(new URL("../components/space-planner.tsx", import.meta.url), "utf8");

@@ -14,6 +14,15 @@ const expectedHeightRangesCm = {
   toilet: [60, 90]
 };
 
+function expectedHeightRange(item) {
+  const kind = item.moduleType ?? item.type;
+  if (kind === "tallCabinet" && /tower|fullHeight/i.test(item.render3d?.variantId ?? "")) return [240, 275];
+  if (kind !== "wardrobe") return expectedHeightRangesCm[kind];
+  if (item.render3d?.variantId === "boutiqueOpenValetRack") return [160, 220];
+  if (item.render3d?.assetType === "walkInCloset" || /fullHeight|TopHung/i.test(item.render3d?.variantId ?? "")) return [240, 275];
+  return expectedHeightRangesCm.wardrobe;
+}
+
 for (const floorId of indoorFloorIds) {
   const structure = workspace.houseStructuresByFloor[floorId];
   assert.ok(structure, `${floorId} should have a house structure`);
@@ -28,7 +37,7 @@ for (const item of workspace.furniture.filter((candidate) => indoorFloorIds.has(
   const actualTopMm = (item.render3d?.elevationMm ?? 0) + item.dimensions.height * 10;
   assert.ok(actualTopMm <= wallHeightMm, `${item.id} should not exceed the ${item.floorId} wall height`);
 
-  const range = expectedHeightRangesCm[item.moduleType ?? item.type];
+  const range = expectedHeightRange(item);
   if (range) {
     assert.ok(item.dimensions.height >= range[0] && item.dimensions.height <= range[1], `${item.id} should use a plausible ${(item.moduleType ?? item.type)} height`);
   }

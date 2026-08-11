@@ -56,13 +56,13 @@ assert.equal(byId("furn-2f-guest-vanity-001").position.rotation, 90);
 const b1Toilet = byId("furn-b1-bath-toilet-001");
 const b1Vanity = byId("furn-b1-bath-vanity-001");
 const washer = byId("furn-b1-laundry-washer-001");
-assert.equal(b1Toilet.hostWallId, "W-B1-001");
-assert.equal(b1Vanity.hostWallId, "W-B1-015");
+assert.equal(b1Toilet.hostWallId, "W-B1-015");
+assert.equal(b1Vanity.hostWallId, "W-B1-001");
 const toiletCenter = mm(b1Toilet);
 const washerCenter = mm(washer);
-const toiletRight = toiletCenter.x + b1Toilet.dimensions.width * 5;
-const washerLeft = washerCenter.x - washer.dimensions.width * 5;
-assert.ok(toiletRight < washerLeft, "B1 toilet must not block the washer footprint.");
+const vanityCenter = mm(b1Vanity);
+assert.ok(washerCenter.x < vanityCenter.x, "B1 washer niche must occupy the left side of the back wall.");
+assert.ok(toiletCenter.x > washerCenter.x && toiletCenter.y > vanityCenter.y, "B1 toilet must align with the right/front concealed-cistern cabinet wall.");
 
 for (const [id, rotation] of [
   ["furn-b2-activity-outdoor-pegboard-001", 180],
@@ -89,6 +89,6 @@ for (const item of workspace.furniture.filter((candidate) => candidate.hostWallI
 const b2Sofa = byId("furn-b2-living-long-sofa-001");
 assert.equal(Math.round(mm(b2Sofa).y), 3800);
 assert.equal(b2Sofa.position.rotation, 180);
-assert.deepEqual(byId("module-2f-window-desk").dimensions, { width: 120, depth: 50, height: 80, unit: "cm" });
+assert.deepEqual(byId("module-2f-window-desk").dimensions, { width: 180, depth: 70, height: 75, unit: "cm" });
 
 console.log("Model refinement round 4 checks passed.");

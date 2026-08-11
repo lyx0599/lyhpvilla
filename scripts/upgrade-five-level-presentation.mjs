@@ -5,8 +5,8 @@ const workspacePath = "data/default-workspace.json";
 const workspace = JSON.parse(await fs.readFile(workspacePath, "utf8"));
 
 const cameraViews = [
-  { id: "view-1f-living-dining-overview", name: "1F 客餐厨总览", floor: "1F", cameraPosition: { x: 7.8, y: 7.2, z: 8.6 }, target: { x: 0.2, y: 0.45, z: 0.2 }, zoom: 1, mode: "perspective", description: "同时交代厨房、岛台、圆桌、起居区和楼梯关系。" },
-  { id: "view-1f-island-dining", name: "1F 中岛 + 餐桌", floor: "1F", cameraPosition: { x: 5.8, y: 3.8, z: 4.8 }, target: { x: 1.05, y: 0.55, z: -0.1 }, zoom: 1.08, mode: "perspective", description: "突出微水泥岛台与木石圆桌的材质差异。" },
+  { id: "view-1f-living-dining-overview", name: "1F 客餐厨总览", floor: "1F", cameraPosition: { x: 7.8, y: 7.2, z: 8.6 }, target: { x: 0.2, y: 0.45, z: 0.2 }, zoom: 1, mode: "perspective", description: "同时交代厨房、圆桌、起居区和楼梯关系。" },
+  { id: "view-1f-island-dining", name: "1F 餐桌", floor: "1F", cameraPosition: { x: 5.8, y: 3.8, z: 4.8 }, target: { x: 1.05, y: 0.55, z: -0.1 }, zoom: 1.08, mode: "perspective", description: "突出木石圆桌、餐椅与餐边柜的材质关系。" },
   { id: "view-1f-entry", name: "1F 玄关柜", floor: "1F", cameraPosition: { x: -5.6, y: 3.1, z: -5.8 }, target: { x: -1.47, y: 0.65, z: -2.8 }, zoom: 1.08, mode: "perspective", description: "查看玄关柜、挂衣区和入户动线。" },
   { id: "view-1f-fireplace", name: "1F 壁炉 / 起居区", floor: "1F", cameraPosition: { x: -5.2, y: 2.7, z: 4.7 }, target: { x: -1.95, y: 0.58, z: 1.7 }, zoom: 1.05, mode: "perspective", description: "强调壁炉墙面、沙发、茶几与通道关系。" },
   { id: "view-2f-master-bedroom", name: "2F 主卧", floor: "2F", cameraPosition: { x: 6.1, y: 3.6, z: 5.8 }, target: { x: 2.58, y: 0.62, z: 0.92 }, zoom: 1.08, mode: "perspective", description: "主床、整墙衣柜和主卫入口总览。" },

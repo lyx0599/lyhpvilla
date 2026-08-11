@@ -15,6 +15,7 @@ import type {
   RoomTourView
 } from "../types/space";
 import type { LightingDesign, LightingFixtureFamily, LightingScene } from "../types/workspace";
+import { createModernWarmNaturalFloorScenes } from "./modern-warm-natural-system.ts";
 
 export const lightingLayerLabels: Record<LightingLayer, string> = {
   ambient: "基础照明",
@@ -83,10 +84,10 @@ export type LightingDesignGenerationResult = {
 };
 
 export const modernWarmFixtureFamilies: LightingFixtureFamily[] = [
-  ["deep-cup-downlight", "防眩深杯筒灯", "antiGlareDownlight", "recessed", "2700K", 50, 9, 720, 90, "UGR<19", undefined, "暖白"],
+  ["deep-cup-downlight", "防眩深杯筒灯", "antiGlareDownlight", "recessed", "3000K", 50, 9, 720, 90, "UGR<19", undefined, "暖白"],
   ["adjustable-spot", "可调角射灯", "adjustableSpotlight", "recessed", "2700K", 24, 10, 780, 90, "深藏光源", undefined, "暖白"],
   ["narrow-wallwasher", "窄光束洗墙射灯", "wallWashSpotlight", "recessed", "2700K", 18, 10, 760, 90, "蜂窝防眩", undefined, "暖白"],
-  ["wide-downlight", "宽光束基础筒灯", "wideBeamDownlight", "recessed", "2700K", 60, 9, 760, 90, "UGR<19", undefined, "哑白"],
+  ["wide-downlight", "宽光束基础筒灯", "wideBeamDownlight", "recessed", "3000K", 60, 9, 760, 90, "UGR<19", undefined, "哑白"],
   ["linear-pendant", "线性吊灯", "linearPendant", "pendant", "3000K", 50, 28, 2200, 90, "下照防眩", undefined, "深棕古铜"],
   ["round-table-pendant", "圆桌装饰吊灯", "roundTablePendant", "pendant", "2700K", 40, 24, 1800, 90, "柔光罩", undefined, "做旧黄铜"],
   ["under-cabinet-strip", "柜下灯带", "underCabinetStrip", "cabinetIntegrated", "3000K", 110, 12, 1000, 95, "连续无暗区", undefined, "隐藏铝槽"],
@@ -110,7 +111,7 @@ export const modernWarmFixtureFamilies: LightingFixtureFamily[] = [
   defaultBeamAngle: defaultBeamAngle as number,
   defaultLightSpec: { powerW: powerW as number, luminousFluxLm: luminousFluxLm as number, cri: cri as number, glareRating: glareRating as string, ...(waterproofRating ? { waterproofRating: waterproofRating as string } : {}), fixtureFamily: id as string, trimColor: finish as string },
   finishOptions: String(finish).split(" / "),
-  notes: "自然托斯卡纳×现代简约侘寂统一灯具家族；暖光、低眩、低反光，品牌与 IES 配光待选型。"
+  notes: "全屋现代暖自然母体系 v1 统一灯具家族；基础/任务光 3000K，重点/氛围/低位光 2700K，低眩、低反光，品牌与 IES 配光待选型。"
 }));
 
 const fixtureFamilyById = new Map(modernWarmFixtureFamilies.map((family) => [family.id, family]));
@@ -238,7 +239,11 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
     const center = centerOf(room);
     const roomItems = spaceFurniture(room.id, furniture);
     const isKitchen = /厨房/.test(room.name);
-    const isBathroom = !isKitchen && (/卫生间|客卫|主卫|洗衣房/.test(room.name) || Boolean(pickFurniture(roomItems, /马桶|淋浴|浴室柜|洗手池/)));
+    const isLaundry = /洗衣/.test(room.name);
+    const hasWetFixture = Boolean(pickFurniture(roomItems, /马桶|淋浴|浴缸/));
+    const isBathroom = !isKitchen && (/卫生间|盥洗|客卫|主卫|浴室/.test(room.name) || hasWetFixture);
+    const hasVanity = Boolean(pickFurniture(roomItems, /台盆|浴室柜|洗手池/));
+    const isVanityZone = !isKitchen && !isBathroom && !isLaundry && hasVanity;
     const isBedroom = /卧室|房间/.test(room.name) && !isBathroom;
     const isLiving = /客厅/.test(room.name);
     const isStudy = /书房/.test(room.name);
@@ -247,8 +252,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
     const isCorridor = /走廊/.test(room.name);
     const isCloak = /衣帽间/.test(room.name);
     const isEntry = /玄关/.test(room.name);
-    const isLaundry = /洗衣/.test(room.name);
-    const ambientTemperature: LightColorTemperature = "2700K";
+    const ambientTemperature: LightColorTemperature = "3000K";
 
     ambientPoints(room, roomItems, structure).forEach((position, index) => add({
       key: `AMBIENT-${index + 1}`, name: `${room.name}边缘基础照明 ${index + 1}`, lightType: isStair || isCorridor ? "antiGlareLinearDownlight" : "wideBeamDownlight",
@@ -258,18 +262,18 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       notes: "沿空间边缘与通道布置，不压在主要坐席或床头正上方；避开风口、检修口、梁位及柜门开启范围，施工前现场复核。"
     }));
 
-    if (isBathroom) {
+    if (isBathroom || isVanityZone) {
       const vanity = pickFurniture(roomItems, /台盆|浴室柜|洗手池/);
       const shower = pickFurniture(roomItems, /淋浴/);
       const toilet = pickFurniture(roomItems, /马桶/);
       add({ key: "MIRROR", name: `${room.name}镜柜灯 / 两侧乳白玻璃壁灯`, lightType: "linearMirrorLight", layer: "mirrorLight", colorTemperature: "3000K", beamAngle: 100, mountingType: "mirrorIntegrated", heightMm: 1850, position: vanity ? furniturePoint(vanity, structure) : offset(center, 520, 380, structure), roomId: room.id, furnitureId: vanity?.id, hostWallId: inferHostWallId(vanity, structure), smartControl: false, dimming: true, source: vanity ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("mirror-light", { cri: 95, waterproofRating: "IP44" }), notes: "以镜子两侧竖向乳白玻璃柔光为主，均匀照亮面部；电源与镜柜厂家深化同步，潮湿区接线盒做防潮处理。" });
-      if (shower) {
+      if (isBathroom && shower) {
         add({ key: "SHOWER", name: `${room.name}淋浴区防潮灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: furniturePoint(shower, structure), roomId: room.id, furnitureId: shower.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 90 }), notes: "淋浴区建议不低于 IP44，具体等级按安装分区与现场规范确认；不默认使用过冷色温。" });
       } else if (isLaundry) {
         const washer = pickFurniture(roomItems, /洗衣机/);
         add({ key: "LAUNDRY", name: `${room.name}洗衣操作任务灯`, lightType: "wetAreaDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "recessed", heightMm: 2800, position: washer ? furniturePoint(washer, structure) : offset(center, -520, -380, structure), roomId: room.id, furnitureId: washer?.id, smartControl: false, dimming: false, source: washer ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("wide-downlight", { waterproofRating: "IP44", cri: 95 }), notes: "照亮洗衣机投放、取衣和台盆操作区；按潮湿环境配置防潮灯具，不生成淋浴专用照明。" });
       }
-      add({ key: "NIGHT", name: `${room.name}马桶夜灯（可选）`, lightType: "lowLevelNightLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 90, mountingType: "wallMounted", heightMm: 300, position: toilet ? furniturePoint(toilet, structure) : offset(center, 600, -420, structure), roomId: room.id, furnitureId: toilet?.id, hostWallId: inferHostWallId(toilet, structure), smartControl: true, dimming: true, optional: true, source: toilet ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("night-light", { waterproofRating: "IP44" }), notes: "人体感应低位夜灯；与基础照明分组，避免夜间眩光。" });
+      if (isBathroom) add({ key: "NIGHT", name: `${room.name}马桶夜灯（可选）`, lightType: "lowLevelNightLight", layer: "decorative", colorTemperature: "2700K", beamAngle: 90, mountingType: "wallMounted", heightMm: 300, position: toilet ? furniturePoint(toilet, structure) : offset(center, 600, -420, structure), roomId: room.id, furnitureId: toilet?.id, hostWallId: inferHostWallId(toilet, structure), smartControl: true, dimming: true, optional: true, source: toilet ? "generated-from-furniture" : "generated-from-room", lightSpec: spec("night-light", { waterproofRating: "IP44" }), notes: "人体感应低位夜灯；与基础照明分组，避免夜间眩光。" });
       const bathtub = pickFurniture(roomItems, /浴缸/);
       if (bathtub) add({ key: "BATH-MOOD", name: `${room.name}浴缸氛围灯`, lightType: "concealedBathCove", layer: "decorative", colorTemperature: "2700K", beamAngle: 120, mountingType: "concealed", heightMm: 450, position: furniturePoint(bathtub, structure), roomId: room.id, furnitureId: bathtub.id, smartControl: true, dimming: true, source: "generated-from-furniture", lightSpec: spec("curtain-strip", { waterproofRating: "IP44" }), notes: "浴缸氛围灯独立控制，灯带不可直接见光，防水分区与检修方式待深化。" });
     }
@@ -288,7 +292,7 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
 
     if (isKitchen) {
       const counters = roomItems.filter((item) => /橱柜|备餐/.test(`${item.name} ${item.type}`));
-      const sinks = roomItems.filter((item) => /水槽|sink/.test(`${item.name} ${item.type}`));
+      const sinks = roomItems.filter((item) => !item.lightingDesignExcluded && /水槽|sink/.test(`${item.name} ${item.type}`));
       const cooktop = pickFurniture(roomItems, /灶台|cooktop/);
       counters.forEach((counter, index) => add({ key: `COUNTER-${index + 1}`, name: `厨房台面功能灯 ${index + 1}`, lightType: "underCabinetTaskStrip", layer: "task", colorTemperature: "3000K", beamAngle: 100, mountingType: "cabinetIntegrated", heightMm: 1550, position: furniturePoint(counter, structure), roomId: room.id, furnitureId: counter.id, hostWallId: inferHostWallId(counter, structure), smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("under-cabinet-strip", { cri: 95 }), notes: "吊柜下沿连续无暗区灯带；出光在操作人员前方，驱动、铝槽与出线随橱柜深化。" }));
       sinks.forEach((sink, index) => add({ key: `SINK-${index + 1}`, name: `厨房水槽任务灯 ${index + 1}`, lightType: "sinkTaskDownlight", layer: "task", colorTemperature: "3000K", beamAngle: 50, mountingType: "recessed", heightMm: 2800, position: offset(furniturePoint(sink, structure), 0, -420, structure), roomId: room.id, furnitureId: sink.id, smartControl: false, dimming: false, source: "generated-from-furniture", lightSpec: spec("deep-cup-downlight", { cri: 95 }), notes: "灯位落在操作者前上方，避免身体遮挡水槽工作面；与吊柜、窗扇和风口复核。" }));
@@ -329,7 +333,12 @@ function collectIndoorIntents(floorId: FloorId, structure: HouseStructure, furni
       const wardrobe = pickFurniture(roomItems, /柜/);
       const desk = pickFurniture(roomItems, /桌|梳妆/);
       if (wardrobe) add({ key: "WARDROBE", name: `${room.name}柜内灯带`, lightType: "wardrobeSensorStrip", layer: "cabinetStrip", colorTemperature: "3000K", beamAngle: 110, mountingType: "cabinetIntegrated", heightMm: 2100, position: furniturePoint(wardrobe, structure), roomId: room.id, furnitureId: wardrobe.id, hostWallId: inferHostWallId(wardrobe, structure), smartControl: true, dimming: false, source: "generated-from-furniture", lightSpec: spec("cabinet-strip", { cri: 95 }), notes: "门控/人体感应；高显色避免衣物颜色失真，驱动留可检修位置。" });
-      if (desk) add({ key: "VANITY", name: `${room.name}梳妆功能灯`, lightType: "vanityTaskLight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1650, position: furniturePoint(desk, structure), roomId: room.id, furnitureId: desk.id, hostWallId: inferHostWallId(desk, structure), smartControl: false, dimming: true, source: "generated-from-furniture", lightSpec: spec("mirror-light", { cri: 95 }), notes: "面部两侧或均匀线性出光，避免只有头顶光。" });
+      if (desk) {
+        const isComputerDesk = /电脑|书桌|升降|大板/.test(desk.name);
+        add(isComputerDesk
+          ? { key: "DESK", name: `${room.name}电脑桌功能灯`, lightType: "deskTaskLight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "surfaceMounted", heightMm: 2100, position: furniturePoint(desk, structure), roomId: room.id, furnitureId: desk.id, hostWallId: inferHostWallId(desk, structure), smartControl: false, dimming: true, source: "generated-from-furniture", lightSpec: spec("linear-pendant", { cri: 95 }), notes: "覆盖 1800×700mm 桌面并控制屏幕反光；与桌下插座、网络和理线位置同步复核。" }
+          : { key: "VANITY", name: `${room.name}梳妆功能灯`, lightType: "vanityTaskLight", layer: "task", colorTemperature: "3000K", beamAngle: 60, mountingType: "wallMounted", heightMm: 1650, position: furniturePoint(desk, structure), roomId: room.id, furnitureId: desk.id, hostWallId: inferHostWallId(desk, structure), smartControl: false, dimming: true, source: "generated-from-furniture", lightSpec: spec("mirror-light", { cri: 95 }), notes: "面部两侧或均匀线性出光，避免只有头顶光。" });
+      }
     }
   });
 
@@ -412,7 +421,10 @@ function createLightingScenes(items: DrawingItem[]): LightingScene[] {
   }));
   const make = (id: string, name: string, category: LightingScene["category"], match: (group: typeof groups[number]) => boolean, brightness: (group: typeof groups[number]) => number, options: Partial<LightingScene> = {}): LightingScene => ({
     id: sceneId(id), name, category,
-    groupStates: groups.filter(match).map((group) => ({ controlGroupId: group.controlGroupId, on: brightness(group) > 0, brightness: brightness(group) })),
+    groupStates: groups
+      .filter((group) => !options.floorId || group.controlGroupId.startsWith(`CG-${options.floorId}-`))
+      .filter(match)
+      .map((group) => ({ controlGroupId: group.controlGroupId, on: brightness(group) > 0, brightness: brightness(group) })),
     automation: options.automation,
     notes: options.notes ?? "场景只记录控制组状态，不复制灯具；相对亮度待现场调试。",
     status: "draft",
@@ -451,7 +463,13 @@ function createLightingScenes(items: DrawingItem[]): LightingScene[] {
     make("yard-dining", "庭院用餐", "outdoor", has(/南院|户外餐桌|户外柜/), (group) => /操作/.test(group.text) ? 85 : 50, { floorId: "YARD" }),
     make("yard-safety", "庭院夜间安全", "outdoor", has(/路径|围栏|院门|台阶/), () => 20, { floorId: "YARD", automation: ["日落后开启", "深夜降至 10%–20%", "人体触发短时提升"] })
   ];
-  return [...common, ...roomScenes].filter((scene) => scene.groupStates.length > 0 || scene.name === "离家");
+  const sharedAndOutdoorScenes = [...common, ...roomScenes]
+    .filter((scene) => !scene.floorId || scene.floorId === "YARD")
+    .filter((scene) => scene.groupStates.length > 0 || scene.name === "离家");
+  const indoorFloors = (["1F", "B1", "2F", "B2"] as const)
+    .filter((floorId) => items.some((item) => item.floorId === floorId && item.category === "light"))
+    .flatMap((floorId) => createModernWarmNaturalFloorScenes(items, floorId));
+  return [...sharedAndOutdoorScenes, ...indoorFloors];
 }
 
 function cameraScenePoint(point: MmPoint, structure: HouseStructure) {
@@ -518,7 +536,27 @@ export function generateLightingDesignV1(input: {
   const generatedPrefix = "lighting-design-v1:";
   const existingGenerated = new Map(input.existingItems.filter((item) => item.generatedKey?.startsWith(generatedPrefix)).map((item) => [item.generatedKey as string, item]));
   const outputByKey = new Map(existingGenerated);
-  const untouched = input.existingItems.filter((item) => !item.generatedKey?.startsWith(generatedPrefix));
+  const adoptedLegacyIds = new Set<string>();
+  const legacyByGroup = new Map<string, DrawingItem[]>();
+  input.existingItems
+    .filter((item) => {
+      const legacyV1Id = /^(?:L|SW)-[^-]+-V1-\d+$/.test(item.id);
+      const generatedOrRefinedV1 = item.source?.startsWith("generated-from-") || (item.source === "manual" && legacyV1Id);
+      return !item.generatedKey && Boolean(item.controlGroupId) && (item.category === "light" || item.category === "switch") && generatedOrRefinedV1;
+    })
+    .forEach((item) => {
+      const key = `${item.floorId}:${item.controlGroupId}:${item.category}`;
+      legacyByGroup.set(key, [...(legacyByGroup.get(key) ?? []), item].sort((a, b) => a.id.localeCompare(b.id)));
+    });
+  const adoptLegacyGeneratedItem = (floorId: FloorId, controlGroupId: string, category: "light" | "switch", index: number, generatedKey: string) => {
+    if (existingGenerated.has(generatedKey)) return existingGenerated.get(generatedKey);
+    const candidate = legacyByGroup.get(`${floorId}:${controlGroupId}:${category}`)?.[index];
+    if (!candidate || adoptedLegacyIds.has(candidate.id)) return undefined;
+    adoptedLegacyIds.add(candidate.id);
+    existingGenerated.set(generatedKey, candidate);
+    outputByKey.set(generatedKey, candidate);
+    return candidate;
+  };
   const conflicts: DrawingItem[] = [];
   let created = 0;
   let updated = 0;
@@ -559,8 +597,10 @@ export function generateLightingDesignV1(input: {
     Array.from(intentsByGroup.entries()).forEach(([controlGroupId, groupIntents]) => {
       const roomId = groupIntents[0].roomId;
       const switchKey = `${generatedPrefix}${floorId}:${controlGroupId}:switch`;
+      adoptLegacyGeneratedItem(floorId, controlGroupId, "switch", 0, switchKey);
       const switchId = existingGenerated.get(switchKey)?.id ?? allocateId("switch");
       const lightKeys = groupIntents.map((_, lightIndex) => `${generatedPrefix}${floorId}:${controlGroupId}:light:${lightIndex + 1}`);
+      lightKeys.forEach((key, lightIndex) => adoptLegacyGeneratedItem(floorId, controlGroupId, "light", lightIndex, key));
       const lightIds = lightKeys.map((key) => existingGenerated.get(key)?.id ?? allocateId("light"));
       groupIntents.forEach((intent, lightIndex) => {
         const id = lightIds[lightIndex];
@@ -601,7 +641,15 @@ export function generateLightingDesignV1(input: {
     });
 
     const desiredKeys = new Set(desired.map((item) => item.generatedKey as string));
-    Array.from(outputByKey.keys()).filter((key) => key.startsWith(`${generatedPrefix}${floorId}:`) && !desiredKeys.has(key)).forEach((key) => outputByKey.delete(key));
+    Array.from(outputByKey.keys()).filter((key) => key.startsWith(`${generatedPrefix}${floorId}:`) && !desiredKeys.has(key)).forEach((key) => {
+      const stale = outputByKey.get(key);
+      if (input.overwriteConflicts) {
+        outputByKey.delete(key);
+      } else if (stale) {
+        conflicts.push(stale);
+        skipped += 1;
+      }
+    });
     desired.forEach((base) => {
       const key = base.generatedKey as string;
       const current = existingGenerated.get(key);
@@ -611,16 +659,16 @@ export function generateLightingDesignV1(input: {
         created += 1;
         return;
       }
-      // A confirmed fixture is an explicit human decision even when its legacy
-      // generated fingerprint predates a newer lighting schema.
-      const manuallyAdjusted = current.status === "confirmed" || !current.generatedFingerprint || getDrawingItemGeneratedFingerprint(current) !== current.generatedFingerprint;
-      if (manuallyAdjusted && !input.overwriteConflicts) {
-        conflicts.push(current);
+      if (current.generatedFingerprint === next.generatedFingerprint) {
         outputByKey.set(key, current);
         skipped += 1;
         return;
       }
-      if (current.generatedFingerprint === next.generatedFingerprint) {
+      // Frozen floor layouts and hand-refined lighting are explicit design
+      // decisions. Never move or replace an existing fixture during a normal
+      // repeat run; callers must opt in with overwriteConflicts.
+      if (!input.overwriteConflicts) {
+        conflicts.push(current);
         outputByKey.set(key, current);
         skipped += 1;
         return;
@@ -631,6 +679,7 @@ export function generateLightingDesignV1(input: {
   });
 
   const retainedGenerated = Array.from(outputByKey.values());
+  const untouched = input.existingItems.filter((item) => !item.generatedKey?.startsWith(generatedPrefix) && !adoptedLegacyIds.has(item.id));
   const items = [...untouched, ...retainedGenerated];
   const floorSummary = targetFloors.map((floorId) => ({
     floorId,

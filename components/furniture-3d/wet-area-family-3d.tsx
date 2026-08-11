@@ -4,6 +4,7 @@ import * as THREE from "three";
 import type { ResolvedRender3DMaterialLayer, Render3DMaterialRole } from "@/lib/render3d-assets";
 import type { WetAreaVisualConfig } from "@/types/space";
 import { FurnitureMaterial } from "./materials";
+import { CabinetInteriorModules3D } from "./cabinet-interior-3d";
 import { CylinderPart, RoundedPart, SpherePart } from "./primitives";
 import type { FurnitureFamily3DProps } from "./types";
 
@@ -49,6 +50,20 @@ function Basin({
   const ceramic = layerFor(props, ["ceramic"], props.asset.materials.secondary);
   const metal = layerFor(props, ["metal"], props.asset.materials.accent);
   const radius = Math.min(width, depth) * 0.31;
+  const rectangular = wetConfig(props).basinShape === "rectangular";
+  if (rectangular) {
+    const basinWidth = Math.min(width * 0.58, 0.56);
+    const basinDepth = Math.min(depth * 0.54, 0.34);
+    return (
+      <group position={[x, y, 0]} name="countertop-basin-rectangular">
+        <RoundedPart size={[basinWidth, 0.032, basinDepth]} position={[0, -0.018, 0]} radius={0.045} detailLevel={props.asset.detailLevel} material={ceramic} role="ceramic" color="#f7f2ea" roughness={0.2} />
+        <RoundedPart size={[basinWidth * 0.82, 0.018, basinDepth * 0.72]} position={[0, 0.004, 0]} radius={0.035} detailLevel={props.asset.detailLevel} material={ceramic} role="ceramic" color="#d8d4cc" roughness={0.28} />
+        <CylinderPart radiusTop={0.019} height={0.23} position={[basinWidth * 0.42, 0.12, -depth * 0.3]} material={metal} role="metal" sides={16} />
+        <MetalBar material={metal} position={[basinWidth * 0.32, 0.225, -depth * 0.3]} length={basinWidth * 0.34} axis="x" />
+        <CylinderPart radiusTop={0.026} height={0.012} position={[0, -0.012, 0]} material={metal} role="metal" color="#777b79" sides={20} />
+      </group>
+    );
+  }
   return (
     <group position={[x, y, 0]} name="countertop-basin">
       <SpherePart radius={radius} position={[0, -0.02, 0]} scale={[1.28, 0.34, 0.88]} segments={32} material={ceramic} role="ceramic" color="#f5f1e9" roughness={0.2} />
@@ -73,7 +88,7 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
   const floating = config.floating ?? true;
   const floorY = -height / 2;
   const lift = floating ? Math.min(0.28, height * 0.25) : 0.08;
-  const topThickness = Math.min(0.065, Math.max(0.035, height * 0.065));
+  const topThickness = Math.min(0.065, Math.max(0.035, (config.countertopThicknessMm ?? height * 65) / 1000));
   const bodyHeight = Math.max(0.32, height - lift - topThickness - 0.08);
   const bodyY = floorY + lift + bodyHeight / 2;
   const topY = floorY + lift + bodyHeight + topThickness / 2;
@@ -87,6 +102,8 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
   const mirrorCabinetDepth = Math.min(0.16, Math.max(0.08, (config.mirrorCabinetDepthMm ?? 110) / 1000));
   const mirrorDoorCount = width >= 1.1 ? 3 : 2;
   const mirrorCenterY = mirrorStyle === "cabinet" ? height * 0.95 : height * 0.72;
+  const allWoodDoors = props.item.render3d?.cabinetVisual?.allDoorPanels || props.item.render3d?.cabinetVisual?.frontStyle === "slab";
+  const handleless = props.item.render3d?.cabinetVisual?.handleStyle === "groove";
   const frontZ = depth / 2 + 0.025;
   // The user stands at +Z and faces the wall at -Z. Mirrors therefore belong
   // on the wall/back edge of the vanity, never on the cabinet-front edge.
@@ -100,8 +117,8 @@ export function ParametricBathroomVanity(props: FurnitureFamily3DProps) {
         const x = -width / 2 + bayWidth * (index + 0.5);
         return (
           <group key={index} position={[x, bodyY, frontZ]}>
-            <RoundedPart size={[bayWidth - 0.016, bodyHeight * 0.9, 0.042]} radius={0.011} detailLevel={asset.detailLevel} material={index % 2 ? asset.materials.secondary : wood} role={index % 2 ? "ceramic" : "wood"} />
-            <RoundedPart size={[bayWidth * 0.46, 0.012, 0.016]} position={[0, bodyHeight * 0.32, 0.03]} radius={0.004} detailLevel={asset.detailLevel} material={metal} role="metal" />
+            <RoundedPart size={[bayWidth - 0.016, bodyHeight * 0.9, 0.042]} radius={0.011} detailLevel={asset.detailLevel} material={allWoodDoors ? wood : index % 2 ? asset.materials.secondary : wood} role={allWoodDoors ? "wood" : index % 2 ? "ceramic" : "wood"} />
+            {!handleless && <RoundedPart size={[bayWidth * 0.46, 0.012, 0.016]} position={[0, bodyHeight * 0.32, 0.03]} radius={0.004} detailLevel={asset.detailLevel} material={metal} role="metal" />}
             <RoundedPart size={[bayWidth * 0.84, 0.012, 0.012]} position={[0, -bodyHeight * 0.02, 0.034]} radius={0.003} detailLevel={asset.detailLevel} material={metal} role="metal" color="#3d3630" />
           </group>
         );
@@ -231,7 +248,7 @@ export function ParametricBathtub(props: FurnitureFamily3DProps) {
 
 export function WetAreaFamily3D(props: FurnitureFamily3DProps) {
   const type = props.asset.assetType;
-  if (type === "bathroomVanity") return <ParametricBathroomVanity {...props} />;
+  if (type === "bathroomVanity") return <group><ParametricBathroomVanity {...props} /><CabinetInteriorModules3D props={props} openAmount={props.openAmount} /></group>;
   if (type === "toilet") return <ParametricToilet {...props} />;
   if (type === "shower") return <ParametricShower {...props} />;
   return <ParametricBathtub {...props} />;

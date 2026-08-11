@@ -23,7 +23,7 @@ function furnitureCenterMm(item, structure) {
 }
 
 const fixtures = workspace.furniture.filter((item) => ["bathroomVanity", "sink"].includes(item.render3d?.assetType));
-assert.ok(fixtures.length >= 6, "The whole-house audit should include every vanity and fixed sink.");
+assert.ok(fixtures.length >= 5, "The whole-house audit should include every currently modeled vanity and fixed sink.");
 
 for (const item of fixtures) {
   const structure = workspace.houseStructuresByFloor[item.floorId];

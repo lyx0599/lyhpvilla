@@ -157,7 +157,7 @@ const cameraUpdates = {
   "view-1f-island-dining": {
     cameraPosition: { x: 2.5, y: 1.75, z: 3.15 },
     target: { x: 1.98, y: 0.52, z: 1.7 },
-    description: "以六人圆桌为中心，同时观察餐椅、餐边柜和中岛的材质关系。"
+    description: "以六人圆桌为中心，同时观察餐椅与餐边柜的材质关系。"
   },
   "view-2f-master-bedroom": {
     cameraPosition: { x: 2.5, y: 1.8, z: 3.08 },

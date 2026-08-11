@@ -14,6 +14,7 @@ import type { VerificationTargetEntry } from "./dimension-verification.ts";
 import type { DrawingItem, DrawingItemCategory, DrawingSheetType, FixedCameraView, Furniture, HouseOutdoorSurface, HouseStructure, VerificationSource, VerificationStatus } from "../types/space";
 import type { WorkspaceDocument } from "../types/workspace";
 import { evaluateOutputDrawings } from "./output-drawings.ts";
+import { getPbrMaterialDefinition, type MaterialRole } from "./material-system.ts";
 
 export const constructionPackageSheets: Array<{ sheetNo: string; title: string; type: DrawingSheetType | null; categories: DrawingItemCategory[]; scale: string }> = [
   { sheetNo: "A-00", title: "图纸目录/总说明", type: null, categories: [], scale: "NTS" },
@@ -35,6 +36,7 @@ export const constructionPackageSheets: Array<{ sheetNo: string; title: string; 
 
 export const constructionPackageRecordFields = [
   "floorId", "roomId", "roomName", "objectId", "category", "type", "label", "quantity", "heightMm", "materialId",
+  "materialToken", "materialRole", "materialName", "materialPhysicalSizeMm", "materialSource", "materialLicense",
   "lightType", "lightingLayer", "colorTemperature", "beamAngle", "mountingType", "controlGroupId", "smartControl", "dimming",
   "fixtureFamily", "powerW", "luminousFluxLm", "cri", "glareRating", "waterproofRating",
   "relatedSwitchId", "relatedRoomId", "hostCeilingAreaId", "relatedFurnitureId", "relatedFurnitureName", "hostWallId", "circuitId", "confidence", "positioningBasis", "positionRule", "pendingConfirmations", "serviceScenario", "status", "notes",
@@ -45,7 +47,7 @@ export const constructionPackageRecordFields = [
 
 export const requiredConstructionCameraViewIds = [
   "view-1f-yard-overview", "view-yard-south-living", "view-yard-entry", "view-1f-living-dining-overview",
-  "view-2f-master-bedroom", "view-2f-closet", "view-b2-activity", "view-b1-guest-room"
+  "designer-camera-2f-v3-04-master-bed", "designer-camera-2f-v3-06-dressing", "view-b2-activity", "view-b1-guest-room"
 ] as const;
 
 const outputDefinitionIdBySheetType: Partial<Record<DrawingSheetType, string>> = {
@@ -96,6 +98,8 @@ function inferYardArea(item: { id: string; name?: string; label?: string }) {
 function drawingRecord(item: DrawingItem, table: string, rooms: Map<string, string>, furniture: Map<string, Furniture>): ExportRecord {
   const relatedFurniture = item.relatedFurnitureId ? furniture.get(item.relatedFurnitureId) : undefined;
   const yardArea = item.floorId === "YARD" && !item.roomId ? inferYardArea(item) : null;
+  const fallbackRole: MaterialRole = item.category === "floorFinish" ? "floorMain" : item.category === "wallFinish" ? "wallBase" : item.category === "ceiling" ? "ceilingBase" : "joineryMain";
+  const materialIdentity = getPbrMaterialDefinition(item.materialToken ?? item.materialId ?? item.material ?? item.label, item.materialRole ?? fallbackRole);
   return {
     table, floorId: item.floorId, roomId: item.roomId ?? yardArea?.id ?? null,
     roomName: (item.roomId ? rooms.get(item.roomId) : yardArea?.name) ?? "未关联区域", objectId: item.id,
@@ -109,7 +113,10 @@ function drawingRecord(item: DrawingItem, table: string, rooms: Map<string, stri
     smartControl: item.smartControl ?? item.needsSmartControl ?? false, dimming: item.dimming ?? false,
     relatedSwitchId: item.relatedSwitchId ?? null, relatedRoomId: item.relatedRoomId ?? item.roomId ?? null,
     hostCeilingAreaId: item.hostCeilingAreaId ?? null,
-    materialId: item.materialId ?? item.material ?? null, relatedFurnitureId: item.relatedFurnitureId,
+    materialId: item.materialId ?? item.material ?? null,
+    materialToken: materialIdentity.token, materialRole: item.materialRole ?? fallbackRole, materialName: materialIdentity.definition.label,
+    materialPhysicalSizeMm: materialIdentity.definition.physicalSizeMm, materialSource: materialIdentity.definition.source.name,
+    materialLicense: materialIdentity.definition.source.license, relatedFurnitureId: item.relatedFurnitureId,
     relatedFurnitureName: relatedFurniture?.name ?? null, hostWallId: item.hostWallId ?? item.wallId ?? null,
     relatedFurniturePositionMm: item.relatedFurniturePositionMm ?? null,
     circuitId: item.circuitId ?? item.relatedCircuit ?? null, status: item.status, notes: item.notes,
@@ -132,10 +139,14 @@ function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<strin
     mep.needsWaterSupply ? `给水 ${mep.waterSupplyType ?? ""}` : "", mep.needsDrainage ? `排水 ${mep.drainageType ?? ""}` : "",
     construction.inspectionAccessRequired ? "检修口" : ""
   ].filter(Boolean);
+  const materialIdentity = getPbrMaterialDefinition(item.render3d?.primaryMaterial ?? item.material, "joineryMain");
   return {
     table: "cabinet", floorId: item.floorId, roomId: item.roomId, roomName: rooms.get(item.outdoorId ?? item.roomId) ?? "未关联区域",
     objectId: item.id, category: "cabinet", type: item.moduleType ?? item.type, label: item.name, quantity: 1,
-    heightMm: item.dimensions.height * 10, materialId: item.material, relatedFurnitureId: item.id,
+    heightMm: item.dimensions.height * 10, materialId: item.material,
+    materialToken: materialIdentity.token, materialRole: "joineryMain", materialName: materialIdentity.definition.label,
+    materialPhysicalSizeMm: materialIdentity.definition.physicalSizeMm, materialSource: materialIdentity.definition.source.name,
+    materialLicense: materialIdentity.definition.source.license, relatedFurnitureId: item.id,
     lightType: null, lightingLayer: null, colorTemperature: null, beamAngle: null, mountingType: null,
     controlGroupId: null, smartControl: false, dimming: false, relatedSwitchId: null,
     relatedRoomId: item.roomId, hostCeilingAreaId: null,
@@ -145,7 +156,7 @@ function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<strin
     status: "draft", notes: construction.notes ?? item.constructionNote ?? item.note, createdAt: null, updatedAt: null,
     dimensions: item.dimensions, customMade: Boolean(construction.customMade), installType: construction.installType ?? null,
     reserveSize: construction.reserveSize ?? null, requirements, constructionMeta: item.constructionMeta ?? null,
-    mepMeta: item.mepMeta ?? null, cabinetDesign: item.cabinetDesign ?? null, relatedDrawingItems: related.map((drawingItem) => drawingItem.id)
+    mepMeta: item.mepMeta ?? null, cabinetDesign: item.cabinetDesign ?? null, cabinetInterior: item.cabinetInterior ?? null, relatedDrawingItems: related.map((drawingItem) => drawingItem.id)
   };
 }
 
@@ -156,6 +167,7 @@ function furniturePlacementRecord(
   placementWarnings: ReturnType<typeof validateFurniturePlacement>
 ): ExportRecord {
   const warnings = placementWarnings.filter((warning) => warning.furnitureId === item.id);
+  const materialIdentity = getPbrMaterialDefinition(item.render3d?.primaryMaterial ?? item.material, "joineryMain");
   return {
     table: "furniturePlacement",
     floorId: item.floorId,
@@ -169,6 +181,12 @@ function furniturePlacementRecord(
     quantity: 1,
     heightMm: item.dimensions.height * 10,
     materialId: item.material,
+    materialToken: materialIdentity.token,
+    materialRole: materialIdentity.definition.roles[0] ?? "joineryMain",
+    materialName: materialIdentity.definition.label,
+    materialPhysicalSizeMm: materialIdentity.definition.physicalSizeMm,
+    materialSource: materialIdentity.definition.source.name,
+    materialLicense: materialIdentity.definition.source.license,
     relatedFurnitureId: item.id,
     relatedFurnitureName: item.name,
     hostWallId: item.hostWallId ?? null,
@@ -188,10 +206,14 @@ function furniturePlacementRecord(
 
 function outdoorSurfaceRecord(item: HouseOutdoorSurface): ExportRecord {
   const area = inferYardArea(item);
+  const materialIdentity = getPbrMaterialDefinition(item.materialToken ?? item.material, "floorMain");
   return {
     table: "yardFinish", floorId: "YARD", roomId: area.id, roomName: area.name, objectId: item.id,
     category: item.category ?? item.surfaceType, type: item.surfaceType, label: item.label ?? item.name, quantity: 1,
-    heightMm: null, materialId: item.material, relatedFurnitureId: null, relatedFurnitureName: null, hostWallId: null,
+    heightMm: null, materialId: item.material, materialToken: materialIdentity.token, materialRole: item.materialRole ?? "floorMain",
+    materialName: materialIdentity.definition.label, materialPhysicalSizeMm: materialIdentity.definition.physicalSizeMm,
+    materialSource: materialIdentity.definition.source.name, materialLicense: materialIdentity.definition.source.license,
+    relatedFurnitureId: null, relatedFurnitureName: null, hostWallId: null,
     lightType: null, lightingLayer: null, colorTemperature: null, beamAngle: null, mountingType: null,
     controlGroupId: null, smartControl: false, dimming: false, relatedSwitchId: null,
     relatedRoomId: area.id, hostCeilingAreaId: null,

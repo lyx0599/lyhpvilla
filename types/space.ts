@@ -53,7 +53,81 @@ export type LightSpec = {
   iesProfileUrl?: string;
   photometricProfileId?: string;
 };
+
+export type LinearLightPathConfig = {
+  pathMm: MmPoint[];
+  widthMm?: number;
+  diffuserDepthMm?: number;
+  offsetBelowHostMm?: number;
+  throwDistanceMm?: number;
+  continuous?: boolean;
+};
+
+export type CoveProfileConfig = {
+  pathMm: MmPoint[];
+  dropMm: number;
+  bandWidthMm: number;
+  lipMm: number;
+  cornerRadiusMm?: number;
+  emitterOffsetMm?: number;
+  pathMode?: "linear" | "catmullRom";
+  closed?: boolean;
+  curveSegments?: number;
+};
+
+export type SplineCeilingProfileConfig = {
+  pathMm: MmPoint[];
+  levelMm: number;
+  thicknessMm?: number;
+  pathMode?: "linear" | "catmullRom";
+  closed?: boolean;
+  curveSegments?: number;
+  edgeRadiusMm?: number;
+  materialResourceId?: string;
+};
+
+export type LinearDiffuserConfig = {
+  pathMm: MmPoint[];
+  widthMm: number;
+  depthMm?: number;
+  slotCount?: number;
+  finish?: "darkBronze" | "black" | "warmWhite";
+};
+
+export type BaseboardRunConfig = {
+  wallIds: string[];
+  heightMm: number;
+  thicknessMm?: number;
+  recessMm?: number;
+  finish?: "shadowGap" | "wallColor" | "wood" | "metal";
+};
+
+export type SlabLayoutConfig = {
+  slabWidthMm: number;
+  slabHeightMm: number;
+  seamWidthMm?: number;
+  directionDeg?: number;
+  continuityGroup?: string;
+  bookmatched?: boolean;
+};
+
+export type WallFinishZoneConfig = {
+  startOffsetMm?: number;
+  endOffsetMm?: number;
+  bottomMm: number;
+  topMm: number;
+  buildUpMm?: number;
+  panelWidthMm?: number;
+  seamWidthMm?: number;
+  seamDepthMm?: number;
+  cornerRadiusMm?: number;
+  wrapStartMm?: number;
+  wrapEndMm?: number;
+  uvRotationDeg?: number;
+  materialResourceId?: string;
+};
 export type FloorFinishMaterial = "woodFloor" | "tile" | "stone" | "microcement" | "courtyardStone" | "grass" | "hardscape";
+export type MaterialRoleId = "wallBase" | "wallFeature" | "floorMain" | "floorWet" | "ceilingBase" | "joineryMain" | "countertop" | "trimMetal" | "glassMain" | "fabricMain";
 export type OutdoorSurfaceSource = DrawingItemSource | "default-workspace" | "yard-editor" | "imported";
 export type OutdoorSurfaceStatus = DrawingItemStatus | "needs-site-check" | "design-intent";
 
@@ -70,6 +144,8 @@ export type DrawingItem = {
   heightMm: number | null;
   circuitId: string | null;
   materialId: string | null;
+  materialToken?: string | null;
+  materialRole?: MaterialRoleId | null;
   label: string;
   notes: string;
   source: DrawingItemSource;
@@ -124,6 +200,14 @@ export type DrawingItem = {
   area?: number | null;
   waterproofHeightMm?: number | null;
   specialTreatment?: string | null;
+  /** Reusable construction profiles shared between the drawing and 3D layers. */
+  linearLightPath?: LinearLightPathConfig | null;
+  coveProfile?: CoveProfileConfig | null;
+  wallFinishZone?: WallFinishZoneConfig | null;
+  splineCeilingProfile?: SplineCeilingProfileConfig | null;
+  linearDiffuser?: LinearDiffuserConfig | null;
+  baseboardRun?: BaseboardRunConfig | null;
+  slabLayout?: SlabLayoutConfig | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -258,6 +342,7 @@ export type InteriorModuleType =
   | "fridge"
   | "washingMachine"
   | "instrumentRack"
+  | "piano"
   | "tallCabinet"
   | "toilet"
   | "bathtub"
@@ -331,6 +416,7 @@ export type Render3DAssetType =
   | "bookshelf"
   | "snackCabinet"
   | "plant"
+  | "piano"
   | "generic";
 
 export type Render3DMeta = {
@@ -344,6 +430,11 @@ export type Render3DMeta = {
   primaryMaterial?: string;
   secondaryMaterial?: string;
   accentMaterial?: string;
+  primaryMaterialResourceId?: string;
+  secondaryMaterialResourceId?: string;
+  accentMaterialResourceId?: string;
+  /** Per-instance cabinet finish overrides. These never mutate shared/canonical materials. */
+  cabinetMaterialOverrides?: CabinetMaterialOverrides;
   modelAssetId?: string;
   assetUrl?: string;
   visibleIn3d?: boolean;
@@ -351,15 +442,27 @@ export type Render3DMeta = {
   childrenMode?: "merged" | "grouped";
   /** Bottom elevation of the visual asset above finished floor. */
   elevationMm?: number;
+  /** Optional soft furnishing underlay generated as part of a bed asset. */
+  showRug?: boolean;
+  /** Number of chairs generated around a procedural dining/slab table. */
+  seatCount?: 2 | 4 | 6 | 8;
   kitchenVisual?: KitchenVisualConfig;
   cabinetVisual?: CabinetVisualConfig;
   bedVisual?: BedVisualConfig;
   wetAreaVisual?: WetAreaVisualConfig;
 };
 
+export type CabinetMaterialPart = "door" | "carcass" | "countertop" | "glass" | "hardware";
+
+export type CabinetMaterialOverrides = Partial<Record<CabinetMaterialPart, string>>;
+
 export type CabinetVisualConfig = {
   frontStyle?: "slab" | "shaker" | "fluted" | "glass";
   handleStyle?: "bar" | "edgePull" | "groove" | "knob";
+  openingMode?: CabinetOpeningMode;
+  floating?: boolean;
+  toeKickHeightMm?: number;
+  drawerCount?: number;
   glassTone?: "clear" | "gray" | "smoked";
   allDoorPanels?: boolean;
   layout?: "panels" | "squareGrid";
@@ -370,6 +473,20 @@ export type CabinetVisualConfig = {
   doorCount?: number;
   interiorSystem?: "shelves" | "pulloutBaskets";
   basketCount?: number;
+  cornerRadiusMm?: number;
+  openNicheWidthMm?: number;
+  openNicheHeightMm?: number;
+  openNicheSide?: "left" | "center" | "right";
+  topGapMm?: number;
+  sideGapMm?: number;
+  plinthSetbackMm?: number;
+  sideScribeMm?: number;
+  bays?: Array<{
+    widthRatio: number;
+    frontType: "solid" | "glass" | "open" | "drawer";
+    shelfCount?: number;
+    interiorLighting?: boolean;
+  }>;
 };
 
 export type BedVisualConfig = {
@@ -377,6 +494,18 @@ export type BedVisualConfig = {
   shelfDepthMm?: number;
   shelfHeightMm?: number;
   chargingNiche?: boolean;
+  panelCount?: number;
+  panelGapMm?: number;
+  topBandHeightMm?: number;
+  underBedLighting?: boolean;
+};
+
+export type CountertopCutoutConfig = {
+  kind: "sink" | "cooktop" | "custom";
+  offsetMm?: number;
+  widthMm: number;
+  depthMm: number;
+  cornerRadiusMm?: number;
 };
 
 export type KitchenVisualConfig = {
@@ -400,11 +529,17 @@ export type KitchenVisualConfig = {
   endPanelThicknessMm?: number;
   showCountertopSeams?: boolean;
   showInternalShadowGap?: boolean;
+  countertopCutouts?: CountertopCutoutConfig[];
+  cornerRadiusMm?: number;
+  upperCabinetHeightMm?: number;
+  upperCabinetDepthMm?: number;
 };
 
 export type WetAreaVisualConfig = {
   fixtureKind?: "vanity" | "toilet" | "shower" | "bathtub";
   basinCount?: 1 | 2;
+  basinShape?: "round" | "rectangular";
+  countertopThicknessMm?: number;
   floating?: boolean;
   mirrorStyle?: "none" | "round" | "roundedRect" | "cabinet";
   mirrorHeightMm?: number;
@@ -518,6 +653,8 @@ export type FixedCameraView = {
   floor: FloorId;
   cameraPosition: { x: number; y: number; z: number };
   target: { x: number; y: number; z: number };
+  /** Perspective field of view. Legacy views omit it and keep the renderer default. */
+  fov?: number;
   zoom?: number;
   mode?: "orthographic" | "perspective";
   description?: string;
@@ -545,6 +682,10 @@ export type RoomTourView = {
   pitch: number;
   fov?: number;
   zoom?: number;
+  /** Automatic composition fits the whole room; authored preserves an approved interior viewpoint. */
+  compositionMode?: "automatic" | "authored";
+  /** Clear editing highlights before presenting this authored view. */
+  clearSelectionOnActivate?: boolean;
   linkedNodeIds: string[];
   description: string;
   status: TourNodeStatus;
@@ -615,6 +756,84 @@ export type CabinetDesign = {
   cautionNotes: string[];
 };
 
+/** Cabinet families that have a real, usable storage volume. */
+export type CabinetInteriorTemplate =
+  | "wardrobe"
+  | "kitchenBase"
+  | "kitchenWall"
+  | "kitchenTall"
+  | "island"
+  | "bathroomVanity"
+  | "entry"
+  | "shoe"
+  | "storage"
+  | "bookshelf"
+  | "display"
+  | "corner"
+  | "generic";
+
+export type CabinetOpeningMode = "swing" | "doubleSwing" | "sliding" | "drawer" | "liftUp" | "dropDown" | "open";
+
+export type CabinetInteriorModuleKind =
+  | "shelf"
+  | "divider"
+  | "drawer"
+  | "hanging"
+  | "open"
+  | "closed"
+  | "shoe"
+  | "pullout"
+  | "appliance"
+  | "plumbing"
+  | "clearance"
+  | "waste"
+  | "void";
+
+export type CabinetInteriorModule = {
+  id: string;
+  kind: CabinetInteriorModuleKind;
+  label: string;
+  /** Millimetres from the inside-left / inside-bottom / inside-back corner. */
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  height: number;
+  depth: number;
+  parentId?: string;
+  fixed?: boolean;
+  adjustable?: boolean;
+  materialPart?: "carcass" | "door" | "countertop" | "glass" | "hardware";
+  notes?: string;
+};
+
+export type CabinetInteriorLayout = {
+  schemaVersion: 1;
+  template: CabinetInteriorTemplate;
+  panelThicknessMm: number;
+  interiorWidthMm: number;
+  interiorHeightMm: number;
+  interiorDepthMm: number;
+  openingMode: CabinetOpeningMode;
+  doorCount: number;
+  doorStates?: Record<string, boolean>;
+  modules: CabinetInteriorModule[];
+  notes?: string[];
+  createdFrom?: "default" | "legacyWardrobe" | "saved";
+};
+
+export type CabinetInteriorCheckSeverity = "info" | "warning" | "error";
+
+export type CabinetInteriorCheck = {
+  code: string;
+  severity: CabinetInteriorCheckSeverity;
+  message: string;
+  suggestion: string;
+  moduleId?: string;
+  actualMm?: number;
+  requiredMm?: number;
+};
+
 export type MmPoint = {
   x: number;
   y: number;
@@ -634,6 +853,21 @@ export type WallKind = "straight" | "arc";
 export type HouseWallBarrierType = "wall" | "railing";
 export type HouseWallMaterial = "masonry" | "metal" | "glass" | "wood";
 
+export type WallSurfaceFinish = {
+  material: string;
+  materialToken?: string;
+  materialRole?: MaterialRoleId;
+  name: string;
+  baseColor: string;
+  textureAccent: string;
+  roughness: number;
+  textureScale?: number;
+  materialResourceId?: string;
+  physicalWidthMm?: number;
+  physicalHeightMm?: number;
+  uvRotationDeg?: number;
+};
+
 export type StraightHouseWall = SyncObjectState & VerificationState & {
   id: string;
   floorId: FloorId;
@@ -647,6 +881,10 @@ export type StraightHouseWall = SyncObjectState & VerificationState & {
   length: number;
   barrierType?: HouseWallBarrierType;
   material?: HouseWallMaterial;
+  /** Optional finish for one wall face without changing the structural wall material. */
+  surfaceFinish?: WallSurfaceFinish;
+  /** Optional room-face finishes for shared walls whose two sides use different treatments. */
+  surfaceFinishByRoomId?: Record<string, WallSurfaceFinish>;
   openness?: number;
 };
 
@@ -666,6 +904,10 @@ export type ArcHouseWall = SyncObjectState & VerificationState & {
   length: number;
   barrierType?: HouseWallBarrierType;
   material?: HouseWallMaterial;
+  /** Optional finish for one wall face without changing the structural wall material. */
+  surfaceFinish?: WallSurfaceFinish;
+  /** Optional room-face finishes for shared walls whose two sides use different treatments. */
+  surfaceFinishByRoomId?: Record<string, WallSurfaceFinish>;
   openness?: number;
 };
 
@@ -687,6 +929,8 @@ export type HouseRoom = SyncObjectState & VerificationState & {
   surfaceFinishes?: {
     floor?: {
       material: FloorFinishMaterial | string;
+      materialToken?: string;
+      materialRole?: MaterialRoleId;
       name: string;
       baseColor: string;
       jointColor: string;
@@ -695,17 +939,15 @@ export type HouseRoom = SyncObjectState & VerificationState & {
       tileWidthMm?: number;
       tileLengthMm?: number;
       seamWidthMm?: number;
+      pattern?: string;
       directionDeg?: number;
       textureScale?: number;
+      materialResourceId?: string;
+      physicalWidthMm?: number;
+      physicalHeightMm?: number;
+      uvRotationDeg?: number;
     };
-    wall?: {
-      material: string;
-      name: string;
-      baseColor: string;
-      textureAccent: string;
-      roughness: number;
-      textureScale?: number;
-    };
+    wall?: WallSurfaceFinish;
   };
 };
 
@@ -739,15 +981,22 @@ export type HouseDoor = SyncObjectState & VerificationState & {
   height: number;
   openDirection: "leftIn" | "rightIn" | "leftOut" | "rightOut";
   operation?: "swing" | "sliding";
-  material?: "solid" | "glass" | "translucentGlass";
+  /** Authored presentation pose used when exploration mode is not controlling the door. */
+  defaultOpenAmount?: number;
+  material?: "solid" | "glass" | "translucentGlass" | "none";
   transparency?: number;
   visual?: {
-    style: "standard" | "archedReededGlass" | "wovenReliefWood" | "doubleLeafWood";
+    style: "standard" | "archedReededGlass" | "wovenReliefWood" | "doubleLeafWood" | "slimGlass" | "flushPanel" | "openPassage";
     woodColor?: string;
     frameColor?: string;
     hardwareColor?: string;
     glassColor?: string;
-    leafCount?: 1 | 2;
+    leafCount?: 0 | 1 | 2;
+    jambMode?: "standard" | "minimal" | "flush" | "portal";
+    liningDepthMm?: number;
+    revealWidthMm?: number;
+    thresholdHeightMm?: number;
+    finishMaterialResourceId?: string;
   };
 };
 
@@ -859,6 +1108,8 @@ export type HouseOutdoorSurface = SyncObjectState & {
   pathWidthMm?: number | null;
   area: number;
   material: "stone" | "slate" | "pebble" | "wood" | "concrete" | "tile" | "gravel" | "grass" | "shrub" | "soil";
+  materialToken?: string;
+  materialRole?: MaterialRoleId;
   notes?: string;
   status?: OutdoorSurfaceStatus;
   source?: OutdoorSurfaceSource;
@@ -885,6 +1136,17 @@ export type HouseStair = SyncObjectState & VerificationState & {
   landingId?: string;
   /** Requested clear landing depth; defaults to the stair width when omitted. */
   landingDepthMm?: number;
+  visual?: {
+    style?: "standard" | "showroomLightStone";
+    treadMaterialResourceId?: string;
+    riserMaterialResourceId?: string;
+    nosingColor?: string;
+    nosingWidthMm?: number;
+    glassGuard?: boolean;
+    handrailColor?: string;
+    handrailWidthMm?: number;
+    finishBuildUpPerSideMm?: number;
+  };
   editable: true;
   removable: true;
 };
@@ -959,6 +1221,10 @@ export type HouseColumn = SyncObjectState & VerificationState & {
   height: number;
   material: "reinforcedConcrete" | "steel" | "masonry";
   supportsFloorId?: FloorId;
+  /** Optional presentation finish; structural geometry remains center/radius/height. */
+  visualStyle?: "structuralConcrete" | "showroomLightStone" | "concealedByFinish";
+  finishColor?: string;
+  accentColor?: string;
   editable: true;
   removable: true;
 };
@@ -1058,6 +1324,8 @@ export type Furniture = {
   recognitionNote?: string;
   wardrobeDesign?: WardrobeDesign;
   cabinetDesign?: CabinetDesign;
+  /** Optional per-instance storage layout. Created on first entry to cabinet design. */
+  cabinetInterior?: CabinetInteriorLayout;
   render3d?: Render3DMeta;
   mepMeta?: MepMeta;
   constructionMeta?: ConstructionMeta;

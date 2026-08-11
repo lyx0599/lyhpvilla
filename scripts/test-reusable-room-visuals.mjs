@@ -29,7 +29,6 @@ const kitchenSamples = [
   "furn-kitchen-run-001",
   "furn-kitchen-u-left-run",
   "furn-kitchen-u-right-run",
-  "furn-kitchen-entry-island-001",
   "furn-living-waterbar-001"
 ].map((id) => workspace.furniture.find((item) => item.id === id));
 assert.ok(kitchenSamples.every(Boolean), "kitchen presentation samples should remain available");

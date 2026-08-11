@@ -1,4 +1,4 @@
-import { access, readFile, stat } from "node:fs/promises";
+import { access, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 const OUT_DIR = path.resolve("out");
@@ -46,6 +46,7 @@ async function checkHtml(fileName) {
 
 await checkHtml("index.html");
 await checkHtml("404.html");
+await checkHtml(path.join("preview", "index.html"));
 
 const indexPath = path.join(OUT_DIR, "index.html");
 if (await fileExists(indexPath)) {
@@ -71,6 +72,18 @@ if (await fileExists(indexPath)) {
 
 if (!(await fileExists(path.join(OUT_DIR, ".nojekyll")))) {
   errors.push("out/.nojekyll is missing");
+}
+
+if (await directoryExists(path.join(OUT_DIR, "renders"))) {
+  const allowedHistoricalCovers = new Set([
+    "four-level-villa-3d-cover.png",
+    "four-level-villa-3d-cover.previous.png"
+  ]);
+  const renderEntries = await readdir(path.join(OUT_DIR, "renders"));
+  const unexpectedRenderEntries = renderEntries.filter((entry) => !allowedHistoricalCovers.has(entry));
+  if (unexpectedRenderEntries.length > 0) {
+    errors.push(`out/renders contains local high-resolution render output: ${unexpectedRenderEntries.join(", ")}`);
+  }
 }
 
 for (const directory of ["development", "webpack"]) {

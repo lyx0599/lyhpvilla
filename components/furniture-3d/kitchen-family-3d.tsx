@@ -3,13 +3,21 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { resolveCabinetMaterialLayer } from "@/lib/render3d-assets";
 import type { ResolvedRender3DMaterialLayer, Render3DMaterialRole } from "@/lib/render3d-assets";
 import type { KitchenVisualConfig } from "@/types/space";
 import { FurnitureMaterial } from "./materials";
+import { CabinetInteriorModules3D } from "./cabinet-interior-3d";
 import { CylinderPart, RoundedPart } from "./primitives";
 import type { FurnitureFamily3DProps } from "./types";
 
-function layerFor(props: FurnitureFamily3DProps, roles: Render3DMaterialRole[], fallback: ResolvedRender3DMaterialLayer) {
+function layerFor(
+  props: FurnitureFamily3DProps,
+  roles: Render3DMaterialRole[],
+  fallback: ResolvedRender3DMaterialLayer,
+  cabinetPart?: "door" | "carcass" | "countertop" | "glass" | "hardware"
+) {
+  if (cabinetPart) return resolveCabinetMaterialLayer(props.item, props.asset.materials, cabinetPart);
   const { primary, secondary, accent } = props.asset.materials;
   return [primary, secondary, accent].find((layer) => roles.includes(layer.role)) ?? fallback;
 }
@@ -154,7 +162,7 @@ export function ParametricCountertop({
   thicknessMm?: number;
   backsplashHeightMm?: number;
 }) {
-  const stone = layerFor(props, ["stone", "ceramic"], props.asset.materials.secondary);
+  const stone = layerFor(props, ["stone", "ceramic"], props.asset.materials.secondary, "countertop");
   const config = kitchenConfig(props);
   const overhang = Math.max(0, overhangMm) / 1000;
   const thickness = Math.max(0.024, thicknessMm / 1000);
@@ -242,9 +250,9 @@ function CabinetFrontPanel({
   useHandleBatch?: boolean;
   handleBatchStyle?: "bar" | "edgePull";
 }) {
-  const wood = layerFor(props, ["wood"], props.asset.materials.primary);
-  const panel = layerFor(props, ["ceramic", "wood"], props.asset.materials.secondary);
-  const metal = layerFor(props, ["metal"], props.asset.materials.accent);
+  const wood = layerFor(props, ["wood"], props.asset.materials.primary, "carcass");
+  const panel = layerFor(props, ["ceramic", "wood"], props.asset.materials.secondary, "door");
+  const metal = layerFor(props, ["metal"], props.asset.materials.accent, "hardware");
   const config = kitchenConfig(props);
   const frontStyle = config.frontStyle ?? "slab";
   const handleStyle = config.handleStyle ?? "bar";
@@ -320,8 +328,8 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
   const gap = Math.min(0.018, Math.max(0.003, (config.panelGapMm ?? 12) / 1000));
   const bayWidth = (width - gap * (bayCount + 1)) / bayCount;
   const frontZ = depth / 2 + 0.018;
-  const wood = layerFor(props, ["wood"], asset.materials.primary);
-  const metal = layerFor(props, ["metal"], asset.materials.accent);
+  const wood = layerFor(props, ["wood"], asset.materials.primary, "carcass");
+  const metal = layerFor(props, ["metal"], asset.materials.accent, "hardware");
   const applianceIndex = Math.max(0, Math.min(bayCount - 1, Math.floor(bayCount * 0.22)));
   const appliancePanel = config.appliancePanel ?? (/水槽/.test(item.name) ? "dishwasher" : /灶/.test(item.name) ? "oven" : "none");
   const drawerRows = Math.max(0, Math.min(4, config.drawerCount ?? (island ? 3 : /灶|备餐/.test(item.name) ? 3 : 1)));
@@ -409,7 +417,7 @@ export function ParametricCabinet(props: FurnitureFamily3DProps) {
             const x = -width * 0.43 + upperBayWidth * (index + 0.5);
             return (
               <AnimatedKitchenLeaf key={index} position={[x, 0, depth * 0.285]} width={upperBayWidth - 0.012} hingeSide={index % 2 ? 1 : -1} openAmount={runtimeOpenAmount}>
-                <RoundedPart size={[upperBayWidth - gap, Math.max(0.2, (config.upperCabinetHeightMm ?? 720) / 1000 - 0.08), 0.035]} radius={0.008} detailLevel={asset.detailLevel} material={index % 3 === 1 ? asset.materials.secondary : wood} role={index % 3 === 1 ? "ceramic" : "wood"} />
+                <RoundedPart size={[upperBayWidth - gap, Math.max(0.2, (config.upperCabinetHeightMm ?? 720) / 1000 - 0.08), 0.035]} radius={0.008} detailLevel={asset.detailLevel} material={index % 3 === 1 ? layerFor(props, ["ceramic", "wood"], asset.materials.secondary, "door") : wood} role={index % 3 === 1 ? "ceramic" : "wood"} />
               </AnimatedKitchenLeaf>
             );
           })}
@@ -594,6 +602,8 @@ export function KitchenFamily3D(props: FurnitureFamily3DProps) {
   if (type === "sink") return <ParametricSink {...props} />;
   if (type === "cooktop") return <ParametricCooktop {...props} />;
   if (type === "fridge") return <ParametricFridge {...props} />;
-  if (type === "sideboard" && (props.item.serviceRequirements?.water || props.item.mepMeta?.needsWaterSupply || /水吧/.test(props.item.name))) return <WaterBar3D {...props} />;
-  return <ParametricCabinet {...props} />;
+  const content = type === "sideboard" && (props.item.serviceRequirements?.water || props.item.mepMeta?.needsWaterSupply || /水吧/.test(props.item.name))
+    ? <WaterBar3D {...props} />
+    : <ParametricCabinet {...props} />;
+  return <group>{content}<CabinetInteriorModules3D props={props} openAmount={props.openAmount} /></group>;
 }

@@ -13,9 +13,10 @@ import { SceneReflectionEnvironment } from "@/components/scene-3d/reflection-env
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { render3DMaterialTokenCatalog, resolve3DAsset, resolveRender3DMaterials } from "@/lib/render3d-assets";
 import { getShowroomMaterialResource } from "@/lib/showroom-material-resources";
-import { resolvePbrMaterialToken, type MaterialRole } from "@/lib/material-system";
+import { pbrMaterialCatalog, resolvePbrMaterialToken, type MaterialRole } from "@/lib/material-system";
 import { getFurnitureFamily } from "@/lib/furniture-variants";
 import { pointInPolygon } from "@/lib/furniture-placement";
 import { tourNodeToCameraView } from "@/lib/room-tour";
@@ -33,6 +34,7 @@ import {
   validateSavedRenderCamera
 } from "@/lib/render-camera-storage";
 import type { SavedCameraFocus, SavedRenderCamera } from "@/lib/render-camera-storage";
+import { runRenderPreflight, type RenderSceneEvidence } from "@/lib/render-preflight";
 import { drawingSheetTypeLabels } from "@/lib/drawing-sheets";
 import { getConstructionAnchorsForSheet } from "@/lib/construction-anchors";
 import {
@@ -42,6 +44,7 @@ import {
 } from "@/lib/drawing-3d-profiles";
 import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
 import { getWallRenderPolicy, resolveStructureStoryHeightMm, WALL_CUT_RATIO } from "@/lib/scene-height-system";
+import { getDoorOpeningRenderPolicy } from "@/lib/opening-render-policy";
 import {
   filterSceneDrawingItems,
   filterSceneFurniture,
@@ -108,6 +111,7 @@ import type {
 } from "@/types/space";
 import type { Drawing3DViewPreset, Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
 import type { LightingDesign } from "@/types/workspace";
+import { resolvePublicAssetUrl } from "@/lib/external-asset-manifest";
 
 export type LightingObjectControlRequest = { id: string; action: "locate" | "toggle"; nonce: number };
 export type LightingRuntimeState = Record<string, { on: boolean; brightness: number }>;
@@ -145,6 +149,12 @@ type Floor3DViewProps = {
   onLightingRuntimeStateChange?: (state: LightingRuntimeState) => void;
   mobilePresentationMode?: boolean;
   externalPresentationMode?: boolean;
+  presentationWallDisplayMode?: Drawing3DWallMode;
+  /** Fixed authored previews can opt out after their positions have been spatially validated. */
+  cameraCollisionEnabledOverride?: boolean;
+  /** Export/capture surfaces can hold an authored camera exactly instead of enabling orbit after the transition. */
+  cameraLockEnabledOverride?: boolean;
+  hidePresentationUi?: boolean;
   mobileQuality?: MobileQuality;
   resetViewRequest?: number;
   onSelectCameraView?: (view: FixedCameraView) => void;
@@ -167,6 +177,91 @@ type CameraPlanPose = {
 };
 
 type RenderCameraRecord = SavedRenderCamera;
+
+const renderObjectRootSuffix = "-render3d-root";
+const knownRenderMaterialTokens = new Set(Object.keys(render3DMaterialTokenCatalog));
+const knownPbrMaterialTokens = new Set(Object.keys(pbrMaterialCatalog));
+const emptyRenderSceneEvidence: RenderSceneEvidence = {
+  inspected: false,
+  visibleObjectIds: [],
+  cameraInsideObjectIds: []
+};
+
+function getRenderObjectId(object: THREE.Object3D | null) {
+  let current = object;
+  while (current) {
+    if (current.name.endsWith(renderObjectRootSuffix)) return current.name.slice(0, -renderObjectRootSuffix.length);
+    current = current.parent;
+  }
+  return null;
+}
+
+function isWithinNamedGroup(object: THREE.Object3D, groupName: string) {
+  let current: THREE.Object3D | null = object;
+  while (current) {
+    if (current.name === groupName) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function collectRenderSceneEvidence(
+  rendererState: { gl: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.Camera } | null,
+  focusObjectId?: string
+): RenderSceneEvidence {
+  if (!rendererState) return emptyRenderSceneEvidence;
+  const { scene, camera } = rendererState;
+  scene.updateMatrixWorld(true);
+  camera.updateMatrixWorld(true);
+
+  const projection = new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+  const frustum = new THREE.Frustum().setFromProjectionMatrix(projection);
+  const cameraPosition = new THREE.Vector3();
+  camera.getWorldPosition(cameraPosition);
+  const visibleObjectIds: string[] = [];
+  const cameraInsideObjectIds: string[] = [];
+  const roots = new Map<string, THREE.Object3D>();
+
+  scene.traverseVisible((object) => {
+    if (!object.name.endsWith(renderObjectRootSuffix)) return;
+    const objectId = object.name.slice(0, -renderObjectRootSuffix.length);
+    roots.set(objectId, object);
+    const bounds = new THREE.Box3().setFromObject(object);
+    if (bounds.isEmpty()) return;
+    if (frustum.intersectsBox(bounds)) visibleObjectIds.push(objectId);
+    if (bounds.containsPoint(cameraPosition)) cameraInsideObjectIds.push(objectId);
+  });
+
+  let occludedFocusObjectId: string | undefined;
+  const focusRoot = focusObjectId ? roots.get(focusObjectId) : undefined;
+  if (focusRoot) {
+    const focusBounds = new THREE.Box3().setFromObject(focusRoot);
+    if (!focusBounds.isEmpty()) {
+      const focusCenter = focusBounds.getCenter(new THREE.Vector3());
+      const direction = focusCenter.clone().sub(cameraPosition);
+      const distance = direction.length();
+      if (distance > 0.01) {
+        const raycaster = new THREE.Raycaster(cameraPosition, direction.normalize(), 0.01, Math.max(0.01, distance - 0.03));
+        const blockers: THREE.Object3D[] = [];
+        scene.traverseVisible((object) => {
+          if (!(object instanceof THREE.Mesh) || focusRoot === object || focusRoot.getObjectById(object.id)) return;
+          if (isWithinNamedGroup(object, "construction-anchor-layer")) return;
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          if (materials.some((material) => material && (!material.transparent || material.opacity >= 0.45) && material.depthWrite !== false)) blockers.push(object);
+        });
+        const firstBlocker = raycaster.intersectObjects(blockers, false)[0]?.object;
+        if (firstBlocker && getRenderObjectId(firstBlocker) !== focusObjectId) occludedFocusObjectId = focusObjectId;
+      }
+    }
+  }
+
+  return {
+    inspected: true,
+    visibleObjectIds,
+    cameraInsideObjectIds,
+    ...(occludedFocusObjectId ? { occludedFocusObjectId } : {})
+  };
+}
 
 type CameraAdjustmentAction = "orbit" | "zoom" | "pan" | "setFov" | "setHeight" | "restorePrevious";
 
@@ -527,7 +622,14 @@ function RoundedBoxMesh({
   receiveShadow = true,
   depthWrite = true,
   renderOrder,
-  envMapIntensity = 0.6
+  envMapIntensity = 0.6,
+  materialToken,
+  materialResourceId,
+  fallbackRole,
+  transmission,
+  thicknessMm,
+  clearcoat,
+  clearcoatRoughness
 }: {
   args: Vec3Tuple;
   radius?: number;
@@ -553,6 +655,13 @@ function RoundedBoxMesh({
   depthWrite?: boolean;
   renderOrder?: number;
   envMapIntensity?: number;
+  materialToken?: string;
+  materialResourceId?: string;
+  fallbackRole?: MaterialRole;
+  transmission?: number;
+  thicknessMm?: number;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
 }) {
   const geometry = useMemo(() => {
     const minSide = Math.min(...args);
@@ -571,30 +680,53 @@ function RoundedBoxMesh({
       renderOrder={renderOrder}
     >
       <primitive object={geometry} attach="geometry" />
-      <meshStandardMaterial
-        color={color}
-        map={map ?? undefined}
-        normalMap={normalMap ?? undefined}
-        normalScale={new THREE.Vector2(normalScale[0], normalScale[1])}
-        roughnessMap={roughnessMap ?? undefined}
-        aoMap={aoMap ?? undefined}
-        aoMapIntensity={aoMapIntensity}
-        roughness={roughness}
-        metalness={metalness}
-        transparent={transparent ?? opacity < 1}
-        opacity={opacity}
-        depthWrite={depthWrite}
-        emissive={emissive}
-        emissiveIntensity={emissiveIntensity}
-        envMapIntensity={envMapIntensity}
-        side={side}
-      />
+      {materialToken || materialResourceId ? (
+        <PbrMaterial
+          token={materialToken}
+          resourceId={materialResourceId}
+          fallbackRole={fallbackRole}
+          color={materialToken ? undefined : color}
+          surfaceSizeM={[Math.max(args[0], args[2]), Math.max(args[1], args[2])]}
+          roughness={roughness}
+          metalness={metalness}
+          opacity={opacity}
+          normalStrength={(normalScale[0] + normalScale[1]) / 2}
+          transmission={transmission}
+          thicknessMm={thicknessMm}
+          clearcoat={clearcoat}
+          clearcoatRoughness={clearcoatRoughness}
+          depthWrite={depthWrite}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          envMapIntensity={envMapIntensity}
+          side={side}
+        />
+      ) : (
+        <meshStandardMaterial
+          color={color}
+          map={map ?? undefined}
+          normalMap={normalMap ?? undefined}
+          normalScale={new THREE.Vector2(normalScale[0], normalScale[1])}
+          roughnessMap={roughnessMap ?? undefined}
+          aoMap={aoMap ?? undefined}
+          aoMapIntensity={aoMapIntensity}
+          roughness={roughness}
+          metalness={metalness}
+          transparent={transparent ?? opacity < 1}
+          opacity={opacity}
+          depthWrite={depthWrite}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          envMapIntensity={envMapIntensity}
+          side={side}
+        />
+      )}
     </mesh>
   );
 }
 
 function shouldUseFineAsset({ materialPreview, resolvedAsset, cabinetOpenAmount }: FurnitureAssetGroupProps) {
-  return cabinetOpenAmount !== undefined || (materialPreview && resolvedAsset.detailLevel !== "draft");
+  return resolvedAsset.assetType === "desk" || cabinetOpenAmount !== undefined || (materialPreview && resolvedAsset.detailLevel !== "draft");
 }
 
 function isClosetFurnitureModule(item: Furniture, structure: HouseStructure) {
@@ -1818,14 +1950,74 @@ type RoomFloorStyle = {
 };
 type RoomWallFinish = NonNullable<NonNullable<HouseStructure["rooms"][number]["surfaceFinishes"]>["wall"]>;
 
+const SHOWROOM_HERRINGBONE_PATTERN = "showroomHerringboneStone";
+
+function getShowroomFloorOverride(room: HouseStructure["rooms"][number], structure: HouseStructure): RoomFloorStyle | undefined {
+  if (isBathroomRoom(room)) return undefined;
+
+  // The 2F bedroom reference reads as a quiet, matte smoked-oak floor with
+  // a straight plank layout. It should share the showroom's light/warm value
+  // without inheriting the public-area herringbone treatment used below.
+  if (structure.floorId === "2F") {
+    return {
+      base: "#c8b08e",
+      joint: "#a58c6d",
+      vein: "#dfc9a7",
+      roughness: 0.76,
+      kind: "wood",
+      tileWidthMm: 190,
+      tileLengthMm: 1800,
+      seamWidthMm: 2,
+      directionDeg: 0,
+      textureScale: 1,
+      materialToken: "oakFloor",
+      materialRole: "floorMain"
+    };
+  }
+
+  if (["B1", "1F"].includes(structure.floorId)) {
+    return {
+      // Keep the main floor identical to the showroom reference on every
+      // level. Bathrooms still use their authored wet-area finish above.
+      base: "#ddd0b7",
+      joint: "#b9a98e",
+      vein: "#eee4d2",
+      roughness: 0.72,
+      kind: "stone",
+      tileWidthMm: 180,
+      tileLengthMm: 720,
+      seamWidthMm: 2,
+      directionDeg: 0,
+      textureScale: 2.8,
+      pattern: SHOWROOM_HERRINGBONE_PATTERN,
+      materialResourceId: "showroomPaleHerringbone",
+      materialToken: "warmGreyStone",
+      materialRole: "floorMain"
+    };
+  }
+
+  return undefined;
+}
+
+function resolveRoomWallMaterialResourceId(wallFinish: RoomWallFinish | undefined) {
+  if (wallFinish?.materialResourceId) return wallFinish.materialResourceId;
+  return wallFinish && /limewash|limePlaster/i.test(wallFinish.material)
+    ? "polyhavenWarmBeigeWall001"
+    : undefined;
+}
+
 function getRoomFloorStyle(room: HouseStructure["rooms"][number], structure: HouseStructure, designStyle: DesignStylePreset): RoomFloorStyle {
   const palette = designStylePalettes[designStyle];
+  const showroomOverride = getShowroomFloorOverride(room, structure);
+  if (showroomOverride) return showroomOverride;
   const roomFinish = room.surfaceFinishes?.floor;
   if (roomFinish) {
+    const finishRole = roomFinish.materialRole ?? (isBathroomRoom(room) ? "floorWet" : "floorMain");
+    const warmMainTile = roomFinish.material === "tile" && finishRole === "floorMain";
     return {
-      base: roomFinish.baseColor,
-      joint: roomFinish.jointColor,
-      vein: roomFinish.textureAccent,
+      base: warmMainTile ? "#c8bca8" : roomFinish.baseColor,
+      joint: warmMainTile ? "#aa9b87" : roomFinish.jointColor,
+      vein: warmMainTile ? "#ded2bf" : roomFinish.textureAccent,
       roughness: roomFinish.roughness,
       kind: roomFinish.material === "woodFloor"
         ? "wood" as const
@@ -1840,9 +2032,14 @@ function getRoomFloorStyle(room: HouseStructure["rooms"][number], structure: Hou
       directionDeg: roomFinish.directionDeg,
       textureScale: roomFinish.textureScale,
       pattern: roomFinish.pattern,
-      materialResourceId: roomFinish.materialResourceId,
-      materialToken: roomFinish.materialToken ?? resolvePbrMaterialToken(roomFinish.materialResourceId ?? `${roomFinish.material} ${roomFinish.name}`, isBathroomRoom(room) ? "floorWet" : "floorMain"),
-      materialRole: roomFinish.materialRole ?? (isBathroomRoom(room) ? "floorWet" : "floorMain"),
+      materialResourceId: roomFinish.materialResourceId
+        ?? (finishRole === "floorWet"
+          ? "polyhavenWarmBeigeTile08"
+          : warmMainTile ? "showroomWarmGreyLimestoneFloor" : undefined),
+      materialToken: warmMainTile
+        ? "warmGreyStone"
+        : roomFinish.materialToken ?? resolvePbrMaterialToken(roomFinish.materialResourceId ?? `${roomFinish.material} ${roomFinish.name}`, finishRole),
+      materialRole: finishRole,
       uvRotationDeg: roomFinish.uvRotationDeg
     };
   }
@@ -2353,14 +2550,88 @@ function RoomFloorMesh({
   );
 }
 
+function ShowroomHerringboneOverlay({
+  roomId,
+  width,
+  depth,
+  base,
+  plankWidth,
+  plankLength,
+  resolution = 1024,
+  opacity = 0.82
+}: {
+  roomId: string;
+  width: number;
+  depth: number;
+  base: string;
+  plankWidth: number;
+  plankLength: number;
+  resolution?: number;
+  opacity?: number;
+}) {
+  const texture = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = resolution;
+    canvas.height = resolution;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = "rgba(82, 67, 53, 0.54)";
+    context.lineWidth = 2.5;
+    context.lineJoin = "round";
+
+    const stepX = Math.max(0.28, plankLength * 0.68);
+    const stepZ = Math.max(0.28, plankLength * 0.68);
+    const rowCount = Math.ceil(depth / stepZ) + 3;
+    const columnCount = Math.ceil(width / stepX) + 3;
+    for (let row = -1; row < rowCount; row += 1) {
+      for (let column = -1; column < columnCount; column += 1) {
+        const rotation = (row + column) % 2 === 0 ? Math.PI / 4 : -Math.PI / 4;
+        const x = (-width / 2 + column * stepX + (row % 2 ? stepX * 0.34 : 0)) / width * canvas.width + canvas.width / 2;
+        const z = (-depth / 2 + row * stepZ) / depth * canvas.height + canvas.height / 2;
+        context.save();
+        context.translate(x, z);
+        context.rotate(rotation);
+        context.strokeRect(
+          -plankWidth / 2 / width * canvas.width,
+          -plankLength / 2 / depth * canvas.height,
+          plankWidth / width * canvas.width,
+          plankLength / depth * canvas.height
+        );
+        context.restore();
+      }
+    }
+
+    const nextTexture = new THREE.CanvasTexture(canvas);
+    nextTexture.colorSpace = THREE.SRGBColorSpace;
+    nextTexture.needsUpdate = true;
+    return nextTexture;
+  }, [depth, plankLength, plankWidth, resolution, width]);
+
+  useEffect(() => () => texture?.dispose(), [texture]);
+
+  return (
+    <group key={`${roomId}-herringbone-overlay`} position={[0, 0.057, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[width, depth]} />
+        <meshBasicMaterial map={texture ?? undefined} transparent opacity={opacity} color={base} />
+      </mesh>
+    </group>
+  );
+}
+
 function RoomFloorFinishOverlay({
   room,
   structure,
-  designStyle
+  designStyle,
+  presentationMode
 }: {
   room: HouseStructure["rooms"][number];
   structure: HouseStructure;
   designStyle: DesignStylePreset;
+  presentationMode: boolean;
 }) {
   const bounds = getSceneBounds(room.boundary, structure);
   if (!Number.isFinite(bounds.minX) || !Number.isFinite(bounds.minZ)) return null;
@@ -2371,10 +2642,30 @@ function RoomFloorFinishOverlay({
   const centerZ = bounds.minZ + depth / 2;
   const floorStyle = getRoomFloorStyle(room, structure, designStyle);
   const isWood = floorStyle.kind === "wood";
-  if (floorStyle.kind === "microcement" || floorStyle.pattern === "showroomHerringboneStone") return null;
+  if (floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN) {
+    return (
+      <group position={[centerX, 0, centerZ]}>
+        <ShowroomHerringboneOverlay
+          roomId={room.id}
+          width={width}
+          depth={depth}
+          base={floorStyle.base}
+          plankWidth={Math.max(0.12, (floorStyle.tileWidthMm ?? 180) * MM_TO_M)}
+          plankLength={Math.max(0.42, (floorStyle.tileLengthMm ?? 720) * MM_TO_M)}
+          resolution={presentationMode ? 1024 : 512}
+          opacity={presentationMode ? 0.82 : 0.72}
+        />
+      </group>
+    );
+  }
+  if (floorStyle.kind === "microcement") return null;
   const tileWidth = Math.max(0.3, (floorStyle.tileWidthMm ?? (floorStyle.kind === "stone" ? 720 : 900)) * MM_TO_M);
   const tileLength = Math.max(0.3, (floorStyle.tileLengthMm ?? (floorStyle.kind === "stone" ? 720 : 900)) * MM_TO_M);
-  const seamWidth = Math.max(0.004, Math.min(0.018, (floorStyle.seamWidthMm ?? 8) * MM_TO_M));
+  // Keep the construction seam data intact, but slightly exaggerate it in the
+  // presentation overlay so the selected finish reads in a wide 3D view.
+  const seamWidth = presentationMode
+    ? Math.max(0.006, Math.min(0.018, (floorStyle.seamWidthMm ?? 8) * MM_TO_M))
+    : Math.max(0.004, Math.min(0.012, (floorStyle.seamWidthMm ?? 8) * MM_TO_M));
   const direction = (floorStyle.directionDeg ?? 0) * Math.PI / 180;
   if (isWood) {
     const plankWidth = Math.max(0.14, (floorStyle.tileWidthMm ?? 200) * MM_TO_M);
@@ -2415,7 +2706,7 @@ function RoomFloorFinishOverlay({
         return (
           <mesh key={`${room.id}-tile-x-${index}`} position={[x, 0, 0]}>
             <boxGeometry args={[seamWidth, 0.004, depth]} />
-            <meshStandardMaterial color={floorStyle.joint} transparent opacity={floorStyle.kind === "stone" ? 0.42 : 0.32} roughness={0.84} />
+            <meshStandardMaterial color={floorStyle.joint} transparent opacity={floorStyle.kind === "stone" ? (presentationMode ? 0.56 : 0.46) : 0.28} roughness={0.84} />
           </mesh>
         );
       })}
@@ -2424,11 +2715,11 @@ function RoomFloorFinishOverlay({
         return (
           <mesh key={`${room.id}-tile-z-${index}`} position={[0, 0, z]}>
             <boxGeometry args={[width, 0.004, seamWidth]} />
-            <meshStandardMaterial color={floorStyle.joint} transparent opacity={floorStyle.kind === "stone" ? 0.42 : 0.32} roughness={0.84} />
+            <meshStandardMaterial color={floorStyle.joint} transparent opacity={floorStyle.kind === "stone" ? (presentationMode ? 0.56 : 0.46) : 0.28} roughness={0.84} />
           </mesh>
         );
       })}
-      {floorStyle.kind === "stone" && Array.from({ length: 5 }, (_, index) => (
+      {presentationMode && floorStyle.kind === "stone" && Array.from({ length: 5 }, (_, index) => (
         <mesh
           key={`master-bath-vein-${index}`}
           position={[
@@ -2796,6 +3087,12 @@ function PolygonSurfaceMesh({
 }
 
 function outdoorSurfaceStyle(surface: HouseOutdoorSurface) {
+  if (surface.id === "OS-YARD-SOUTH-PATH") {
+    return { color: "#9a9186", accent: "#6f685f", roughness: 0.98, textureKind: "gravel" as const };
+  }
+  if (surface.id === "OS-YARD-NORTH-PLANT") {
+    return { color: "#55483a", accent: "#75634e", roughness: 0.99, textureKind: "gravel" as const };
+  }
   if (surface.material === "pebble" || surface.material === "gravel") {
     return { color: "#aaa092", accent: "#776f66", roughness: 0.98, textureKind: "gravel" as const };
   }
@@ -2814,6 +3111,90 @@ function outdoorSurfaceStyle(surface: HouseOutdoorSurface) {
   return { color: effectMaterialCatalog.outdoorStone.color, accent: "#8d8479", roughness: effectMaterialCatalog.outdoorStone.roughness, textureKind: "stone" as const };
 }
 
+const southYardPathSlabs = [
+  { point: { x: 3900, y: 9400 }, width: 0.5, length: 0.86 },
+  { point: { x: 4450, y: 9400 }, width: 0.5, length: 0.9 },
+  { point: { x: 5000, y: 9400 }, width: 0.5, length: 0.86 }
+] as const;
+
+function SouthYardSteppingStonePath({ structure }: { structure: HouseStructure }) {
+  return (
+    <group>
+      {southYardPathSlabs.map((slab, index) => {
+        const point = toScenePoint(slab.point, structure);
+        return (
+          <group key={`south-yard-path-slab-${index}`} position={[point.x, 0.084 + index * 0.0005, point.z]}>
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[slab.width, 0.046, slab.length]} />
+              <PbrMaterial
+                token="courtyardStone"
+                fallbackRole="floorMain"
+                color="#a39b91"
+                accentColor="#7f786f"
+                surfaceSizeM={[0.56, 0.9]}
+                roughness={0.92}
+                metalness={0.01}
+              />
+            </mesh>
+            <mesh receiveShadow position={[0, -0.026, 0]}>
+              <boxGeometry args={[slab.width + 0.055, 0.012, slab.length + 0.055]} />
+              <meshStandardMaterial color="#5c554d" roughness={1} />
+            </mesh>
+          </group>
+        );
+      })}
+      {southYardPathSlabs.slice(0, -1).map((slab, index) => {
+        const next = southYardPathSlabs[index + 1];
+        const midpoint = toScenePoint({ x: (slab.point.x + next.point.x) / 2, y: (slab.point.y + next.point.y) / 2 }, structure);
+        return (
+          <group key={`south-yard-joint-cover-${index}`} position={[midpoint.x, 0.079, midpoint.z]}>
+            {[-0.18, 0, 0.18].map((offset, tuftIndex) => (
+              <mesh key={offset} position={[offset, 0, (tuftIndex % 2 ? -1 : 1) * 0.035]} rotation={[-Math.PI / 2, 0, tuftIndex * 0.7]}>
+                <circleGeometry args={[0.035 + tuftIndex * 0.006, 9]} />
+                <meshStandardMaterial color={tuftIndex === 1 ? "#667655" : "#788361"} roughness={1} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function YardEdgeAndDrainDetails({ surface, bounds }: { surface: HouseOutdoorSurface; bounds: ReturnType<typeof getSceneBounds> }) {
+  const width = bounds.maxX - bounds.minX;
+  const centerX = (bounds.minX + bounds.maxX) / 2;
+  const isNorthWorkSurface = surface.id === "OS-YARD-NORTH-STORAGE" || surface.id === "OS-YARD-NORTH-KITCHEN-DECK";
+  const isSouthDeck = surface.id === "OS-YARD-SOUTH-RELAX-DECK" || surface.id === "OS-YARD-SOUTH-LAUNDRY-DECK";
+  if (!isNorthWorkSurface && !isSouthDeck) return null;
+  const drainZ = isNorthWorkSurface ? bounds.maxZ + 0.025 : bounds.minZ - 0.025;
+  const outerEdgeZ = isNorthWorkSurface ? bounds.minZ : bounds.maxZ;
+  return (
+    <group>
+      <mesh receiveShadow position={[centerX, 0.072, drainZ]}>
+        <boxGeometry args={[width, 0.024, 0.072]} />
+        <meshStandardMaterial color="#504d49" roughness={0.42} metalness={0.5} />
+      </mesh>
+      {Array.from({ length: Math.max(4, Math.floor(width / 0.2)) }, (_, index) => (
+        <mesh key={`${surface.id}-drain-slot-${index}`} position={[bounds.minX + (index + 0.5) * width / Math.max(4, Math.floor(width / 0.2)), 0.086, drainZ]}>
+          <boxGeometry args={[0.011, 0.007, 0.052]} />
+          <meshStandardMaterial color="#171716" roughness={0.68} metalness={0.22} />
+        </mesh>
+      ))}
+      <mesh receiveShadow position={[centerX, 0.075, outerEdgeZ]}>
+        <boxGeometry args={[width + 0.018, 0.058, 0.042]} />
+        <meshStandardMaterial color={surface.material === "wood" ? "#5b4637" : "#716b63"} roughness={0.78} metalness={0.04} />
+      </mesh>
+      {isNorthWorkSurface && (
+        <mesh receiveShadow position={[centerX, 0.061, bounds.maxZ + 0.12]}>
+          <boxGeometry args={[width, 0.026, 0.12]} />
+          <meshStandardMaterial color="#9e968b" roughness={0.98} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
 function OutdoorGroundMesh({
   outdoor,
   structure,
@@ -2827,27 +3208,42 @@ function OutdoorGroundMesh({
   onHover: (id: string) => void;
   onClearHover: (id: string) => void;
 }) {
+  const bounds = getSceneBounds(outdoor.polygon, structure);
+  const width = bounds.maxX - bounds.minX;
+  const depth = bounds.maxZ - bounds.minZ;
   return (
-    <PolygonSurfaceMesh
-      id={outdoor.id}
-      points={outdoor.polygon}
-      structure={structure}
-      y={0.011}
-      color="#74845f"
-      roughness={0.96}
-      metalness={0}
-      textureKind="grass"
-      textureAccent="#43563b"
-      onSelect={onSelect}
-      onHover={onHover}
-      onClearHover={onClearHover}
-    />
+    <group>
+      <PolygonSurfaceMesh
+        id={outdoor.id}
+        points={outdoor.polygon}
+        structure={structure}
+        y={0.011}
+        color="#667858"
+        roughness={0.97}
+        metalness={0}
+        textureKind="grass"
+        textureAccent="#354b36"
+        onSelect={onSelect}
+        onHover={onHover}
+        onClearHover={onClearHover}
+      />
+      {Number.isFinite(bounds.minX) && Array.from({ length: outdoor.id.includes("SOUTH") ? 7 : 4 }, (_, index) => {
+        const x = bounds.minX + width * (0.12 + ((index * 37) % 76) / 100);
+        const z = bounds.minZ + depth * (0.14 + ((index * 53) % 72) / 100);
+        return (
+          <mesh key={`${outdoor.id}-grass-tone-${index}`} receiveShadow position={[x, 0.019, z]} rotation={[-Math.PI / 2, 0, index * 0.43]} scale={[1.1 + index % 3 * 0.28, 0.62 + index % 2 * 0.18, 1]}>
+            <circleGeometry args={[0.46 + index % 3 * 0.08, 14]} />
+            <meshStandardMaterial color={index % 3 === 0 ? "#87906a" : index % 2 ? "#53684c" : "#71805a"} transparent opacity={0.13} roughness={1} depthWrite={false} />
+          </mesh>
+        );
+      })}
+    </group>
   );
 }
 
 function LandscapePlantCluster({ x, y = 0.055, z, scale, index, herb = false }: { x: number; y?: number; z: number; scale: number; index: number; herb?: boolean }) {
   const tall = !herb && index % 5 === 0;
-  const leafColors = ["#536947", "#687b50", "#7f8d5b", "#455b42"];
+  const leafColors = ["#35513a", "#4a6840", "#657747", "#2d4936", "#78804b"];
   return (
     <group position={[x, y, z]} scale={[scale, scale, scale]} rotation={[0, index * 0.71, 0]}>
       {tall && <>
@@ -2855,9 +3251,9 @@ function LandscapePlantCluster({ x, y = 0.055, z, scale, index, herb = false }: 
           <cylinderGeometry args={[0.035, 0.055, 1.18, 10]} />
           <meshStandardMaterial color="#66503a" roughness={0.92} />
         </mesh>
-        {[[0, 1.1, 0], [0.16, 0.92, 0.03], [-0.15, 0.84, -0.06], [0.02, 1.35, -0.02]].map((position, leafIndex) => (
-          <mesh key={`crown-${leafIndex}`} castShadow position={position as Vec3Tuple} scale={[0.8 + leafIndex * 0.08, 0.62, 0.7]}>
-            <icosahedronGeometry args={[0.34, 2]} />
+        {[[0, 1.1, 0], [0.18, 0.92, 0.05], [-0.17, 0.86, -0.08], [0.03, 1.34, -0.02], [-0.05, 1.08, 0.16]].map((position, leafIndex) => (
+          <mesh key={`crown-${leafIndex}`} castShadow position={position as Vec3Tuple} rotation={[0.08 * (leafIndex % 2), leafIndex * 0.9, 0.05 * (leafIndex - 2)]} scale={[0.82 + leafIndex * 0.05, 0.68 + leafIndex % 2 * 0.12, 0.58 + leafIndex % 3 * 0.07]}>
+            <icosahedronGeometry args={[0.32, 1]} />
             <meshStandardMaterial color={leafColors[(index + leafIndex) % leafColors.length]} roughness={0.9} />
           </mesh>
         ))}
@@ -2866,13 +3262,17 @@ function LandscapePlantCluster({ x, y = 0.055, z, scale, index, herb = false }: 
         const angle = leafIndex / (herb ? 7 : 4) * Math.PI * 2 + index * 0.37;
         const radius = herb ? 0.07 : 0.1;
         return (
-          <mesh key={`shrub-leaf-${leafIndex}`} castShadow position={[Math.cos(angle) * radius, (herb ? 0.14 : 0.22) + (leafIndex % 3) * 0.045, Math.sin(angle) * radius]} scale={[herb ? 0.38 : 0.72, herb ? 0.9 : 0.58, herb ? 0.28 : 0.66]} rotation={[0, -angle, (leafIndex % 2 ? -1 : 1) * 0.42]}>
-            <sphereGeometry args={[herb ? 0.16 : 0.22, 12, 9]} />
+          <mesh key={`shrub-leaf-${leafIndex}`} castShadow position={[Math.cos(angle) * radius, (herb ? 0.14 : 0.22) + (leafIndex % 3) * 0.045, Math.sin(angle) * radius]} scale={[herb ? 0.34 : 0.7, herb ? 1.05 : 0.72, herb ? 0.18 : 0.48]} rotation={[0.18 * (leafIndex % 3 - 1), -angle, (leafIndex % 2 ? -1 : 1) * 0.5]}>
+            <icosahedronGeometry args={[herb ? 0.16 : 0.22, 1]} />
             <meshStandardMaterial color={leafColors[(index + leafIndex) % leafColors.length]} roughness={0.94} />
           </mesh>
         );
       })}
-      {!tall && <mesh castShadow position={[0, herb ? 0.13 : 0.19, 0]}><sphereGeometry args={[herb ? 0.11 : 0.2, 12, 9]} /><meshStandardMaterial color={leafColors[index % leafColors.length]} roughness={0.94} /></mesh>}
+      {!tall && <mesh castShadow position={[0, herb ? 0.13 : 0.19, 0]} scale={[1, herb ? 1.25 : 0.82, 0.78]}><dodecahedronGeometry args={[herb ? 0.11 : 0.2, 1]} /><meshStandardMaterial color={leafColors[index % leafColors.length]} roughness={0.94} /></mesh>}
+      {!tall && !herb && index % 4 === 1 && <group position={[0.04, 0.42, -0.03]}>
+        <mesh><cylinderGeometry args={[0.008, 0.011, 0.36, 7]} /><meshStandardMaterial color="#40543a" roughness={1} /></mesh>
+        {[-0.12, 0, 0.11].map((offset, flowerIndex) => <mesh key={offset} position={[offset * 0.45, 0.18 + Math.abs(offset) * 0.18, offset]}><sphereGeometry args={[0.035, 9, 7]} /><meshStandardMaterial color={flowerIndex === 1 ? "#d7c7a0" : "#b88f78"} roughness={0.92} /></mesh>)}
+      </group>}
     </group>
   );
 }
@@ -2888,6 +3288,10 @@ function OutdoorSurfaceDetails({ surface, structure }: { surface: HouseOutdoorSu
   const isPebble = surface.material === "pebble" || surface.material === "gravel";
   const isWood = surface.material === "wood";
   const isGardenBed = /GARDEN|菜园|香草/i.test(`${surface.id} ${surface.name}`);
+
+  if (surface.id === "OS-YARD-SOUTH-PATH") {
+    return <SouthYardSteppingStonePath structure={structure} />;
+  }
 
   if (isPlanting) {
     const plantCount = Math.max(7, Math.min(18, Math.floor(width * depth * (isGardenBed ? 1.4 : 1.8))));
@@ -2939,6 +3343,7 @@ function OutdoorSurfaceDetails({ surface, structure }: { surface: HouseOutdoorSu
     const crossSize = boardsAlongX ? depth : width;
     const boardCount = Math.max(5, Math.floor(crossSize / 0.16));
     return (
+      <>
       <group position={[0, 0.067, 0]}>
         {Array.from({ length: boardCount + 1 }, (_, index) => {
           const offset = -crossSize / 2 + index * crossSize / boardCount;
@@ -2949,12 +3354,15 @@ function OutdoorSurfaceDetails({ surface, structure }: { surface: HouseOutdoorSu
           return <group key={`${surface.id}-deck-fastener-${index}`}>{[-0.42, 0.42].map((side) => <mesh key={side} position={boardsAlongX ? [bounds.minX + width * along, 0.008, centerZ + side * depth] : [centerX + side * width, 0.008, bounds.minZ + depth * along]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.014, 12]} /><meshStandardMaterial color="#655d54" roughness={0.38} metalness={0.54} /></mesh>)}</group>;
         })}
       </group>
+      <YardEdgeAndDrainDetails surface={surface} bounds={bounds} />
+      </>
     );
   }
 
   const paverXCount = Math.max(2, Math.floor(width / (surface.surfaceType === "path" ? 0.95 : 0.82))) + 1;
   const paverZCount = Math.max(2, Math.floor(depth / (surface.surfaceType === "path" ? 0.62 : 0.82))) + 1;
   return (
+    <>
     <group position={[0, 0.071, 0]}>
       {Array.from({ length: paverXCount }, (_, index) => (
         <mesh key={`${surface.id}-paver-x-${index}`} position={[bounds.minX + index * width / Math.max(1, paverXCount - 1) + (index % 2 ? 0.018 : -0.012), 0, centerZ]} rotation={[0, (index % 3 - 1) * 0.018, 0]}>
@@ -2969,6 +3377,8 @@ function OutdoorSurfaceDetails({ surface, structure }: { surface: HouseOutdoorSu
         </mesh>
       ))}
     </group>
+    <YardEdgeAndDrainDetails surface={surface} bounds={bounds} />
+    </>
   );
 }
 
@@ -3433,6 +3843,7 @@ function SolidWallSegment({
   heightMm,
   color,
   wallFinish,
+  wallMode,
   wallOpacity,
   clippingPlanes,
   selected,
@@ -3448,6 +3859,7 @@ function SolidWallSegment({
   heightMm: number;
   color: string;
   wallFinish?: RoomWallFinish;
+  wallMode: Drawing3DWallMode;
   wallOpacity?: number;
   clippingPlanes?: THREE.Plane[];
   selected: boolean;
@@ -3463,6 +3875,7 @@ function SolidWallSegment({
   const wallSurfaceColor = !selected && isBasementWall && !wallFinish ? "#c6beb3" : color;
   const capHeightMm = Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18));
   const bodyHeightMm = Math.max(42, heightMm - capHeightMm);
+  const technicalCap = wallMode === "cutaway";
   const bodyOpacity = wallOpacity == null
     ? selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY
     : Math.min(0.38, wallOpacity + (selected ? 0.12 : 0));
@@ -3489,7 +3902,7 @@ function SolidWallSegment({
         textureScale={wallFinish?.textureScale ?? 1}
         materialToken={wallFinish?.materialToken}
         materialRole={wallFinish?.materialRole ?? "wallBase"}
-        materialResourceId={wallFinish?.materialResourceId}
+        materialResourceId={resolveRoomWallMaterialResourceId(wallFinish)}
         uvRotationDeg={wallFinish?.uvRotationDeg}
         selected={selected}
         clippingPlanes={clippingPlanes}
@@ -3504,13 +3917,13 @@ function SolidWallSegment({
         widthMm={widthMm + 28}
         heightMm={42}
         structure={structure}
-        color={selected ? "#bfdbfe" : "#9b7250"}
+        color={selected ? "#bfdbfe" : "#6f6257"}
         opacity={trimOpacity}
         yOffset={0.08}
-        textureKind="wood"
-        textureAccent="#5d3d26"
-        materialToken="warmOak"
-        materialRole="joineryMain"
+        textureKind="wall"
+        textureAccent="#8f8375"
+        materialToken="shadowLine"
+        materialRole="trimMetal"
         selected={selected}
         clippingPlanes={clippingPlanes}
         onSelect={onSelect}
@@ -3524,9 +3937,9 @@ function SolidWallSegment({
         widthMm={widthMm + 64}
         heightMm={capHeightMm}
         structure={structure}
-        color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
-        materialToken="blackTitanium"
-        materialRole="trimMetal"
+        color={selected ? WALL_CAP_SELECTED_COLOR : technicalCap ? WALL_CAP_COLOR : wallSurfaceColor}
+        materialToken={technicalCap ? "blackTitanium" : wallFinish?.materialToken ?? "warmWhiteMineral"}
+        materialRole={technicalCap ? "trimMetal" : wallFinish?.materialRole ?? "wallBase"}
         opacity={capOpacity}
         yOffset={bodyHeightMm * MM_TO_M}
         selected={selected}
@@ -3546,8 +3959,8 @@ function SolidWallSegment({
           color={effectMaterialCatalog.baseboard.color}
           opacity={capOpacity}
           yOffset={0.018}
-          textureKind="wood"
-          textureAccent="#6f4c34"
+          textureKind="wall"
+          textureAccent="#d0c6b8"
           materialToken="warmWhiteMineral"
           materialRole="wallBase"
           selected={false}
@@ -3573,6 +3986,7 @@ function CutWallPanel({
   widthMm,
   color,
   wallFinish,
+  wallMode,
   wallOpacity,
   clippingPlanes,
   selected,
@@ -3591,6 +4005,7 @@ function CutWallPanel({
   widthMm: number;
   color: string;
   wallFinish?: RoomWallFinish;
+  wallMode: Drawing3DWallMode;
   wallOpacity?: number;
   clippingPlanes?: THREE.Plane[];
   selected: boolean;
@@ -3606,6 +4021,7 @@ function CutWallPanel({
   const wallSurfaceColor = !selected && isBasementWall && !wallFinish ? "#c6beb3" : color;
   const capHeightMm = reachesTop ? Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18)) : 0;
   const bodyHeightMm = Math.max(1, heightMm - capHeightMm);
+  const technicalCap = wallMode === "cutaway";
   const bodyOpacity = wallOpacity == null
     ? selected ? WALL_SELECTED_OPACITY : WALL_PREVIEW_OPACITY
     : Math.min(0.38, wallOpacity + (selected ? 0.12 : 0));
@@ -3633,7 +4049,7 @@ function CutWallPanel({
         textureScale={wallFinish?.textureScale ?? 1}
         materialToken={wallFinish?.materialToken}
         materialRole={wallFinish?.materialRole ?? "wallBase"}
-        materialResourceId={wallFinish?.materialResourceId}
+        materialResourceId={resolveRoomWallMaterialResourceId(wallFinish)}
         uvRotationDeg={wallFinish?.uvRotationDeg}
         selected={selected}
         clippingPlanes={clippingPlanes}
@@ -3649,9 +4065,9 @@ function CutWallPanel({
           widthMm={widthMm + 64}
           heightMm={capHeightMm}
           structure={structure}
-          color={selected ? WALL_CAP_SELECTED_COLOR : WALL_CAP_COLOR}
-          materialToken="blackTitanium"
-          materialRole="trimMetal"
+          color={selected ? WALL_CAP_SELECTED_COLOR : technicalCap ? WALL_CAP_COLOR : wallSurfaceColor}
+          materialToken={technicalCap ? "blackTitanium" : wallFinish?.materialToken ?? "warmWhiteMineral"}
+          materialRole={technicalCap ? "trimMetal" : wallFinish?.materialRole ?? "wallBase"}
           opacity={capOpacity}
           yOffset={(bottomMm + bodyHeightMm) * MM_TO_M}
           selected={selected}
@@ -3670,13 +4086,13 @@ function CutWallPanel({
             widthMm={widthMm + 28}
             heightMm={42}
             structure={structure}
-            color={selected ? "#bfdbfe" : "#9b7250"}
+            color={selected ? "#bfdbfe" : "#6f6257"}
             opacity={trimOpacity}
             yOffset={0.08}
-            textureKind="wood"
-            textureAccent="#5d3d26"
-            materialToken="warmOak"
-            materialRole="joineryMain"
+            textureKind="wall"
+            textureAccent="#8f8375"
+            materialToken="shadowLine"
+            materialRole="trimMetal"
             selected={selected}
             clippingPlanes={clippingPlanes}
             onSelect={onSelect}
@@ -3694,8 +4110,8 @@ function CutWallPanel({
               color={effectMaterialCatalog.baseboard.color}
               opacity={capOpacity}
               yOffset={0.018}
-              textureKind="wood"
-              textureAccent="#6f4c34"
+              textureKind="wall"
+              textureAccent="#d0c6b8"
               materialToken="warmWhiteMineral"
               materialRole="wallBase"
               clippingPlanes={clippingPlanes}
@@ -3758,6 +4174,7 @@ function StraightWallWithOpenings({
           widthMm={wall.thickness}
           color={wallColor}
           wallFinish={wallFinish}
+          wallMode={wallMode}
           selected={selected}
           wallOpacity={wallOpacity}
           clippingPlanes={clippingPlanes}
@@ -3851,6 +4268,7 @@ function WallMesh({
             structure={structure}
             color={wallColor}
             wallFinish={wallFinish}
+            wallMode={wallMode}
             selected={selected}
             wallOpacity={wallOpacity}
             clippingPlanes={clippingPlanes}
@@ -3892,6 +4310,7 @@ function WallMesh({
       structure={structure}
       color={wallColor}
       wallFinish={wallFinish}
+      wallMode={wallMode}
       selected={selected}
       wallOpacity={wallOpacity}
       clippingPlanes={getWallClippingPlanes(structure, wallMode)}
@@ -3963,8 +4382,11 @@ function ColumnMesh({
   const height = Math.max(0.2, column.height * MM_TO_M);
   const showroomStone = column.visualStyle === "showroomLightStone";
   const concealed = column.visualStyle === "concealedByFinish";
-  const finishColor = column.finishColor ?? "#d8c8b4";
-  const accentColor = column.accentColor ?? "#a78358";
+  const tableColumn = column.id === "COL-B2-001";
+  const stairColumn = column.id === "COL-B2-002";
+  const revealCount = tableColumn ? 4 : 6;
+  const finishColor = tableColumn ? "#d8c5a8" : stairColumn ? "#d9d4c9" : column.finishColor ?? "#d8c8b4";
+  const accentColor = tableColumn ? "#ae8c5b" : stairColumn ? "#b9a078" : column.accentColor ?? "#a78358";
 
   return (
     <group
@@ -3995,8 +4417,8 @@ function ColumnMesh({
             <cylinderGeometry args={[radius * 1.04, radius * 1.04, 0.07, 40]} />
             <meshStandardMaterial color={accentColor} roughness={0.24} metalness={0.62} />
           </mesh>
-          {Array.from({ length: 6 }, (_, index) => {
-            const angle = index * Math.PI / 3;
+          {Array.from({ length: revealCount }, (_, index) => {
+            const angle = index * Math.PI * 2 / revealCount;
             return (
               <mesh key={`${column.id}-showroom-reveal-${index}`} position={[center.x + Math.sin(angle) * radius * 0.98, height / 2, center.z + Math.cos(angle) * radius * 0.98]} rotation={[0, angle, 0]}>
                 <boxGeometry args={[0.024, height * 0.9, 0.018]} />
@@ -4140,6 +4562,8 @@ function OpeningMesh({
   const isGlassDoor = isDoor && "material" in opening && opening.material?.toLowerCase().includes("glass");
   const doorVisual = isDoor ? (opening as HouseDoor).visual : undefined;
   const doorStyle = doorVisual?.style ?? "standard";
+  const doorRenderPolicy = isDoor ? getDoorOpeningRenderPolicy(opening as HouseDoor) : null;
+  const doorFrameToken = isGlassDoor ? "blackTitanium" : "warmOak";
   const color = isDoor ? (isGlassDoor ? "#8fd3e8" : effectMaterialCatalog.doorWood.color) : "#b6ddeb";
   const opacity = isDoor ? (isGlassDoor ? 0.44 : 1) : 0.42;
   const woodTexture = useProceduralTexture(isDoor && !isGlassDoor ? "wood" : null, effectMaterialCatalog.doorWood.color, "#b59b7f", 1.2, 2.2);
@@ -4159,14 +4583,19 @@ function OpeningMesh({
       : windowOperation === "fixed" && width < 1.55
         ? 1
         : 2;
-  const windowOuterFrameWidth = Math.min(0.062, Math.max(0.044, width * 0.022));
-  const windowSashWidth = Math.min(0.043, Math.max(0.03, width * 0.014));
-  const windowFrameDepth = Math.min(0.115, Math.max(0.082, host.thickness * MM_TO_M * 0.46));
+  // Keep ordinary window profiles visually slim; the old values made the
+  // reveal and sill read as a bulky secondary frame at room scale.
+  const windowOuterFrameWidth = Math.min(0.036, Math.max(0.024, width * 0.013));
+  const windowSashWidth = Math.min(0.022, Math.max(0.016, width * 0.007));
+  const windowFrameDepth = Math.min(0.09, Math.max(0.06, host.thickness * MM_TO_M * 0.36));
   const windowPanelWidth = Math.max(0.12, (width - windowOuterFrameWidth * 2) / windowPanelCount);
   const windowGlassHeight = Math.max(0.16, height - windowOuterFrameWidth * 2 - windowSashWidth * 1.4);
-  const windowFrameColor = "#493f35";
-  const windowGasketColor = "#28241f";
-  const windowGlassColor = "#d8ddd7";
+  const windowFrameToken = structure.floorId === "2F" ? "brushedBronze" : "blackTitanium";
+  const windowFrameColor = structure.floorId === "2F" ? "#ad967e" : "#5f5145";
+  const windowGasketColor = structure.floorId === "2F" ? "#74675b" : "#3a3028";
+  const windowFrameRoughness = structure.floorId === "2F" ? 0.62 : 0.56;
+  const windowFrameMetalness = structure.floorId === "2F" ? 0.18 : 0.36;
+  const windowGlassColor = "#cbd5cf";
   const windowSillColor = "#cbb89b";
 
   return (
@@ -4191,17 +4620,17 @@ function OpeningMesh({
           <SelectionBounds width={width + 0.14} height={height + 0.08} depth={Math.max(0.14, host.thickness * MM_TO_M + 0.08)} />
         </group>
       )}
-      {isDoor ? (
+      {isDoor ? doorRenderPolicy?.mode === "openPassage" ? null : (
         <>
           {[-1, 1].map((xSide) => (
             <mesh key={`${opening.id}-door-jamb-${xSide}`} castShadow position={[xSide * width * 0.5, height / 2, 0]}>
               <boxGeometry args={[jambFrameWidth, height, liningDepth]} />
-              <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={frameColor} roughness={0.34} metalness={0.48} surfaceSizeM={[jambFrameWidth, height]} />
+              <PbrMaterial token={doorFrameToken} fallbackRole={isGlassDoor ? "trimMetal" : "joineryMain"} color={frameColor} roughness={isGlassDoor ? 0.34 : 0.68} metalness={isGlassDoor ? 0.48 : 0.01} surfaceSizeM={[jambFrameWidth, height]} />
             </mesh>
           ))}
           <mesh castShadow position={[0, height, 0]}>
             <boxGeometry args={[width + jambFrameWidth, jambFrameWidth, liningDepth]} />
-            <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={frameColor} roughness={0.34} metalness={0.48} surfaceSizeM={[width, jambFrameWidth]} />
+            <PbrMaterial token={doorFrameToken} fallbackRole={isGlassDoor ? "trimMetal" : "joineryMain"} color={frameColor} roughness={isGlassDoor ? 0.34 : 0.68} metalness={isGlassDoor ? 0.48 : 0.01} surfaceSizeM={[width, jambFrameWidth]} />
           </mesh>
           {(doorVisual?.thresholdHeightMm ?? 0) > 0 && (
             <mesh receiveShadow position={[0, (doorVisual?.thresholdHeightMm ?? 0) * MM_TO_M / 2, 0]}>
@@ -4210,30 +4639,41 @@ function OpeningMesh({
             </mesh>
           )}
           {opening.operation === "sliding" ? (
-            [-1, 1].map((panelSide) => (
+            (doorVisual?.leafCount === 1
+              ? [(opening as HouseDoor).openDirection.startsWith("left") ? -1 : 1]
+              : [-1, 1]
+            ).map((panelSide) => {
+              const isSingleSlidingLeaf = doorVisual?.leafCount === 1;
+              const openingAmount = explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0;
+              const panelWidth = width * (isSingleSlidingLeaf ? 0.98 : 0.54);
+              const panelOffset = isSingleSlidingLeaf
+                ? panelSide * width * openingAmount * 0.52
+                : panelSide * width * (0.23 + openingAmount * 0.25);
+              return (
               <group
                 key={`${opening.id}-sliding-panel-${panelSide}`}
                 position={[
-                  panelSide * width * (0.23 + (explorationDoorState?.currentAngle ?? 0) * 0.25),
+                  panelOffset,
                   height / 2,
-                  panelSide * 0.038
+                  isSingleSlidingLeaf ? 0 : panelSide * 0.038
                 ]}
               >
                 <mesh castShadow receiveShadow>
-                  <boxGeometry args={[width * 0.54, height * 0.98, 0.036]} />
+                  <boxGeometry args={[panelWidth, height * 0.98, 0.036]} />
                   {isGlassDoor
-                    ? <PbrMaterial token="clearGlass" fallbackRole="glassMain" color={doorGlassColor} transmission={0.72} opacity={0.44} roughness={0.09} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[width * 0.54, height]} />
-                    : <PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} surfaceSizeM={[width * 0.54, height]} />}
+                    ? <PbrMaterial token="clearGlass" fallbackRole="glassMain" color={doorGlassColor} transmission={0.72} opacity={0.44} roughness={0.09} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[panelWidth, height]} />
+                    : <PbrMaterial token="warmOak" fallbackRole="joineryMain" color={color} roughness={0.70} surfaceSizeM={[panelWidth, height]} />}
                 </mesh>
                 {doorStyle === "slimGlass" && (
                   <group>
-                    {[-1, 1].map((side) => <mesh key={`sliding-side-${side}`} castShadow position={[side * width * 0.258, 0, 0.014]}><boxGeometry args={[Math.max(0.026, jambFrameWidth * 0.72), height * 0.98, 0.052]} /><meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.58} /></mesh>)}
-                    {[-1, 1].map((side) => <mesh key={`sliding-cap-${side}`} castShadow position={[0, side * height * 0.48, 0.014]}><boxGeometry args={[width * 0.516, Math.max(0.026, jambFrameWidth * 0.72), 0.052]} /><meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.58} /></mesh>)}
-                    <mesh position={[panelSide * width * 0.2, 0, 0.04]}><boxGeometry args={[0.018, Math.min(0.48, height * 0.23), 0.024]} /><meshStandardMaterial color={doorHardwareColor} roughness={0.24} metalness={0.72} /></mesh>
+                    {[-1, 1].map((side) => <mesh key={`sliding-side-${side}`} castShadow position={[side * panelWidth * 0.478, 0, 0.014]}><boxGeometry args={[Math.max(0.026, jambFrameWidth * 0.72), height * 0.98, 0.052]} /><meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.58} /></mesh>)}
+                    {[-1, 1].map((side) => <mesh key={`sliding-cap-${side}`} castShadow position={[0, side * height * 0.48, 0.014]}><boxGeometry args={[panelWidth * 0.956, Math.max(0.026, jambFrameWidth * 0.72), 0.052]} /><meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.58} /></mesh>)}
+                    <mesh position={[panelSide * panelWidth * 0.37, 0, 0.04]}><boxGeometry args={[0.018, Math.min(0.48, height * 0.23), 0.024]} /><meshStandardMaterial color={doorHardwareColor} roughness={0.24} metalness={0.72} /></mesh>
                   </group>
                 )}
               </group>
-            ))
+              );
+            })
           ) : (() => {
             const opensFromStart = opening.openDirection === "leftIn" || opening.openDirection === "leftOut";
             const opensInside = opening.openDirection === "leftIn" || opening.openDirection === "rightIn";
@@ -4241,10 +4681,10 @@ function OpeningMesh({
             const designSwingAngle = (opensFromStart ? -1 : 1) * (opensInside ? 1 : -1) * Math.PI * 0.4;
             const swingAngle = explorationDoorState
               ? designSwingAngle * explorationDoorState.currentAngle
-              : 0;
+              : designSwingAngle * ((opening as HouseDoor).defaultOpenAmount ?? 0);
             if (doorStyle === "doubleLeafWood" || doorVisual?.leafCount === 2) {
               const leafWidth = width / 2;
-              const openingAmount = explorationDoorState?.currentAngle ?? 0;
+              const openingAmount = explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0;
               return (
                 <group>
                   {([-1, 1] as const).map((side) => (
@@ -4266,21 +4706,21 @@ function OpeningMesh({
         <group position={[0, sillHeight + height / 2, 0]}>
           {/* 20–25 mm matte travertine sill, slightly proud of the plaster reveal. */}
           <mesh castShadow receiveShadow position={[0, -height / 2 - 0.014, 0.028]}>
-            <boxGeometry args={[width + 0.115, 0.026, Math.max(0.19, host.thickness * MM_TO_M + 0.065)]} />
-            <PbrMaterial token="travertine" fallbackRole="countertop" color={windowSillColor} roughness={0.72} surfaceSizeM={[width + 0.115, liningDepth]} />
+            <boxGeometry args={[width + 0.045, 0.022, Math.max(0.16, host.thickness * MM_TO_M + 0.035)]} />
+            <PbrMaterial token="travertine" fallbackRole="countertop" color={windowSillColor} roughness={0.72} surfaceSizeM={[width + 0.045, liningDepth]} />
           </mesh>
 
           {/* Deep outer frame sits within the wall rather than reading as a flat overlay. */}
           {[-1, 1].map((xSide) => (
             <mesh key={`${opening.id}-window-side-${xSide}`} castShadow receiveShadow position={[xSide * (width / 2 - windowOuterFrameWidth / 2), 0, 0.012]}>
               <boxGeometry args={[windowOuterFrameWidth, height, windowFrameDepth]} />
-              <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowFrameColor} roughness={0.48} metalness={0.5} surfaceSizeM={[windowOuterFrameWidth, height]} />
+              <PbrMaterial token={windowFrameToken} fallbackRole="trimMetal" color={windowFrameColor} roughness={windowFrameRoughness} metalness={windowFrameMetalness} surfaceSizeM={[windowOuterFrameWidth, height]} />
             </mesh>
           ))}
           {[-1, 1].map((ySide) => (
             <mesh key={`${opening.id}-window-horizontal-${ySide}`} castShadow receiveShadow position={[0, ySide * (height / 2 - windowOuterFrameWidth / 2), 0.012]}>
               <boxGeometry args={[width - windowOuterFrameWidth * 2, windowOuterFrameWidth, windowFrameDepth]} />
-              <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowFrameColor} roughness={0.48} metalness={0.5} surfaceSizeM={[width, windowOuterFrameWidth]} />
+              <PbrMaterial token={windowFrameToken} fallbackRole="trimMetal" color={windowFrameColor} roughness={windowFrameRoughness} metalness={windowFrameMetalness} surfaceSizeM={[width, windowOuterFrameWidth]} />
             </mesh>
           ))}
 
@@ -4294,19 +4734,19 @@ function OpeningMesh({
               <group key={`${opening.id}-window-panel-${panelIndex}`} position={[panelCenterX, paneCenterY, 0.025 + slidingLayerOffset]}>
                 <mesh receiveShadow>
                   <boxGeometry args={[paneWidth, windowGlassHeight, 0.022]} />
-                  <PbrMaterial token="clearGlass" fallbackRole="glassMain" color={windowGlassColor} transmission={0.84} opacity={0.32} roughness={0.12} thicknessMm={24} side={THREE.DoubleSide} surfaceSizeM={[paneWidth, windowGlassHeight]} />
+                  <PbrMaterial token="clearGlass" fallbackRole="glassMain" color={windowGlassColor} transmission={0.76} opacity={0.25} roughness={0.11} thicknessMm={24} side={THREE.DoubleSide} surfaceSizeM={[paneWidth, windowGlassHeight]} />
                 </mesh>
 
                 {[-1, 1].map((xSide) => (
                   <mesh key={`${opening.id}-panel-${panelIndex}-sash-v-${xSide}`} castShadow position={[xSide * (windowPanelWidth / 2 - windowSashWidth / 2), 0, 0.004]}>
                     <boxGeometry args={[windowSashWidth, sashHeight, windowFrameDepth * 0.72]} />
-                    <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowFrameColor} roughness={0.46} metalness={0.5} surfaceSizeM={[windowSashWidth, sashHeight]} />
+                    <PbrMaterial token={windowFrameToken} fallbackRole="trimMetal" color={windowFrameColor} roughness={windowFrameRoughness} metalness={windowFrameMetalness} surfaceSizeM={[windowSashWidth, sashHeight]} />
                   </mesh>
                 ))}
                 {[-1, 1].map((ySide) => (
                   <mesh key={`${opening.id}-panel-${panelIndex}-sash-h-${ySide}`} castShadow position={[0, ySide * (sashHeight / 2 - windowSashWidth / 2), 0.004]}>
                     <boxGeometry args={[windowPanelWidth - windowSashWidth * 2, windowSashWidth, windowFrameDepth * 0.72]} />
-                    <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowFrameColor} roughness={0.46} metalness={0.5} surfaceSizeM={[windowPanelWidth, windowSashWidth]} />
+                    <PbrMaterial token={windowFrameToken} fallbackRole="trimMetal" color={windowFrameColor} roughness={windowFrameRoughness} metalness={windowFrameMetalness} surfaceSizeM={[windowPanelWidth, windowSashWidth]} />
                   </mesh>
                 ))}
 
@@ -4314,13 +4754,13 @@ function OpeningMesh({
                 {[-1, 1].map((xSide) => (
                   <mesh key={`${opening.id}-panel-${panelIndex}-gasket-v-${xSide}`} position={[xSide * (paneWidth / 2 + 0.006), 0, 0.047]}>
                     <boxGeometry args={[0.011, windowGlassHeight, 0.009]} />
-                    <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowGasketColor} roughness={0.68} metalness={0.35} surfaceSizeM={[0.011, windowGlassHeight]} />
+                    <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowGasketColor} roughness={0.72} metalness={0.2} surfaceSizeM={[0.011, windowGlassHeight]} />
                   </mesh>
                 ))}
                 {[-1, 1].map((ySide) => (
                   <mesh key={`${opening.id}-panel-${panelIndex}-gasket-h-${ySide}`} position={[0, ySide * (windowGlassHeight / 2 + 0.006), 0.047]}>
                     <boxGeometry args={[paneWidth, 0.011, 0.009]} />
-                    <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowGasketColor} roughness={0.68} metalness={0.35} surfaceSizeM={[paneWidth, 0.011]} />
+                    <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={windowGasketColor} roughness={0.72} metalness={0.2} surfaceSizeM={[paneWidth, 0.011]} />
                   </mesh>
                 ))}
 
@@ -4342,7 +4782,7 @@ function OpeningMesh({
 
           {/* Soft plaster return above the recessed frame; the side returns are supplied by the host wall opening. */}
           <mesh castShadow receiveShadow position={[0, height / 2 + 0.019, -0.002]}>
-            <boxGeometry args={[width + 0.075, 0.038, Math.max(0.11, host.thickness * MM_TO_M + 0.025)]} />
+            <boxGeometry args={[width + 0.035, 0.032, Math.max(0.1, host.thickness * MM_TO_M + 0.015)]} />
             <PbrMaterial token="warmWhiteMineral" fallbackRole="wallBase" color="#d8d2c7" roughness={0.84} surfaceSizeM={[width, 0.038]} />
           </mesh>
         </group>
@@ -4379,6 +4819,15 @@ function BayWindowMesh({
   const width = bayWindow.width * MM_TO_M;
   const depth = bayWindow.depth * MM_TO_M;
   const inwardOpening = bayWindow.openDirection === "inward" || /内开/.test(bayWindow.name);
+  // Bay windows should read as a slim sample-room profile, not as a thick
+  // furniture-like box attached to the wall.
+  const frameWidth = Math.min(0.032, Math.max(0.022, Math.min(width, depth) * 0.045));
+  const sashWidth = Math.min(0.022, Math.max(0.016, Math.min(width, depth) * 0.028));
+  const frameToken = structure.floorId === "2F" ? "brushedBronze" : "blackTitanium";
+  const frameColor = structure.floorId === "2F" ? "#ad967e" : "#5f5145";
+  const frameRoughness = structure.floorId === "2F" ? 0.62 : 0.56;
+  const frameMetalness = structure.floorId === "2F" ? 0.18 : 0.36;
+  const glassColor = "#cbd5cf";
   return (
     <group
       position={[center.x, sillHeight + height / 2, center.z]}
@@ -4397,21 +4846,33 @@ function BayWindowMesh({
       }}
     >
       <mesh castShadow receiveShadow>
-        <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={selected ? "#2563eb" : "#c9e5ef"} transparent opacity={0.22} roughness={0.12} metalness={0.04} side={THREE.DoubleSide} depthWrite={false} />
+        <boxGeometry args={[Math.max(0.12, width - frameWidth * 2), Math.max(0.16, height - frameWidth * 2), Math.max(0.12, depth - frameWidth * 2)]} />
+        <PbrMaterial token="clearGlass" fallbackRole="glassMain" color={selected ? "#8fb8c1" : glassColor} transmission={0.76} opacity={0.25} roughness={0.11} thicknessMm={24} side={THREE.DoubleSide} surfaceSizeM={[width, height]} />
       </mesh>
-      <RoundedBoxMesh args={[width + 0.08, 0.09, depth + 0.08]} position={[0, -height / 2 + 0.045, 0]} radius={0.018} color="#d7c2a5" roughness={0.58} />
-      {[-0.5, 0, 0.5].map((ratio) => (
-        <mesh key={`bay-frame-${ratio}`} position={[ratio * width * 0.92, 0, depth * 0.48]}>
-          <boxGeometry args={[0.045, height * 0.96, 0.05]} />
-          <meshStandardMaterial color="#857866" roughness={0.38} metalness={0.28} />
+      <RoundedBoxMesh args={[width + 0.05, 0.022, depth + 0.04]} position={[0, -height / 2 - 0.012, 0.018]} radius={0.006} color="#cbb89b" roughness={0.72} />
+      {[-1, 1].map((side) => (
+        <mesh key={`bay-outer-side-${side}`} castShadow position={[side * (width / 2 - frameWidth / 2), 0, 0]}>
+          <boxGeometry args={[frameWidth, height, depth + frameWidth]} />
+          <PbrMaterial token={frameToken} fallbackRole="trimMetal" color={frameColor} roughness={frameRoughness} metalness={frameMetalness} surfaceSizeM={[frameWidth, height]} />
         </mesh>
       ))}
-      <mesh position={[0, height * 0.48, 0]}><boxGeometry args={[width, 0.05, depth]} /><meshStandardMaterial color="#857866" roughness={0.38} metalness={0.28} /></mesh>
+      {[-1, 1].map((side) => (
+        <mesh key={`bay-outer-cap-${side}`} castShadow position={[0, side * (height / 2 - frameWidth / 2), 0]}>
+          <boxGeometry args={[width - frameWidth * 2, frameWidth, depth + frameWidth]} />
+          <PbrMaterial token={frameToken} fallbackRole="trimMetal" color={frameColor} roughness={frameRoughness} metalness={frameMetalness} surfaceSizeM={[width, frameWidth]} />
+        </mesh>
+      ))}
+      {[-1 / 6, 1 / 6].map((ratio) => (
+        <mesh key={`bay-mullion-${ratio}`} castShadow position={[ratio * width, 0, depth / 2 + 0.018]}>
+          <boxGeometry args={[sashWidth, height - frameWidth * 2, 0.036]} />
+          <PbrMaterial token={frameToken} fallbackRole="trimMetal" color={frameColor} roughness={frameRoughness} metalness={frameMetalness} surfaceSizeM={[sashWidth, height]} />
+        </mesh>
+      ))}
       {inwardOpening && [-1, 1].map((side) => (
-        <group key={`inward-sash-${side}`} position={[side * width * 0.24, 0, -depth * 0.48]} rotation={[0, side * 0.42, 0]}>
-          <mesh><boxGeometry args={[width * 0.46, height * 0.9, 0.035]} /><meshStandardMaterial color="#b9dce7" transparent opacity={0.38} roughness={0.08} metalness={0.05} depthWrite={false} /></mesh>
-          <mesh position={[0, 0, 0.022]}><boxGeometry args={[width * 0.48, 0.035, 0.045]} /><meshStandardMaterial color="#756b5f" roughness={0.35} metalness={0.3} /></mesh>
+        <group key={`inward-sash-${side}`} position={[side * width * 0.22, 0, -depth * 0.48]} rotation={[0, side * 0.3, 0]}>
+          <mesh><boxGeometry args={[width * 0.38, height * 0.9, 0.022]} /><PbrMaterial token="clearGlass" fallbackRole="glassMain" color={glassColor} transmission={0.76} opacity={0.25} roughness={0.11} thicknessMm={24} side={THREE.DoubleSide} surfaceSizeM={[width * 0.38, height * 0.9]} /></mesh>
+          <mesh position={[0, 0, 0.018]}><boxGeometry args={[width * 0.41, sashWidth, 0.038]} /><PbrMaterial token={frameToken} fallbackRole="trimMetal" color={frameColor} roughness={frameRoughness} metalness={frameMetalness} surfaceSizeM={[width * 0.41, sashWidth]} /></mesh>
+          {[-1, 1].map((sashSide) => <mesh key={`bay-inward-sash-side-${sashSide}`} position={[sashSide * width * 0.19, 0, 0.018]}><boxGeometry args={[sashWidth, height * 0.9, 0.038]} /><PbrMaterial token={frameToken} fallbackRole="trimMetal" color={frameColor} roughness={frameRoughness} metalness={frameMetalness} surfaceSizeM={[sashWidth, height * 0.9]} /></mesh>)}
         </group>
       ))}
     </group>
@@ -4539,6 +5000,8 @@ function StairLandingMesh({
     depth: Math.max(0.5, bounds.maxZ - bounds.minZ)
   };
   const elevation = elevationMm * MM_TO_M;
+  const isB2StorageLanding = structure.floorId === "B2" && landing.id === "LANDING-B2-B1";
+  const platformThickness = isB2StorageLanding ? 0.1 : 0.13;
   return (
     <group
       onClick={(event) => {
@@ -4554,22 +5017,22 @@ function StairLandingMesh({
         onClearHover(landing.id);
       }}
     >
-      <mesh castShadow receiveShadow position={[platform.center.x, elevation - 0.065, platform.center.z]}>
-        <boxGeometry args={[platform.width, 0.13, platform.depth]} />
+      <mesh castShadow receiveShadow position={[platform.center.x, elevation - platformThickness / 2, platform.center.z]}>
+        <boxGeometry args={[platform.width, platformThickness, platform.depth]} />
         <PbrMaterial
-          token={materialPreview ? "travertine" : "microCement"}
-          fallbackRole="floorMain"
-          color={selected ? "#2563eb" : materialPreview ? "#82502b" : "#0f766e"}
-          roughness={materialPreview ? 0.46 : 0.62}
-          metalness={materialPreview ? 0.02 : 0}
+          token={isB2StorageLanding ? "warmWhiteMineral" : materialPreview ? "travertine" : "microCement"}
+          fallbackRole={isB2StorageLanding ? "ceilingBase" : "floorMain"}
+          color={selected ? "#2563eb" : isB2StorageLanding ? "#e4ddd2" : materialPreview ? "#82502b" : "#0f766e"}
+          roughness={isB2StorageLanding ? 0.86 : materialPreview ? 0.46 : 0.62}
+          metalness={isB2StorageLanding ? 0 : materialPreview ? 0.02 : 0}
           opacity={selected ? 0.92 : materialPreview ? 1 : 0.88}
           surfaceSizeM={[platform.width, platform.depth]}
         />
       </mesh>
-      <mesh castShadow position={[platform.center.x, elevation - 0.12, platform.center.z]}>
+      {!isB2StorageLanding && <mesh castShadow position={[platform.center.x, elevation - 0.12, platform.center.z]}>
         <boxGeometry args={[platform.width * 0.92, 0.16, 0.18]} />
         <PbrMaterial token="warmOak" fallbackRole="joineryMain" color={selected ? "#2563eb" : "#5f4a39"} roughness={0.74} surfaceSizeM={[platform.width, 0.16]} />
-      </mesh>
+      </mesh>}
       {showLight && (
         <pointLight color="#ffd48a" intensity={0.42} distance={2.4} position={[platform.center.x, elevation + 0.55, platform.center.z]} />
       )}
@@ -5564,25 +6027,36 @@ function FurnitureBlock({
         <group>
           <mesh castShadow receiveShadow position={[0, -height * 0.31, 0]}>
             <cylinderGeometry args={[Math.min(width, depth) * 0.18, Math.min(width, depth) * 0.23, height * 0.22, 28]} />
-            <meshStandardMaterial color={palette.accent} roughness={0.66} />
+            <meshStandardMaterial color="#65584a" roughness={0.82} />
+          </mesh>
+          <mesh receiveShadow position={[0, -height * 0.195, 0]}>
+            <cylinderGeometry args={[Math.min(width, depth) * 0.165, Math.min(width, depth) * 0.165, 0.026, 24]} />
+            <meshStandardMaterial color="#4b392b" roughness={0.98} />
           </mesh>
           <mesh castShadow position={[0, -height * 0.08, 0]}>
-            <cylinderGeometry args={[0.035, 0.045, height * 0.48, 12]} />
-            <meshStandardMaterial color="#7c5f42" roughness={0.72} />
+            <cylinderGeometry args={[0.032, 0.052, height * 0.5, 11]} />
+            <meshStandardMaterial color="#604934" roughness={0.86} />
           </mesh>
-          {Array.from({ length: 7 }, (_, index) => {
-            const angle = (index / 7) * Math.PI * 2;
-            const radius = Math.min(width, depth) * (index % 2 ? 0.18 : 0.26);
+          {Array.from({ length: 9 }, (_, index) => {
+            const angle = (index / 9) * Math.PI * 2 + (index % 2) * 0.24;
+            const radius = Math.min(width, depth) * (index % 3 === 0 ? 0.12 : index % 2 ? 0.2 : 0.27);
+            const leafColor = index % 4 === 0 ? "#2f4c36" : index % 3 === 0 ? "#66784b" : index % 2 ? "#45643f" : "#557246";
             return (
-              <mesh
-                key={`${item.id}-leaf-${index}`}
-                castShadow
-                position={[Math.cos(angle) * radius, height * (0.1 + (index % 3) * 0.06), Math.sin(angle) * radius]}
-                scale={[1.15, 0.68, 0.86]}
-              >
-                <sphereGeometry args={[Math.min(width, depth) * 0.17, 18, 12]} />
-                <meshStandardMaterial color={useSelectionTint ? "#2563eb" : palette.plant} roughness={0.74} />
-              </mesh>
+              <group key={`${item.id}-leaf-${index}`}>
+                <mesh castShadow position={[Math.cos(angle) * radius * 0.48, height * (0.04 + (index % 3) * 0.045), Math.sin(angle) * radius * 0.48]} rotation={[0, -angle, Math.PI / 2 - 0.35]}>
+                  <cylinderGeometry args={[0.012, 0.018, Math.max(0.16, radius), 7]} />
+                  <meshStandardMaterial color="#4f4937" roughness={0.92} />
+                </mesh>
+                <mesh
+                  castShadow
+                  position={[Math.cos(angle) * radius, height * (0.08 + (index % 4) * 0.055), Math.sin(angle) * radius]}
+                  rotation={[0.08 * (index % 3 - 1), angle * 0.42, 0.08 * (index % 2 ? 1 : -1)]}
+                  scale={[1.08 + index % 2 * 0.12, 0.72 + index % 3 * 0.08, 0.62 + index % 2 * 0.08]}
+                >
+                  <icosahedronGeometry args={[Math.min(width, depth) * (0.135 + index % 3 * 0.012), 2]} />
+                  <meshStandardMaterial color={useSelectionTint ? "#2563eb" : leafColor} roughness={0.92} />
+                </mesh>
+              </group>
             );
           })}
         </group>
@@ -6554,18 +7028,119 @@ function FurnitureBlock({
 
 type ResolvedFurnitureAssetProps = Omit<FurnitureAssetGroupProps, "resolvedAsset">;
 
-function FineVariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
+function CabinetMaterialRuntimeProbe({ item, children }: { item: Furniture; children: ReactNode }) {
+  const groupRef = useRef<THREE.Group>(null);
+  useEffect(() => {
+    const root = groupRef.current;
+    if (!root) return;
+    const records: Array<Record<string, unknown>> = [];
+    root.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      materials.forEach((material) => {
+        if (!material) return;
+        const runtimeMaterial = material as THREE.MeshStandardMaterial & { transmission?: number };
+        records.push({
+          mesh: mesh.name || object.userData?.materialPart || "unnamed-mesh",
+          materialType: material.type,
+          materialToken: material.userData?.materialToken ?? null,
+          color: runtimeMaterial.color?.getHexString?.() ? `#${runtimeMaterial.color.getHexString()}` : null,
+          roughness: runtimeMaterial.roughness ?? null,
+          metalness: runtimeMaterial.metalness ?? null,
+          transparent: Boolean(runtimeMaterial.transparent),
+          opacity: runtimeMaterial.opacity ?? null,
+          transmission: runtimeMaterial.transmission ?? 0,
+          map: Boolean(runtimeMaterial.map),
+          normalMap: Boolean(runtimeMaterial.normalMap),
+          materialPart: object.userData?.materialPart ?? null
+        });
+      });
+    });
+    if (process.env.NODE_ENV !== "production" && records.length) {
+      console.info(`[cabinet-material-runtime] ${JSON.stringify({ objectId: item.id, records })}`);
+    }
+  }, [item.id, item.cabinetInterior, item.render3d?.cabinetMaterialOverrides, item.render3d?.primaryMaterial, item.render3d?.secondaryMaterial, item.render3d?.accentMaterial]);
+  return <group ref={groupRef} userData={{ cabinetMaterialRuntimeProbe: true }}>{children}</group>;
+}
+
+function ExternalGltfFurniture3DGroup(props: FurnitureAssetGroupProps) {
   const metrics = useFineAssetMetrics(props);
+  const assetUrl = props.resolvedAsset.assetUrl;
+  const [loadedScene, setLoadedScene] = useState<THREE.Object3D | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    if (!assetUrl) {
+      setLoadedScene(null);
+      setLoadFailed(false);
+      return;
+    }
+    let active = true;
+    setLoadedScene(null);
+    setLoadFailed(false);
+    const loader = new GLTFLoader();
+    loader.load(
+      resolvePublicAssetUrl(assetUrl),
+      (gltf) => {
+        if (!active) return;
+        const scene = gltf.scene.clone(true);
+        scene.updateMatrixWorld(true);
+        const bounds = new THREE.Box3().setFromObject(scene);
+        const sourceSize = new THREE.Vector3();
+        const sourceCenter = new THREE.Vector3();
+        bounds.getSize(sourceSize);
+        bounds.getCenter(sourceCenter);
+        if (!sourceSize.x || !sourceSize.y || !sourceSize.z) {
+          setLoadFailed(true);
+          return;
+        }
+        scene.position.sub(sourceCenter);
+        scene.scale.set(
+          metrics.width / sourceSize.x,
+          metrics.height / sourceSize.y,
+          metrics.depth / sourceSize.z
+        );
+        scene.traverse((object) => {
+          object.castShadow = true;
+          object.receiveShadow = true;
+        });
+        setLoadedScene(scene);
+      },
+      undefined,
+      () => {
+        if (active) setLoadFailed(true);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [assetUrl, metrics.depth, metrics.height, metrics.width]);
+
+  if (!assetUrl || loadFailed || !loadedScene) return <FurnitureBlock {...props} />;
   return (
     <SelectableFurnitureGroup props={props} position={metrics.position} groupY={metrics.groupY} rotation={metrics.rotation}>
-      <FurnitureFamily3D
-        item={props.item}
-        asset={props.resolvedAsset}
-        width={metrics.width}
-        depth={metrics.depth}
-        height={metrics.height}
-        openAmount={props.cabinetOpenAmount}
-      />
+      <primitive object={loadedScene} />
+    </SelectableFurnitureGroup>
+  );
+}
+
+function FineVariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  const persistedOpenAmount = props.item.cabinetInterior?.doorStates && Object.values(props.item.cabinetInterior.doorStates).some(Boolean) ? 1 : 0;
+  const content = (
+    <FurnitureFamily3D
+      item={props.item}
+      asset={props.resolvedAsset}
+      width={metrics.width}
+      depth={metrics.depth}
+      height={metrics.height}
+      openAmount={props.cabinetOpenAmount ?? persistedOpenAmount}
+    />
+  );
+  return (
+    <SelectableFurnitureGroup props={props} position={metrics.position} groupY={metrics.groupY} rotation={metrics.rotation}>
+      {isCabinetLike(props.item) ? <CabinetMaterialRuntimeProbe item={props.item}>{content}</CabinetMaterialRuntimeProbe> : content}
     </SelectableFurnitureGroup>
   );
 }
@@ -6592,18 +7167,123 @@ function WalkInCloset3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Cabinet3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2CurvedCornerWineCabinet") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    const plinthHeight = Math.min(0.34, height * 0.15);
+    const topThickness = 0.065;
+    const displayBottom = floorY + plinthHeight;
+    const displayHeight = height - plinthHeight - topThickness;
+    const displayCenterY = displayBottom + displayHeight / 2;
+    const radius = Math.min(width, depth);
+    const cornerX = -width / 2;
+    const cornerZ = depth / 2;
+    const concaveCenterX = cornerX + radius;
+    const concaveCenterZ = cornerZ - radius;
+    const thetaStart = -Math.PI / 2;
+    const thetaLength = Math.PI / 2;
+    const concavePlanShape = useMemo(() => {
+      const shape = new THREE.Shape();
+      shape.moveTo(0, 0);
+      shape.lineTo(radius, 0);
+      shape.absarc(radius, -radius, radius, Math.PI / 2, Math.PI, false);
+      shape.lineTo(0, 0);
+      return shape;
+    }, [radius]);
+    const arcPoint = (angle: number, inset = 0) => ({
+      x: concaveCenterX + Math.sin(angle) * (radius - inset),
+      z: concaveCenterZ + Math.cos(angle) * (radius - inset)
+    });
+    const shelfYs = [0.2, 0.48, 0.76].map((ratio) => displayBottom + displayHeight * ratio);
+    const mullionAngles = [thetaStart, thetaStart + thetaLength / 2, thetaStart + thetaLength];
+    const ledAngles = Array.from({ length: 7 }, (_, index) => thetaStart + thetaLength * ((index + 0.5) / 7));
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <mesh position={[cornerX, floorY + plinthHeight + 0.025, cornerZ]} rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
+          <extrudeGeometry args={[concavePlanShape, { depth: plinthHeight, bevelEnabled: false, curveSegments: 48 }]} />
+          <PbrMaterial token="darkWalnut" fallbackRole="joineryMain" roughness={0.54} surfaceSizeM={[width, depth]} />
+        </mesh>
+
+        <RoundedBoxMesh
+          args={[0.045, displayHeight, depth * 0.94]}
+          position={[cornerX + 0.022, displayCenterY, cornerZ - depth * 0.47]}
+          radius={0.008}
+          color="#35281f"
+          materialToken="darkWalnut"
+          fallbackRole="joineryMain"
+          roughness={0.56}
+        />
+        <RoundedBoxMesh
+          args={[width * 0.94, displayHeight, 0.045]}
+          position={[cornerX + width * 0.47, displayCenterY, cornerZ - 0.022]}
+          radius={0.008}
+          color="#35281f"
+          materialToken="darkWalnut"
+          fallbackRole="joineryMain"
+          roughness={0.56}
+        />
+
+        {shelfYs.map((shelfY, shelfIndex) => (
+          <group key={`corner-symmetric-wine-shelf-${shelfIndex}`}>
+            <mesh position={[cornerX, shelfY + 0.014, cornerZ]} rotation={[Math.PI / 2, 0, 0]} castShadow receiveShadow>
+              <extrudeGeometry args={[concavePlanShape, { depth: 0.028, bevelEnabled: false, curveSegments: 48 }]} />
+              <PbrMaterial token="darkWalnut" fallbackRole="joineryMain" roughness={0.48} surfaceSizeM={[width, depth]} />
+            </mesh>
+            {[0.24, 0.48, 0.72].map((angleRatio, bottleIndex) => {
+              const angle = thetaStart + thetaLength * angleRatio;
+              const frontPoint = arcPoint(angle, radius * 0.08);
+              const bottlePoint = {
+                x: cornerX + (frontPoint.x - cornerX) * (0.52 + bottleIndex * 0.06),
+                z: cornerZ + (frontPoint.z - cornerZ) * (0.52 + bottleIndex * 0.06)
+              };
+              const bottleColor = (shelfIndex + bottleIndex) % 3 === 0 ? "#5d1f24" : (shelfIndex + bottleIndex) % 2 ? "#294c36" : "#795126";
+              return (
+                <group key={`corner-symmetric-wine-bottle-${shelfIndex}-${bottleIndex}`} position={[bottlePoint.x, shelfY + 0.13, bottlePoint.z]}>
+                  <mesh><cylinderGeometry args={[0.026, 0.03, 0.22, 16]} /><meshStandardMaterial color={bottleColor} roughness={0.34} /></mesh>
+                  <mesh position={[0, 0.135, 0]}><cylinderGeometry args={[0.014, 0.017, 0.065, 12]} /><meshStandardMaterial color="#d6c1a0" roughness={0.48} /></mesh>
+                </group>
+              );
+            })}
+          </group>
+        ))}
+
+        <mesh position={[concaveCenterX, displayCenterY, concaveCenterZ]}>
+          <cylinderGeometry args={[radius * 0.992, radius * 0.992, displayHeight, 64, 1, true, thetaStart, thetaLength]} />
+          <PbrMaterial token="smokedGlass" fallbackRole="glassMain" transmission={0.58} opacity={0.23} roughness={0.07} thicknessMm={22} side={THREE.DoubleSide} depthWrite={false} surfaceSizeM={[radius * 1.6, displayHeight]} />
+        </mesh>
+        {mullionAngles.map((angle, index) => {
+          const point = arcPoint(angle, 0.008);
+          return <RoundedBoxMesh key={`corner-symmetric-wine-mullion-${index}`} args={[0.027, displayHeight * 0.985, 0.027]} position={[point.x, displayCenterY, point.z]} radius={0.006} color="#a88458" materialToken="brushedBronze" fallbackRole="trimMetal" roughness={0.22} metalness={0.76} />;
+        })}
+
+        <mesh position={[cornerX, displayBottom + displayHeight + topThickness, cornerZ]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <extrudeGeometry args={[concavePlanShape, { depth: topThickness, bevelEnabled: false, curveSegments: 48 }]} />
+          <PbrMaterial token="darkWalnut" fallbackRole="joineryMain" roughness={0.54} surfaceSizeM={[width, depth]} />
+        </mesh>
+        {ledAngles.map((angle, index) => {
+          const point = arcPoint(angle, 0.016);
+          return <RoundedBoxMesh key={`corner-symmetric-wine-led-${index}`} args={[radius * 0.21, 0.018, 0.018]} position={[point.x, displayBottom + displayHeight * 0.965, point.z]} rotation={[0, angle, 0]} radius={0.004} color="#ffe0a8" emissive="#ffc878" emissiveIntensity={0.92} roughness={0.16} />;
+        })}
+        {[-0.035, 0.035].map((offset, index) => {
+          const handlePoint = arcPoint(thetaStart + thetaLength / 2 + offset, 0.028);
+          return <RoundedBoxMesh key={`corner-symmetric-wine-handle-${index}`} args={[0.018, displayHeight * 0.28, 0.022]} position={[handlePoint.x, displayCenterY, handlePoint.z]} radius={0.005} color="#b28b5c" materialToken="brushedBronze" fallbackRole="trimMetal" roughness={0.2} metalness={0.76} />;
+        })}
+        <pointLight color="#ffd39a" intensity={0.24} distance={1.35} position={[cornerX + radius * 0.24, displayCenterY + displayHeight * 0.28, cornerZ - radius * 0.24]} />
+      </SelectableFurnitureGroup>
+    );
+  }
   if (props.item.render3d?.variantId === "b2WineStorageCabinet") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
     const floorY = -height / 2;
-    const carcassLift = 0.09;
-    const carcassHeight = Math.max(0.5, height - carcassLift - 0.025);
-    const bottleRows = 5;
-    const bottleColumns = 4;
-    const cellWidth = width * 0.72 / bottleColumns;
-    const cellarHeight = height * 0.66;
-    const cellHeight = cellarHeight / bottleRows;
-    const frontZ = depth / 2 + 0.022;
+    const plinthHeight = height * 0.2;
+    const displayBottom = floorY + plinthHeight;
+    const displayHeight = height * 0.74;
+    const displayCenterY = displayBottom + displayHeight / 2;
+    const curveRadius = depth * 0.92;
+    const ellipseScaleX = Math.max(1, width / Math.max(0.1, curveRadius * 2));
+    const frontZ = curveRadius * 0.96;
     const walnutPbr = useProceduralPbrMaps({
       kind: "wood",
       baseColor: renderVariant.darkWood,
@@ -6612,63 +7292,42 @@ function Cabinet3DGroup(props: FurnitureAssetGroupProps) {
     });
     return (
       <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
-        <RoundedBoxMesh
-          args={[width, carcassHeight, depth]}
-          position={[0, floorY + carcassLift + carcassHeight / 2, 0]}
-          radius={0.025}
-          color={renderVariant.darkWood}
-          map={walnutPbr?.map}
-          normalMap={walnutPbr?.normalMap}
-          roughnessMap={walnutPbr?.roughnessMap}
-          aoMap={walnutPbr?.aoMap}
-          roughness={0.56}
-        />
-        <RoundedBoxMesh args={[width * 0.78, cellarHeight, 0.035]} position={[0, floorY + height * 0.58, frontZ]} radius={0.012} color="#241d19" roughness={0.42} />
-        {Array.from({ length: bottleRows + 1 }, (_, row) => (
-          <mesh key={`wine-row-${row}`} position={[0, floorY + height * 0.25 + row * cellHeight, frontZ + 0.025]}>
-            <boxGeometry args={[width * 0.74, 0.018, 0.025]} />
-            <meshStandardMaterial color="#c29a6e" roughness={0.5} />
-          </mesh>
+        <mesh position={[0, floorY + plinthHeight / 2 + 0.035, 0]} scale={[ellipseScaleX, 1, 1]} castShadow receiveShadow>
+          <cylinderGeometry args={[curveRadius, curveRadius, plinthHeight, 64, 1, false, -Math.PI / 2, Math.PI]} />
+          <meshStandardMaterial color={renderVariant.darkWood} map={walnutPbr?.map} normalMap={walnutPbr?.normalMap} roughnessMap={walnutPbr?.roughnessMap} aoMap={walnutPbr?.aoMap} roughness={0.56} />
+        </mesh>
+        <RoundedBoxMesh args={[width * 0.82, displayHeight * 0.96, 0.055]} position={[0, displayCenterY, -depth * 0.44]} radius={0.02} color="#35281f" roughness={0.52} />
+        {[-0.33, 0, 0.33].map((ratio, index) => (
+          <group key={`curved-wine-shelf-${ratio}`} position={[0, displayBottom + displayHeight * (0.18 + index * 0.29), 0]}>
+            <mesh scale={[ellipseScaleX * 0.9, 1, 0.9]} castShadow receiveShadow>
+              <cylinderGeometry args={[curveRadius, curveRadius, 0.032, 64, 1, false, -Math.PI / 2, Math.PI]} />
+              <meshStandardMaterial color="#8c684a" map={walnutPbr?.map} roughness={0.5} />
+            </mesh>
+            <RoundedBoxMesh args={[width * 0.7, 0.018, 0.018]} position={[0, 0.035, frontZ]} radius={0.004} color="#ffd69a" emissive="#ffc774" emissiveIntensity={0.86} roughness={0.18} />
+          </group>
         ))}
-        {Array.from({ length: bottleColumns + 1 }, (_, column) => (
-          <mesh key={`wine-column-${column}`} position={[-width * 0.36 + column * cellWidth, floorY + height * 0.58, frontZ + 0.025]}>
-            <boxGeometry args={[0.018, cellarHeight, 0.025]} />
-            <meshStandardMaterial color="#c29a6e" roughness={0.5} />
-          </mesh>
-        ))}
-        {Array.from({ length: 12 }, (_, index) => {
-          const column = index % bottleColumns;
-          const row = Math.floor(index / bottleColumns);
+        {Array.from({ length: 9 }, (_, index) => {
+          const column = index % 3;
+          const row = Math.floor(index / 3);
           return (
-            <group key={`wine-bottle-${index}`} position={[-width * 0.27 + column * cellWidth, floorY + height * 0.3 + row * cellHeight, frontZ + 0.06]} rotation={[Math.PI / 2, 0, 0]}>
-              <mesh><cylinderGeometry args={[0.025, 0.032, Math.min(0.24, depth * 0.58), 16]} /><meshStandardMaterial color={index % 3 === 0 ? "#5d1f24" : index % 2 ? "#294c36" : "#795126"} roughness={0.35} /></mesh>
-              <mesh position={[0, Math.min(0.15, depth * 0.34), 0]}><cylinderGeometry args={[0.014, 0.018, 0.07, 12]} /><meshStandardMaterial color="#d6c1a0" roughness={0.48} /></mesh>
+            <group key={`curved-wine-bottle-${index}`} position={[-width * 0.22 + column * width * 0.22, displayBottom + displayHeight * (0.16 + row * 0.29), depth * 0.08]}>
+              <mesh><cylinderGeometry args={[0.026, 0.03, 0.24, 16]} /><meshStandardMaterial color={index % 3 === 0 ? "#5d1f24" : index % 2 ? "#294c36" : "#795126"} roughness={0.34} /></mesh>
+              <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[0.014, 0.017, 0.07, 12]} /><meshStandardMaterial color="#d6c1a0" roughness={0.48} /></mesh>
             </group>
           );
         })}
-        <RoundedBoxMesh
-          args={[width * 0.76, height * 0.18, depth * 0.82]}
-          position={[0, floorY + height * 0.11 + carcassLift, 0]}
-          radius={0.018}
-          color={renderVariant.wood}
-          map={walnutPbr?.map}
-          normalMap={walnutPbr?.normalMap}
-          roughnessMap={walnutPbr?.roughnessMap}
-          aoMap={walnutPbr?.aoMap}
-          roughness={0.56}
-        />
-        {[-0.25, 0, 0.25].map((ratio) => (
-          <mesh key={`wine-lower-door-gap-${ratio}`} position={[ratio * width * 0.72, floorY + height * 0.11 + carcassLift, frontZ + 0.02]}>
-            <boxGeometry args={[0.012, height * 0.15, 0.014]} />
-            <meshStandardMaterial color="#211b17" roughness={0.82} />
-          </mesh>
-        ))}
-        <RoundedBoxMesh args={[width * 0.72, 0.026, 0.022]} position={[0, floorY + height * 0.205 + carcassLift, frontZ + 0.025]} radius={0.005} color="#ffe0a8" emissive="#ffc878" emissiveIntensity={0.82} roughness={0.2} />
-        <RoundedBoxMesh args={[width * 0.82, 0.02, 0.03]} position={[0, floorY + height * 0.94, frontZ + 0.02]} radius={0.004} color="#1e1916" roughness={0.78} />
-        <RoundedBoxMesh args={[width * 0.84, cellarHeight * 0.96, 0.022]} position={[0, floorY + height * 0.58, frontZ + 0.075]} radius={0.014} color="#465154" transparent opacity={0.16} roughness={0.08} metalness={0.16} depthWrite={false} />
-        <RoundedBoxMesh args={[width * 0.72, 0.028, 0.02]} position={[0, floorY + height * 0.905, frontZ + 0.09]} radius={0.005} color="#ffe0a8" emissive="#ffc878" emissiveIntensity={0.9} roughness={0.18} />
-        <RoundedBoxMesh args={[width * 0.72, 0.055, depth * 0.42]} position={[0, floorY + carcassLift * 0.38, 0.02]} radius={0.01} color="#2d2824" roughness={0.7} />
-        <pointLight color="#ffd39a" intensity={0.22} distance={1.35} position={[0, floorY + height * 0.84, frontZ + 0.18]} />
+        <mesh position={[0, displayCenterY, 0]} scale={[ellipseScaleX, 1, 1]}>
+          <cylinderGeometry args={[curveRadius * 1.015, curveRadius * 1.015, displayHeight, 64, 1, true, -Math.PI / 2, Math.PI]} />
+          <meshPhysicalMaterial color="#59666a" transmission={0.52} transparent opacity={0.24} roughness={0.08} metalness={0.12} thickness={0.022} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+        {[[-width * 0.46, 0], [width * 0.46, 0], [0, frontZ]].map(([x, z], index) => <RoundedBoxMesh key={`curved-wine-mullion-${index}`} args={[0.026, displayHeight * 0.98, 0.028]} position={[x, displayCenterY, z]} radius={0.006} color="#a88458" roughness={0.24} metalness={0.72} />)}
+        <mesh position={[0, displayBottom + displayHeight + 0.018, 0]} scale={[ellipseScaleX, 1, 1]} castShadow>
+          <cylinderGeometry args={[curveRadius * 1.02, curveRadius * 1.02, 0.04, 64, 1, false, -Math.PI / 2, Math.PI]} />
+          <meshStandardMaterial color={renderVariant.darkWood} map={walnutPbr?.map} roughness={0.56} />
+        </mesh>
+        <RoundedBoxMesh args={[0.018, displayHeight * 0.38, 0.022]} position={[width * 0.05, displayCenterY, frontZ + 0.018]} radius={0.005} color="#b28b5c" roughness={0.22} metalness={0.72} />
+        <RoundedBoxMesh args={[width * 0.68, 0.025, 0.02]} position={[0, displayBottom + displayHeight * 0.97, frontZ + 0.01]} radius={0.004} color="#ffe0a8" emissive="#ffc878" emissiveIntensity={0.9} roughness={0.18} />
+        <pointLight color="#ffd39a" intensity={0.25} distance={1.45} position={[0, displayCenterY + displayHeight * 0.28, frontZ + 0.2]} />
       </SelectableFurnitureGroup>
     );
   }
@@ -6677,89 +7336,44 @@ function Cabinet3DGroup(props: FurnitureAssetGroupProps) {
     const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
     const floorY = -height / 2;
     const frontZ = depth / 2 + 0.018;
-    const lowConsoleHeight = 0.44;
-    const lowConsoleY = floorY + 0.32 + lowConsoleHeight / 2;
-    const tallHeight = Math.max(1.9, height * 0.92);
-    const tallY = floorY + tallHeight / 2 + 0.04;
-    const sideWidth = Math.min(0.66, width * 0.18);
-    const centerWidth = width - sideWidth * 2 - 0.12;
-    const stonePanelHeight = height * 0.76;
-    const stonePanelY = floorY + height * 0.57;
-    const stonePbr = useProceduralPbrMaps({
-      kind: "stone",
-      baseColor: "#ded3c3",
-      accentColor: "#b9a88f",
-      repeat: [Math.max(1.6, centerWidth * 1.2), Math.max(1.8, stonePanelHeight * 1.15)]
-    });
-    const oakPbr = useProceduralPbrMaps({
-      kind: "wood",
-      baseColor: renderVariant.wood,
-      accentColor: "#9f7e59",
-      repeat: [Math.max(1.4, width * 0.8), Math.max(3, tallHeight * 2.4)]
-    });
+    const lowConsoleHeight = 0.3;
+    const lowConsoleY = floorY + 0.34 + lowConsoleHeight / 2;
+    const equipmentWidth = Math.min(0.34, width * 0.11);
+    const equipmentHeight = height * 0.9;
+    const equipmentY = floorY + 0.06 + equipmentHeight / 2;
+    const panelWidth = width - equipmentWidth - 0.1;
+    const panelX = -equipmentWidth / 2 - 0.02;
+    const panelHeight = height * 0.77;
+    const panelY = floorY + 0.36 + panelHeight / 2;
     return (
       <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
-        <RoundedBoxMesh args={[centerWidth + 0.07, stonePanelHeight + 0.07, Math.max(0.075, depth * 0.2)]} position={[0, stonePanelY, -depth * 0.39]} radius={0.024} color="#2b2723" roughness={0.82} />
+        <RoundedBoxMesh args={[panelWidth + 0.045, panelHeight + 0.045, Math.max(0.055, depth * 0.16)]} position={[panelX, panelY, -depth * 0.42]} radius={0.07} color="#a9865e" materialToken="brushedBronze" fallbackRole="trimMetal" roughness={0.42} metalness={0.18} />
         <RoundedBoxMesh
-          args={[centerWidth, stonePanelHeight, Math.max(0.08, depth * 0.24)]}
-          position={[0, stonePanelY, -depth * 0.36]}
-          radius={0.022}
-          color="#ded3c3"
-          map={stonePbr?.map}
-          normalMap={stonePbr?.normalMap}
-          roughnessMap={stonePbr?.roughnessMap}
-          aoMap={stonePbr?.aoMap}
-          normalScale={[0.09, 0.09]}
-          roughness={0.66}
+          args={[panelWidth, panelHeight, Math.max(0.07, depth * 0.2)]}
+          position={[panelX, panelY, -depth * 0.38]}
+          radius={0.065}
+          color="#d9d3ca"
+          materialToken="microCement"
+          fallbackRole="wallFeature"
+          normalScale={[0.06, 0.06]}
+          roughness={0.78}
         />
-        {[-0.2, 0.2].map((ratio) => (
-          <mesh key={`tv-stone-vertical-joint-${ratio}`} position={[ratio * centerWidth, stonePanelY, -depth * 0.225]}>
-            <boxGeometry args={[0.012, stonePanelHeight * 0.94, 0.012]} />
-            <meshStandardMaterial color="#9b8c79" roughness={0.7} />
-          </mesh>
-        ))}
-        <mesh position={[0, stonePanelY + stonePanelHeight * 0.18, -depth * 0.215]}>
-          <boxGeometry args={[centerWidth * 0.92, 0.012, 0.012]} />
-          <meshStandardMaterial color="#9b8c79" roughness={0.7} />
-        </mesh>
         <RoundedBoxMesh
-          args={[sideWidth, tallHeight, depth * 0.82]}
-          position={[-width / 2 + sideWidth / 2, tallY, -depth * 0.04]}
-          radius={0.028}
+          args={[equipmentWidth, equipmentHeight, depth * 0.72]}
+          position={[width / 2 - equipmentWidth / 2, equipmentY, -depth * 0.08]}
+          radius={0.04}
           color={renderVariant.wood}
-          map={oakPbr?.map}
-          normalMap={oakPbr?.normalMap}
-          roughnessMap={oakPbr?.roughnessMap}
-          aoMap={oakPbr?.aoMap}
-          roughness={0.58}
+          materialToken="warmOak"
+          materialResourceId="showroomWarmOakVertical"
+          fallbackRole="joineryMain"
+          roughness={0.62}
         />
-        {[-0.23, 0.23].map((ratio) => <mesh key={`tv-wall-left-seam-${ratio}`} position={[-width / 2 + sideWidth / 2, tallY + ratio * tallHeight, frontZ]}><boxGeometry args={[sideWidth * 0.84, 0.012, 0.014]} /><meshStandardMaterial color="#6f5d49" roughness={0.48} /></mesh>)}
-        <RoundedBoxMesh args={[0.018, tallHeight * 0.9, 0.022]} position={[-width / 2 + sideWidth + 0.035, tallY, frontZ + 0.01]} radius={0.004} color="#29231e" roughness={0.7} />
-        <group position={[width / 2 - sideWidth / 2, tallY, -depth * 0.1]}>
-          <RoundedBoxMesh args={[sideWidth, tallHeight, depth * 0.72]} radius={0.026} color="#b99469" map={oakPbr?.map} normalMap={oakPbr?.normalMap} roughnessMap={oakPbr?.roughnessMap} aoMap={oakPbr?.aoMap} roughness={0.56} />
-          <RoundedBoxMesh args={[sideWidth * 0.82, tallHeight * 0.9, 0.035]} position={[0, 0, frontZ]} radius={0.018} color="#293234" transparent opacity={0.22} roughness={0.08} metalness={0.12} />
-          {[-0.3, 0, 0.3].map((ratio) => <RoundedBoxMesh key={`tv-wall-display-shelf-${ratio}`} args={[sideWidth * 0.76, 0.025, depth * 0.58]} position={[0, ratio * tallHeight, depth * 0.17]} radius={0.006} color="#d9c4a7" roughness={0.48} />)}
-          <RoundedBoxMesh args={[sideWidth * 0.68, 0.022, 0.018]} position={[0, tallHeight * 0.42, frontZ + 0.02]} radius={0.004} color="#ffd795" emissive="#ffd080" emissiveIntensity={0.68} roughness={0.2} />
-        </group>
-        <RoundedBoxMesh args={[width * 0.8 + 0.05, lowConsoleHeight + 0.05, depth * 0.82]} position={[0, lowConsoleY, -0.012]} radius={0.038} color="#2a241f" roughness={0.78} />
-        <RoundedBoxMesh args={[width * 0.8, lowConsoleHeight, depth * 0.8]} position={[0, lowConsoleY, 0]} radius={0.035} color="#c6a47a" map={oakPbr?.map} normalMap={oakPbr?.normalMap} roughnessMap={oakPbr?.roughnessMap} aoMap={oakPbr?.aoMap} roughness={0.56} />
-        {[-0.28, 0, 0.28].map((ratio, index) => (
-          <group key={`tv-wall-console-bay-${ratio}`} position={[ratio * width, lowConsoleY, frontZ]}>
-            {index === 1 ? (
-              <>
-                <RoundedBoxMesh args={[width * 0.2, lowConsoleHeight * 0.62, 0.03]} radius={0.01} color="#282b2c" roughness={0.28} metalness={0.3} />
-                <RoundedBoxMesh args={[width * 0.15, 0.018, depth * 0.42]} position={[0, -lowConsoleHeight * 0.15, 0.05]} radius={0.004} color="#111516" roughness={0.24} metalness={0.38} />
-              </>
-            ) : (
-              <RoundedBoxMesh args={[width * 0.24, lowConsoleHeight * 0.82, 0.032]} radius={0.012} color={index ? "#d9cdbb" : "#b99368"} roughness={0.54} />
-            )}
-          </group>
-        ))}
-        <RoundedBoxMesh args={[width * 0.74, 0.03, 0.022]} position={[0, lowConsoleY - lowConsoleHeight * 0.52, frontZ]} radius={0.006} color="#ffd795" emissive="#ffc970" emissiveIntensity={0.82} roughness={0.18} />
-        <RoundedBoxMesh args={[centerWidth * 0.46, 0.055, depth * 0.45]} position={[centerWidth * 0.23, floorY + height * 0.87, -depth * 0.2]} radius={0.014} color="#b99469" map={oakPbr?.map} normalMap={oakPbr?.normalMap} roughnessMap={oakPbr?.roughnessMap} aoMap={oakPbr?.aoMap} roughness={0.54} />
-        <RoundedBoxMesh args={[centerWidth * 0.94, 0.018, 0.022]} position={[0, stonePanelY + stonePanelHeight * 0.48, -depth * 0.21]} radius={0.004} color="#2b2723" roughness={0.78} />
-        <pointLight color="#ffd19a" intensity={0.26} distance={1.8} position={[0, lowConsoleY - lowConsoleHeight * 0.55, frontZ + 0.18]} />
-        <pointLight color="#ffd19a" intensity={0.18} distance={1.25} position={[width / 2 - sideWidth / 2, tallY + tallHeight * 0.12, frontZ + 0.18]} />
+        {[-0.24, 0.24].map((ratio) => <mesh key={`tv-equipment-seam-${ratio}`} position={[width / 2 - equipmentWidth / 2, equipmentY + ratio * equipmentHeight, frontZ]}><boxGeometry args={[equipmentWidth * 0.8, 0.01, 0.012]} /><meshStandardMaterial color="#8f7555" roughness={0.42} /></mesh>)}
+        <RoundedBoxMesh args={[width * 0.86, lowConsoleHeight, depth * 0.76]} position={[-width * 0.035, lowConsoleY, 0]} radius={0.055} color="#866044" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.62} />
+        {[-0.18, 0.18].map((ratio) => <mesh key={`tv-console-seam-${ratio}`} position={[ratio * width, lowConsoleY, frontZ]}><boxGeometry args={[0.01, lowConsoleHeight * 0.7, 0.012]} /><meshStandardMaterial color="#684934" roughness={0.58} /></mesh>)}
+        <RoundedBoxMesh args={[width * 0.18, lowConsoleHeight * 0.34, 0.022]} position={[0, lowConsoleY, frontZ + 0.006]} radius={0.012} color="#252729" materialToken="blackTitanium" materialResourceId="showroomDarkBronze" fallbackRole="trimMetal" roughness={0.42} metalness={0.16} />
+        <RoundedBoxMesh args={[width * 0.78, 0.018, 0.018]} position={[-width * 0.035, lowConsoleY - lowConsoleHeight * 0.56, frontZ]} radius={0.005} color="#ffd79b" emissive="#ffc877" emissiveIntensity={0.66} roughness={0.18} />
+        <pointLight color="#ffd19a" intensity={0.22} distance={1.7} position={[panelX, panelY, frontZ + 0.18]} />
       </SelectableFurnitureGroup>
     );
   }
@@ -6812,17 +7426,87 @@ function BathroomVanity3DGroup(props: FurnitureAssetGroupProps) {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
     const floorY = -height / 2;
+    const floatingLift = Math.min(0.24, height * 0.25);
+    const countertopThickness = 0.032;
+    const bodyHeight = Math.min(0.5, Math.max(0.44, height - floatingLift - countertopThickness - 0.16));
+    const bodyY = floorY + floatingLift + bodyHeight / 2;
+    const topY = floorY + floatingLift + bodyHeight + countertopThickness / 2;
     const frontZ = depth / 2 + 0.02;
+    const mirrorHeight = 0.3;
+    const mirrorY = topY + 0.055 + mirrorHeight / 2;
+    const mirrorZ = -depth / 2 + 0.055;
     return (
       <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
-        <RoundedBoxMesh args={[width, height * 0.78, depth]} position={[0, floorY + height * 0.39, 0]} radius={0.03} color={renderVariant.wood} roughness={0.54} />
-        <RoundedBoxMesh args={[width * 1.02, 0.065, depth * 1.02]} position={[0, floorY + height * 0.81, 0]} radius={0.018} color="#c9b49a" roughness={0.3} />
-        <mesh position={[-width * 0.22, floorY + height * 0.845, 0]}><cylinderGeometry args={[Math.min(0.19, width * 0.17), Math.min(0.19, width * 0.17), 0.035, 32]} /><meshStandardMaterial color="#aeb8b6" roughness={0.2} metalness={0.42} /></mesh>
-        <mesh position={[-width * 0.22, floorY + height * 0.98, -depth * 0.12]}><torusGeometry args={[0.085, 0.013, 10, 24, Math.PI]} /><meshStandardMaterial color={renderVariant.metal} roughness={0.2} metalness={0.76} /></mesh>
-        <mesh position={[width * 0.16, floorY + height * 0.98, -depth * 0.12]}><torusGeometry args={[0.07, 0.011, 10, 24, Math.PI]} /><meshStandardMaterial color="#b7c4c6" roughness={0.16} metalness={0.78} /></mesh>
-        <RoundedBoxMesh args={[width * 0.22, height * 0.22, 0.025]} position={[width * 0.27, floorY + height * 0.58, frontZ]} radius={0.01} color="#20292c" roughness={0.16} metalness={0.2} />
-        {[-0.28, 0, 0.28].map((ratio) => <RoundedBoxMesh key={`waterbar-door-${ratio}`} args={[width * 0.27, height * 0.58, 0.022]} position={[ratio * width, floorY + height * 0.39, frontZ]} radius={0.01} color={ratio === 0 ? "#d9c7ad" : renderVariant.wood} roughness={0.5} />)}
-        <RoundedBoxMesh args={[width * 0.32, 0.028, 0.02]} position={[width * 0.27, floorY + height * 0.82, frontZ + 0.02]} radius={0.005} color="#ffd695" emissive="#ffc96b" emissiveIntensity={0.5} roughness={0.2} />
+        <RoundedBoxMesh
+          args={[width * 0.94, bodyHeight, depth * 0.86]}
+          position={[0, bodyY, -depth * 0.04]}
+          radius={0.07}
+          color={renderVariant.wood}
+          materialToken="darkWalnut"
+          fallbackRole="joineryMain"
+          normalScale={[0.08, 0.08]}
+          roughness={0.55}
+        />
+        {[-0.31, 0, 0.31].map((ratio, index) => (
+          <group key={`b2-vanity-front-${ratio}`} position={[ratio * width, bodyY, frontZ]}>
+            <RoundedBoxMesh
+              args={[width * 0.285, bodyHeight * 0.78, 0.026]}
+              radius={0.012}
+              color={renderVariant.wood}
+              materialToken="darkWalnut"
+              fallbackRole="joineryMain"
+              roughness={0.55}
+            />
+            <mesh position={[0, 0, 0.035]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.012, 0.012, 0.075, 16]} />
+              <PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.25} metalness={0.72} surfaceSizeM={[0.075, 0.024]} />
+            </mesh>
+          </group>
+        ))}
+        <RoundedBoxMesh
+          args={[width * 1.02, countertopThickness, depth * 0.98]}
+          position={[0, topY, 0]}
+          radius={0.035}
+          color={renderVariant.stone}
+          materialToken="travertine"
+          materialResourceId="showroomWarmVeinedStone"
+          fallbackRole="countertop"
+          normalScale={[0.07, 0.07]}
+          roughness={0.63}
+        />
+        <RoundedBoxMesh
+          args={[width * 0.34, 0.035, depth * 0.48]}
+          position={[-width * 0.2, topY + 0.045, depth * 0.045]}
+          radius={0.08}
+          color="#d8dedb"
+          materialToken="warmWhiteCeramic"
+          fallbackRole="countertop"
+          roughness={0.18}
+          metalness={0.04}
+        />
+        <RoundedBoxMesh
+          args={[width * 0.27, 0.02, depth * 0.36]}
+          position={[-width * 0.2, topY + 0.066, depth * 0.045]}
+          radius={0.065}
+          color="#aab5b2"
+          materialToken="warmWhiteCeramic"
+          fallbackRole="countertop"
+          roughness={0.21}
+          metalness={0.18}
+        />
+        <mesh position={[-width * 0.2, topY + 0.135, -depth * 0.12]} rotation={[0, 0, Math.PI / 2]}>
+          <torusGeometry args={[0.085, 0.013, 10, 24, Math.PI]} />
+          <PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.2} metalness={0.76} surfaceSizeM={[0.22, 0.22]} />
+        </mesh>
+        <mesh position={[-width * 0.095, topY + 0.135, -depth * 0.12]}>
+          <cylinderGeometry args={[0.014, 0.014, 0.2, 14]} />
+          <PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.2} metalness={0.76} surfaceSizeM={[0.2, 0.03]} />
+        </mesh>
+        <RoundedBoxMesh args={[width * 0.96, mirrorHeight, 0.055]} position={[0, mirrorY, mirrorZ]} radius={0.035} color="#d5c7b2" materialToken="travertine" materialResourceId="showroomWarmVeinedStone" fallbackRole="wallFeature" roughness={0.72} />
+        <RoundedBoxMesh args={[width * 0.52, 0.025, depth * 0.25]} position={[width * 0.18, mirrorY + mirrorHeight * 0.28, mirrorZ + depth * 0.2]} radius={0.012} color="#59615f" materialToken="smokedGlass" fallbackRole="glassMain" transmission={0.5} thicknessMm={10} opacity={0.62} roughness={0.1} metalness={0.16} depthWrite={false} />
+        <RoundedBoxMesh args={[width * 0.86, 0.02, 0.022]} position={[0, mirrorY + mirrorHeight * 0.5 + 0.014, mirrorZ + 0.055]} radius={0.006} color="#ffe0a2" emissive="#ffc96b" emissiveIntensity={0.78} roughness={0.18} />
+        <RoundedBoxMesh args={[width * 0.78, 0.026, 0.018]} position={[0, floorY + floatingLift * 0.3, frontZ + 0.03]} radius={0.005} color="#ffd695" emissive="#ffc96b" emissiveIntensity={0.42} roughness={0.2} />
+        <pointLight color="#ffd19a" intensity={0.2} distance={1.7} position={[0, mirrorY + mirrorHeight * 0.42, frontZ + 0.28]} />
       </SelectableFurnitureGroup>
     );
   }
@@ -6842,14 +7526,97 @@ function Shower3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Sofa3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2FourSeatLeather") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    const leather = "#171717";
+    const leatherSoft = "#202020";
+    const leatherDark = "#0d0d0d";
+    const baseColor = "#121212";
+    const seatWidth = width * 0.218;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width * 0.97, 0.14, depth * 0.9]} position={[0, floorY + 0.1, 0]} radius={0.055} color={baseColor} materialToken="blackTopGrainLeather" fallbackRole="fabricMain" roughness={0.48} />
+        <RoundedBoxMesh args={[width * 0.92, height * 0.58, depth * 0.16]} position={[0, floorY + height * 0.65, -depth * 0.4]} radius={0.105} color={leatherDark} materialToken="blackTopGrainLeather" fallbackRole="fabricMain" roughness={0.46} />
+        {[-0.375, -0.125, 0.125, 0.375].map((ratio, index) => (
+          <group key={`b2-leather-seat-${index}`} position={[ratio * width, 0, 0]}>
+            <RoundedBoxMesh args={[seatWidth, 0.24, depth * 0.74]} position={[0, floorY + 0.32, depth * 0.07]} radius={0.11} color={index % 2 ? leatherSoft : leather} materialToken="blackTopGrainLeather" fallbackRole="fabricMain" roughness={0.42} />
+            <group position={[0, floorY + height * 0.67, -depth * 0.31]} rotation={[-0.07, 0, 0]}>
+              <RoundedBoxMesh args={[seatWidth * 1.01, height * 0.62, depth * 0.21]} radius={0.12} color={index % 2 ? leather : leatherSoft} materialToken="blackTopGrainLeather" fallbackRole="fabricMain" roughness={0.44} />
+            </group>
+            <RoundedBoxMesh args={[seatWidth * 0.84, 0.01, 0.01]} position={[0, floorY + 0.36, depth * 0.43]} radius={0.004} color="#55504a" roughness={0.5} />
+          </group>
+        ))}
+        {[-1, 1].map((side) => (
+          <group key={`b2-leather-arm-${side}`} position={[side * (width / 2 - 0.095), floorY + height * 0.37, 0]}>
+            <RoundedBoxMesh args={[0.18, height * 0.4, depth * 0.84]} radius={0.09} color={leatherDark} materialToken="blackTopGrainLeather" fallbackRole="fabricMain" roughness={0.45} />
+            <RoundedBoxMesh args={[0.24, 0.16, depth * 0.48]} position={[-side * 0.03, height * 0.14, depth * 0.02]} radius={0.085} color="#242424" materialToken="blackTopGrainLeather" fallbackRole="fabricMain" roughness={0.46} />
+          </group>
+        ))}
+        {[-0.42, 0.42].map((ratio) => <RoundedBoxMesh key={`b2-sofa-foot-${ratio}`} args={[0.1, 0.09, 0.1]} position={[ratio * width, floorY + 0.045, depth * 0.28]} radius={0.018} color="#2f2824" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.45} />)}
+      </SelectableFurnitureGroup>
+    );
+  }
   return <VariantFurniture3DGroup {...props} />;
 }
 
 function CoffeeTable3DGroup(props: FurnitureAssetGroupProps) {
+  if (["b2PebbleStone", "b2ModernNestedCoffeeTable"].includes(props.item.render3d?.variantId ?? "")) {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width * 0.82, 0.032, depth * 0.72]} position={[-width * 0.08, floorY + height * 0.74, depth * 0.06]} radius={0.16} color="#88918f" materialToken="smokedGlass" fallbackRole="glassMain" transmission={0.56} thicknessMm={16} roughness={0.12} metalness={0.12} opacity={0.52} depthWrite={false} />
+        {[-0.31, 0.15].map((ratio) => <RoundedBoxMesh key={`nested-main-leg-${ratio}`} args={[0.028, height * 0.62, 0.028]} position={[ratio * width, floorY + height * 0.42, depth * 0.06]} radius={0.008} color="#51483f" materialToken="brushedBronze" fallbackRole="trimMetal" roughness={0.3} metalness={0.62} />)}
+        <RoundedBoxMesh args={[width * 0.55, 0.026, 0.026]} position={[-width * 0.08, floorY + height * 0.12, depth * 0.06]} radius={0.008} color="#51483f" materialToken="brushedBronze" fallbackRole="trimMetal" roughness={0.3} metalness={0.62} />
+        <mesh position={[width * 0.29, floorY + height * 0.9, -depth * 0.17]}>
+          <cylinderGeometry args={[depth * 0.31, depth * 0.31, 0.052, 48]} />
+          <PbrMaterial token="travertine" fallbackRole="countertop" color="#d8c8ae" roughness={0.72} surfaceSizeM={[depth * 0.62, depth * 0.62]} />
+        </mesh>
+        <mesh position={[width * 0.29, floorY + height * 0.45, -depth * 0.17]}>
+          <cylinderGeometry args={[depth * 0.13, depth * 0.17, height * 0.84, 36]} />
+          <PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.52} metalness={0.1} surfaceSizeM={[depth * 0.34, height * 0.84]} />
+        </mesh>
+      </SelectableFurnitureGroup>
+    );
+  }
   return <VariantFurniture3DGroup {...props} />;
 }
 
 function DiningTable3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2GrandSlabDining") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    const chairPositions = [
+      [-0.3, -0.72, 0], [0.3, -0.72, 0],
+      [-0.3, 0.72, Math.PI], [0.3, 0.72, Math.PI],
+      [-0.58, 0, Math.PI / 2], [0.58, 0, -Math.PI / 2]
+    ] as const;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width, 0.075, depth * 0.96]} position={[0, floorY + height - 0.045, 0]} radius={0.055} color="#765038" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.5} />
+        <RoundedBoxMesh args={[width * 0.96, 0.025, depth]} position={[0, floorY + height - 0.02, 0]} radius={0.08} color="#8c6244" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.52} />
+        {[-0.31, 0.31].map((ratio) => (
+          <group key={`b2-slab-leg-${ratio}`} position={[ratio * width, floorY + height * 0.43, 0]}>
+            <RoundedBoxMesh args={[0.09, height * 0.78, depth * 0.7]} radius={0.025} color="#252627" materialToken="blackTitanium" materialResourceId="showroomDarkBronze" fallbackRole="trimMetal" roughness={0.3} metalness={0.58} />
+            <RoundedBoxMesh args={[0.28, 0.055, depth * 0.82]} position={[0, -height * 0.37, 0]} radius={0.018} color="#252627" materialToken="blackTitanium" materialResourceId="showroomDarkBronze" fallbackRole="trimMetal" roughness={0.3} metalness={0.58} />
+          </group>
+        ))}
+        {chairPositions.map(([xRatio, zRatio, chairRotation], index) => (
+          <group key={`b2-slab-chair-${index}`} position={[xRatio * width, floorY + 0.43, zRatio * depth]} rotation={[0, chairRotation, 0]}>
+            <RoundedBoxMesh args={[0.46, 0.065, 0.45]} radius={0.07} color="#9a6b45" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.58} />
+            {[-1, 1].map((side) => <RoundedBoxMesh key={`chair-back-post-${side}`} args={[0.038, 0.55, 0.045]} position={[side * 0.18, 0.25, -0.19]} radius={0.015} color="#765038" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.56} />)}
+            <RoundedBoxMesh args={[0.44, 0.105, 0.06]} position={[0, 0.49, -0.19]} radius={0.05} color="#8b5e3d" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.55} />
+            {[-0.11, 0, 0.11].map((x) => <RoundedBoxMesh key={`chair-back-slat-${x}`} args={[0.035, 0.32, 0.035]} position={[x, 0.3, -0.19]} radius={0.016} color="#9a6b45" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.58} />)}
+            {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <RoundedBoxMesh key={`${sx}-${sz}`} args={[0.04, 0.4, 0.04]} position={[sx * 0.16, -0.23, sz * 0.15]} radius={0.014} color="#765038" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.58} />))}
+          </group>
+        ))}
+      </SelectableFurnitureGroup>
+    );
+  }
   return <VariantFurniture3DGroup {...props} />;
 }
 
@@ -6870,6 +7637,88 @@ function Sideboard3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function EntryCabinet3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2OpenFoyerRack") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    const frontZ = depth / 2 + 0.018;
+    const backZ = -depth / 2 - 0.018;
+    const paleOak = "#dfd2bd";
+    const paleOakLight = "#eee5d7";
+    const champagne = "#b69a72";
+    const frame = 0.024;
+    const functionalWidth = Math.min(1, width * 0.58);
+    const toWallLength = Math.max(frame * 4, width - functionalWidth);
+    const toWallCenterX = -width / 2 + toWallLength / 2;
+    const functionalCenterX = width / 2 - functionalWidth / 2;
+    const junctionX = -width / 2 + toWallLength;
+    const toWallPanelHeight = Math.min(0.82, height * 0.35);
+    const toWallSlatHeight = height - toWallPanelHeight - frame * 2;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        {[-width / 2 + frame / 2, junctionX, width / 2 - frame / 2].map((x, index) => <RoundedBoxMesh key={`b2-open-foyer-post-${index}`} args={[frame, height * 0.98, depth]} position={[x, floorY + height * 0.5, 0]} radius={0.012} color={paleOak} materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.68} />)}
+        <RoundedBoxMesh args={[width, frame, depth]} position={[0, floorY + height - frame / 2, 0]} radius={0.012} color={paleOakLight} materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.66} />
+
+        <RoundedBoxMesh args={[Math.max(frame, toWallLength - frame * 2), toWallPanelHeight, depth * 0.88]} position={[toWallCenterX, floorY + toWallPanelHeight / 2, 0]} radius={0.028} color="#ece6dc" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.76} />
+        {Array.from({ length: 7 }, (_, index) => {
+          const x = -width / 2 + frame + (Math.max(frame, toWallLength - frame * 2) * (index + 0.5)) / 7;
+          return <RoundedBoxMesh key={`b2-foyer-to-wall-slat-${index}`} args={[0.022, toWallSlatHeight, depth * 0.72]} position={[x, floorY + toWallPanelHeight + toWallSlatHeight / 2, 0]} radius={0.008} color={index % 2 ? paleOakLight : paleOak} materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.66} />;
+        })}
+        <RoundedBoxMesh args={[Math.max(frame, toWallLength - frame), frame, depth * 0.86]} position={[toWallCenterX, floorY + toWallPanelHeight, 0]} radius={0.009} color={paleOak} roughness={0.66} />
+        <RoundedBoxMesh args={[Math.max(frame, toWallLength * 0.78), 0.012, 0.012]} position={[toWallCenterX, floorY + height * 0.84, frontZ + 0.012]} radius={0.004} color="#ffe8bd" emissive="#ffdca0" emissiveIntensity={0.3} roughness={0.2} />
+
+        <RoundedBoxMesh args={[functionalWidth * 0.7, height * 0.73, 0.028]} position={[functionalCenterX - functionalWidth * 0.08, floorY + height * 0.54, backZ]} radius={0.055} color="#eee8df" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.82} />
+        <mesh position={[functionalCenterX - functionalWidth * 0.16, floorY + height * 0.68, frontZ]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.011, 0.011, functionalWidth * 0.52, 20]} />
+          <PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.28} metalness={0.56} surfaceSizeM={[functionalWidth * 0.52, 0.024]} />
+        </mesh>
+        {[-0.3, -0.12, 0.06].map((ratio) => <mesh key={`b2-open-hook-${ratio}`} position={[functionalCenterX + ratio * functionalWidth, floorY + height * 0.55, frontZ + 0.025]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.011, 0.011, 0.065, 16]} /><PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.28} metalness={0.56} surfaceSizeM={[0.065, 0.022]} /></mesh>)}
+        <RoundedBoxMesh args={[functionalWidth * 0.58, 0.065, depth * 0.86]} position={[functionalCenterX - functionalWidth * 0.16, floorY + height * 0.25, 0]} radius={0.032} color="#e8e0d5" materialToken="beigeFabric" fallbackRole="fabricMain" roughness={0.82} />
+        <RoundedBoxMesh args={[functionalWidth * 0.58, height * 0.1, depth * 0.74]} position={[functionalCenterX - functionalWidth * 0.16, floorY + height * 0.11, -depth * 0.01]} radius={0.018} color={paleOakLight} roughness={0.68} />
+        <RoundedBoxMesh args={[functionalWidth * 0.27, height * 0.58, 0.022]} position={[functionalCenterX + functionalWidth * 0.31, floorY + height * 0.54, frontZ + 0.01]} radius={0.12} color="#aeb8b6" materialToken="clearGlass" fallbackRole="glassMain" transmission={0.72} thicknessMm={8} opacity={0.32} depthWrite={false} roughness={0.08} metalness={0.12} />
+        {[-1, 1].map((side) => <RoundedBoxMesh key={`b2-foyer-mirror-side-${side}`} args={[0.012, height * 0.58, 0.012]} position={[functionalCenterX + functionalWidth * (0.31 + side * 0.145), floorY + height * 0.54, frontZ + 0.024]} radius={0.006} color={champagne} roughness={0.32} metalness={0.5} />)}
+        {[-1, 1].map((side) => <RoundedBoxMesh key={`b2-foyer-mirror-cap-${side}`} args={[functionalWidth * 0.27, 0.012, 0.012]} position={[functionalCenterX + functionalWidth * 0.31, floorY + height * (0.54 + side * 0.29), frontZ + 0.024]} radius={0.006} color={champagne} roughness={0.32} metalness={0.5} />)}
+        <RoundedBoxMesh args={[functionalWidth * 0.2, 0.035, depth * 0.54]} position={[functionalCenterX + functionalWidth * 0.31, floorY + height * 0.22, frontZ * 0.22]} radius={0.012} color={paleOakLight} roughness={0.66} />
+        <RoundedBoxMesh args={[functionalWidth * 0.78, 0.012, 0.012]} position={[functionalCenterX, floorY + height * 0.86, frontZ + 0.016]} radius={0.004} color="#ffe8bd" emissive="#ffdca0" emissiveIntensity={0.34} roughness={0.22} />
+        <RoundedBoxMesh args={[functionalWidth * 0.66, 0.012, 0.012]} position={[functionalCenterX - functionalWidth * 0.06, floorY + height * 0.49, backZ - 0.01]} radius={0.004} color="#ffe8bd" emissive="#ffdca0" emissiveIntensity={0.26} roughness={0.22} />
+      </SelectableFurnitureGroup>
+    );
+  }
+  if (props.item.render3d?.variantId === "b2LeftWallFoyerRun") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    const frontZ = depth / 2 + 0.018;
+    const backZ = -depth / 2 + 0.024;
+    const paleOak = "#dfd2bd";
+    const paleOakLight = "#eee5d7";
+    const champagne = "#b69a72";
+    const frame = 0.026;
+    const shelfWidth = width * 0.31;
+    const shelfCenterX = width / 2 - shelfWidth / 2 - frame;
+    const hangingWidth = width - shelfWidth - frame * 3;
+    const hangingCenterX = -width / 2 + frame + hangingWidth / 2;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width * 0.98, height * 0.94, 0.035]} position={[0, floorY + height * 0.5, backZ]} radius={0.018} color="#eee9e1" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.84} />
+        {[-width / 2 + frame / 2, width / 2 - frame / 2].map((x, index) => <RoundedBoxMesh key={`b2-left-wall-side-${index}`} args={[frame, height * 0.96, depth]} position={[x, floorY + height * 0.5, 0]} radius={0.012} color={paleOak} materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.68} />)}
+        <RoundedBoxMesh args={[width, frame, depth]} position={[0, floorY + height - frame / 2, 0]} radius={0.012} color={paleOakLight} materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.66} />
+        <RoundedBoxMesh args={[frame, height * 0.76, depth * 0.92]} position={[width / 2 - shelfWidth - frame, floorY + height * 0.56, 0]} radius={0.01} color={paleOak} roughness={0.68} />
+
+        <mesh position={[hangingCenterX, floorY + height * 0.72, frontZ]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.012, 0.012, hangingWidth * 0.82, 20]} />
+          <PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.28} metalness={0.56} surfaceSizeM={[hangingWidth * 0.82, 0.024]} />
+        </mesh>
+        {[-0.28, -0.05, 0.18].map((ratio) => <mesh key={`b2-left-wall-hook-${ratio}`} position={[hangingCenterX + ratio * hangingWidth, floorY + height * 0.59, frontZ + 0.025]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.011, 0.011, 0.065, 16]} /><PbrMaterial token="brushedBronze" fallbackRole="trimMetal" roughness={0.28} metalness={0.56} surfaceSizeM={[0.065, 0.022]} /></mesh>)}
+
+        {[0.38, 0.52, 0.66, 0.8].map((heightRatio, index) => <RoundedBoxMesh key={`b2-left-wall-shelf-${index}`} args={[shelfWidth * 0.9, frame, depth * 0.82]} position={[shelfCenterX, floorY + height * heightRatio, 0]} radius={0.01} color={index % 2 ? paleOakLight : paleOak} materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.68} />)}
+        <RoundedBoxMesh args={[width * 0.88, height * 0.15, depth * 0.82]} position={[0, floorY + 0.18 + height * 0.075, 0]} radius={0.025} color={paleOakLight} roughness={0.72} />
+        <RoundedBoxMesh args={[width * 0.82, 0.055, depth * 0.84]} position={[0, floorY + 0.18 + height * 0.17, 0]} radius={0.022} color="#e8e0d5" materialToken="beigeFabric" fallbackRole="fabricMain" roughness={0.8} />
+        <RoundedBoxMesh args={[width * 0.84, 0.012, 0.012]} position={[0, floorY + 0.16, frontZ + 0.012]} radius={0.004} color="#ffe8bd" emissive="#ffdca0" emissiveIntensity={0.34} roughness={0.22} />
+        <RoundedBoxMesh args={[width * 0.86, 0.012, 0.012]} position={[0, floorY + height * 0.86, frontZ + 0.012]} radius={0.004} color="#ffe8bd" emissive="#ffdca0" emissiveIntensity={0.28} roughness={0.22} />
+      </SelectableFurnitureGroup>
+    );
+  }
   if (props.item.render3d?.variantId === "slimHangingRail") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
@@ -6888,7 +7737,190 @@ function EntryCabinet3DGroup(props: FurnitureAssetGroupProps) {
   return <VariantFurniture3DGroup {...props} />;
 }
 
+function LivingDualNicheMediaWall3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+  const floorY = -height / 2;
+  const wallWidth = width * 0.98;
+  const wallHeight = height * 0.96;
+  const wallDepth = Math.max(0.18, depth * 0.68);
+  const wallFrontZ = -depth * 0.04 + wallDepth / 2 + 0.014;
+  const outerMargin = width * 0.035;
+  const nicheWidth = width * 0.16;
+  const nicheX = width / 2 - outerMargin - nicheWidth / 2;
+  const mediaWidth = width - 2 * (outerMargin + nicheWidth + width * 0.025);
+  const tvWidth = Math.min(mediaWidth * 0.86, 1.5);
+  const tvHeight = tvWidth * 9 / 16;
+  const tvY = floorY + 1.21;
+  const fireplaceWidth = Math.min(mediaWidth * 0.72, 1.28);
+  const fireplaceY = floorY + 0.55;
+  const consoleHeight = 0.34;
+  const consoleY = floorY + 0.06 + consoleHeight / 2;
+  const consoleDepth = Math.min(depth * 0.92, 0.32);
+  const consoleFrontZ = wallFrontZ + 0.055;
+  const nicheBackDepth = Math.max(0.08, depth * 0.36);
+  const nicheFrontZ = wallFrontZ + 0.04;
+  const nicheBaseHeight = wallHeight * 0.3;
+  const nicheShelfY = floorY + nicheBaseHeight + 0.055;
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh args={[wallWidth, wallHeight, wallDepth]} position={[0, floorY + wallHeight / 2, -depth * 0.04]} radius={0.018} color="#e6dfd5" roughness={0.82} />
+      {[-nicheX, nicheX].map((x, index) => (
+        <group key={`${props.item.id}-dual-niche-${index}`} position={[x, 0, 0]}>
+          <RoundedBoxMesh args={[nicheWidth, wallHeight * 0.9, nicheBackDepth]} position={[0, floorY + wallHeight * 0.5, wallFrontZ + 0.008]} radius={Math.min(nicheWidth * 0.46, 0.19)} color={renderVariant.darkWood} roughness={0.6} />
+          <RoundedBoxMesh args={[nicheWidth * 0.86, nicheBaseHeight, depth * 0.48]} position={[0, floorY + nicheBaseHeight / 2 + 0.04, nicheFrontZ]} radius={0.012} color={renderVariant.wood} roughness={0.6} />
+          <RoundedBoxMesh args={[nicheWidth * 0.88, 0.045, depth * 0.5]} position={[0, nicheShelfY, nicheFrontZ]} radius={0.008} color="#b99570" roughness={0.5} />
+          <RoundedBoxMesh args={[nicheWidth * 0.72, 0.012, 0.014]} position={[0, floorY + wallHeight * 0.89, nicheFrontZ + depth * 0.25]} radius={0.003} color="#ffe5b5" emissive="#ffd18a" emissiveIntensity={0.72} roughness={0.18} />
+          {index === 0 ? (
+            <RoundedBoxMesh args={[nicheWidth * 0.3, nicheWidth * 0.34, nicheWidth * 0.24]} position={[0, nicheShelfY + nicheWidth * 0.22, nicheFrontZ + depth * 0.26]} radius={0.055} color="#9f7754" roughness={0.74} />
+          ) : (
+            <RoundedBoxMesh args={[nicheWidth * 0.3, nicheWidth * 0.3, nicheWidth * 0.18]} position={[0, nicheShelfY + nicheWidth * 0.2, nicheFrontZ + depth * 0.26]} radius={0.1} color="#302d29" roughness={0.32} metalness={0.42} />
+          )}
+        </group>
+      ))}
+      <RoundedBoxMesh args={[tvWidth + 0.065, tvHeight + 0.065, 0.026]} position={[0, tvY, wallFrontZ + 0.025]} radius={0.012} color="#c9c0b5" roughness={0.82} />
+      <RoundedBoxMesh args={[tvWidth, tvHeight, 0.025]} position={[0, tvY, wallFrontZ + 0.045]} radius={0.008} color="#111615" roughness={0.12} metalness={0.22} />
+      <RoundedBoxMesh args={[fireplaceWidth + 0.07, 0.3, 0.035]} position={[0, fireplaceY, wallFrontZ + 0.03]} radius={0.012} color="#c8beb1" roughness={0.78} />
+      <RoundedBoxMesh args={[fireplaceWidth, 0.22, 0.04]} position={[0, fireplaceY, wallFrontZ + 0.055]} radius={0.008} color="#242421" roughness={0.4} />
+      <RoundedBoxMesh args={[fireplaceWidth * 0.82, 0.018, 0.012]} position={[0, fireplaceY - 0.05, wallFrontZ + 0.082]} radius={0.003} color="#ffc77b" emissive="#ffae55" emissiveIntensity={0.58} roughness={0.2} />
+      <RoundedBoxMesh args={[mediaWidth, consoleHeight, consoleDepth]} position={[0, consoleY, consoleFrontZ]} radius={0.014} color={renderVariant.wood} roughness={0.58} />
+      {[-0.25, 0, 0.25].map((ratio) => (
+        <mesh key={`${props.item.id}-dual-console-gap-${ratio}`} position={[ratio * mediaWidth, consoleY, consoleFrontZ + consoleDepth / 2 + 0.009]}>
+          <boxGeometry args={[0.01, consoleHeight * 0.8, 0.014]} />
+          <meshStandardMaterial color="#5c5147" roughness={0.8} />
+        </mesh>
+      ))}
+    </SelectableFurnitureGroup>
+  );
+}
+
+function LivingFireplaceMediaWall3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+  const floorY = -height / 2;
+  const wallWidth = width * 0.98;
+  const wallHeight = height * 0.96;
+  const wallDepth = Math.max(0.22, depth * 0.72);
+  const wallFrontZ = -depth * 0.03 + wallDepth / 2 + 0.012;
+  const shadowLine = materialColor("shadowLine");
+  const microcementPbr = useProceduralPbrMaps({
+    kind: "stone",
+    baseColor: "#dcd4c8",
+    accentColor: "#c8beb0",
+    repeat: [Math.max(1.4, wallWidth * 1.2), Math.max(1.6, wallHeight * 1.1)],
+    resourceId: "livingFireplaceMicrocement"
+  });
+  const oakPbr = useProceduralPbrMaps({
+    kind: "wood",
+    baseColor: renderVariant.wood,
+    accentColor: "#9f7d58",
+    repeat: [Math.max(1.5, width * 1.15), 3.4],
+    resourceId: "livingFireplaceOakConsole"
+  });
+  const tvWidth = Math.min(width * 0.64, 1.62);
+  const tvHeight = tvWidth * 9 / 16;
+  const tvY = floorY + 1.2;
+  const fireplaceWidth = Math.min(width * 0.62, 1.56);
+  const fireplaceHeight = 0.23;
+  const fireplaceY = floorY + 0.54;
+  const consoleWidth = width * 0.92;
+  const consoleDepth = Math.min(depth * 0.95, 0.32);
+  const consoleHeight = 0.38;
+  const consoleY = floorY + 0.04 + consoleHeight / 2;
+  const consoleFrontZ = wallFrontZ + 0.055;
+
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      {/* One continuous plaster/microcement volume keeps the composition architectural. */}
+      <RoundedBoxMesh
+        args={[wallWidth, wallHeight, wallDepth]}
+        position={[0, floorY + wallHeight / 2, -depth * 0.03]}
+        radius={0.018}
+        color="#dcd4c8"
+        map={microcementPbr?.map}
+        normalMap={microcementPbr?.normalMap}
+        roughnessMap={microcementPbr?.roughnessMap}
+        aoMap={microcementPbr?.aoMap}
+        normalScale={[0.07, 0.07]}
+        roughness={0.76}
+      />
+      <RoundedBoxMesh
+        args={[wallWidth * 0.86, wallHeight * 0.84, 0.032]}
+        position={[0, floorY + wallHeight * 0.53, wallFrontZ + 0.006]}
+        radius={0.012}
+        color="#e5ded3"
+        map={microcementPbr?.map}
+        normalMap={microcementPbr?.normalMap}
+        roughness={0.82}
+      />
+      <RoundedBoxMesh args={[wallWidth * 0.86, 0.012, 0.018]} position={[0, floorY + wallHeight * 0.96, wallFrontZ + 0.026]} radius={0.003} color={shadowLine} roughness={0.82} opacity={0.36} transparent />
+      {[-1, 1].map((side) => (
+        <RoundedBoxMesh
+          key={`${props.item.id}-media-wall-side-reveal-${side}`}
+          args={[0.014, wallHeight * 0.84, 0.018]}
+          position={[side * wallWidth * 0.43, floorY + wallHeight * 0.53, wallFrontZ + 0.027]}
+          radius={0.003}
+          color={shadowLine}
+          roughness={0.82}
+          opacity={0.34}
+          transparent
+        />
+      ))}
+
+      {/* The TV sits inside a dark shadow frame instead of on a projecting cabinet. */}
+      <RoundedBoxMesh args={[tvWidth + 0.07, tvHeight + 0.07, 0.026]} position={[0, tvY, wallFrontZ + 0.031]} radius={0.012} color="#b9b0a4" roughness={0.84} />
+      <RoundedBoxMesh args={[tvWidth, tvHeight, 0.024]} position={[0, tvY, wallFrontZ + 0.049]} radius={0.008} color="#151817" roughness={0.13} metalness={0.2} />
+      <RoundedBoxMesh args={[tvWidth * 0.965, tvHeight * 0.91, 0.009]} position={[0, tvY + 0.006, wallFrontZ + 0.064]} radius={0.005} color="#20292a" roughness={0.08} metalness={0.12} />
+      <mesh position={[-tvWidth * 0.18, tvY + tvHeight * 0.2, wallFrontZ + 0.071]} rotation={[0, 0, -0.18]}>
+        <planeGeometry args={[tvWidth * 0.46, tvHeight * 0.018]} />
+        <meshStandardMaterial color="#b7c5c1" transparent opacity={0.12} roughness={0.1} depthWrite={false} />
+      </mesh>
+
+      {/* Low, restrained fireplace opening with a warm ember line. */}
+      <RoundedBoxMesh args={[fireplaceWidth + 0.08, fireplaceHeight + 0.07, 0.035]} position={[0, fireplaceY, wallFrontZ + 0.031]} radius={0.012} color="#c8beb1" roughness={0.78} />
+      <RoundedBoxMesh args={[fireplaceWidth, fireplaceHeight, 0.038]} position={[0, fireplaceY, wallFrontZ + 0.055]} radius={0.008} color="#262522" roughness={0.58} metalness={0.08} />
+      <RoundedBoxMesh args={[fireplaceWidth * 0.86, 0.025, 0.012]} position={[0, fireplaceY - fireplaceHeight * 0.18, wallFrontZ + 0.079]} radius={0.004} color="#5a3220" roughness={0.72} emissive="#8c4822" emissiveIntensity={0.12} />
+      {[-0.28, 0, 0.28].map((ratio, index) => (
+        <mesh key={`${props.item.id}-ember-${index}`} position={[ratio * fireplaceWidth, fireplaceY - 0.018, wallFrontZ + 0.087]} rotation={[0, 0, index % 2 ? 0.16 : -0.12]}>
+          <capsuleGeometry args={[0.018, fireplaceWidth * 0.18, 5, 10]} />
+          <meshStandardMaterial color="#60402c" roughness={0.78} emissive="#b35c2d" emissiveIntensity={0.1} />
+        </mesh>
+      ))}
+      <RoundedBoxMesh args={[fireplaceWidth * 0.72, 0.014, 0.012]} position={[0, fireplaceY - 0.075, wallFrontZ + 0.092]} radius={0.003} color="#ffc77b" emissive="#ffae55" emissiveIntensity={0.42} roughness={0.22} />
+      <pointLight color="#ffc078" intensity={0.1} distance={0.85} position={[0, fireplaceY, wallFrontZ + 0.13]} />
+
+      {/* Continuous low oak console; the only strong wood note is kept at floor level. */}
+      <RoundedBoxMesh
+        args={[consoleWidth, consoleHeight, consoleDepth]}
+        position={[0, consoleY, consoleFrontZ]}
+        radius={0.014}
+        color={renderVariant.wood}
+        map={oakPbr?.map}
+        normalMap={oakPbr?.normalMap}
+        roughnessMap={oakPbr?.roughnessMap}
+        aoMap={oakPbr?.aoMap}
+        normalScale={[0.08, 0.08]}
+        roughness={0.58}
+      />
+      <RoundedBoxMesh args={[consoleWidth * 1.015, 0.045, consoleDepth * 1.04]} position={[0, consoleY + consoleHeight / 2 + 0.024, consoleFrontZ]} radius={0.008} color="#d7c8b5" roughness={0.5} />
+      {[-0.25, 0, 0.25].map((ratio) => (
+        <mesh key={`${props.item.id}-console-gap-${ratio}`} position={[ratio * consoleWidth * 0.84, consoleY, consoleFrontZ + consoleDepth / 2 + 0.009]}>
+          <boxGeometry args={[0.012, consoleHeight * 0.82, 0.014]} />
+          <meshStandardMaterial color="#5c5147" roughness={0.8} />
+        </mesh>
+      ))}
+      <RoundedBoxMesh args={[consoleWidth * 0.86, 0.014, 0.016]} position={[0, floorY + 0.035, consoleFrontZ + consoleDepth / 2 + 0.012]} radius={0.003} color="#5f5145" roughness={0.82} opacity={0.62} transparent />
+    </SelectableFurnitureGroup>
+  );
+}
+
 function Fireplace3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "dualNicheMediaWall") {
+    return <LivingDualNicheMediaWall3DGroup {...props} />;
+  }
+  if (props.item.catalogId === "living-fireplace" || props.item.id === "furn-living-fireplace-south-001") {
+    return <LivingFireplaceMediaWall3DGroup {...props} />;
+  }
   if (props.item.render3d?.variantId === "b2ShowroomColumnFireplace") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY } = metrics;
@@ -6983,8 +8015,8 @@ function OutdoorLiving3DGroup(props: FurnitureAssetGroupProps) {
   const stone = renderVariant.stone;
   const wood = renderVariant.wood;
   const darkWood = renderVariant.darkWood;
-  const foliage = "#567a43";
-  const leaves = "#789a51";
+  const foliage = "#31523a";
+  const leaves = "#526f43";
   const soil = "#4c3828";
   const relaxSet = kind === "outdoorCabinet" && /休闲|桌椅|茶几/.test(props.item.name);
   // Outdoor modules are often shown from closer camera views. Give their large
@@ -7038,13 +8070,56 @@ function OutdoorLiving3DGroup(props: FurnitureAssetGroupProps) {
       <RoundedBoxMesh args={[width * 0.9, Math.min(height * 0.24, 0.32), depth * 0.88]} position={[0, floorY + Math.min(height * 0.12, 0.16), 0]} radius={0.035} color="#474b47" roughness={0.68} />
       {[-0.32, -0.16, 0, 0.16, 0.32].map((ratio) => <mesh key={`planter-slat-${ratio}`} position={[ratio * width, floorY + Math.min(height * 0.13, 0.17), frontZ + 0.01]}><boxGeometry args={[0.018, Math.min(height * 0.2, 0.26), 0.018]} /><meshStandardMaterial color={wood} roughness={0.62} /></mesh>)}
       <RoundedBoxMesh args={[width * 0.78, 0.05, depth * 0.72]} position={[0, floorY + Math.min(height * 0.26, 0.36), 0]} radius={0.018} color={soil} roughness={0.94} />
-      {[-0.3, 0, 0.3].map((ratio, index) => <group key={`plant-${index}`} position={[ratio * width, floorY + height * 0.34, (index % 2 ? -0.12 : 0.1) * depth]}><mesh position={[0, height * 0.26, 0]}><cylinderGeometry args={[Math.min(width, depth) * 0.09, Math.min(width, depth) * 0.14, height * 0.52, 10]} /><meshStandardMaterial color="#6b5139" roughness={0.85} /></mesh>{[-0.09, 0.06, 0.15].map((x, leafIndex) => <mesh key={leafIndex} position={[x, height * (0.34 + leafIndex * 0.06), leafIndex % 2 ? 0.07 : -0.04]} scale={[1.1, 0.72, 0.9]}><sphereGeometry args={[Math.min(width, depth) * (0.14 + leafIndex * 0.015), 14, 12]} /><meshStandardMaterial color={leafIndex === 1 ? foliage : leaves} roughness={0.9} /></mesh>)}</group>)}
+      {[-0.3, 0, 0.3].map((ratio, index) => (
+        <group key={`plant-${index}`} position={[ratio * width, floorY + height * 0.34, (index % 2 ? -0.12 : 0.1) * depth]} rotation={[0, index * 0.82, 0]}>
+          <mesh position={[0, height * 0.26, 0]} rotation={[0.03, 0, index % 2 ? 0.05 : -0.04]}>
+            <cylinderGeometry args={[Math.min(width, depth) * 0.055, Math.min(width, depth) * 0.085, height * 0.52, 9]} />
+            <meshStandardMaterial color="#594633" roughness={0.9} />
+          </mesh>
+          {[
+            [-0.11, 0.32, -0.03, 0.16],
+            [0.08, 0.39, 0.05, -0.12],
+            [0.02, 0.49, -0.02, 0.08],
+            [0.14, 0.29, -0.07, -0.2],
+            [-0.04, 0.43, 0.12, 0.12]
+          ].map(([leafX, leafY, leafZ, tilt], leafIndex) => (
+            <mesh key={leafIndex} castShadow position={[leafX, height * leafY, leafZ]} rotation={[tilt, leafIndex * 0.72, -tilt]} scale={[1 + leafIndex % 2 * 0.12, 0.72 + leafIndex % 3 * 0.08, 0.58 + leafIndex % 2 * 0.1]}>
+              <icosahedronGeometry args={[Math.min(width, depth) * (0.12 + leafIndex % 3 * 0.012), 2]} />
+              <meshStandardMaterial color={leafIndex % 3 === 1 ? foliage : leafIndex % 2 ? "#60764a" : leaves} roughness={0.94} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {[-0.42, -0.18, 0.18, 0.42].map((ratio, clumpIndex) => (
+        <group key={`planter-grass-${clumpIndex}`} position={[ratio * width, floorY + Math.min(height * 0.28, 0.38), depth * (clumpIndex % 2 ? 0.2 : -0.18)]}>
+          {[-0.12, -0.06, 0, 0.07, 0.13].map((angle, bladeIndex) => (
+            <mesh key={bladeIndex} position={[angle * 0.22, 0.12 + bladeIndex % 2 * 0.035, 0]} rotation={[angle * 1.8, 0, angle]}>
+              <coneGeometry args={[0.018, 0.34 + bladeIndex % 3 * 0.04, 6]} />
+              <meshStandardMaterial color={bladeIndex % 2 ? "#6f7c4e" : "#495f3e"} roughness={1} />
+            </mesh>
+          ))}
+        </group>
+      ))}
     </>}
     {kind === "raisedGardenBed" && <>
       <RoundedBoxMesh args={[width * 0.96, height * 0.72, depth * 0.92]} position={[0, floorY + height * 0.37, 0]} radius={0.018} color={wood} map={outdoorWoodTexture} roughness={0.64} />
       {[-0.34, -0.17, 0, 0.17, 0.34].map((ratio) => <mesh key={`garden-slat-${ratio}`} position={[ratio * width, floorY + height * 0.37, frontZ]}><boxGeometry args={[0.018, height * 0.62, 0.02]} /><meshStandardMaterial color={darkWood} roughness={0.72} /></mesh>)}
       <RoundedBoxMesh args={[width * 0.84, 0.05, depth * 0.77]} position={[0, floorY + height * 0.75, 0]} radius={0.01} color={soil} roughness={0.94} />
+      {[-0.22, 0, 0.22].map((ratio, index) => (
+        <mesh key={`garden-soil-row-${index}`} position={[ratio * width, floorY + height * 0.785, 0]}>
+          <boxGeometry args={[0.028, 0.014, depth * 0.66]} />
+          <meshStandardMaterial color={index === 1 ? "#806148" : "#6d513c"} roughness={1} />
+        </mesh>
+      ))}
       {[-0.31, -0.1, 0.12, 0.32].map((ratio, index) => <LandscapePlantCluster key={`herb-${index}`} x={ratio * width} y={floorY + height * 0.78} z={(index % 2 ? -0.12 : 0.12) * depth} scale={0.5 + index % 2 * 0.08} index={index + 2} herb />)}
+      <group position={[width * 0.34, floorY + height * 0.91, depth * 0.22]} rotation={[0.12, 0.35, -0.55]}>
+        <mesh position={[0, 0.09, 0]}><cylinderGeometry args={[0.014, 0.018, 0.28, 10]} /><meshStandardMaterial color="#8b6745" roughness={0.74} /></mesh>
+        <mesh position={[0, -0.055, 0]} rotation={[0, 0, Math.PI / 2]}><boxGeometry args={[0.13, 0.018, 0.055]} /><meshStandardMaterial color="#727a76" roughness={0.36} metalness={0.54} /></mesh>
+      </group>
+      <group position={[-width * 0.36, floorY + height * 0.9, depth * 0.3]} rotation={[0, -0.12, 0]}>
+        <mesh><boxGeometry args={[0.16, 0.12, 0.014]} /><meshStandardMaterial color="#b9a27c" roughness={0.76} /></mesh>
+        <mesh position={[0, -0.11, 0]}><boxGeometry args={[0.018, 0.1, 0.018]} /><meshStandardMaterial color="#786044" roughness={0.8} /></mesh>
+      </group>
     </>}
     {kind === "shadeUmbrella" && <>
       <mesh position={[0, floorY + height * 0.48, 0]}><cylinderGeometry args={[0.027, 0.038, height * 0.92, 18]} /><meshStandardMaterial color={metal} roughness={0.22} metalness={0.74} /></mesh>
@@ -7147,6 +8222,44 @@ function Pegboard3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.render3d?.variantId === "b2UnderStairRoomShell") {
+    const metrics = useFineAssetMetrics(props);
+    const { position, width, depth, height, rotation, groupY } = metrics;
+    const floorY = -height / 2;
+    const frontZ = depth / 2 + 0.018;
+    const segmentCount = 7;
+    const segmentWidth = width / segmentCount;
+    const doorWidth = Math.min(0.7, width * 0.5);
+    const doorHeight = Math.min(1.25, height * 0.6);
+    const doorCenterX = -width * 0.25;
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        {Array.from({ length: segmentCount }, (_, index) => {
+          const x = -width / 2 + segmentWidth * (index + 0.5);
+          const segmentHeight = height * (0.98 - index * 0.065);
+          const inDoorOpening = Math.abs(x - doorCenterX) <= doorWidth / 2;
+          if (inDoorOpening) {
+            const transomHeight = Math.max(0.12, segmentHeight - doorHeight);
+            return <RoundedBoxMesh key={`under-stair-transom-${index}`} args={[segmentWidth + 0.012, transomHeight, 0.09]} position={[x, floorY + doorHeight + transomHeight / 2, frontZ]} radius={0.008} color="#ded4c6" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.88} />;
+          }
+          return <RoundedBoxMesh key={`under-stair-wall-${index}`} args={[segmentWidth + 0.012, segmentHeight, 0.09]} position={[x, floorY + segmentHeight / 2, frontZ]} radius={0.008} color="#ded4c6" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.88} />;
+        })}
+        <RoundedBoxMesh args={[doorWidth + 0.04, 0.018, 0.045]} position={[doorCenterX, floorY + doorHeight + 0.018, frontZ + 0.04]} radius={0.005} color="#9f9485" roughness={0.76} />
+        <group position={[doorCenterX, floorY + 0.5, depth * 0.08]}>
+          {[-1, 1].map((side) => <RoundedBoxMesh key={`under-stair-inner-post-${side}`} args={[0.035, 1.1, 0.035]} position={[side * doorWidth * 0.36, 0, 0]} radius={0.008} color="#59534c" materialToken="blackTitanium" materialResourceId="showroomDarkBronze" fallbackRole="trimMetal" roughness={0.58} metalness={0.3} />)}
+          {[-0.45, -0.08, 0.29].map((y, index) => (
+            <group key={`under-stair-inner-shelf-${index}`} position={[0, y, 0]}>
+              <RoundedBoxMesh args={[doorWidth * 0.76, 0.035, depth * 0.58]} radius={0.008} color="#b99b78" materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.64} />
+              {[-0.22, 0.22].map((x, box) => <RoundedBoxMesh key={`under-stair-bin-${box}`} args={[doorWidth * 0.28, 0.18, depth * 0.34]} position={[x, 0.12, 0]} radius={0.025} color={box ? "#b8ae9e" : "#8e765e"} roughness={0.82} />)}
+            </group>
+          ))}
+          <RoundedBoxMesh args={[doorWidth * 0.7, 0.018, 0.018]} position={[0, 0.48, depth * 0.22]} radius={0.004} color="#ffe1a3" emissive="#ffc873" emissiveIntensity={0.72} roughness={0.2} />
+        </group>
+        <RoundedBoxMesh args={[0.08, height * 0.86, depth]} position={[width / 2 - 0.04, floorY + height * 0.43, 0]} radius={0.012} color="#ded4c6" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.88} />
+        <RoundedBoxMesh args={[width * 0.95, 0.025, 0.025]} position={[0, floorY + 0.06, frontZ + 0.105]} radius={0.006} color="#8a765f" roughness={0.52} />
+      </SelectableFurnitureGroup>
+    );
+  }
   if (props.item.render3d?.variantId === "1fIntegratedSpiceRack") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY } = metrics;
@@ -7189,6 +8302,7 @@ function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
     const interiorHeight = Math.max(0.22, interiorTop - interiorBottom);
     const innerWidth = Math.max(0.18, width - frame * 2.4);
     const shelfCount = compact ? 2 : 4;
+    const showDisplayContents = !compact && props.item.render3d?.cabinetVisual?.displayContents !== false;
     const backTexture = useProceduralTexture("fabric", "#9f9485", "#6f655a", 3.2, 4.8);
     const frontZ = depth / 2 + 0.022;
     const ribCount = Math.max(10, Math.min(34, Math.round(width / 0.065)));
@@ -7241,6 +8355,36 @@ function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
             </group>
           );
         })}
+        {showDisplayContents && [
+          { bay: -0.3, row: 0, kind: "books" },
+          { bay: 0, row: 0, kind: "box" },
+          { bay: 0.3, row: 1, kind: "ceramic" },
+          { bay: -0.3, row: 2, kind: "box" },
+          { bay: 0, row: 3, kind: "books" }
+        ].map((content, index) => {
+          const shelfY = interiorBottom + interiorHeight * ((content.row + 1) / (shelfCount + 1));
+          const x = content.bay * innerWidth;
+          if (content.kind === "books") {
+            return (
+              <group key={`${props.item.id}-display-books-${index}`} position={[x, shelfY + 0.105, depth * 0.13]}>
+                {[-0.07, -0.025, 0.02, 0.065].map((offset, bookIndex) => (
+                  <RoundedBoxMesh key={offset} args={[0.036, 0.19 - bookIndex * 0.012, 0.13]} position={[offset, 0, 0]} rotation={[0, 0, bookIndex === 3 ? -0.08 : 0]} radius={0.005} color={bookIndex % 2 ? "#8d765f" : "#d4c2a9"} roughness={0.78} />
+                ))}
+              </group>
+            );
+          }
+          if (content.kind === "ceramic") {
+            return (
+              <group key={`${props.item.id}-display-ceramic-${index}`} position={[x, shelfY + 0.1, depth * 0.13]}>
+                <mesh>
+                  <cylinderGeometry args={[0.07, 0.09, 0.2, 24]} />
+                  <meshStandardMaterial color="#c9b398" roughness={0.84} />
+                </mesh>
+              </group>
+            );
+          }
+          return <RoundedBoxMesh key={`${props.item.id}-display-box-${index}`} args={[innerWidth * 0.17, 0.16, depth * 0.48]} position={[x, shelfY + 0.08, depth * 0.08]} radius={0.018} color={index % 2 ? "#9a8874" : "#c3b49f"} roughness={0.9} />;
+        })}
         {!compact && [-0.3, 0.3].map((ratio) => (
           <RoundedBoxMesh
             key={`${props.item.id}-showroom-upright-${ratio}`}
@@ -7266,8 +8410,14 @@ function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
     const shelfY = floorY + height * 0.36;
     return (
       <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
-        <RoundedBoxMesh args={[width, height, depth]} radius={0.028} color={renderVariant.wood} roughness={0.54} />
-        <RoundedBoxMesh args={[width * 0.9, height * 0.88, 0.035]} position={[0, floorY + height * 0.52, frontZ]} radius={0.014} color="#b9d2d4" transparent opacity={0.22} roughness={0.06} metalness={0.1} />
+        <RoundedBoxMesh args={[width * 0.94, height * 0.9, 0.04]} position={[0, floorY + height * 0.5, -depth / 2 + 0.025]} radius={0.014} color="#463329" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.7} />
+        {[-1, 1].map((side) => <RoundedBoxMesh key={`b2-memorial-side-${side}`} args={[0.055, height, depth]} position={[side * (width / 2 - 0.028), 0, 0]} radius={0.012} color={renderVariant.wood} materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.54} />)}
+        <RoundedBoxMesh args={[width, 0.055, depth]} position={[0, floorY + height - 0.028, 0]} radius={0.012} color={renderVariant.wood} materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.54} />
+        <RoundedBoxMesh args={[width, height * 0.2, depth]} position={[0, floorY + height * 0.1, 0]} radius={0.02} color={renderVariant.wood} materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.56} />
+        {[-0.3, -0.1, 0.1, 0.3].map((ratio) => <RoundedBoxMesh key={`b2-memorial-upright-${ratio}`} args={[0.06, height * 0.78, depth * 0.92]} position={[ratio * width, floorY + height * 0.59, 0]} radius={0.028} color="#d4c2a9" materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.58} />)}
+        {[-0.3, -0.1, 0.1, 0.3].map((ratio) => <RoundedBoxMesh key={`b2-memorial-bronze-${ratio}`} args={[0.012, height * 0.74, 0.014]} position={[ratio * width, floorY + height * 0.59, frontZ + 0.015]} radius={0.004} color="#aa885d" materialToken="brushedBronze" fallbackRole="trimMetal" roughness={0.28} metalness={0.55} />)}
+        {[0.38, 0.57, 0.76].map((ratio) => <RoundedBoxMesh key={`b2-memorial-grid-shelf-${ratio}`} args={[width * 0.92, 0.04, depth * 0.88]} position={[0, floorY + height * ratio, 0]} radius={0.008} color="#9b7555" roughness={0.5} />)}
+        <RoundedBoxMesh args={[width * 0.9, height * 0.88, 0.035]} position={[0, floorY + height * 0.52, frontZ]} radius={0.014} color="#b9d2d4" materialToken="clearGlass" fallbackRole="glassMain" transmission={0.78} thicknessMm={10} opacity={0.22} depthWrite={false} roughness={0.06} metalness={0.1} />
         <RoundedBoxMesh args={[width * 0.9, 0.045, depth * 0.88]} position={[0, shelfY, 0]} radius={0.008} color="#b9976f" roughness={0.46} />
         <group position={[0, floorY + height * 0.16, 0]}>
           <mesh><cylinderGeometry args={[width * 0.29, width * 0.33, height * 0.17, 40]} /><meshStandardMaterial color="#c9ad83" roughness={0.68} /></mesh>
@@ -7418,6 +8568,56 @@ function InstrumentRack3DGroup(props: FurnitureAssetGroupProps) {
   const metrics = useFineAssetMetrics(props);
   const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
   const floorY = -height / 2;
+  if (props.item.render3d?.variantId === "wallMountedGuitarUkulele") {
+    const panelDepth = Math.max(0.055, depth * 0.58);
+    const instrumentZ = panelDepth / 2 + 0.07;
+    const instruments = [
+      { id: "guitar", x: -width * 0.23, bodyY: floorY + height * 0.38, bodyRadius: Math.min(0.22, width * 0.18), bodyScaleY: 1.2, neckHeight: height * 0.42, neckWidth: 0.065, color: "#c89055", dark: "#755035" },
+      { id: "ukulele", x: width * 0.25, bodyY: floorY + height * 0.48, bodyRadius: Math.min(0.16, width * 0.135), bodyScaleY: 1.12, neckHeight: height * 0.3, neckWidth: 0.052, color: "#a96f43", dark: "#68432e" }
+    ];
+    return (
+      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+        <RoundedBoxMesh args={[width, height * 0.94, panelDepth]} position={[0, floorY + height * 0.5, 0]} radius={0.022} color="#59483a" roughness={0.72} />
+        {Array.from({ length: 10 }, (_, index) => (
+          <mesh key={`instrument-wall-slat-${index}`} position={[-width * 0.45 + index * width * 0.1, floorY + height * 0.5, panelDepth * 0.56]}>
+            <boxGeometry args={[Math.max(0.025, width * 0.045), height * 0.9, 0.026]} />
+            <meshStandardMaterial color={index % 2 ? "#705a47" : "#806852"} roughness={0.68} />
+          </mesh>
+        ))}
+        {instruments.map((instrument) => {
+          const neckCenterY = instrument.bodyY + instrument.bodyRadius * instrument.bodyScaleY + instrument.neckHeight * 0.42;
+          const hookY = neckCenterY + instrument.neckHeight * 0.46;
+          return (
+            <group key={instrument.id} position={[instrument.x, 0, instrumentZ]}>
+              <mesh position={[0, instrument.bodyY, 0]} scale={[1, instrument.bodyScaleY, 0.34]}>
+                <sphereGeometry args={[instrument.bodyRadius, 34, 22]} />
+                <meshStandardMaterial color={instrument.color} roughness={0.46} metalness={0.02} />
+              </mesh>
+              <mesh position={[0, neckCenterY, 0]}>
+                <boxGeometry args={[instrument.neckWidth, instrument.neckHeight, 0.038]} />
+                <meshStandardMaterial color={instrument.dark} roughness={0.5} />
+              </mesh>
+              <RoundedBoxMesh args={[instrument.neckWidth * 1.9, instrument.neckWidth * 2.4, 0.052]} position={[0, hookY, 0]} radius={0.016} color={instrument.dark} roughness={0.48} />
+              <mesh position={[0, instrument.bodyY, instrument.bodyRadius * 0.36]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[instrument.bodyRadius * 0.22, instrument.bodyRadius * 0.22, 0.018, 28]} />
+                <meshStandardMaterial color="#252729" roughness={0.3} metalness={0.28} />
+              </mesh>
+              {[-0.012, 0, 0.012].map((stringX) => (
+                <mesh key={`${instrument.id}-string-${stringX}`} position={[stringX, neckCenterY - instrument.neckHeight * 0.12, 0.028]}>
+                  <boxGeometry args={[0.0015, instrument.neckHeight * 1.25, 0.0015]} />
+                  <meshStandardMaterial color="#d9d4ca" roughness={0.16} metalness={0.72} />
+                </mesh>
+              ))}
+              <group position={[0, hookY + instrument.neckWidth * 0.9, -instrumentZ + panelDepth * 0.62]}>
+                <mesh><boxGeometry args={[0.11, 0.035, 0.06]} /><meshStandardMaterial color={renderVariant.metal} roughness={0.28} metalness={0.62} /></mesh>
+                {[-1, 1].map((side) => <mesh key={`${instrument.id}-hook-${side}`} position={[side * 0.04, -0.03, 0.04]} rotation={[0.3, 0, side * 0.22]}><boxGeometry args={[0.018, 0.09, 0.018]} /><meshStandardMaterial color="#2b2d2e" roughness={0.32} metalness={0.58} /></mesh>)}
+              </group>
+            </group>
+          );
+        })}
+      </SelectableFurnitureGroup>
+    );
+  }
   return (
     <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
       <RoundedBoxMesh args={[width * 0.92, 0.045, depth * 0.72]} position={[0, floorY + 0.025, 0]} radius={0.012} color={renderVariant.metal} roughness={0.28} metalness={0.58} />
@@ -7432,6 +8632,50 @@ function InstrumentRack3DGroup(props: FurnitureAssetGroupProps) {
           {[-0.018, 0, 0.018].map((stringX) => <mesh key={stringX} position={[stringX, height * 0.5, depth * 0.045]}><boxGeometry args={[0.002, height * 0.62, 0.002]} /><meshStandardMaterial color="#d7d2c9" roughness={0.2} metalness={0.68} /></mesh>)}
         </group>
       ))}
+    </SelectableFurnitureGroup>
+  );
+}
+
+function B1CleaningStorage3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+  const floorY = -height / 2;
+  const frontZ = depth / 2 + 0.016;
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh args={[width, height, depth]} position={[0, 0, 0]} radius={0.018} color={renderVariant.wood} roughness={0.64} />
+      <RoundedBoxMesh args={[width * 0.92, height * 0.96, 0.025]} position={[0, 0, frontZ]} radius={0.012} color="#b8a78d" roughness={0.58} />
+      <mesh position={[0, floorY + height * 0.34, frontZ + 0.016]}><boxGeometry args={[width * 0.82, 0.014, 0.012]} /><meshStandardMaterial color="#675b4e" roughness={0.56} /></mesh>
+      <mesh position={[0, floorY + height * 0.67, frontZ + 0.016]}><boxGeometry args={[width * 0.82, 0.014, 0.012]} /><meshStandardMaterial color="#675b4e" roughness={0.56} /></mesh>
+      <mesh position={[width * 0.26, floorY + height * 0.62, frontZ + 0.03]}><cylinderGeometry args={[0.012, 0.012, height * 0.48, 10]} /><meshStandardMaterial color="#3b3c3a" roughness={0.32} metalness={0.4} /></mesh>
+      <mesh position={[width * 0.26, floorY + height * 0.35, frontZ + 0.03]}><boxGeometry args={[width * 0.22, 0.035, 0.06]} /><meshStandardMaterial color="#c2aa7e" roughness={0.52} /></mesh>
+      <RoundedBoxMesh args={[width * 0.16, 0.08, 0.03]} position={[-width * 0.23, floorY + 0.08, frontZ + 0.03]} radius={0.01} color="#6d5844" roughness={0.46} />
+    </SelectableFurnitureGroup>
+  );
+}
+
+function Piano3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY, renderVariant } = metrics;
+  const floorY = -height / 2;
+  const frontZ = depth / 2 + 0.012;
+  const bodyHeight = height * 0.72;
+  const keyboardHeight = Math.max(0.09, height * 0.16);
+  const keyCount = 16;
+  const keyWidth = width * 0.68 / keyCount;
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <RoundedBoxMesh args={[width, bodyHeight, depth * 0.78]} position={[0, floorY + bodyHeight / 2 + height * 0.08, 0]} radius={0.035} color={renderVariant.darkWood} roughness={0.34} metalness={0.16} />
+      <RoundedBoxMesh args={[width * 0.88, keyboardHeight, depth * 0.9]} position={[0, floorY + bodyHeight * 0.55, frontZ * 0.72]} radius={0.018} color={renderVariant.wood} roughness={0.3} metalness={0.1} />
+      {Array.from({ length: keyCount }, (_, index) => (
+        <mesh key={`piano-key-${index}`} position={[-width * 0.34 + keyWidth / 2 + index * keyWidth, floorY + bodyHeight * 0.56, frontZ + 0.015]}>
+          <boxGeometry args={[keyWidth * 0.91, keyboardHeight * 0.58, 0.012]} />
+          <meshStandardMaterial color={index % 3 === 1 ? "#d7d1c6" : "#f3f0e9"} roughness={0.24} />
+        </mesh>
+      ))}
+      {[-0.34, 0.34].map((x) => <RoundedBoxMesh key={`piano-leg-${x}`} args={[0.055, height * 0.48, 0.055]} position={[x * width, floorY + height * 0.18, -depth * 0.2]} radius={0.01} color="#252728" roughness={0.28} metalness={0.5} />)}
+      <RoundedBoxMesh args={[width * 0.52, height * 0.16, depth * 0.42]} position={[0, floorY + height * 0.08, depth * 0.08]} radius={0.025} color={renderVariant.wood} roughness={0.32} />
+      <RoundedBoxMesh args={[width * 0.42, height * 0.08, depth * 0.62]} position={[0, floorY + height * 0.01, depth * 0.12]} radius={0.018} color={renderVariant.darkWood} roughness={0.34} />
     </SelectableFurnitureGroup>
   );
 }
@@ -7503,6 +8747,8 @@ function Generic3DGroup(props: FurnitureAssetGroupProps) {
   }
   if (props.item.moduleType === "washingMachine" || props.item.render3d?.variantId === "washerDryerStack") return <LaundryAppliance3DGroup {...props} />;
   if (props.item.moduleType === "instrumentRack" || /乐器架|instrument rack/i.test(props.item.name)) return <InstrumentRack3DGroup {...props} />;
+  if (props.item.render3d?.variantId === "b1CleaningStorageCabinet" || /清洁柜|家政柜|cleaning storage/i.test(props.item.name)) return <B1CleaningStorage3DGroup {...props} />;
+  if (props.item.moduleType === "piano" || props.item.render3d?.variantId === "compactDigitalPiano" || /钢琴|piano/i.test(props.item.name)) return <Piano3DGroup {...props} />;
   if (shouldUseFineAsset(props) && getFurnitureFamily(props.item, props.resolvedAsset.assetType) === "softDecor") return <FineVariantFurniture3DGroup {...props} />;
   return <FurnitureBlock {...props} />;
 }
@@ -7548,6 +8794,7 @@ const furnitureAssetComponentMap = {
   bookshelf: Bookshelf3DGroup,
   snackCabinet: SnackCabinet3DGroup,
   plant: Plant3DGroup,
+  piano: Piano3DGroup,
   generic: Generic3DGroup
 } satisfies Record<Render3DAssetType, typeof Generic3DGroup>;
 
@@ -7558,6 +8805,9 @@ function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
     detailLevel: resolveUnifiedSceneDetailLevel(sourceAsset.detailLevel, props.sceneLod)
   };
   if (!resolveVisibility(props.item).visible3d || !resolvedAsset.visibleIn3d) return null;
+  if (resolvedAsset.assetUrl) {
+    return <ExternalGltfFurniture3DGroup {...props} resolvedAsset={resolvedAsset} />;
+  }
   const Component = furnitureAssetComponentMap[resolvedAsset.componentKey] ?? Generic3DGroup;
   return <Component {...props} resolvedAsset={resolvedAsset} />;
 }
@@ -7672,7 +8922,7 @@ function RenderToneMapping({
   const { gl } = useThree();
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = exposure ?? (presentationMode ? 1.22 : 1.14);
+    gl.toneMappingExposure = exposure ?? (presentationMode ? 1.06 : 1);
     gl.outputColorSpace = THREE.SRGBColorSpace;
     gl.shadowMap.enabled = !mobilePresentationMode || mobileQuality === "high";
     gl.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -7693,6 +8943,7 @@ function CameraRig({
   constraints,
   transitionDuration,
   collisionEnabled,
+  lockFixedView,
   onInteractionChange,
   onCameraPlanPoseChange
 }: {
@@ -7708,6 +8959,7 @@ function CameraRig({
   constraints?: CameraOrbitConstraints | null;
   transitionDuration?: number;
   collisionEnabled?: boolean;
+  lockFixedView?: boolean;
   onInteractionChange?: (active: boolean) => void;
   onCameraPlanPoseChange: (pose: CameraPlanPose) => void;
 }) {
@@ -7984,6 +9236,22 @@ function CameraRig({
         fov: camera instanceof THREE.PerspectiveCamera ? camera.fov : 42
       });
     };
+    if (lockFixedView && fixedView) {
+      transitionRef.current = null;
+      const controls = controlsRef.current;
+      camera.position.set(fixedView.cameraPosition.x, fixedView.cameraPosition.y, fixedView.cameraPosition.z);
+      if (controls) {
+        controls.enabled = false;
+        controls.target.set(fixedView.target.x, fixedView.target.y, fixedView.target.z);
+      }
+      camera.lookAt(fixedView.target.x, fixedView.target.y, fixedView.target.z);
+      if (camera instanceof THREE.PerspectiveCamera && typeof fixedView.fov === "number") {
+        camera.fov = fixedView.fov;
+        camera.updateProjectionMatrix();
+      }
+      reportCameraPlanPose();
+      return;
+    }
     const transition = transitionRef.current;
     if (transition && mode !== "walkthrough") {
       transition.elapsed = Math.min(transition.duration, transition.elapsed + delta);
@@ -8164,7 +9432,7 @@ const lightingSceneModeLabels: Record<LightingSceneMode, string> = {
   dayWithLights: "日间 + 灯光",
   dusk: "傍晚",
   night: "夜间",
-  artificialOnly: "仅人工灯光",
+  artificialOnly: "灯光评估（纯人工）",
   beamAnalysis: "光束分析"
 };
 
@@ -8307,10 +9575,10 @@ function RealisticLightFixture({
   if (/linear.*pendant|pendant.*linear|island/.test(signature)) {
     return (
       <group name="realistic-linear-pendant">
-        <mesh castShadow position={[0, 1.02, 0]}><cylinderGeometry args={[0.11, 0.11, 0.04, 32]} /><meshStandardMaterial color={trimColor} roughness={0.26} metalness={0.72} /></mesh>
-        {[-0.5, 0.5].map((x) => <mesh key={x} position={[x, 0.52, 0]}><cylinderGeometry args={[0.007, 0.007, 0.98, 10]} /><meshStandardMaterial color="#242729" roughness={0.32} metalness={0.75} /></mesh>)}
-        <mesh castShadow><boxGeometry args={[1.3, 0.075, 0.105]} /><meshStandardMaterial color={trimColor} roughness={0.22} metalness={0.72} /></mesh>
-        <mesh position={[0, -0.049, 0]}><boxGeometry args={[1.17, 0.022, 0.064]} /><meshPhysicalMaterial color={diffuserColor} emissive={lightColor} emissiveIntensity={glowIntensity} transmission={0.16} transparent opacity={0.94} roughness={0.12} /></mesh>
+        <mesh castShadow position={[0, -0.02, 0]}><cylinderGeometry args={[0.11, 0.11, 0.04, 32]} /><meshStandardMaterial color={trimColor} roughness={0.26} metalness={0.72} /></mesh>
+        {[-0.5, 0.5].map((x) => <mesh key={x} position={[x, -0.52, 0]}><cylinderGeometry args={[0.007, 0.007, 0.98, 10]} /><meshStandardMaterial color="#242729" roughness={0.32} metalness={0.75} /></mesh>)}
+        <mesh castShadow position={[0, -1.02, 0]}><boxGeometry args={[1.3, 0.075, 0.105]} /><meshStandardMaterial color={trimColor} roughness={0.22} metalness={0.72} /></mesh>
+        <mesh position={[0, -1.071, 0]}><boxGeometry args={[1.17, 0.022, 0.064]} /><meshPhysicalMaterial color={diffuserColor} emissive={lightColor} emissiveIntensity={glowIntensity} transmission={0.16} transparent opacity={0.94} roughness={0.12} /></mesh>
       </group>
     );
   }
@@ -8318,11 +9586,11 @@ function RealisticLightFixture({
   if (/round-table-pendant|roundtablependant|pendant/.test(signature)) {
     return (
       <group name="realistic-round-pendant">
-        <mesh castShadow position={[0, 1.06, 0]}><cylinderGeometry args={[0.16, 0.16, 0.04, 36]} /><meshStandardMaterial color={trimColor} roughness={0.25} metalness={0.64} /></mesh>
+        <mesh castShadow position={[0, -0.02, 0]}><cylinderGeometry args={[0.16, 0.16, 0.04, 36]} /><meshStandardMaterial color={trimColor} roughness={0.25} metalness={0.64} /></mesh>
         {[
-          { x: -0.22, y: 0.08, z: 0.1, cord: 0.94 },
-          { x: 0.22, y: -0.08, z: -0.08, cord: 1.1 },
-          { x: 0, y: 0.22, z: -0.02, cord: 0.8 }
+          { x: -0.22, y: -0.92, z: 0.1, cord: 0.9 },
+          { x: 0.22, y: -1.18, z: -0.08, cord: 1.16 },
+          { x: 0, y: -0.7, z: -0.02, cord: 0.68 }
         ].map((globe, index) => (
           <group key={`pendant-globe-${index}`}>
             <mesh position={[globe.x, globe.y + globe.cord / 2, globe.z]}><cylinderGeometry args={[0.006, 0.006, globe.cord, 10]} /><meshStandardMaterial color="#292c2d" roughness={0.3} metalness={0.72} /></mesh>
@@ -8985,7 +10253,7 @@ function DrawingItems3DLayer({
   const showTechnicalBeam = lightingScene === "beamAnalysis" || showBeamCones;
   const lightIntensity = lightingScene === "dayWithLights" ? 0.7 : lightingScene === "dusk" ? 1.05 : lightingScene === "beamAnalysis" ? 0.55 : 1.25;
   const selectedItem = drawingItems.find((item) => item.id === selectedObjectId);
-  const realtimeLightLimit = qualityMode === "presentation" ? 24 : 6;
+  const realtimeLightLimit = qualityMode === "presentation" ? 12 : 6;
   const realtimeLightIds = new Set(lights
     .filter((item) => (lightingItemBrightness.get(item.id) ?? (item.controlGroupId ? lightingControlBrightness.get(item.controlGroupId) ?? 100 : 100)) > 0)
     .sort((left, right) => Number(right.id === selectedObjectId) - Number(left.id === selectedObjectId))
@@ -9012,7 +10280,7 @@ function DrawingItems3DLayer({
         active={lightingActive}
         intensity={lightIntensity}
         realtimeLightIds={realtimeLightIds}
-        maxRealtimeSegmentsPerLight={qualityMode === "presentation" ? 4 : 1}
+        maxRealtimeSegmentsPerLight={qualityMode === "presentation" ? 2 : 1}
       />
       {drawingItems.map((item, index) => {
         const scenePoint = toScenePoint(item.positionMm, structure);
@@ -9337,7 +10605,7 @@ function VillaOverviewLayer({
             ))}
             {structure.rooms.filter((room) => resolveVisibility(room).visible3d).map((room, index) => (
               <group key={room.id}>
-                <RoomFloorMesh room={room} index={index} structure={structure} designStyle={designStyle} openings={/楼梯/.test(room.name) ? floorStairOpenings : []} />
+                <RoomFloorMesh room={room} index={index} structure={structure} designStyle={designStyle} openings={floorStairOpenings} />
                 <PolygonSurfaceMesh
                   id={room.id}
                   points={room.boundary}
@@ -9474,6 +10742,7 @@ function Floor3DScene({
   currentOutdoorId,
   roomCeilingMode,
   lightingScene,
+  lightingBlackoutActive = false,
   lightingControlBrightness,
   lightingItemBrightness,
   showFixtureModels,
@@ -9501,6 +10770,7 @@ function Floor3DScene({
   cameraConstraints = null,
   cameraTransitionDuration = 0.9,
   cameraCollisionEnabled = true,
+  cameraLockEnabled = false,
   onCameraPlanPoseChange = () => undefined,
   sceneController,
   explorationDoorStates,
@@ -9541,6 +10811,7 @@ function Floor3DScene({
   currentOutdoorId?: string | null;
   roomCeilingMode: RoomCeilingMode;
   lightingScene: LightingSceneMode;
+  lightingBlackoutActive?: boolean;
   lightingControlBrightness: ReadonlyMap<string, number>;
   lightingItemBrightness: ReadonlyMap<string, number>;
   showFixtureModels: boolean;
@@ -9568,6 +10839,7 @@ function Floor3DScene({
   cameraConstraints?: CameraOrbitConstraints | null;
   cameraTransitionDuration?: number;
   cameraCollisionEnabled?: boolean;
+  cameraLockEnabled?: boolean;
   onCameraPlanPoseChange?: (pose: CameraPlanPose) => void;
   sceneController?: ReactNode;
   explorationDoorStates?: ExplorationDoorStates;
@@ -9599,6 +10871,8 @@ function Floor3DScene({
   onClearHoverObject: (objectId: string) => void;
 }) {
   const [cameraInteractionActive, setCameraInteractionActive] = useState(false);
+  const storageDoorPreviewOpen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("storageDoor") === "open";
+  const entryDoorPreviewOpen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("entryDoor") === "open";
   const cameraInteractionReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleCameraInteractionChange = useCallback((active: boolean) => {
     if (cameraInteractionReleaseTimerRef.current) clearTimeout(cameraInteractionReleaseTimerRef.current);
@@ -9705,23 +10979,33 @@ function Floor3DScene({
   // full real wall height with a translucent material. This keeps full-height
   // cabinets and their host walls aligned instead of mixing cutaway geometry
   // with actual-height cabinetry.
+  // A floor overview is a review view, not a lighting-analysis cutaway. Do
+  // not let a previously selected lighting wall mode make the whole house
+  // read as a translucent shell when the user enters presentation mode.
+  const floorOverviewPresentation = presentationMode && !stackedVillaOverview && !currentSpaceActive;
   const lightingWallDisplayMode = mobilePresentationMode
     ? "full"
-    : wallDisplayModeOverride ?? resolvedWallDisplayMode;
+    : wallDisplayModeOverride
+      ?? (floorOverviewPresentation ? "cutaway" : resolvedWallDisplayMode);
   // Exploration keeps the complete wall geometry for spatial context, but uses
   // a translucent shell so first- and third-person views can read the room
   // beyond it. Collision still comes from the unchanged exploration world.
   const lightingWallOpacity = mobilePresentationMode
     ? 0.22
+    : floorOverviewPresentation
+    ? undefined
     : sceneMode === "exploration"
     ? 0.22
     : lightingActive && lightingWallMode === "transparent"
       ? 0.24
       : undefined;
-  const showSpecialtyCeiling = drawingProfile.showCeiling && (!lightingActive || lightingExperienceScope === "currentRoom") && roomCeilingMode !== "hidden";
+  const showSpecialtyCeiling = !floorOverviewPresentation && drawingProfile.showCeiling && (!lightingActive || lightingExperienceScope === "currentRoom") && roomCeilingMode !== "hidden";
   const palette = designStylePalettes[designStyle];
   const yardScene = houseStructure.floorId === "YARD";
-  const lightingEnvironment = explorationLightingMode
+  const lightingBlackout = lightingActive && lightingBlackoutActive;
+  const lightingEnvironment = lightingBlackout
+    ? { ambient: 0, key: 0, fill: 0, background: "#000000" }
+    : explorationLightingMode
     ? explorationLightingMode === "night"
       ? { ambient: yardScene ? 0.075 : 0.1, key: yardScene ? 0.12 : 0.2, fill: 0.08, background: yardScene ? "#111a22" : "#202936" }
       : { ambient: yardScene ? 0.5 : 0.42, key: yardScene ? 1.72 : 1.18, fill: yardScene ? 0.46 : 0.38, background: yardScene ? "#dce4dc" : "#e8e1d4" }
@@ -9733,25 +11017,40 @@ function Floor3DScene({
             : { ambient: 0.003, key: 0, fill: 0, background: "#010207" }
     : null;
   const lightingDarkScene = lightingActive && (lightingScene === "night" || lightingScene === "artificialOnly");
-  const reflectionEnvironmentIntensity = lightingDarkScene
+  const firstFloorScene = houseStructure.floorId === "1F";
+  const reflectionEnvironmentIntensity = lightingBlackout
+    ? 0
+    : lightingDarkScene
     ? lightingHasEnabledFixtures ? 0.055 : 0.012
     : lightingActive
       ? lightingScene === "dusk" || lightingScene === "beamAnalysis" ? 0.12 : 0.28
-      : presentationMode ? 0.72 : 0.46;
-  const toneMappingExposure = lightingDarkScene
+      : floorOverviewPresentation ? 0.24 : firstFloorScene ? (presentationMode ? 0.56 : 0.34) : presentationMode ? 0.72 : 0.46;
+  const toneMappingExposure = lightingBlackout
+    ? 1
+    : lightingDarkScene
     ? lightingHasEnabledFixtures ? 1.02 : 0.68
-    : yardScene ? 1.12 : presentationMode ? 1.22 : 1.14;
-  const ambientIntensity = lightingEnvironment?.ambient ?? (yardScene ? 0.52 : presentationMode ? 0.56 : 0.48);
-  const keyLightIntensity = lightingEnvironment?.key ?? (yardScene ? 2.08 : presentationMode ? 1.92 : 1.68);
-  const fillLightIntensity = lightingEnvironment?.fill ?? (yardScene ? 0.5 : presentationMode ? 0.72 : 0.54);
-  const floorShadowOpacity = presentationMode ? 0.18 : 0.12;
+    : floorOverviewPresentation ? 0.84 : yardScene ? 1.04 : firstFloorScene ? (presentationMode ? 0.98 : 0.94) : presentationMode ? 1.06 : 1;
+  const ambientIntensity = lightingBlackout ? 0 : lightingEnvironment?.ambient ?? (floorOverviewPresentation ? 0.24 : yardScene ? 0.46 : firstFloorScene ? (presentationMode ? 0.36 : 0.3) : presentationMode ? 0.42 : 0.36);
+  const keyLightIntensity = lightingBlackout ? 0 : lightingEnvironment?.key ?? (floorOverviewPresentation ? 0.95 : yardScene ? 1.82 : firstFloorScene ? (presentationMode ? 1.38 : 1.18) : presentationMode ? 1.6 : 1.35);
+  const fillLightIntensity = lightingBlackout ? 0 : lightingEnvironment?.fill ?? (floorOverviewPresentation ? 0.18 : yardScene ? 0.44 : firstFloorScene ? (presentationMode ? 0.4 : 0.3) : presentationMode ? 0.52 : 0.4);
+  const floorShadowOpacity = lightingBlackout ? 0 : presentationMode ? (floorOverviewPresentation ? 0.24 : 0.18) : 0.12;
   const balancedQuality = mobileQuality === "balanced";
-  const shadowMapSize = presentationMode && !balancedQuality ? 4096 : 1024;
-  const windowDaylightIntensity = explorationLightingMode
+  const shadowMapSize = presentationMode && !balancedQuality ? 2048 : 1024;
+  const windowDaylightIntensity = lightingBlackout
+    ? 0
+    : explorationLightingMode
     ? explorationLightingMode === "day" ? 0.72 : 0
     : lightingActive
       ? lightingScene === "dayWithLights" ? 0.88 : lightingScene === "dusk" ? 0.24 : 0
-      : presentationMode ? 0.78 : 0.52;
+      : floorOverviewPresentation ? 0.34 : firstFloorScene ? (presentationMode ? 0.58 : 0.42) : presentationMode ? 0.78 : 0.52;
+  const hemisphereIntensity = lightingBlackout
+    ? 0
+    : lightingActive
+    ? ambientIntensity * 0.6
+    : yardScene ? 0.54
+      : firstFloorScene ? (presentationMode ? 0.36 : 0.3)
+        : floorOverviewPresentation ? 0.24 : presentationMode ? 0.42 : 0.36;
+  const sceneBackground = floorOverviewPresentation ? "#e7e0d5" : lightingEnvironment?.background ?? palette.background;
   const relatedFurnitureIds = new Set(drawingItems.map((item) => item.relatedFurnitureId).filter((id): id is string => Boolean(id)));
   const materialPlanHidesFurniture = drawingSheetType === "materialPlan" && (materialCategoryFilter === "structure" || materialCategoryFilter === "outdoor");
   const profileVisibleFurniture = materialPlanHidesFurniture
@@ -9796,6 +11095,7 @@ function Floor3DScene({
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} />
       <SceneReflectionEnvironment presentationMode={presentationMode} intensity={reflectionEnvironmentIntensity} />
       {sceneController ?? <CameraRig
+        key={fixedCameraView?.id ?? "free-camera"}
         preset={cameraPreset}
         fixedView={fixedCameraView}
         requestVersion={cameraRequestVersion}
@@ -9808,11 +11108,12 @@ function Floor3DScene({
         constraints={cameraConstraints}
         transitionDuration={cameraTransitionDuration}
         collisionEnabled={cameraCollisionEnabled}
+        lockFixedView={cameraLockEnabled}
         onInteractionChange={presentationMode ? undefined : handleCameraInteractionChange}
         onCameraPlanPoseChange={onCameraPlanPoseChange}
       />}
-      <color attach="background" args={[lightingEnvironment?.background ?? palette.background]} />
-      <fog attach="fog" args={[lightingEnvironment?.background ?? palette.background, yardScene ? 18 : 12, yardScene ? 42 : 28]} />
+      <color attach="background" args={[sceneBackground]} />
+      <fog attach="fog" args={[sceneBackground, yardScene ? 18 : 12, yardScene ? 42 : 28]} />
       <ambientLight intensity={ambientIntensity} />
       <directionalLight
         castShadow={presentationMode && (!mobilePresentationMode || mobileQuality === "high")}
@@ -9829,7 +11130,7 @@ function Floor3DScene({
         shadow-normalBias={0.025}
       />
       <spotLight color="#ffd99b" intensity={fillLightIntensity} position={[-5.8, 4.8, 5.6]} angle={0.62} penumbra={0.76} distance={14} castShadow={presentationMode && !lightingActive && !balancedQuality} />
-      <hemisphereLight args={[yardScene ? "#edf4ec" : "#fff4d6", yardScene ? "#536047" : lightingEnvironment?.background ?? palette.background, lightingActive ? ambientIntensity * 0.6 : yardScene ? 0.62 : presentationMode ? 0.56 : 0.48]} />
+      <hemisphereLight args={[yardScene ? "#edf4ec" : "#fff4d6", yardScene ? "#536047" : lightingEnvironment?.background ?? palette.background, hemisphereIntensity]} />
       {!stackedVillaOverview && (presentationMode || lightingActive || Boolean(explorationLightingMode)) && <WindowDaylightLayer structure={houseStructure} intensity={windowDaylightIntensity} />}
 
       {!currentSpaceActive && <mesh receiveShadow position={[0, -0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -9884,7 +11185,7 @@ function Floor3DScene({
       ))}
 
       {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d && (!currentSpaceActive || (currentRoomActive && room.id === currentRoom?.id))).map((room, index) => (
-        <RoomFloorMesh key={room.id} room={room} index={index} structure={houseStructure} designStyle={designStyle} openings={/楼梯/.test(room.name) ? currentFloorStairOpenings : []} />
+        <RoomFloorMesh key={room.id} room={room} index={index} structure={houseStructure} designStyle={designStyle} openings={currentFloorStairOpenings} />
       ))}
       {currentRoomActive && currentRoom && (
         <KitchenExperienceFloorExtension room={currentRoom} structure={houseStructure} furniture={visibleFurniture} designStyle={designStyle} />
@@ -9895,8 +11196,8 @@ function Floor3DScene({
       {villaExperienceEnabled && lightingExperienceScope === "currentFloor" && houseStructure.outdoors.filter((outdoor) => resolveVisibility(outdoor).visible3d).map((outdoor) => (
         <PolygonSurfaceMesh key={`${outdoor.id}-villa-entry`} id={outdoor.id} points={outdoor.polygon} structure={houseStructure} y={0.09} color="#65a30d" roughness={0.78} opacity={0.045} onSelect={() => onEnterRoom(houseStructure.floorId, outdoor.id)} onHover={onHoverObject} onClearHover={onClearHoverObject} />
       ))}
-      {presentationMode && houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d && (!currentSpaceActive || (currentRoomActive && room.id === currentRoom?.id)) && !(/楼梯/.test(room.name) && currentFloorStairOpenings.length > 0)).map((room) => (
-        <RoomFloorFinishOverlay key={`${room.id}-floor-finish`} room={room} structure={houseStructure} designStyle={designStyle} />
+      {houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d && (!currentSpaceActive || (currentRoomActive && room.id === currentRoom?.id)) && !(/楼梯/.test(room.name) && currentFloorStairOpenings.length > 0)).map((room) => (
+        <RoomFloorFinishOverlay key={`${room.id}-floor-finish`} room={room} structure={houseStructure} designStyle={designStyle} presentationMode={presentationMode} />
       ))}
       {presentationMode && houseStructure.rooms.filter((room) => resolveVisibility(room).visible3d && (!currentSpaceActive || (currentRoomActive && room.id === currentRoom?.id))).map((room) => (
         <RoomAmbientOcclusion key={`${room.id}-ambient-occlusion`} room={room} structure={houseStructure} />
@@ -10020,7 +11321,11 @@ function Floor3DScene({
       {houseStructure.doors.filter((door) => resolveVisibility(door).visible3d && (!currentRoomActive || currentRoomWallIds.has(door.hostId))).map((door) => (
         <OpeningMesh
           key={door.id}
-          opening={door}
+          opening={storageDoorPreviewOpen && door.id === "D-B2-STORAGE-001"
+            ? { ...door, defaultOpenAmount: 0.76, openDirection: "rightOut" }
+            : entryDoorPreviewOpen && door.id === "D-B2-001"
+              ? { ...door, defaultOpenAmount: 0.58, openDirection: "leftIn" }
+              : door}
           structure={houseStructure}
           selected={selectedObjectId === door.id}
           explorationDoorState={explorationDoorStates?.[door.id]}
@@ -10844,6 +12149,10 @@ export function Floor3DView({
   lightingObjectControlRequest = null,
   mobilePresentationMode = false,
   externalPresentationMode = false,
+  presentationWallDisplayMode,
+  cameraCollisionEnabledOverride,
+  cameraLockEnabledOverride,
+  hidePresentationUi = false,
   mobileQuality = "balanced",
   resetViewRequest = 0,
   selectedObjectId,
@@ -10865,12 +12174,13 @@ export function Floor3DView({
   const villaFurniture = allFurniture ?? furniture;
   const villaDrawingItems = allDrawingItems ?? drawingItems;
   const drawingProfile = getDrawing3DPresentationProfile(drawingSheetType);
+  const initialRequestedCameraView = cameraViewRequest?.view?.floor === floor.id ? cameraViewRequest.view : null;
   const [villaExperienceEnabled, setVillaExperienceEnabled] = useState(() => drawingSheetType === "lightingPlan");
   const [villaOverviewMode, setVillaOverviewMode] = useState<VillaOverviewMode>(() => mobilePresentationMode || drawingSheetType === "lightingPlan" ? "wholeVilla" : "singleFloor");
   const [roomCeilingMode, setRoomCeilingMode] = useState<RoomCeilingMode>(() => drawingSheetType === "sitePlan" ? "translucent" : "hidden");
   const [cameraRequest, setCameraRequest] = useState<{ preset: CameraPreset; fixedView: FixedCameraView | null; version: number }>(() => ({
     preset: "overview",
-    fixedView: getMobileDefaultCameraView(floor, houseStructure, { width: mobilePresentationMode ? 390 : 1280, height: mobilePresentationMode ? 844 : 720, mobile: mobilePresentationMode }),
+    fixedView: initialRequestedCameraView ?? getMobileDefaultCameraView(floor, houseStructure, { width: mobilePresentationMode ? 390 : 1280, height: mobilePresentationMode ? 844 : 720, mobile: mobilePresentationMode }),
     version: 0
   }));
   const [cameraMode, setCameraMode] = useState<CameraMode>("orbit");
@@ -10880,8 +12190,9 @@ export function Floor3DView({
   const [cameraCompositionMargin, setCameraCompositionMargin] = useState(0.16);
   const [cameraCollisionEnabled, setCameraCollisionEnabled] = useState(true);
   const [cameraSettingsOpen, setCameraSettingsOpen] = useState(false);
-  const [cameraWallModeOverride, setCameraWallModeOverride] = useState<Drawing3DWallMode | null>(null);
+  const [cameraWallModeOverride, setCameraWallModeOverride] = useState<Drawing3DWallMode | null>(() => presentationWallDisplayMode ?? null);
   const [canvasViewport, setCanvasViewport] = useState<CameraViewport>(() => ({ width: mobilePresentationMode ? 390 : 1280, height: mobilePresentationMode ? 844 : 720, mobile: mobilePresentationMode }));
+  const [canvasReadyVersion, setCanvasReadyVersion] = useState(0);
   const [materialPreview, setMaterialPreview] = useState(true);
   const [showServicePoints, setShowServicePoints] = useState(false);
   const [showStairDebug, setShowStairDebug] = useState(false);
@@ -10890,10 +12201,10 @@ export function Floor3DView({
   const [sceneControlsOpen, setSceneControlsOpen] = useState(false);
   const [tourPanelOpen, setTourPanelOpen] = useState(false);
   const [activeTourNode, setActiveTourNode] = useState<RoomTourView | null>(null);
-  const [activeCameraViewId, setActiveCameraViewId] = useState<string | null>(null);
+  const [activeCameraViewId, setActiveCameraViewId] = useState<string | null>(() => initialRequestedCameraView?.id ?? null);
   const [freeBrowseVersion, setFreeBrowseVersion] = useState(0);
   const [cameraPlanPose, setCameraPlanPose] = useState<CameraPlanPose>(() => {
-    const initial = getMobileDefaultCameraView(floor, houseStructure, { width: mobilePresentationMode ? 390 : 1280, height: mobilePresentationMode ? 844 : 720, mobile: mobilePresentationMode });
+    const initial = initialRequestedCameraView ?? getMobileDefaultCameraView(floor, houseStructure, { width: mobilePresentationMode ? 390 : 1280, height: mobilePresentationMode ? 844 : 720, mobile: mobilePresentationMode });
     return {
       cameraX: initial.cameraPosition.x,
       cameraY: initial.cameraPosition.y,
@@ -10912,6 +12223,7 @@ export function Floor3DView({
   const [renderCameraPanelOpen, setRenderCameraPanelOpen] = useState(false);
   const [renderCameras, setRenderCameras] = useState<RenderCameraRecord[]>([]);
   const [cameraStorageNotice, setCameraStorageNotice] = useState<string | null>(null);
+  const [renderSceneEvidence, setRenderSceneEvidence] = useState<RenderSceneEvidence>(emptyRenderSceneEvidence);
   const [drawingViewPreset, setDrawingViewPreset] = useState<Drawing3DViewPreset>(drawingProfile.defaultPreset);
   const [lightingScene, setLightingScene] = useState<LightingSceneMode>("dayWithLights");
   const [activeLightingControlSceneId, setActiveLightingControlSceneId] = useState("SCENE-DAILY");
@@ -10979,20 +12291,24 @@ export function Floor3DView({
   useEffect(() => {
     const canvas = canvasElementRef.current;
     if (!canvas) return;
-    const updateViewport = () => setCanvasViewport({
-      width: Math.max(1, canvas.clientWidth),
-      height: Math.max(1, canvas.clientHeight),
-      mobile: mobilePresentationMode
-    });
+    const observedElement = canvas.parentElement ?? canvas;
+    const updateViewport = () => {
+      const rect = observedElement.getBoundingClientRect();
+      setCanvasViewport({
+        width: Math.max(240, canvas.clientWidth, Math.round(rect.width)),
+        height: Math.max(240, canvas.clientHeight, Math.round(rect.height)),
+        mobile: mobilePresentationMode
+      });
+    };
     updateViewport();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateViewport);
-    observer?.observe(canvas);
+    observer?.observe(observedElement);
     window.addEventListener("resize", updateViewport);
     return () => {
       observer?.disconnect();
       window.removeEventListener("resize", updateViewport);
     };
-  }, [floor.id, mobilePresentationMode]);
+  }, [canvasReadyVersion, floor.id, mobilePresentationMode]);
   useEffect(() => {
     setVillaExperienceEnabled(drawingSheetType === "lightingPlan");
     if (!mobilePresentationMode && drawingSheetType !== "lightingPlan") setVillaOverviewMode("singleFloor");
@@ -11014,7 +12330,13 @@ export function Floor3DView({
     villaExperienceEnabled,
     lightingWallMode
   });
-  const effectiveCameraWallDisplayMode = cameraWallModeOverride ?? effectiveWallDisplayMode;
+  // Presentation bird's-eye views must not inherit an editor's saved
+  // "allTransparent" wall override. That override is useful while editing,
+  // but it makes a finished preview look like a ghosted model.
+  const effectiveCameraWallDisplayMode = presentationWallDisplayMode
+    ?? (presentationMode && drawingViewPreset === "birdseyeEdit"
+      ? "cutaway"
+      : cameraWallModeOverride ?? effectiveWallDisplayMode);
   const effectiveFurnitureHeightMode: FurnitureHeightMode = "actual";
   useEffect(() => {
     onSceneSettingsChange?.({
@@ -11236,8 +12558,8 @@ export function Floor3DView({
     roomTourViews,
     furniture: villaFurniture,
     viewport: cameraViewport,
-    compositionMargin: cameraCompositionMargin
-  }), [cameraCompositionMargin, cameraViewport, cameraViews, drawingSheetType, floor, houseStructure, roomTourViews, villaFurniture]);
+    compositionMargin: presentationMode && drawingSheetType !== "lightingPlan" ? Math.max(cameraCompositionMargin, 0.16) : cameraCompositionMargin
+  }), [cameraCompositionMargin, cameraViewport, cameraViews, drawingSheetType, floor, houseStructure, presentationMode, roomTourViews, villaFurniture]);
   // One user-facing picker for both legacy cameraViews and roomTourViews.
   // Keep the source collections intact for persistence/import compatibility,
   // while hiding exact duplicate labels and generic direction helpers here.
@@ -11274,6 +12596,47 @@ export function Floor3DView({
       setActiveLightingControlSceneId(view.recommendedLightingSceneId);
     }
   };
+  useEffect(() => {
+    // The canvas can resize after the initial camera request (for example when
+    // the editor chrome settles or the browser viewport changes). Refresh the
+    // presentation overview against the actual viewport so the floor stays
+    // centered and fully visible instead of retaining a stale composition.
+    if (!presentationMode || drawingSheetType === "lightingPlan" || villaOverviewMode !== "singleFloor" || cameraViewRequest?.view) return;
+    const overview = floorCameraViews.find((view) => view.name === "鸟瞰");
+    if (!overview) return;
+    // A selected authored view owns the camera. Viewport settling may refresh the
+    // automatic overview only while the overview itself (or no view) is active.
+    if (activeCameraViewId && activeCameraViewId !== overview.id) return;
+    const presentationTarget = { x: 0, y: 0.8, z: 0 };
+    const targetDelta = {
+      x: presentationTarget.x - overview.target.x,
+      y: presentationTarget.y - overview.target.y,
+      z: presentationTarget.z - overview.target.z
+    };
+    const presentationView = {
+      ...overview.fixedView,
+      cameraPosition: {
+        x: overview.cameraPosition.x + targetDelta.x,
+        y: overview.cameraPosition.y + targetDelta.y,
+        z: overview.cameraPosition.z + targetDelta.z
+      },
+      target: presentationTarget
+    };
+    const current = cameraRequest.fixedView;
+    const samePose = current?.id === overview.id
+      && Math.abs(current.cameraPosition.x - presentationView.cameraPosition.x) < 0.002
+      && Math.abs(current.cameraPosition.y - presentationView.cameraPosition.y) < 0.002
+      && Math.abs(current.cameraPosition.z - presentationView.cameraPosition.z) < 0.002
+      && Math.abs(current.target.x - presentationView.target.x) < 0.002
+      && Math.abs(current.target.y - presentationView.target.y) < 0.002
+      && Math.abs(current.target.z - presentationView.target.z) < 0.002
+      && Math.abs((current.fov ?? 42) - (presentationView.fov ?? 42)) < 0.05;
+    if (samePose) return;
+    recommendedCameraViewRef.current = presentationView;
+    setActiveCameraViewId(overview.id);
+    setActiveCameraConstraints(overview.composition?.safety ?? cameraConstraintsForView(presentationView));
+    setCameraRequest((request) => ({ preset: "overview", fixedView: presentationView, version: request.version + 1 }));
+  }, [activeCameraViewId, cameraRequest.fixedView, cameraViewRequest?.nonce, drawingSheetType, floorCameraViews, presentationMode, villaOverviewMode]);
   const requestFreeBrowse = () => {
     if (mobilePresentationMode) setVillaOverviewMode("singleFloor");
     setCameraMode("orbit");
@@ -11854,6 +13217,11 @@ export function Floor3DView({
       setDrawingViewPreset("birdseyeEdit");
       return;
     }
+    if (cameraViewRequest?.view?.floor === floor.id) {
+      setActiveCameraViewId(cameraViewRequest.view.id);
+      setDrawingViewPreset(drawingProfile.defaultPreset);
+      return;
+    }
     const defaultView = drawingSheetType === "lightingPlan"
       ? floorCameraViews.find((view) => view.name === "鸟瞰")
       : floorCameraViews.find((view) => view.defaultForFloor) ?? floorCameraViews.find((view) => view.name === "鸟瞰");
@@ -11960,6 +13328,72 @@ export function Floor3DView({
     }
     return { kind: "floor", floorId: floor.id, label: activeCameraViewName ?? `${floor.label}视角` };
   };
+  const currentRenderPreflightCamera = {
+    id: activeCameraViewId ?? `current-${floor.id}`,
+    name: activeCameraViewName ?? `${floor.label}当前视角`,
+    floor: floor.id,
+    cameraPosition: {
+      x: cameraPlanPose.cameraX,
+      y: cameraPlanPose.cameraY ?? 1.55,
+      z: cameraPlanPose.cameraZ
+    },
+    target: {
+      x: cameraPlanPose.targetX,
+      y: cameraPlanPose.targetY ?? 0.8,
+      z: cameraPlanPose.targetZ
+    },
+    fov: cameraPlanPose.fov ?? 42,
+    targetArea: cameraRequest.fixedView?.targetArea,
+    description: cameraRequest.fixedView?.description,
+    focus: resolveCurrentSavedFocus()
+  };
+  const getCurrentRenderPreflight = (sceneEvidence: RenderSceneEvidence = renderSceneEvidence) => runRenderPreflight({
+    floorId: floor.id,
+    structure: houseStructure,
+    structuresByFloor: { ...houseStructuresByFloor, [floor.id]: houseStructure },
+    furniture: villaFurniture,
+    drawingItems: villaDrawingItems,
+    stairSystems,
+    stairLandings,
+    stairOpenings,
+    lightingDesign,
+    camera: currentRenderPreflightCamera,
+    presentationMode,
+    materialPreview,
+    wallDisplayMode: effectiveCameraWallDisplayMode,
+    roomCeilingMode,
+    cameraCollisionEnabled: cameraCollisionEnabledOverride ?? cameraCollisionEnabled,
+    lightingScene,
+    lightingSceneId: activeLightingControlSceneId === "__all_on__" ? undefined : activeLightingControlSceneId,
+    enabledLightCount: lightingSummary.enabledLights,
+    knownRenderMaterialTokens,
+    knownPbrMaterialTokens,
+    sceneEvidence
+  });
+  const currentRenderPreflight = getCurrentRenderPreflight();
+  useEffect(() => {
+    if (!renderCameraPanelOpen) return;
+    const timer = window.setTimeout(() => {
+      setRenderSceneEvidence(collectRenderSceneEvidence(rendererStateRef.current, currentRenderPreflightCamera.focus.objectId));
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [
+    canvasReadyVersion,
+    cameraPlanPose.cameraX,
+    cameraPlanPose.cameraY,
+    cameraPlanPose.cameraZ,
+    cameraPlanPose.fov,
+    cameraPlanPose.targetX,
+    cameraPlanPose.targetY,
+    cameraPlanPose.targetZ,
+    currentRenderPreflightCamera.focus.objectId,
+    floor.id,
+    houseStructure,
+    materialPreview,
+    presentationMode,
+    renderCameraPanelOpen,
+    villaFurniture
+  ]);
   const saveCurrentRenderCamera = () => {
     const sequence = renderCameras.filter((camera) => camera.floor === floor.id).length + 1;
     const nextCamera: RenderCameraRecord = {
@@ -12044,15 +13478,23 @@ export function Floor3DView({
     const canvas = canvasElementRef.current;
     if (!canvas) return;
     const rendererState = rendererStateRef.current;
+    const sceneEvidence = collectRenderSceneEvidence(rendererState, currentRenderPreflightCamera.focus.objectId);
+    setRenderSceneEvidence(sceneEvidence);
+    const preflight = getCurrentRenderPreflight(sceneEvidence);
+    if (preflight.errorCount > 0) {
+      setCameraStorageNotice(`渲染已阻止：${preflight.summary}。请先修复红色问题。`);
+      setRenderCameraPanelOpen(true);
+      return;
+    }
     rendererState?.gl.render(rendererState.scene, rendererState.camera);
     const link = document.createElement("a");
     link.download = `lyhpvilla-${floor.id}-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
     link.href = canvas.toDataURL("image/png", 1);
     link.click();
+    setCameraStorageNotice(preflight.warningCount > 0 ? `PNG 已输出；同时保留 ${preflight.warningCount} 项非阻断提醒。` : "PNG 已输出；渲染预检全部通过。");
   };
   const lightingExperienceActive = villaExperienceEnabled || drawingSheetType === "lightingPlan";
   const lightingBlackoutActive = lightingExperienceActive
-    && lightingScene === "night"
     && lightingSummary.enabledLights === 0;
 
   return (
@@ -12066,10 +13508,17 @@ export function Floor3DView({
       onPointerUpCapture={handleGesturePointerEnd}
       onPointerCancelCapture={handleGesturePointerEnd}
       data-room-tour-active={activeTourNode ? "true" : "false"}
+      data-floor-3d-scene-root
       data-drawing-sheet-type={drawingSheetType}
       data-drawing-3d-preset={drawingViewPreset}
       data-camera-mode={cameraMode}
+      data-camera-lock-enabled={cameraLockEnabledOverride ? "true" : "false"}
       data-active-camera-view-id={activeCameraViewId ?? ""}
+      data-camera-request-version={cameraRequest.version}
+      data-camera-request-id={cameraRequest.fixedView?.id ?? ""}
+      data-camera-request-position={cameraRequest.fixedView ? `${cameraRequest.fixedView.cameraPosition.x.toFixed(3)},${cameraRequest.fixedView.cameraPosition.y.toFixed(3)},${cameraRequest.fixedView.cameraPosition.z.toFixed(3)}` : ""}
+      data-camera-position={`${cameraPlanPose.cameraX.toFixed(3)},${(cameraPlanPose.cameraY ?? 0).toFixed(3)},${cameraPlanPose.cameraZ.toFixed(3)}`}
+      data-camera-target={`${cameraPlanPose.targetX.toFixed(3)},${(cameraPlanPose.targetY ?? 0).toFixed(3)},${cameraPlanPose.targetZ.toFixed(3)}`}
       data-villa-experience={villaExperienceEnabled ? "true" : "false"}
       data-villa-overview-mode={villaOverviewMode}
       data-villa-stack-floor-count={VILLA_BUILDING_FLOOR_IDS.filter((floorId) => Boolean(houseStructuresByFloor[floorId])).length}
@@ -12091,6 +13540,9 @@ export function Floor3DView({
       data-scene-furniture-signature={getFurnitureGeometrySignature(furniture)}
       data-scene-wall-signature={getWallGeometrySignature(houseStructure)}
       data-specialty-fallback={specialtyFallback ? "true" : "false"}
+      data-render-preflight-status={currentRenderPreflight.status}
+      data-render-preflight-errors={currentRenderPreflight.errorCount}
+      data-render-preflight-warnings={currentRenderPreflight.warningCount}
     >
       <Canvas
         // Keep the renderer and its GPU resource identity stable while the
@@ -12099,7 +13551,7 @@ export function Floor3DView({
         // renderer, PMREM environment and shader programs on every switch.
         key={`${presentationMode ? "presentation" : "edit"}-${mobileQuality}`}
         shadows={!mobilePresentationMode || mobileQuality === "high"}
-        dpr={mobilePresentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : presentationMode ? [1.25, 2] : [1, 1.5]}
+        dpr={mobilePresentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : presentationMode ? [1.1, 1.75] : [1, 1.5]}
         camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}
         gl={{ antialias: presentationMode && (!mobilePresentationMode || mobileQuality === "high"), preserveDrawingBuffer: presentationMode, powerPreference: mobilePresentationMode && mobileQuality === "balanced" ? "low-power" : "high-performance" }}
         onPointerMissed={() => {
@@ -12108,7 +13560,13 @@ export function Floor3DView({
         onCreated={({ gl, scene, camera }) => {
           canvasElementRef.current = gl.domElement;
           rendererStateRef.current = { gl, scene, camera };
-          setCanvasViewport({ width: Math.max(1, gl.domElement.clientWidth), height: Math.max(1, gl.domElement.clientHeight), mobile: mobilePresentationMode });
+          setCanvasReadyVersion((version) => version + 1);
+          const parentRect = gl.domElement.parentElement?.getBoundingClientRect();
+          setCanvasViewport({
+            width: Math.max(240, gl.domElement.clientWidth, Math.round(parentRect?.width ?? 0)),
+            height: Math.max(240, gl.domElement.clientHeight, Math.round(parentRect?.height ?? 0)),
+            mobile: mobilePresentationMode
+          });
         }}
       >
         <Floor3DScene
@@ -12122,6 +13580,7 @@ export function Floor3DView({
           currentOutdoorId={selectedLightingSpace?.kind === "outdoor" ? selectedLightingSpace.id : null}
           roomCeilingMode={roomCeilingMode}
           lightingScene={lightingScene}
+          lightingBlackoutActive={lightingBlackoutActive}
           lightingControlBrightness={lightingControlBrightness}
           lightingItemBrightness={lightingItemBrightness}
           showFixtureModels={showFixtureModels}
@@ -12148,7 +13607,8 @@ export function Floor3DView({
           cameraAdjustmentRequest={cameraAdjustmentRequest}
           cameraConstraints={activeCameraConstraints}
           cameraTransitionDuration={cameraTransitionDuration}
-          cameraCollisionEnabled={cameraCollisionEnabled}
+          cameraCollisionEnabled={cameraCollisionEnabledOverride ?? cameraCollisionEnabled}
+          cameraLockEnabled={cameraLockEnabledOverride ?? false}
           onCameraPlanPoseChange={setCameraPlanPose}
           wallDisplayModeOverride={effectiveCameraWallDisplayMode}
           materialPreview={materialPreview}
@@ -12192,25 +13652,48 @@ export function Floor3DView({
 
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 z-[1] bg-[#010207] transition-opacity duration-300 ${lightingBlackoutActive ? "opacity-[0.78]" : "opacity-0"}`}
+        className={`pointer-events-none absolute inset-0 z-[1] bg-black transition-opacity duration-300 ${lightingBlackoutActive ? "opacity-100" : "opacity-0"}`}
         data-testid="lighting-blackout-overlay"
       />
 
       {renderCameraPanelOpen && !mobilePresentationMode && (
         <aside className="absolute right-4 top-20 z-[96] flex max-h-[calc(100%-7rem)] w-80 flex-col overflow-hidden rounded-2xl border border-white/85 bg-[#faf8f4]/96 text-stone-800 shadow-2xl backdrop-blur-xl" data-testid="render-camera-panel">
-          <div className="border-b border-stone-200 px-4 py-3">
+          <div className="shrink-0 border-b border-stone-200 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div><div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Render camera</div><h3 className="mt-1 text-lg font-black">空间摄影机</h3></div>
               <button aria-label="关闭空间摄影机" className="grid size-9 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setRenderCameraPanelOpen(false)} type="button">×</button>
             </div>
-            <p className="mt-2 text-[11px] leading-5 text-stone-500">保存位置、朝向、视野、楼层、灯光和当前渲染设置。</p>
+            <p className="mt-2 text-[11px] leading-5 text-stone-500">保存位置、朝向、视野、楼层、灯光和当前渲染设置；导出前自动核对户型、遮挡、材质与灯光。</p>
             {cameraStorageNotice && <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[10px] font-bold leading-4 text-amber-800" role="status">{cameraStorageNotice}</p>}
+            <div
+              className={`mt-3 rounded-xl border p-3 ${currentRenderPreflight.status === "blocked" ? "border-red-200 bg-red-50" : currentRenderPreflight.status === "warning" ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}
+              data-testid="render-preflight-summary"
+              role={currentRenderPreflight.status === "blocked" ? "alert" : "status"}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className={`text-[10px] font-black uppercase tracking-[0.14em] ${currentRenderPreflight.status === "blocked" ? "text-red-700" : currentRenderPreflight.status === "warning" ? "text-amber-700" : "text-emerald-700"}`}>Render preflight</div>
+                  <div className="mt-1 text-xs font-black">{currentRenderPreflight.status === "blocked" ? "发现不一致，已禁止渲染" : currentRenderPreflight.status === "warning" ? "可以渲染，但建议复核" : "一致性检查通过"}</div>
+                </div>
+                <span className="shrink-0 rounded-full bg-white/80 px-2 py-1 text-[10px] font-black">{currentRenderPreflight.passedCheckCount}/{currentRenderPreflight.checkCount}</span>
+              </div>
+              <p className="mt-1 text-[10px] leading-4 text-stone-600">{currentRenderPreflight.summary}</p>
+            </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button className="rounded-xl bg-stone-900 px-3 py-2.5 text-xs font-black text-white" onClick={saveCurrentRenderCamera} type="button">保存当前视角</button>
-              <button className="rounded-xl bg-amber-100 px-3 py-2.5 text-xs font-black text-amber-900" onClick={exportCurrentRender} type="button">输出 PNG</button>
+              <button className={`rounded-xl px-3 py-2.5 text-xs font-black ${currentRenderPreflight.status === "blocked" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-900"}`} onClick={exportCurrentRender} type="button">{currentRenderPreflight.status === "blocked" ? "重新检查" : "输出 PNG"}</button>
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {currentRenderPreflight.issues.length > 0 && <div className="mb-3 space-y-1.5" data-testid="render-preflight-issues">
+              {currentRenderPreflight.issues.slice(0, 10).map((issue, index) => (
+                <div key={`${issue.code}-${issue.objectId ?? index}`} className={`rounded-lg border px-2.5 py-2 text-[10px] leading-4 ${issue.severity === "error" ? "border-red-100 bg-red-50/75" : "border-amber-100 bg-amber-50/75"}`}>
+                  <div className={`font-black ${issue.severity === "error" ? "text-red-700" : "text-amber-700"}`}>{issue.severity === "error" ? "错误" : "提醒"} · {issue.title}</div>
+                  <div className="text-stone-600">{issue.message} {issue.suggestion}</div>
+                </div>
+              ))}
+              {currentRenderPreflight.issues.length > 10 && <div className="px-1 text-[10px] font-bold text-stone-500">另有 {currentRenderPreflight.issues.length - 10} 项，请先处理同类问题后再次检查。</div>}
+            </div>}
             {renderCameras.length === 0 ? <div className="rounded-xl bg-stone-100 px-3 py-5 text-center text-xs text-stone-500">尚未保存摄影机</div> : (
               <div className="space-y-2">{renderCameras.map((camera) => (
                 <div key={camera.id} className={`rounded-xl border p-3 ${activeCameraViewId === camera.id ? "border-amber-400 bg-amber-50" : "border-stone-200 bg-white"}`}>
@@ -12279,7 +13762,7 @@ export function Floor3DView({
             <div className="mt-1 flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-base font-black">全屋灯光总览</h2>
-                <p className="mt-0.5 text-[11px] text-stone-300">{activeLightingControlSceneId === "__all_on__" ? "全开" : activeLightingControlScene?.name ?? "日常"} · {lightingSceneModeLabels[lightingScene]}</p>
+                <p className="mt-0.5 text-[11px] text-stone-300">{lightingBlackoutActive ? "全灯关闭 · 全黑亮度评估" : `${activeLightingControlSceneId === "__all_on__" ? "全开" : activeLightingControlScene?.name ?? "日常"} · ${lightingSceneModeLabels[lightingScene]}`}</p>
               </div>
               <div className="flex items-center gap-1">
                 <button aria-label="收起房间导航" className="grid size-8 place-items-center rounded-full bg-white/10 text-lg" onClick={() => setLightingPanelCollapsed(true)} type="button">−</button>
@@ -12385,7 +13868,7 @@ export function Floor3DView({
             <button aria-label="拉近镜头" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => requestCameraAdjustment({ action: "zoom", zoomFactor: 0.84 })} type="button">＋</button>
             <button aria-label="拉远镜头" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => requestCameraAdjustment({ action: "zoom", zoomFactor: 1.18 })} type="button">−</button>
             <button className="rounded-full bg-white/10 px-3 py-2" onClick={resetRecommendedCamera} type="button">推荐</button>
-            <div className="flex rounded-full bg-white/10 p-0.5"><button className={`rounded-full px-2 py-1 ${lightingScene === "dayWithLights" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("dayWithLights")} type="button">白天</button><button className={`rounded-full px-2 py-1 ${lightingScene === "night" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("night")} type="button">夜间</button></div>
+            <div className="flex rounded-full bg-white/10 p-0.5"><button className={`rounded-full px-2 py-1 ${lightingScene === "dayWithLights" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("dayWithLights")} type="button">白天</button><button className={`rounded-full px-2 py-1 ${lightingScene === "night" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("night")} type="button">夜间</button><button className={`rounded-full px-2 py-1 ${lightingScene === "artificialOnly" ? "bg-amber-300 text-stone-950" : ""}`} onClick={() => setLightingScene("artificialOnly")} type="button">评估</button></div>
             <button className="rounded-full bg-white/10 px-3 py-2" onClick={() => returnToLightingOverview()} type="button">全屋总览</button>
             <button className={`rounded-full px-3 py-2 ${advancedLightingOpen ? "bg-amber-400 text-stone-950" : "bg-white/10"}`} onClick={() => setAdvancedLightingOpen((open) => !open)} type="button">分析</button>
           </div>
@@ -12479,7 +13962,7 @@ export function Floor3DView({
         </div>
       )}
 
-      {!mobilePresentationMode && !presentationMode && (
+      {!hidePresentationUi && !mobilePresentationMode && !presentationMode && (
         <div className="pointer-events-none absolute inset-x-0 bottom-[4.75rem] z-[94] flex justify-center px-4">
           <div className="pointer-events-auto flex max-w-[calc(100%-2rem)] items-center gap-1 overflow-x-auto rounded-xl border border-white/85 bg-stone-950/82 p-1.5 text-[11px] font-bold text-white shadow-xl backdrop-blur" data-testid="camera-adjustment-bar">
             <span className="max-w-40 shrink-0 truncate rounded-lg bg-white/10 px-3 py-2" title={resolveCurrentSavedFocus().label}>焦点 · {resolveCurrentSavedFocus().label ?? floor.label}</span>
@@ -12539,7 +14022,7 @@ export function Floor3DView({
         </div>
       )}
 
-      {presentationMode && !mobilePresentationMode && (
+      {!hidePresentationUi && presentationMode && !mobilePresentationMode && (
         <div className="pointer-events-none absolute inset-0 z-[50] bg-[radial-gradient(circle_at_50%_48%,rgba(255,255,255,0)_42%,rgba(132,102,64,0.12)_100%)]" />
       )}
 
@@ -12559,7 +14042,7 @@ export function Floor3DView({
           </div>
         </aside>
       )}
-      <div className={`${mobilePresentationMode ? "hidden" : "pointer-events-none"} absolute left-4 top-4 z-[90]`}>
+      {!hidePresentationUi && <div className={`${mobilePresentationMode ? "hidden" : "pointer-events-none"} absolute left-4 top-4 z-[90]`}>
         <div className={`pointer-events-auto flex max-w-[min(36rem,calc(100vw-10rem))] flex-wrap items-center justify-start gap-2 rounded-xl border border-white/80 bg-white/92 p-2 shadow-sm backdrop-blur ${presentationMode ? "bg-white/76" : ""}`}>
           {presentationMode ? (
             <button
@@ -12596,7 +14079,7 @@ export function Floor3DView({
               </div>}
               {lightingExperienceScope !== "currentRoom" && villaOverviewMode === "singleFloor" && <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="按楼层显示">{(["B2","B1","1F","2F","YARD"] as Floor["id"][]).filter((floorId) => Boolean(houseStructuresByFloor[floorId])).map((floorId) => <button key={floorId} aria-pressed={floor.id === floorId} className={`rounded px-2 py-1.5 text-xs font-bold ${floor.id === floorId ? "bg-amber-500 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => onSelectFloor?.(floorId)} type="button">{floorId === "YARD" ? "院子" : floorId}</button>)}</div>}
               <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="灯光时间模式">
-                {([['dayWithLights','白天'],['night','夜间']] as Array<[LightingSceneMode,string]>).map(([mode,label]) => <button key={mode} aria-pressed={lightingScene === mode} className={`rounded px-2 py-1.5 text-xs font-bold ${lightingScene === mode ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => setLightingScene(mode)} type="button">{label}</button>)}
+                {([['dayWithLights','白天'],['night','夜间'],['artificialOnly','灯光评估']] as Array<[LightingSceneMode,string]>).map(([mode,label]) => <button key={mode} aria-pressed={lightingScene === mode} className={`rounded px-2 py-1.5 text-xs font-bold ${lightingScene === mode ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => setLightingScene(mode)} type="button">{label}</button>)}
               </div>
               <button className="rounded-md bg-amber-100 px-3 py-2 text-xs font-black text-amber-900 hover:bg-amber-200" onClick={enterPhysicalFixtureCloseup} type="button">灯具实体近看</button>
               {lightingExperienceScope === "currentRoom" && <button className="rounded-md bg-stone-900 px-3 py-2 text-xs font-bold text-white" onClick={() => returnToLightingOverview()} type="button">返回总览</button>}
@@ -12704,7 +14187,7 @@ export function Floor3DView({
             </>
           )}
         </div>
-      </div>
+      </div>}
 
     </div>
   );

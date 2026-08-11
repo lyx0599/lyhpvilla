@@ -64,7 +64,7 @@ assert.ok(b2.walls.some((wall) => wall.id === "W-B2-STORAGE-001"), "The under-st
 assert.ok(b2.walls.some((wall) => wall.id === "W-B2-STORAGE-002"), "The under-stair storage south partition must render.");
 assert.ok(renderedOpeningIds.includes("D-B2-STORAGE-001"), "The under-stair storage sliding door must cut its host wall.");
 const b2StorageDoor = b2.doors.find((door) => door.id === "D-B2-STORAGE-001");
-assert.deepEqual({ width: b2StorageDoor?.width, height: b2StorageDoor?.height }, { width: 620, height: 900 }, "The under-stair storage opening must remain a low door below the stair slope.");
-assert.equal(workspace.furniture.filter((item) => item.floorId === "B2" && item.roomId === "ROOM-B2-004" && item.type === "bookshelf").length, 3, "The under-stair storage must keep its three compact rack runs.");
+assert.deepEqual({ width: b2StorageDoor?.width, height: b2StorageDoor?.height }, { width: 700, height: 1250 }, "The under-stair storage opening must remain the confirmed low door below the stair slope.");
+assert.equal(workspace.furniture.filter((item) => item.id.startsWith("furn-b2-under-stair-shelf-")).length, 3, "The under-stair storage must keep its three compact rack runs in addition to the room shell.");
 
 console.log(`3D structure rendering coverage passed: ${expectedOpeningIds.length} wall openings and ${Object.values(workspace.houseStructuresByFloor).flatMap((structure) => structure.skylights).length} skylights.`);

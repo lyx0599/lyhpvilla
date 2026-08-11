@@ -65,7 +65,7 @@ const source = await readFile(new URL("../components/floor-3d-view.tsx", import.
 assert.match(source, /requestFreeBrowse/);
 assert.match(source, /transitionRef\.current = null/);
 assert.match(source, /controls\.enableRotate = true/);
-assert.match(source, /data-testid="floor-camera-bar"/);
+assert.match(source, /data-testid="camera-adjustment-bar"/);
 assert.match(source, /data-testid="mobile-camera-bar"/);
 
 console.log(`Floor camera view checks passed (${roomTourViews.length} workspace-derived nodes).`);

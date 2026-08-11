@@ -27,13 +27,8 @@ async function selectFloor(page, buttonName) {
 async function openMoreView(page, viewName) {
   const escaped = viewName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const viewNamePattern = new RegExp(`^${escaped}(?:\\s+(?:结构 / 特征视角|房间视角|通用视角|灯光体验视角))?$`);
-  const direct = page.getByRole("button", { name: viewNamePattern }).first();
-  if (await direct.count()) {
-    await direct.click();
-    await settle(page, 1900);
-    return;
-  }
-  await page.getByRole("button", { name: /^更多/ }).click();
+  const picker = page.getByTestId("tour-room-panel");
+  if (!(await picker.isVisible().catch(() => false))) await page.getByRole("button", { name: "空间视角", exact: true }).first().click();
   await page.getByRole("button", { name: viewNamePattern }).first().click();
   await settle(page, 1900);
 }
@@ -67,7 +62,7 @@ if (await codeVersionButton.count()) {
 await clickButton(page, "效果3D");
 
 await selectFloor(page, "b1 地下室一层");
-await clickButton(page, "鸟瞰");
+await openMoreView(page, "鸟瞰");
 await captureCanvas(page, "01-b1-ordinary-overview");
 await openMoreView(page, "正面对楼梯全景");
 await captureCanvas(page, "02-b1-stair-front-panorama");

@@ -213,6 +213,28 @@ export function getWorkspaceValidationErrors(value: unknown) {
       if (render3d.styleSource !== undefined && !["generated", "manual"].includes(String(render3d.styleSource))) errors.push(`furniture[${index}].render3d.styleSource 无效。`);
       if (render3d.detailLevel !== undefined && !["draft", "standard", "presentation"].includes(String(render3d.detailLevel))) errors.push(`furniture[${index}].render3d.detailLevel 无效。`);
       if (render3d.styleLocked !== undefined && typeof render3d.styleLocked !== "boolean") errors.push(`furniture[${index}].render3d.styleLocked 必须是布尔值。`);
+      const cabinetMaterialOverrides = asRecord(render3d.cabinetMaterialOverrides);
+      if (render3d.cabinetMaterialOverrides !== undefined && !cabinetMaterialOverrides) errors.push(`furniture[${index}].render3d.cabinetMaterialOverrides 必须是对象。`);
+      if (cabinetMaterialOverrides) {
+        for (const field of ["door", "carcass", "countertop", "glass", "hardware"]) {
+          if (cabinetMaterialOverrides[field] !== undefined && (typeof cabinetMaterialOverrides[field] !== "string" || !cabinetMaterialOverrides[field])) {
+            errors.push(`furniture[${index}].render3d.cabinetMaterialOverrides.${field} 必须是非空字符串。`);
+          }
+        }
+      }
+      const cabinetInterior = asRecord(furniture?.cabinetInterior);
+      if (furniture?.cabinetInterior !== undefined && !cabinetInterior) errors.push(`furniture[${index}].cabinetInterior 必须是对象。`);
+      if (cabinetInterior) {
+        if (cabinetInterior.schemaVersion !== 1) errors.push(`furniture[${index}].cabinetInterior.schemaVersion 必须为 1。`);
+        if (!Number.isFinite(cabinetInterior.panelThicknessMm) || Number(cabinetInterior.panelThicknessMm) <= 0) errors.push(`furniture[${index}].cabinetInterior.panelThicknessMm 必须是正数。`);
+        for (const field of ["interiorWidthMm", "interiorHeightMm", "interiorDepthMm"]) if (!Number.isFinite(cabinetInterior[field]) || Number(cabinetInterior[field]) <= 0) errors.push(`furniture[${index}].cabinetInterior.${field} 必须是正数。`);
+        if (!Array.isArray(cabinetInterior.modules)) errors.push(`furniture[${index}].cabinetInterior.modules 必须是数组。`);
+        if (Array.isArray(cabinetInterior.modules)) cabinetInterior.modules.forEach((module, moduleIndex) => {
+          const record = asRecord(module);
+          if (!record || typeof record.id !== "string" || typeof record.kind !== "string") errors.push(`furniture[${index}].cabinetInterior.modules[${moduleIndex}] 缺少 id 或 kind。`);
+          for (const field of ["x", "y", "z", "width", "height", "depth"]) if (!record || !Number.isFinite(record[field]) || Number(record[field]) < 0) errors.push(`furniture[${index}].cabinetInterior.modules[${moduleIndex}].${field} 必须是非负数。`);
+        });
+      }
       for (const field of ["modelAssetId", "assetUrl"]) if (render3d[field] !== undefined && typeof render3d[field] !== "string") errors.push(`furniture[${index}].render3d.${field} 必须是字符串。`);
     });
   }

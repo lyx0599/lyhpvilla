@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, createElement, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, createElement, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import type { Render3DMaterialRole } from "@/lib/render3d-assets";
 import { getShowroomMaterialResource } from "@/lib/showroom-material-resources";
+import { resolvePublicAssetUrl } from "@/lib/external-asset-manifest";
 import {
   getMaterialResolution,
   getPbrMaterialDefinition,
@@ -16,11 +17,11 @@ import {
 export type ProceduralPbrKind = Exclude<Render3DMaterialRole, "light" | "plant" | "generic"> | "wall" | "microcement";
 
 export type ProceduralPbrMaps = {
-  map: THREE.CanvasTexture;
-  normalMap?: THREE.CanvasTexture;
-  roughnessMap?: THREE.CanvasTexture;
-  aoMap?: THREE.CanvasTexture;
-  bumpMap?: THREE.CanvasTexture;
+  map: THREE.Texture;
+  normalMap?: THREE.Texture;
+  roughnessMap?: THREE.Texture;
+  aoMap?: THREE.Texture;
+  bumpMap?: THREE.Texture;
 };
 
 type Options = {
@@ -100,7 +101,7 @@ function makeCanvas(size: number) {
   return canvas;
 }
 
-function configure(texture: THREE.CanvasTexture, repeat: [number, number], rotation: number, color = false) {
+function configure(texture: THREE.Texture, repeat: [number, number], rotation: number, color = false) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(Math.max(0.1, repeat[0]), Math.max(0.1, repeat[1]));
@@ -111,6 +112,60 @@ function configure(texture: THREE.CanvasTexture, repeat: [number, number], rotat
   texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   texture.needsUpdate = true;
   return texture;
+}
+
+const externalPbrMapCache = new Map<string, ProceduralPbrMaps>();
+
+function loadTexture(url: string, repeat: [number, number], rotation: number, color = false) {
+  return new Promise<THREE.Texture>((resolve, reject) => {
+    new THREE.TextureLoader().load(resolvePublicAssetUrl(url), (texture) => resolve(configure(texture, repeat, rotation, color)), undefined, reject);
+  });
+}
+
+function useExternalPbrMaps(resourceId: string | undefined, repeat: [number, number], rotation: number) {
+  const resource = getShowroomMaterialResource(resourceId);
+  const externalMaps = resource?.externalMaps;
+  const cacheKey = externalMaps
+    ? `${resourceId}|${repeat[0]}|${repeat[1]}|${rotation}`
+    : "none";
+  const [maps, setMaps] = useState<ProceduralPbrMaps | null>(() => externalPbrMapCache.get(cacheKey) ?? null);
+
+  useEffect(() => {
+    if (!externalMaps?.baseColor) {
+      setMaps(null);
+      return;
+    }
+    const cached = externalPbrMapCache.get(cacheKey);
+    if (cached) {
+      setMaps(cached);
+      return;
+    }
+    let active = true;
+    const entries = Object.entries(externalMaps).filter((entry): entry is [keyof NonNullable<typeof externalMaps>, string] => Boolean(entry[1]));
+    Promise.all(entries.map(async ([channel, url]) => [channel, await loadTexture(url, repeat, rotation, channel === "baseColor")] as const))
+      .then((loaded) => {
+        if (!active) return;
+        const next = Object.fromEntries(loaded) as Record<string, THREE.Texture>;
+        if (!next.baseColor) return;
+        const result: ProceduralPbrMaps = {
+          map: next.baseColor,
+          normalMap: next.normal,
+          roughnessMap: next.roughness,
+          aoMap: next.ao,
+          bumpMap: next.height
+        };
+        externalPbrMapCache.set(cacheKey, result);
+        setMaps(result);
+      })
+      .catch(() => {
+        if (active) setMaps(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [cacheKey, externalMaps, repeat[0], repeat[1], rotation]);
+
+  return maps;
 }
 
 function resolveQualityTier(quality: Options["quality"]): MaterialQualityTier {
@@ -241,17 +296,33 @@ function buildPbrMaps(
       });
     }
   } else if (wood && (verticalOak || materialFamily === "wood")) {
-    for (let x = 3; x < size; x += lineStep) {
-      color.strokeStyle = x % (lineStep * 3) < 1 ? "rgba(70,43,25,.2)" : "rgba(255,245,226,.16)";
-      normal.strokeStyle = x % (lineStep * 3) < 1 ? "rgb(116,128,252)" : "rgb(133,128,255)";
-      roughness.strokeStyle = x % (lineStep * 3) < 1 ? "rgb(150,150,150)" : "rgb(178,178,178)";
-      ao.strokeStyle = "rgba(70,70,70,.22)";
-      [color, normal, roughness, ao].forEach((ctx) => { ctx.lineWidth = x % (lineStep * 3) < 1 ? 2 : 1; ctx.beginPath(); });
-      for (let y = 0; y <= size; y += size / 18) {
-        const waveX = x + Math.sin((y + x) * 0.06) * 2.2;
-        [color, normal, roughness, ao].forEach((ctx) => y === 0 ? ctx.moveTo(waveX, y) : ctx.lineTo(waveX, y));
+    const calibratedOak = token === "warmOak";
+    const oakLineCount = calibratedOak ? 22 : Math.max(1, Math.round(size / lineStep));
+    for (let line = 0; line < oakLineCount; line += 1) {
+      const x = (line + 0.5) * size / oakLineCount + (calibratedOak ? (seededNoise(line, 3, 17) - 0.5) * size / 18 : 0);
+      const darkLine = line % (calibratedOak ? 5 : 3) === 0;
+      const lineWidth = calibratedOak ? size * (0.0025 + seededNoise(line, 7, 19) * 0.006) : darkLine ? 2 : 1;
+      color.strokeStyle = darkLine ? (calibratedOak ? "rgba(70,43,25,.09)" : "rgba(70,43,25,.2)") : (calibratedOak ? "rgba(255,245,226,.07)" : "rgba(255,245,226,.16)");
+      normal.strokeStyle = darkLine ? "rgb(124,128,252)" : "rgb(133,128,255)";
+      roughness.strokeStyle = darkLine ? "rgb(164,164,164)" : "rgb(184,184,184)";
+      ao.strokeStyle = calibratedOak ? "rgba(70,70,70,.10)" : "rgba(70,70,70,.22)";
+      const segmentCount = calibratedOak ? 3 : 1;
+      for (let segment = 0; segment < segmentCount; segment += 1) {
+        const start = calibratedOak ? (segment * 4 + 0.6 + seededNoise(line, segment + 81, 23) * 1.1) / segmentCount : 0;
+        const end = calibratedOak ? (segment * 4 + 3.2 + seededNoise(line, segment + 91, 29) * 0.6) / segmentCount : 18;
+        [color, normal, roughness, ao].forEach((ctx) => { ctx.lineWidth = lineWidth; ctx.beginPath(); });
+        for (let step = Math.floor(start); step <= Math.ceil(end); step += 1) {
+          const y = Math.min(size, Math.max(0, step / 18 * size));
+          const wander = (seededNoise(line * 13 + step, 11, 31) - 0.5) * size * (calibratedOak ? 0.024 : 0.018);
+          const waveX = x + wander;
+          [color, normal, roughness, ao].forEach((ctx) => step === Math.floor(start) ? ctx.moveTo(waveX, y) : ctx.lineTo(waveX, y));
+        }
+        [color, normal, roughness, ao].forEach((ctx) => ctx.stroke());
       }
-      [color, normal, roughness, ao].forEach((ctx) => ctx.stroke());
+    }
+    if (calibratedOak) {
+      color.fillStyle = "rgba(94,57,31,.025)";
+      for (let band = 0; band < 7; band += 1) color.fillRect(0, (band + seededNoise(band, 4, 37)) * size / 7, size, size * 0.008);
     }
   } else if (wood && oakFloor) {
     const plank = unified.pattern;
@@ -377,25 +448,30 @@ function buildPbrMaps(
       color.fillRect(0, y, size, 1);
     }
   } else if (stone || wall) {
-    for (let index = 0; index < (wall ? 9 : 14); index += 1) {
-      const y = (index + 0.5) * size / (wall ? 9 : 14);
-      color.strokeStyle = index % 2 ? "rgba(255,255,255,.11)" : "rgba(74,66,57,.09)";
+    const calibratedTravertine = travertine;
+    const bandCount = calibratedTravertine ? 8 : wall ? 9 : 14;
+    for (let index = 0; index < bandCount; index += 1) {
+      const y = (index + 0.5) * size / bandCount;
+      color.strokeStyle = calibratedTravertine ? (index % 3 === 0 ? "rgba(102,78,50,.055)" : "rgba(255,248,232,.04)") : index % 2 ? "rgba(255,255,255,.11)" : "rgba(74,66,57,.09)";
       normal.strokeStyle = index % 2 ? "rgb(128,132,255)" : "rgb(128,124,253)";
       roughness.strokeStyle = kind === "ceramic" ? "rgb(86,86,86)" : wall ? "rgb(220,220,220)" : "rgb(148,148,148)";
-      [color, normal, roughness].forEach((ctx) => { ctx.lineWidth = wall ? 1 : 1.6; ctx.beginPath(); });
+      [color, normal, roughness].forEach((ctx) => { ctx.lineWidth = calibratedTravertine ? size * 0.0017 : wall ? 1 : 1.6; ctx.beginPath(); });
       for (let x = 0; x <= size; x += size / 14) {
-        const waveY = y + Math.sin((x + index * 19) * (veinedStone ? 0.025 : 0.045)) * (wall ? 1.4 : veinedStone ? 10.5 : 5.5);
-        [color, normal, roughness].forEach((ctx) => x === 0 ? ctx.moveTo(x, waveY) : ctx.lineTo(x, waveY));
+        const waveY = y + Math.sin((x + index * 19) * (veinedStone ? 0.025 : calibratedTravertine ? 0.038 : 0.045)) * (calibratedTravertine ? size * 0.038 : wall ? 1.4 : veinedStone ? 10.5 : 5.5);
+        [color, normal, roughness].forEach((ctx) => x === 0 || (calibratedTravertine && Math.round(x / (size / 14)) % 5 === 0) ? ctx.moveTo(x, waveY) : ctx.lineTo(x, waveY));
       }
       [color, normal, roughness].forEach((ctx) => ctx.stroke());
     }
     if (travertine) {
-      for (let pore = 0; pore < Math.max(36, size / 12); pore += 1) {
-        const x = seededNoise(pore, 41, 13) * size;
-        const y = seededNoise(pore, 53, 17) * size;
-        const width = size * (0.003 + seededNoise(pore, 61, 23) * 0.018);
-        color.fillStyle = pore % 3 ? "rgba(91,74,54,.13)" : "rgba(255,250,235,.18)";
-        ao.fillStyle = "rgba(76,60,43,.2)";
+      const pores = calibratedTravertine ? 28 : Math.max(36, size / 12);
+      const clusters = calibratedTravertine ? 6 : pores;
+      for (let pore = 0; pore < pores; pore += 1) {
+        const cluster = calibratedTravertine ? pore % clusters : pore;
+        const x = (calibratedTravertine ? seededNoise(cluster, 131, 41) + (seededNoise(pore, 31, 43) - 0.5) * 0.12 : seededNoise(pore, 41, 13)) * size;
+        const y = (calibratedTravertine ? seededNoise(cluster, 143, 47) + (seededNoise(pore, 43, 53) - 0.5) * 0.12 : seededNoise(pore, 53, 17)) * size;
+        const width = size * (calibratedTravertine ? 0.0015 + seededNoise(pore, 53, 59) * 0.0045 : 0.003 + seededNoise(pore, 61, 23) * 0.018);
+        color.fillStyle = calibratedTravertine ? "rgba(86,67,47,.055)" : pore % 3 ? "rgba(91,74,54,.13)" : "rgba(255,250,235,.18)";
+        ao.fillStyle = calibratedTravertine ? "rgba(76,60,43,.08)" : "rgba(76,60,43,.2)";
         color.fillRect(x, y, width, Math.max(1, width * 0.2));
         ao.fillRect(x, y, width, Math.max(1, width * 0.2));
       }
@@ -493,9 +569,11 @@ export function useProceduralPbrMaps({
   const transformKey = canonicalTransform ? "material-transform" : `${repeatX}|${repeatY}|${roundedRotation}`;
   const colorKey = neutralColor ? "neutral" : `${baseColor}|${accentColor}`;
   const cacheKey = kind ? `${kind}|${resolvedToken}|${colorKey}|${transformKey}|${tier}|${resolvedDevice}|${resourceId ?? "local"}` : "none";
+  const externalMaps = useExternalPbrMaps(resourceId, canonicalTransform ? [1, 1] : [repeatX, repeatY], canonicalTransform ? 0 : roundedRotation);
   const maps = useMemo(
     () => {
       if (!kind) return null;
+      if (externalMaps) return externalMaps;
       const cached = pbrMapCache.get(cacheKey);
       if (cached) {
         cached.lastUsed = Date.now();
@@ -514,7 +592,7 @@ export function useProceduralPbrMaps({
       }
       return generated;
     },
-    [accentColor, baseColor, cacheKey, canonicalTransform, kind, neutralColor, repeatX, repeatY, resolvedDevice, resolvedToken, resourceId, roundedRotation, tier]
+    [accentColor, baseColor, cacheKey, canonicalTransform, externalMaps, kind, neutralColor, repeatX, repeatY, resolvedDevice, resolvedToken, resourceId, roundedRotation, tier]
   );
   useEffect(() => {
     const entry = pbrMapCache.get(cacheKey);

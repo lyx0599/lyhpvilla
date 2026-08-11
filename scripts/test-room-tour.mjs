@@ -19,10 +19,13 @@ for (const name of ["全院", "南院", "北院", "南院生活区", "北院入�
 }
 
 const masterBedroom = nodes.find((node) => node.roomId === "ROOM-2F-006");
-assert.ok(masterBedroom?.sourceCameraViewId === "view-2f-master-bedroom", "Master bedroom should reuse its fixed camera direction/metadata");
-const masterBedroomSource = workspace.cameraViews.find((view) => view.id === "view-2f-master-bedroom");
-assert.deepEqual(masterBedroom.cameraPosition, masterBedroomSource.cameraPosition, "Authored room cameras must preserve their exact position.");
-assert.deepEqual(masterBedroom.target, masterBedroomSource.target, "Authored room cameras must preserve their furniture-height target.");
+assert.ok(masterBedroom, "Master bedroom must derive a room-tour node.");
+assert.equal(masterBedroom.sourceCameraViewId, undefined, "Designer camera presets must remain separate composition choices instead of replacing the stable room-tour node.");
+const masterBedroomSource = workspace.cameraViews.find((view) => view.id === "designer-camera-2f-v3-04-master-bed");
+const masterBedroomCameraNode = nodes.find((node) => node.sourceCameraViewId === masterBedroomSource.id);
+assert.ok(masterBedroomCameraNode, "The frozen 2F master-bedroom designer camera must remain available as a viewpoint.");
+assert.deepEqual(masterBedroomCameraNode.cameraPosition, masterBedroomSource.cameraPosition, "Authored designer cameras must preserve their exact position.");
+assert.deepEqual(masterBedroomCameraNode.target, masterBedroomSource.target, "Authored designer cameras must preserve their exact target.");
 assert.ok(masterBedroom.linkedNodeIds.some((id) => id.includes("floor-overview")), "Room nodes should link back to floor overview");
 assert.equal(tourNodeToCameraView(masterBedroom).mode, "perspective");
 const b1DownSource = workspace.cameraViews.find((view) => view.id === "stair-view-b1-down-b2");

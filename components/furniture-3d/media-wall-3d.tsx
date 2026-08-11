@@ -3,7 +3,86 @@
 import { RoundedPart } from "./primitives";
 import type { FurnitureFamily3DProps } from "./types";
 
-export function MediaWall3D({ asset, width, depth, height }: FurnitureFamily3DProps) {
+function FloatingNicheMediaWall3D({ asset, width, depth, height }: FurnitureFamily3DProps) {
+  const floorY = -height / 2;
+  const panelHeight = Math.min(height * 0.94, 1.74);
+  const panelY = floorY + panelHeight / 2 + 0.045;
+  const frontZ = depth * 0.18;
+  const nicheWidth = width * 0.2;
+  const mediaCenterX = width * 0.11;
+  const tvWidth = width * 0.52;
+  const tvHeight = Math.min(panelHeight * 0.44, tvWidth * 9 / 16);
+  const tvY = floorY + panelHeight * 0.69;
+  const fireplaceWidth = width * 0.56;
+  const fireplaceY = floorY + 0.48;
+  const consoleY = floorY + 0.22;
+  return (
+    <group name="floating-niche-media-wall">
+      <RoundedPart size={[width * 0.98, panelHeight, Math.max(0.07, depth * 0.28)]} position={[0, panelY, -depth * 0.28]} radius={0.018} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#eee8df" repeat={[7, 5]} />
+      <RoundedPart size={[nicheWidth, panelHeight * 0.88, Math.max(0.1, depth * 0.42)]} position={[-width * 0.39, panelY, -depth * 0.18]} radius={0.016} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[3, 7]} />
+      {[0.22, -0.08, -0.38].map((ratio) => <RoundedPart key={ratio} size={[nicheWidth * 0.78, 0.035, depth * 0.54]} position={[-width * 0.39, panelY + ratio * panelHeight, frontZ]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" />)}
+      <mesh position={[-width * 0.39, panelY + panelHeight * 0.36, frontZ + 0.015]}><boxGeometry args={[nicheWidth * 0.72, 0.012, 0.016]} /><meshStandardMaterial color="#ffe2a8" emissive="#ffd182" emissiveIntensity={0.62} /></mesh>
+      <RoundedPart size={[tvWidth + 0.055, tvHeight + 0.055, 0.026]} position={[mediaCenterX, tvY, frontZ]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#ddd6cc" />
+      <RoundedPart size={[tvWidth, tvHeight, 0.028]} position={[mediaCenterX, tvY, frontZ + 0.025]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.accent} role="glass" color="#151918" opacity={0.9} />
+      <RoundedPart size={[fireplaceWidth + 0.06, 0.29, 0.04]} position={[mediaCenterX, fireplaceY, frontZ + 0.006]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="stone" color="#d7cfc4" />
+      <RoundedPart size={[fireplaceWidth, 0.22, 0.045]} position={[mediaCenterX, fireplaceY, frontZ + 0.035]} radius={0.007} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#222321" roughness={0.2} />
+      <mesh position={[mediaCenterX, fireplaceY - 0.025, frontZ + 0.066]}><boxGeometry args={[fireplaceWidth * 0.86, 0.018, 0.018]} /><meshStandardMaterial color="#ffbf73" emissive="#ff9d43" emissiveIntensity={1.35} /></mesh>
+      <RoundedPart size={[width * 0.72, 0.28, depth * 0.58]} position={[mediaCenterX, consoleY, frontZ - depth * 0.02]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[7, 2]} />
+      {[-0.23, 0, 0.23].map((ratio) => <RoundedPart key={ratio} size={[0.01, 0.22, 0.012]} position={[mediaCenterX + ratio * width * 0.72, consoleY, frontZ + depth * 0.29]} radius={0.003} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#81766c" opacity={0.34} />)}
+      <mesh position={[mediaCenterX, floorY + 0.055, frontZ + depth * 0.25]}><boxGeometry args={[width * 0.62, 0.012, 0.016]} /><meshStandardMaterial color="#ffe2a8" emissive="#ffd182" emissiveIntensity={0.44} /></mesh>
+    </group>
+  );
+}
+
+function DualNicheMediaWall3D({ asset, width, depth, height }: FurnitureFamily3DProps) {
+  const floorY = -height / 2;
+  const panelHeight = Math.min(height * 0.94, 1.74);
+  const panelY = floorY + panelHeight / 2 + 0.045;
+  const frontZ = depth * 0.18;
+  const outerMargin = width * 0.03;
+  const nicheWidth = width * 0.15;
+  const nicheX = width / 2 - outerMargin - nicheWidth / 2;
+  const reveal = width * 0.018;
+  const mediaWidth = width - 2 * (outerMargin + nicheWidth + reveal);
+  const tvWidth = mediaWidth * 0.84;
+  const tvHeight = Math.min(panelHeight * 0.43, tvWidth * 9 / 16);
+  const tvY = floorY + panelHeight * 0.69;
+  const fireplaceWidth = mediaWidth * 0.7;
+  const fireplaceY = floorY + 0.48;
+  const consoleY = floorY + 0.22;
+  const nicheShelfY = panelY - panelHeight * 0.1;
+  return (
+    <group name="dual-niche-media-wall">
+      <RoundedPart size={[width * 0.98, panelHeight, Math.max(0.07, depth * 0.28)]} position={[0, panelY, -depth * 0.28]} radius={0.018} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#eee8df" repeat={[7, 5]} />
+      {[-nicheX, nicheX].map((x, index) => (
+        <group key={x} position={[x, 0, 0]}>
+          <RoundedPart size={[nicheWidth, panelHeight * 0.88, Math.max(0.1, depth * 0.42)]} position={[0, panelY, -depth * 0.18]} radius={nicheWidth * 0.42} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[3, 7]} />
+          <RoundedPart size={[nicheWidth * 0.78, 0.035, depth * 0.54]} position={[0, nicheShelfY, frontZ]} radius={0.009} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" />
+          <RoundedPart size={[nicheWidth * 0.82, panelHeight * 0.3, depth * 0.48]} position={[0, floorY + panelHeight * 0.18, frontZ - depth * 0.03]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[3, 2]} />
+          <mesh position={[0, panelY + panelHeight * 0.36, frontZ + 0.015]}><boxGeometry args={[nicheWidth * 0.72, 0.012, 0.016]} /><meshStandardMaterial color="#ffe2a8" emissive="#ffd182" emissiveIntensity={0.62} /></mesh>
+          {index === 0 ? (
+            <RoundedPart size={[nicheWidth * 0.28, nicheWidth * 0.34, nicheWidth * 0.24]} position={[0, nicheShelfY + nicheWidth * 0.2, frontZ + depth * 0.1]} radius={0.06} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#a37b57" />
+          ) : (
+            <RoundedPart size={[nicheWidth * 0.3, nicheWidth * 0.3, nicheWidth * 0.18]} position={[0, nicheShelfY + nicheWidth * 0.18, frontZ + depth * 0.1]} radius={0.1} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#302d29" />
+          )}
+        </group>
+      ))}
+      <RoundedPart size={[tvWidth + 0.055, tvHeight + 0.055, 0.026]} position={[0, tvY, frontZ]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="ceramic" color="#ddd6cc" />
+      <RoundedPart size={[tvWidth, tvHeight, 0.028]} position={[0, tvY, frontZ + 0.025]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.accent} role="glass" color="#151918" opacity={0.9} />
+      <RoundedPart size={[fireplaceWidth + 0.06, 0.29, 0.04]} position={[0, fireplaceY, frontZ + 0.006]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="stone" color="#d7cfc4" />
+      <RoundedPart size={[fireplaceWidth, 0.22, 0.045]} position={[0, fireplaceY, frontZ + 0.035]} radius={0.007} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#222321" roughness={0.2} />
+      <mesh position={[0, fireplaceY - 0.025, frontZ + 0.066]}><boxGeometry args={[fireplaceWidth * 0.86, 0.018, 0.018]} /><meshStandardMaterial color="#ffbf73" emissive="#ff9d43" emissiveIntensity={1.35} /></mesh>
+      <RoundedPart size={[mediaWidth, 0.28, depth * 0.58]} position={[0, consoleY, frontZ - depth * 0.02]} radius={0.014} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[7, 2]} />
+      {[-0.25, 0, 0.25].map((ratio) => <RoundedPart key={ratio} size={[0.01, 0.22, 0.012]} position={[ratio * mediaWidth, consoleY, frontZ + depth * 0.29]} radius={0.003} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#81766c" opacity={0.34} />)}
+      <mesh position={[0, floorY + 0.055, frontZ + depth * 0.25]}><boxGeometry args={[mediaWidth * 0.9, 0.012, 0.016]} /><meshStandardMaterial color="#ffe2a8" emissive="#ffd182" emissiveIntensity={0.44} /></mesh>
+    </group>
+  );
+}
+
+export function MediaWall3D(props: FurnitureFamily3DProps) {
+  if (props.item.render3d?.variantId === "dualNicheMediaWall") return <DualNicheMediaWall3D {...props} />;
+  if (props.item.render3d?.variantId === "floatingNicheMediaWall") return <FloatingNicheMediaWall3D {...props} />;
+  const { asset, width, depth, height } = props;
   const floorY = -height / 2;
   const panelHeight = Math.min(height * 0.92, 1.62);
   const panelY = floorY + panelHeight / 2 + 0.08;

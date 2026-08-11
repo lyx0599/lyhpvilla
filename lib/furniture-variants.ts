@@ -47,6 +47,7 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
   ],
   sofa: [
     { id: "lowModular", label: "低矮模块沙发", description: "低靠背、宽模块和细缝坐垫", planShape: "rect" },
+    { id: "lowCurvedSofa", label: "低靠背浅弧沙发", description: "浅弧坐面、连续低靠背和轻薄扶手", planShape: "curve" },
     { id: "curvedSofa", label: "柔和弧形沙发", description: "弧形模块和包裹式靠背", planShape: "curve" },
     { id: "boucleCurve", label: "羊羔绒雕塑弧形沙发", description: "连续包裹靠背、不对称圆润坐垫和球形靠包", planShape: "curve" },
     { id: "slimLegSofa", label: "细腿轻盈沙发", description: "薄扶手、高离地和细金属脚", planShape: "open" },
@@ -56,6 +57,7 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
     { id: "beanBag", label: "舒适懒人沙发", description: "低重心软体座包、包裹靠背与可移动落位", planShape: "curve" }
   ],
   diningTable: [
+    { id: "poweredRoundExtension", label: "电动转盘伸缩圆桌", description: "齐平电动转盘、隐藏驱动与圆变椭圆伸缩结构", planShape: "round" },
     { id: "roundPedestal", label: "圆形中柱桌", description: "圆桌面和收分中柱底座", planShape: "round" },
     { id: "roundFourLeg", label: "圆形四腿桌", description: "圆桌面和四只浅木桌腿", planShape: "round" },
     { id: "ovalSlab", label: "椭圆大板桌", description: "椭圆薄边台面和双片支座", planShape: "oval" },
@@ -82,6 +84,10 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
   ],
   cabinet: [
     { id: "fullHeightFlat", label: "通顶平板柜", description: "整面平板门、细分缝和无明装拉手", planShape: "rect" },
+    { id: "integratedTaupeWardrobe", label: "墙面一体浅暖灰衣柜", description: "浅暖灰通顶平板门、木色侧收口、暗藏拉手和内收踢脚", planShape: "rect" },
+    { id: "boutiquePortalArmoire", label: "精品酒店衣帽塔", description: "深胡桃木圆角门套、燕麦织物感双门、贯穿古铜拉手与内收暗踢脚", planShape: "rect" },
+    { id: "boutiqueValetCabinet", label: "轻量酒店衣帽柜", description: "450mm薄柜、侧拉挂衣、双向卷帘感门板与圆角胡桃木框", planShape: "rect" },
+    { id: "boutiqueOpenValetRack", label: "半开放酒店衣帽架", description: "圆角胡桃木框、上层搁板、开放侧拉挂衣与下部双抽", planShape: "open" },
     { id: "slidingPanels", label: "通顶移门柜", description: "前后错轨移门、无外摆门扇，适合紧凑卧室", planShape: "rect" },
     { id: "floating", label: "悬浮柜", description: "内收挂装结构和底部灯带", planShape: "floating" },
     { id: "glassDisplay", label: "玻璃展示柜", description: "细框玻璃门和内部层板", planShape: "glass" },
@@ -103,6 +109,8 @@ export const furnitureVariantCatalog: Record<FurnitureFamily, FurnitureVariantDe
   mediaWall: [
     { id: "integratedMediaWall", label: "壁炉电视一体墙", description: "木饰面、石材壁炉、电视和悬浮柜一体组合", planShape: "open" },
     { id: "floatingMediaWall", label: "悬浮电视柜墙", description: "暖白背景、悬浮柜和不对称开放层板", planShape: "floating" },
+    { id: "floatingNicheMediaWall", label: "暖白悬浮壁炉电视墙", description: "暖白墙面、悬浮矮柜、线性壁炉和单侧木质壁龛", planShape: "floating" },
+    { id: "dualNicheMediaWall", label: "双壁龛对称壁炉电视墙", description: "两侧同尺度拱形木质壁龛，中部电视、线性壁炉和悬浮矮柜严格共轴", planShape: "floating" },
     { id: "stoneHearthWall", label: "石材壁炉墙", description: "暖灰石材壁炉和低矮木质收纳", planShape: "rect" }
   ],
   other: [
@@ -225,11 +233,11 @@ export function getFurniturePlanShapeKey(item: Furniture, assetType?: Render3DAs
 }
 
 export function getModernNaturalMaterials(item: Furniture, family = getFurnitureFamily(item), variantId = getRecommendedFurnitureVariantId(item, family)) {
-  if (family === "bed") return { primaryMaterial: /timber|guest|child|minimal/i.test(variantId) ? "warmOak" : "beigeFabric", secondaryMaterial: "creamFabric", accentMaterial: item.floorId === "B1" || item.floorId === "B2" ? "camelFabric" : "taupeFabric" };
-  if (family === "sofa") return { primaryMaterial: item.floorId === "B1" || item.floorId === "B2" ? "taupeFabric" : "beigeFabric", secondaryMaterial: "creamFabric", accentMaterial: "camelFabric" };
-  if (family === "diningTable") return { primaryMaterial: variantId === "stoneTop" ? "warmGreyStone" : variantId === "lightMetalFrame" ? "microCement" : "warmOak", secondaryMaterial: variantId === "stoneTop" ? "warmOak" : "blackTitanium", accentMaterial: "brushedBronze" };
-  if (family === "coffeeTable") return { primaryMaterial: variantId.includes("travertine") || variantId === "softOrganic" ? "travertine" : "warmOak", secondaryMaterial: "warmGreyStone", accentMaterial: "blackTitanium" };
-  if (family === "chair") return { primaryMaterial: variantId === "upholsteredDining" || variantId === "curvedLounge" ? "beigeFabric" : "warmOak", secondaryMaterial: variantId === "wovenDining" ? "camelFabric" : "creamFabric", accentMaterial: "blackTitanium" };
+  if (family === "bed") return { primaryMaterial: /timber|guest|child|minimal/i.test(variantId) ? "lightOak" : "creamBoucle", secondaryMaterial: /timber|guest|child|minimal/i.test(variantId) ? "greigeLinen" : "lightOak", accentMaterial: item.floorId === "B1" || item.floorId === "B2" ? "camelFabric" : "greigeLinen" };
+  if (family === "sofa") return { primaryMaterial: item.floorId === "B2" ? "cognacLeather" : item.floorId === "B1" ? "greigeLinen" : "creamBoucle", secondaryMaterial: item.floorId === "B2" ? "darkBrownLeather" : "greigeLinen", accentMaterial: item.floorId === "B2" ? "darkBrownLeather" : "blackTitanium" };
+  if (family === "diningTable") return { primaryMaterial: variantId === "stoneTop" ? "warmGreyStone" : variantId === "lightMetalFrame" ? "microCement" : "lightOak", secondaryMaterial: variantId === "stoneTop" ? "lightOak" : "warmGreyStone", accentMaterial: "brushedBronze" };
+  if (family === "coffeeTable") return { primaryMaterial: variantId.includes("travertine") || variantId === "softOrganic" ? "travertine" : "lightOak", secondaryMaterial: "warmGreyStone", accentMaterial: "blackTitanium" };
+  if (family === "chair") return { primaryMaterial: variantId === "upholsteredDining" || variantId === "curvedLounge" ? "greigeLinen" : "lightOak", secondaryMaterial: variantId === "wovenDining" ? "camelFabric" : "creamBoucle", accentMaterial: "blackTitanium" };
   if (family === "cabinet") return { primaryMaterial: variantId.includes("Glass") || variantId === "glassDisplay" ? "warmOak" : "warmOak", secondaryMaterial: variantId === "glassDisplay" || variantId === "slimGlassFrame" ? "smokedGlass" : item.render3d?.assetType === "bathroomVanity" ? "travertine" : "warmWhiteCeramic", accentMaterial: "brushedBronze" };
   if (family === "softDecor") return { primaryMaterial: variantId === "areaRug" ? "beigeFabric" : variantId.includes("Light") ? "creamFabric" : "warmWhiteCeramic", secondaryMaterial: "taupeFabric", accentMaterial: "blackTitanium" };
   if (family === "mediaWall") return { primaryMaterial: "warmOak", secondaryMaterial: "travertine", accentMaterial: "blackTitanium" };

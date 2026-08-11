@@ -11,7 +11,8 @@ const canonical = JSON.parse(await readFile(new URL("../data/default-workspace.j
 const current = applyWorkspaceMigrations(canonical);
 assert.equal(current.workspace.schemaVersion, CURRENT_WORKSPACE_SCHEMA_VERSION);
 assert.equal(current.workspace.dataRevision, CURRENT_WORKSPACE_DATA_REVISION);
-assert.equal(current.sources.drawingItems, "migration");
+assert.equal(current.sources.drawingItems, "default-workspace");
+assert.deepEqual(current.workspace.drawingItems, canonical.drawingItems, "Current drawing items must pass through unchanged.");
 assert.deepEqual(current.workspace.furniture, canonical.furniture, "Current furniture must pass through without injected defaults.");
 assert.ok(current.workspace.drawingItems.filter((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category)).every((item) => item.confidence === "schemePositioned"), "Current MEP points must carry scheme-stage confidence.");
 assert.deepEqual(current.workspace.semanticObjects, canonical.semanticObjects, "Current semantic objects must pass through unchanged.");
@@ -58,8 +59,8 @@ const legacyLivingRoom = legacyLivingSurfaces.houseStructuresByFloor["1F"].rooms
 delete legacyLivingRoom.surfaceFinishes;
 const migratedLivingSurfaces = applyWorkspaceMigrations(legacyLivingSurfaces, { canonicalWorkspace: canonical });
 const migratedLivingRoom = migratedLivingSurfaces.workspace.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
-assert.equal(migratedLivingRoom.surfaceFinishes.floor.tileWidthMm, 600, "Legacy drafts must receive the living-room tile specification.");
-assert.equal(migratedLivingRoom.surfaceFinishes.wall.material, "limewash", "Legacy drafts must receive the living-room limewash finish.");
+const canonicalLivingRoom = canonical.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
+assert.deepEqual(migratedLivingRoom.surfaceFinishes, canonicalLivingRoom.surfaceFinishes, "Legacy drafts must receive the current canonical living-room finishes.");
 assert.equal(migratedLivingSurfaces.sources.houseStructuresByFloor, "migration");
 
 const legacyWholeHouseSurfaces = structuredClone(canonical);
@@ -72,11 +73,10 @@ for (const structure of Object.values(migratedWholeHouseSurfaces.workspace.house
   for (const room of structure.rooms) {
     assert.ok(room.surfaceFinishes?.floor, `${room.id} must receive a floor finish.`);
     assert.ok(room.surfaceFinishes?.wall, `${room.id} must receive a wall finish.`);
+    const canonicalRoom = canonical.houseStructuresByFloor[structure.floorId].rooms.find((candidate) => candidate.id === room.id);
+    assert.deepEqual(room.surfaceFinishes, canonicalRoom.surfaceFinishes, `${room.id} must receive the current canonical finishes.`);
   }
 }
-assert.equal(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor.B2.rooms.find((room) => room.id === "ROOM-B2-001").surfaceFinishes.floor.material, "microcement");
-assert.equal(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor["2F"].rooms.find((room) => room.id === "ROOM-2F-006").surfaceFinishes.floor.material, "woodFloor");
-assert.equal(migratedWholeHouseSurfaces.workspace.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-003").surfaceFinishes.floor.name, "浅米洞石纹防滑瓷砖");
 
 const customLivingSurfaces = structuredClone(legacyLivingSurfaces);
 const customLivingRoom = customLivingSurfaces.houseStructuresByFloor["1F"].rooms.find((room) => room.id === "ROOM-1F-005");
@@ -209,11 +209,31 @@ legacyFurniturePlacement.schemaVersion = 12;
 legacyFurniturePlacement.dataRevision = "2026-07-13-dimension-verification-shared-3d-v1";
 legacyFurniturePlacement.furniture.forEach((item) => delete item.outdoorId);
 legacyFurniturePlacement.drawingItems.forEach((item) => delete item.relatedFurniturePositionMm);
-const placementGeometryBefore = structuredClone(legacyFurniturePlacement.furniture.map((item) => ({ id: item.id, position: item.position, dimensions: item.dimensions, roomId: item.roomId })));
+const placementGeometryBefore = structuredClone(legacyFurniturePlacement.furniture
+  .filter((item) => item.floorId !== "YARD")
+  .map((item) => ({ id: item.id, position: item.position, dimensions: item.dimensions, roomId: item.roomId })));
 const migratedFurniturePlacement = applyWorkspaceMigrations(legacyFurniturePlacement, { canonicalWorkspace: canonical });
 assert.ok(migratedFurniturePlacement.workspace.furniture.filter((item) => item.roomId.startsWith("OD-")).every((item) => item.outdoorId === item.roomId), "Outdoor furniture must receive outdoorId without changing roomId.");
 assert.ok(migratedFurniturePlacement.workspace.drawingItems.filter((item) => item.relatedFurnitureId).every((item) => item.relatedFurniturePositionMm), "Linked drawing items must receive a furniture-position baseline.");
-assert.deepEqual(migratedFurniturePlacement.workspace.furniture.map((item) => ({ id: item.id, position: item.position, dimensions: item.dimensions, roomId: item.roomId })), placementGeometryBefore, "Furniture placement migration must preserve existing geometry and room IDs.");
+assert.deepEqual(
+  migratedFurniturePlacement.workspace.furniture
+    .filter((item) => item.floorId !== "YARD")
+    .map((item) => ({ id: item.id, position: item.position, dimensions: item.dimensions, roomId: item.roomId })),
+  placementGeometryBefore,
+  "Furniture placement migration must preserve indoor geometry and room IDs."
+);
+for (const [id, position] of Object.entries({
+  "ph-1f-north-outdoor-socket": { x: 32, y: -13 },
+  "OUT-N-STORAGE": { x: 36.9, y: -9.1 },
+  "OUT-S-LAUNDRY": { x: 20, y: 103.2, rotation: 180 },
+  "OUT-S-PET-WASH": { x: 65.7, y: 116 }
+})) {
+  const migratedItem = migratedFurniturePlacement.workspace.furniture.find((item) => item.id === id);
+  assert.ok(migratedItem, `${id} must survive the yard circulation migration.`);
+  assert.equal(migratedItem.position.x, position.x);
+  assert.equal(migratedItem.position.y, position.y);
+  if ("rotation" in position) assert.equal(migratedItem.position.rotation, position.rotation);
+}
 
 const preservedPlacement = structuredClone(legacyFurniturePlacement);
 preservedPlacement.furniture[0].hostWallId = preservedPlacement.houseStructuresByFloor[preservedPlacement.furniture[0].floorId].walls[0].id;
@@ -269,7 +289,10 @@ assert.equal(migratedStairSystems.workspace.stairLandings.length, 3);
 assert.equal(migratedStairSystems.workspace.stairOpenings.length, 3);
 assert.ok(Object.values(migratedStairSystems.workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs).every((stair) => stair.stepCount === 10 && stair.height === 1400 && stair.stairSystemId && stair.landingId));
 assert.equal(migratedStairSystems.workspace.houseStructuresByFloor["2F"].stairs[0].direction, "down");
-assert.equal(migratedStairSystems.workspace.houseStructuresByFloor["2F"].stairs[0].start.y, 4625);
+assert.equal(
+  migratedStairSystems.workspace.houseStructuresByFloor["2F"].stairs[0].start.y,
+  canonical.houseStructuresByFloor["2F"].stairs.find((stair) => stair.id === "ST-2F-001").start.y
+);
 assert.equal(migratedStairSystems.workspace.cameraViews.filter((view) => view.id.startsWith("stair-view-")).length, 15, "Existing legacy camera collections must receive the stair inspection views.");
 assert.equal(migratedStairSystems.sources.stairSystems, "migration");
 assert.equal(migratedStairSystems.sources.stairLandings, "migration");
@@ -289,7 +312,9 @@ for (const landing of legacyNearLivingLanding.stairLandings) {
 }
 const migratedFarLanding = applyWorkspaceMigrations(legacyNearLivingLanding, { canonicalWorkspace: canonical });
 assert.ok(migratedFarLanding.workspace.stairLandings.every((landing) => landing.centerLine.start.x === 950 && landing.centerLine.end.x === 950), "Schema 16 workspaces must move the half landing away from the living-room access side.");
-assert.ok(migratedFarLanding.workspace.stairLandings.every((landing) => Math.max(...landing.polygon.map((point) => point.x)) === 2000), "Migrated landings must connect at the far ends of both runs.");
+const migratedLowerFlight = migratedFarLanding.workspace.houseStructuresByFloor["1F"].stairs.find((stair) => stair.id === "ST-1F-001");
+const expectedLandingOuterX = migratedLowerFlight.end.x + migratedLowerFlight.width;
+assert.ok(migratedFarLanding.workspace.stairLandings.every((landing) => Math.max(...landing.polygon.map((point) => point.x)) === expectedLandingOuterX), "Migrated landings must connect at the far ends of both runs.");
 assert.equal(migratedFarLanding.sources.stairLandings, "migration");
 
 const invalidCurrent = structuredClone(canonical);

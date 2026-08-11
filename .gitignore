@@ -21,6 +21,22 @@ data/backups/
 __pycache__/
 *.pyc
 
+# Local caches and generated review output
+/.cache/
+/tmp/
+/artifacts/
+
+# High-resolution render output stays local. Keep the two historical cover
+# files that are already tracked, but do not add new render batches to Pages.
+/public/renders/*
+!/public/renders/four-level-villa-3d-cover.png
+!/public/renders/four-level-villa-3d-cover.previous.png
+/*.png
+/*.jpg
+/*.jpeg
+/docs/*-qa/
+/docs/*-qa*.png
+
 # Local visual QA and standalone render experiments
 /*-preview.png
 /*-preview.html

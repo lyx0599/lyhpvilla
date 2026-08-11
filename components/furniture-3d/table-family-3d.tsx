@@ -6,6 +6,35 @@ import { FurnitureMaterial } from "./materials";
 import { CylinderPart, RoundedPart, SpherePart } from "./primitives";
 import type { FurnitureFamily3DProps } from "./types";
 
+export function SitStandDesk3D(props: FurnitureFamily3DProps) {
+  const { item, asset, width, depth, height } = props;
+  const floorY = -height / 2;
+  const topThickness = Math.min(0.05, Math.max(0.038, height * 0.06));
+  const topY = height / 2 - topThickness / 2;
+  const frameTopY = topY - topThickness / 2 - 0.055;
+  const columnHeight = Math.max(0.46, height - topThickness - 0.1);
+  const electric = item.render3d?.variantId === "electricSitStandWood";
+
+  return (
+    <group name={electric ? "electric-sit-stand-desk" : "slim-writing-desk"}>
+      <RoundedPart size={[width * 0.98, topThickness, depth * 0.96]} position={[0, topY, 0]} radius={0.025} detailLevel={asset.detailLevel} material={asset.materials.primary} role="wood" repeat={[6, 2.4]} />
+      <RoundedPart size={[width * 0.68, 0.045, 0.065]} position={[0, frameTopY, 0]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="metal" />
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * width * 0.36, 0, 0]}>
+          <RoundedPart size={[0.095, columnHeight * 0.54, 0.095]} position={[0, floorY + columnHeight * 0.27 + 0.045, 0]} radius={0.012} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="metal" />
+          <RoundedPart size={[0.073, columnHeight * 0.46, 0.073]} position={[0, floorY + columnHeight * 0.77 + 0.045, 0]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="metal" />
+          <RoundedPart size={[0.085, 0.045, depth * 0.72]} position={[0, floorY + 0.023, 0]} radius={0.018} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="metal" />
+          {[-1, 1].map((front) => <CylinderPart key={front} radiusTop={0.018} height={0.018} position={[0, floorY + 0.008, front * depth * 0.3]} material={asset.materials.accent} role="metal" sides={16} />)}
+        </group>
+      ))}
+      {electric && <>
+        <RoundedPart size={[width * 0.56, 0.032, depth * 0.16]} position={[0, frameTopY - 0.05, depth * 0.18]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.secondary} role="metal" />
+        <RoundedPart size={[0.12, 0.035, 0.055]} position={[width * 0.38, topY - 0.055, depth * 0.41]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" />
+      </>}
+    </group>
+  );
+}
+
 export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
   const { item, asset, width, depth, height } = props;
   const resolved = resolveFurnitureVariant(item, asset.assetType);
@@ -15,32 +44,23 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
   const tableDepth = depth * 0.54;
   const topY = floorY + Math.min(0.76, height * 0.84);
   const topThickness = variant === "stoneTop" ? 0.085 : 0.065;
-  const round = variant === "roundPedestal" || variant === "roundFourLeg";
+  const poweredRound = variant === "poweredRoundExtension";
+  const round = poweredRound || variant === "roundPedestal" || variant === "roundFourLeg";
   const oval = variant === "ovalSlab" || variant === "stoneTop";
   const metalFrame = variant === "lightMetalFrame";
   const chairBase = ["timberDining", "upholsteredDining", "wovenDining"][Math.floor(stableVariationValue(resolved.seed, 31) * 3)];
-  const topMaterial = variant === "stoneTop" ? asset.materials.primary : asset.materials.primary;
+  const topMaterial = asset.materials.primary;
   const chairFabric = {
     ...asset.materials.secondary,
-    token: "creamFabric",
     role: "fabric" as const,
-    color: "#e6d8ca",
-    roughness: 0.84,
+    roughness: Math.max(0.84, asset.materials.secondary.roughness),
     metalness: 0
   };
-  const walnutMaterial = {
+  // Keep the authored material token on the table. The previous round-table
+  // branch forced a walnut fallback, which made the 1F light-oak table brown.
+  const woodMaterial = {
     ...asset.materials.primary,
-    token: "walnut",
     role: "wood" as const,
-    color: "#754629",
-    roughness: 0.42,
-    metalness: 0.01
-  };
-  const lightOakMaterial = {
-    ...asset.materials.primary,
-    token: "warmOak",
-    role: "wood" as const,
-    color: "#c8ad8b",
     roughness: 0.52,
     metalness: 0.02
   };
@@ -60,22 +80,31 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
         <group position={[0, topY, 0]}>
           <mesh castShadow receiveShadow>
             <cylinderGeometry args={[roundRadius, roundRadius, topThickness, asset.detailLevel === "presentation" ? 72 : 40]} />
-            <FurnitureMaterial layer={walnutMaterial} role="wood" repeat={[5.4, 5.4]} roughness={0.42} />
+            <FurnitureMaterial layer={woodMaterial} role="wood" repeat={[5.4, 5.4]} roughness={0.52} />
           </mesh>
           {asset.detailLevel === "presentation" && <>
             <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -topThickness * 0.04, 0]} castShadow>
               <torusGeometry args={[roundRadius - 0.012, 0.018, 14, 80]} />
-              <FurnitureMaterial layer={walnutMaterial} role="wood" color="#4a2b1c" repeat={[7, 1]} roughness={0.38} />
+              <FurnitureMaterial layer={woodMaterial} role="wood" repeat={[7, 1]} roughness={0.48} />
             </mesh>
-            {Array.from({ length: 18 }, (_, index) => {
-              const angle = index / 18 * Math.PI * 2;
-              return <RoundedPart key={`veneer-seam-${index}`} size={[0.006, 0.004, roundRadius * 0.82]} position={[Math.cos(angle) * roundRadius * 0.43, topThickness * 0.54, Math.sin(angle) * roundRadius * 0.43]} rotation={[0, Math.PI / 2 - angle, 0]} radius={0.002} detailLevel={asset.detailLevel} material={walnutMaterial} role="wood" color="#4f2c1d" roughness={0.5} />;
+            {Array.from({ length: poweredRound ? 4 : 18 }, (_, index) => {
+              const seamCount = poweredRound ? 4 : 18;
+              const angle = index / seamCount * Math.PI * 2;
+              return <RoundedPart key={`veneer-seam-${index}`} size={[0.006, 0.004, roundRadius * 0.82]} position={[Math.cos(angle) * roundRadius * 0.43, topThickness * 0.54, Math.sin(angle) * roundRadius * 0.43]} rotation={[0, Math.PI / 2 - angle, 0]} radius={0.002} detailLevel={asset.detailLevel} material={woodMaterial} role="wood" roughness={0.5} />;
             })}
-            <CylinderPart radiusTop={roundRadius * 0.59} height={0.028} position={[0, topThickness * 0.72, 0]} material={darkStoneMaterial} role="stone" color="#454b42" roughness={0.27} sides={64} />
+            <CylinderPart radiusTop={roundRadius * 0.59} height={poweredRound ? 0.012 : 0.028} position={[0, topThickness * (poweredRound ? 0.59 : 0.72), 0]} material={poweredRound ? woodMaterial : darkStoneMaterial} role={poweredRound ? "wood" : "stone"} color={poweredRound ? undefined : "#454b42"} roughness={poweredRound ? 0.46 : 0.27} sides={64} />
             <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, topThickness * 0.9, 0]} castShadow>
-              <torusGeometry args={[roundRadius * 0.59 - 0.009, 0.009, 10, 64]} />
+              <torusGeometry args={[roundRadius * 0.59 - 0.009, poweredRound ? 0.006 : 0.009, 10, 64]} />
               <FurnitureMaterial layer={asset.materials.accent} role="metal" color="#2f302d" roughness={0.24} metalness={0.55} />
             </mesh>
+            {poweredRound && <>
+              <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, topThickness * 0.82, 0]} castShadow>
+                <torusGeometry args={[roundRadius * 0.16, 0.0035, 8, 64]} />
+                <FurnitureMaterial layer={asset.materials.accent} role="metal" color="#6d5d4d" roughness={0.28} metalness={0.5} />
+              </mesh>
+              <RoundedPart size={[0.095, 0.012, 0.042]} position={[roundRadius * 0.72, topThickness * 0.62, 0]} radius={0.008} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#272927" roughness={0.2} metalness={0.64} />
+              <CylinderPart radiusTop={0.006} height={0.006} position={[roundRadius * 0.72, topThickness * 0.635, 0]} material={asset.materials.secondary} role="ceramic" color="#e8d8b5" sides={16} />
+            </>}
           </>}
         </group>
       ) : oval ? (
@@ -85,14 +114,21 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
       )}
       {!round && <RoundedPart size={[tableWidth * 0.88, 0.022, tableDepth * 0.82]} position={[0, topY - topThickness * 0.72, 0]} radius={0.01} detailLevel={asset.detailLevel} material={asset.materials.accent} role={metalFrame ? "metal" : "wood"} color="#625a52" />}
 
-      {variant === "roundPedestal" ? (
+      {poweredRound ? (
+        <group name="powered-extension-pedestal">
+          <CylinderPart radiusTop={0.18} radiusBottom={0.24} height={topY - floorY - 0.12} position={[0, floorY + (topY - floorY) / 2, 0]} material={woodMaterial} role="wood" sides={48} />
+          <CylinderPart radiusTop={0.23} radiusBottom={0.29} height={0.075} position={[0, floorY + 0.038, 0]} material={asset.materials.accent} role="metal" color="#292b29" roughness={0.24} metalness={0.62} sides={48} />
+          <CylinderPart radiusTop={0.22} radiusBottom={0.22} height={0.11} position={[0, topY - 0.1, 0]} material={asset.materials.accent} role="metal" color="#3b3c39" roughness={0.22} metalness={0.58} sides={40} />
+          <RoundedPart size={[0.32, 0.055, 0.18]} position={[0, topY - 0.16, 0]} radius={0.022} detailLevel={asset.detailLevel} material={asset.materials.accent} role="metal" color="#30322f" roughness={0.25} metalness={0.56} />
+        </group>
+      ) : variant === "roundPedestal" ? (
         <group name="walnut-star-base">
           <CylinderPart radiusTop={0.1} radiusBottom={0.13} height={topY - floorY - 0.12} position={[0, floorY + (topY - floorY) / 2, 0]} material={asset.materials.accent} role="metal" color="#2d2a28" sides={18} />
           {Array.from({ length: 4 }, (_, index) => {
             const angle = Math.PI / 4 + index * Math.PI / 2;
             const x = Math.cos(angle) * 0.17;
             const z = Math.sin(angle) * 0.17;
-            return <CylinderPart key={`star-leg-${index}`} radiusTop={0.042} radiusBottom={0.064} height={topY - floorY - 0.11} position={[x, floorY + (topY - floorY) / 2 - 0.01, z]} rotation={[Math.sin(angle) * 0.13, 0, -Math.cos(angle) * 0.13]} material={walnutMaterial} role="wood" color="#4f3123" sides={10} />;
+            return <CylinderPart key={`star-leg-${index}`} radiusTop={0.042} radiusBottom={0.064} height={topY - floorY - 0.11} position={[x, floorY + (topY - floorY) / 2 - 0.01, z]} rotation={[Math.sin(angle) * 0.13, 0, -Math.cos(angle) * 0.13]} material={woodMaterial} role="wood" sides={10} />;
           })}
           <CylinderPart radiusTop={0.25} radiusBottom={0.29} height={0.045} position={[0, floorY + 0.023, 0]} material={asset.materials.accent} role="metal" color="#262525" roughness={0.3} metalness={0.68} sides={40} />
         </group>
@@ -109,15 +145,16 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
         )))
       )}
 
-      {Array.from({ length: 6 }, (_, index) => {
-        const angle = index / 6 * Math.PI * 2;
+      {Array.from({ length: item.render3d?.seatCount ?? 6 }, (_, index) => {
+        const seatCount = item.render3d?.seatCount ?? 6;
+        const angle = index / seatCount * Math.PI * 2;
         const radiusX = width * 0.405;
         const radiusZ = depth * 0.405;
-        const chairVariant = variant === "roundPedestal" ? "wrapDining" : asset.detailLevel === "presentation" && (index === 0 || index === 3) ? "armHost" : chairBase;
+        const chairVariant = poweredRound || variant === "roundPedestal" ? "wrapDining" : asset.detailLevel === "presentation" && (index === 0 || index === 3) ? "armHost" : chairBase;
         const offset = (stableVariationValue(resolved.seed, 40 + index) - 0.5) * 0.055;
         return (
           <group key={index} position={[Math.cos(angle) * (radiusX + offset), floorY + 0.36, Math.sin(angle) * (radiusZ + offset)]} rotation={[0, -angle - Math.PI / 2 + offset * 0.2, 0]}>
-            <DiningChair3D variantId={chairVariant} seed={resolved.seed + index * 97} primary={variant === "roundPedestal" ? lightOakMaterial : asset.materials.primary} secondary={chairFabric} accent={asset.materials.accent} detailLevel={asset.detailLevel} />
+            <DiningChair3D variantId={chairVariant} seed={resolved.seed + index * 97} primary={poweredRound || variant === "roundPedestal" ? woodMaterial : asset.materials.primary} secondary={chairFabric} accent={asset.materials.accent} detailLevel={asset.detailLevel} />
           </group>
         );
       })}
