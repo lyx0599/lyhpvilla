@@ -47,6 +47,7 @@ async function checkHtml(fileName) {
 await checkHtml("index.html");
 await checkHtml("404.html");
 await checkHtml(path.join("preview", "index.html"));
+await checkHtml(path.join("yard-preview", "index.html"));
 
 const indexPath = path.join(OUT_DIR, "index.html");
 if (await fileExists(indexPath)) {
@@ -67,6 +68,14 @@ if (await fileExists(indexPath)) {
   }
   if (!indexHtml.includes("发布代码版本")) {
     errors.push("index.html does not identify the published code version");
+  }
+}
+
+const previewPath = path.join(OUT_DIR, "preview", "index.html");
+if (await fileExists(previewPath)) {
+  const previewHtml = await readFile(previewPath, "utf8");
+  if (!previewHtml.includes("yard-preview")) {
+    errors.push("preview/index.html does not expose the yard-preview entry");
   }
 }
 

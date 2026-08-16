@@ -36,6 +36,7 @@
     "test:modern-warm-natural": "node --experimental-strip-types scripts/test-modern-warm-natural-system.mjs",
     "test:cabinet-material-overrides": "node --experimental-strip-types scripts/test-cabinet-material-overrides.mjs",
     "test:cabinet-interior": "node --experimental-strip-types scripts/test-cabinet-interior.mjs",
+    "test:yard-preview": "node scripts/test-yard-preview.mjs",
     "audit:pbr-visual": "node scripts/capture-pbr-audit.mjs",
     "test:save-service": "node --experimental-strip-types scripts/test-local-code-sync-server.mjs",
     "test:object-sync": "node --experimental-strip-types scripts/test-object-sync.mjs",
@@ -64,7 +65,7 @@
     "test:phase2-visual": "node --experimental-strip-types scripts/test-phase2-visual-system.mjs",
     "test:mobile": "playwright test tests/mobile-presentation.spec.ts --workers=1",
     "audit:schema-coverage": "python3 scripts/schema-coverage-report.py",
-    "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:dimension-verification && pnpm test:furniture-placement && pnpm test:furniture-variants && pnpm test:piano-routing && pnpm test:furniture-heights && pnpm test:wet-area-orientation && pnpm test:construction-anchors && pnpm test:reusable-room-visuals && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:lighting-design && pnpm test:construction-export && pnpm test:save-service && pnpm test:object-sync && pnpm test:unified-scene && pnpm test:3d-structure && pnpm test:open-passage && pnpm test:cabinet-material-overrides && pnpm test:material-system && pnpm test:scene-heights && pnpm test:drawing-3d && pnpm test:room-tour && pnpm test:exploration && pnpm test:floor-camera && pnpm test:camera-composition && pnpm test:render-camera-storage && pnpm test:render-preflight && pnpm test:stair-systems && pnpm test:tuscan-surfaces && pnpm test:b1-laundry-showroom && pnpm test:b1-showroom-hard-finish && pnpm test:1f-showroom && pnpm test:2f-showroom",
+  "test": "pnpm typecheck && pnpm validate:workspace && pnpm test:workspace-migrations && pnpm test:workspace-references && pnpm test:dimension-verification && pnpm test:furniture-placement && pnpm test:furniture-variants && pnpm test:piano-routing && pnpm test:furniture-heights && pnpm test:wet-area-orientation && pnpm test:construction-anchors && pnpm test:reusable-room-visuals && pnpm test:workspace-access && pnpm test:drawing-sheets && pnpm test:drawing-items && pnpm test:lighting-design && pnpm test:construction-export && pnpm test:save-service && pnpm test:object-sync && pnpm test:unified-scene && pnpm test:3d-structure && pnpm test:open-passage && pnpm test:cabinet-material-overrides && pnpm test:material-system && pnpm test:scene-heights && pnpm test:drawing-3d && pnpm test:room-tour && pnpm test:exploration && pnpm test:floor-camera && pnpm test:camera-composition && pnpm test:render-camera-storage && pnpm test:render-preflight && pnpm test:stair-systems && pnpm test:tuscan-surfaces && pnpm test:b1-laundry-showroom && pnpm test:b1-showroom-hard-finish && pnpm test:1f-showroom && pnpm test:2f-showroom",
     "test:ci": "pnpm test && pnpm test:mobile && pnpm build",
     "start": "next start"
   },
