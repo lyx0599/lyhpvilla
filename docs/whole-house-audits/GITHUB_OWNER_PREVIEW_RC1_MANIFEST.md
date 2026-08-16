@@ -1,6 +1,16 @@
 # GITHUB_OWNER_PREVIEW_RC1_MANIFEST
 
-状态：READY（仅完成白名单与门禁准备；未 `git add`、未 commit、未 push；等待用户最终确认）
+状态：R3 READY_PENDING_LUNA（P0 Recovery clean tracked-only candidate 已通过；未 `git add`、未 commit、未 push；等待独立 Luna 复核）
+
+## P0 Recovery R1 clean candidate（真实状态）
+
+- candidate 来源：clean archive `1892fcbc9dd345225e7f9db7c3d2196e8dcfa331`，再应用已审 RC1 commit `3d230785be1e08e1f786b9cc7c3295413239d75f` 的 tracked 白名单；candidate 位于 `/private/tmp/lyhp-owner-rc1-recovery-20260816`，没有复制当前 dirty 树的未跟踪文件。
+- package/script 依赖闭合：移除 clean baseline 中不存在的 apply、Furniture/旧 floor contract 命令；同时移除聚合 `test` 对未纳入 clean tracked candidate 的 2F 临时专项 key 的调用。RC1 不用 untracked 脚本冒充 tracked 来源；2F memory-only 专项仅作为独立审计证据，不进入发布白名单。
+- 2F test：不再 spawn apply 脚本或写 `data/default-workspace.json`；在内存 fixture 中做目标灯去重/desk 宽深归一化并重复运行，读前后 canonical SHA 均为 `8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`。
+- Lighting R3：`scripts/test-lighting-design.mjs` PASS，实际 `175 lights / 121 switches`；沟通空间合同为 `24 rooms + North/South YARD = 26`，不是旧的 `167/30` 口径。
+- 决策包：22 records、2 owner questions；顶部移动 CTA `min-h-11`（44px）且 `sourcePaths` 全部指向 candidate 内存在的 tracked 文件；未将 generated JSON/artifacts 纳入 RC1。
+- fresh export：exit 0；本轮 R2 fresh build log=`/private/tmp/lyhp-owner-rc1-r2-build-20260816.log`，字节 SHA=`7cc302215a4a8ced622f6455f9b64add19606746f9b03bbb358209d4b76c5f99`；routes 包含 `/yard-preview`、`/owner-communication`、`/owner-communication/decisions`。
+- YARD static host：`http://127.0.0.1:3243/lyhpvilla/yard-preview/`，PID/session `98206`；HTTP 200、canvas=1、console error/warn 为空；Top5 全院点击后 URL 保留 `/lyhpvilla/yard-preview/?camera=view-yard-all`，HTTP 200、canvas=1。
 
 冻结基线：`1892fcbc9dd345225e7f9db7c3d2196e8dcfa331`
 正式 canonical data SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`
@@ -20,16 +30,16 @@
 | `components/floor-3d-view.tsx` | 已批准 Lighting R3 选择性集成；不包含 Furniture PBR patch | `b285b57c6fb013714ac212fb05a2336cd3f490e3981df2948f400088c41525ea` |
 | `components/second-floor-preview.tsx` | 正式 2F 入口/儿童房审计宿主 | `98b222b8a34d20b78405701ec9647f5b34c78d5a36b340673e028db93a233163` |
 | `components/owner-communication-model.tsx` | 五层沟通模型、P0/unknown 边界 | `f877665657e35d9f28f12fe8d04ea4a409d1c396dd4b65076461d256d7c9c265` |
-| `components/owner-decision-package-r1.tsx` | 决策登记与门禁分类 | `e85dec1cb071202df756f0f8a2b34bac136e655963237f4732a5f51174507f5c` |
-| `components/yard-preview.tsx` | YARD canonical 2D/3D/Top5；Top5 使用 basePath-aware `Link` | `26c80c00a9b8de505e9c28d37749c5a33d99329848675a7b1982151caa8d5641` |
-| `lib/owner-decision-package-r1.ts` | 决策包同源数据 | `d80f09336c41ae7559f3ba627211c29e3cddc1b7d5759b93b90f3b0786423c5d` |
+| `components/owner-decision-package-r1.tsx` | 决策登记与门禁分类；移动 CTA >=44px | `a8e67681c28ab5d3c251a2a0b66b8d18f2de5bd328e78ee77a43917c276a98af` |
+| `components/yard-preview.tsx` | YARD canonical 2D/3D/Top5；Top5 使用 basePath-aware `Link`；390 首屏 3D + Top5 首卡；mobile order 显式 3D→Top5→details→2D | `6804e7efe5b371b7866941199515846d994dada0cc9b326cde3fc09d5ee22b83` |
+| `lib/owner-decision-package-r1.ts` | 决策包同源数据；sourcePaths 已闭合 | `d5b1691b946fa70a9f665a2f3c52fc28c2e3ccf85662312e53a97c413a6bb50c` |
 | `lib/whole-house-design-system.ts` | 必要设计系统合同 | `6248eff6770115f15942c64ce0e088ef398e08b4ca9ded6601dc9b0e776b412b` |
 | `data/default-workspace.json` | 当前 canonical workspace；必须随 RC1 绑定 | `8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831` |
-| `package.json` | 已登记专项测试命令；不含临时 host 命令 | `9f4cd88816aa4b1a9f5388411bd5c44012d5ffc6c5b3bcd061a16d1287246cd8` |
+| `package.json` | 依赖闭合；聚合 `test` 不调用未纳入 tracked candidate 的临时 2F key | `9bf3aa3bda63974d38e7799ae8cd775336d35ecea50e91af20b8dea07b7fb194` |
 | `scripts/check-pages-build.mjs` | Pages 检查补充 YARD route/入口 | `6f8e4c2f806a4bebb963a5887a977a0ae537922bf718d94bfdf6569bc86543dc` |
 | `scripts/test-yard-preview.mjs` | canonical YARD/5 camera/basePath contract | `eb6039cabf02c4d564e4e2e33be4e1b51aa4f63ef15474c1a7acaa8f73b42bdb` |
 | `scripts/test-owner-communication-model.mjs` | 沟通模型专项 | `5dd598afdf452fd1b7d8aa393bb6bc0ea8fd74c9331076a1850021cc31b25aa4` |
-| `scripts/test-owner-decision-package-r1.mjs` | 决策包专项 | `3e2f9b850d0cb471fc18ad0754f89525951d2f8117528ae245e3a29f02cc0b63` |
+| `scripts/test-owner-decision-package-r1.mjs` | 决策包专项 | `4380e6db6155d279f76f704fb1c562d5b5e15418a827e5f9d1a6ed3b1bac22f8` |
 | `scripts/test-lighting-design.mjs` | Lighting R3/lighting contract 专项 | `9ab1ff9b462d537bb54196760dd7309a5fbcc83bcc6eab8ce5437c61829142fd` |
 | `scripts/test-main-lighting-top-bar-hotfix.mjs` | 顶部安全区/当前楼层目录专项 | `29e0b4037de657d51262dafffd02f74b966706d61694dd44be348ad8712af18c` |
 | `scripts/test-whole-house-p0-integration-audit-current.mjs` | 当前 P0 审计基线专项 | `05b49b4f4ea3067578bfda3cb2ad62a1892f9a9d99df79372e3d557c11aaa984` |
@@ -55,7 +65,13 @@
 - YARD、owner communication、owner decision、当前 whole-house P0 audit、Lighting 专项：PASS。
 - fresh production export：PASS，YARD basePath build exit 0，log=`/private/tmp/yard-basepath-r1-build-20260816.log`。
 - basePath healthcheck：3240/3241 host route 200；新 3241 host 五个 Top5 点击均保留 `/lyhpvilla` 与 query，均 HTTP 200、canvas=1、console error/warn 为空。
-- 1536/1280/390 owner runtime：CTA rect 与 console 证据保存在 `/private/tmp/runtime-infra-r1-evidence-owner-*.png`；YARD 390 证据在 `/private/tmp/runtime-infra-r1-evidence-yard-390.png`。
+- 1536/1280/390 owner runtime：CTA rect 与 console 证据保存在 `/private/tmp/runtime-infra-r1-evidence-owner-*.png`；YARD R2 390 截图=`/private/tmp/lyhp-owner-rc1-r2-yard-390-20260816.png`，SHA=`307b3a43488c0f744786cdaa0207ee20e2ca069fc5eaf23849dd071b5d620bb2`。
+- YARD R2 390 DOM：viewport `390x844`；status rect `{x:20,y:224.5,w:350,h:54}`；3D section rect `{x:20,y:381.5,w:350,h:280}`；canvas rect `{x:22,y:383.5,w:300,h:150}`；Top5 rect `{x:20,y:685.5,w:350,h:367}`；首个 Top5 rect `{x:20,y:685.5,w:169,h:101}`；console error/warn `[]`。1280 桌面仍为 720px 3D section，布局无回退。
+- YARD R2 原始 DOM JSON=`/private/tmp/lyhp-owner-rc1-r2-yard-390-20260816.json`，字节 SHA=`eb74ec62f504edd5ad8912032412d50e8320f8fb73e19e42a20de382a1dc232c`；该 JSON 同时保留 5 个 query href 与 console 数组。
+- YARD R3 order 修复：通过显式 arbitrary CSS order 固定 mobile `3D → Top5 → FIELD_REMEASURE/VENDOR/PROFESSIONAL details → 2D overview`；R3 DOM JSON=`/private/tmp/lyhp-owner-rc1-r3-yard-390-20260816.json`，字节 SHA=`2d99cd0ba172db5b9b7c9ca5818ec93943de04b84eee788924714d03829a4c25`；5 个 camera href 保留 query，console error/warn `[]`；截图=`/private/tmp/lyhp-owner-rc1-r3-yard-390-20260816.png`，SHA=`307b3a43488c0f744786cdaa0207ee20e2ca069fc5eaf23849dd071b5d620bb2`。
+- R2 原始测试日志=`/private/tmp/lyhp-owner-rc1-r2-tests-20260816.log`，字节 SHA=`3d54a5594f0dafb2f1b95aa066ed101388ab2b49362d0229fe414856f6e16f3b`；日志未包含自报 hash。
+- R3 原始测试日志=`/private/tmp/lyhp-owner-rc1-r3-tests-20260816.log`，字节 SHA=`3dfe1ab8985a2adcc6c504aa1e9b9d5d5594511eb83bc348a63ab5312b58a073`；包含 TypeScript、YARD、owner communication、top-bar、P0 baseline 与 `git diff --check`。
+- R3 fresh production build exit `0`，日志=`/private/tmp/lyhp-owner-rc1-r3-build-20260816.log`，字节 SHA=`5c1eeb0c7107e575e903e5acbad28ec93c55e69ff6e8fa9873a44db0a3f518bd`；routes 含 `/yard-preview`、`/owner-communication`、`/owner-communication/decisions`。
 - `git diff --check`：PASS。
 
 ## 已知 P0 / 水印

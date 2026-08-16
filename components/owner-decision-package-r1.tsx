@@ -29,7 +29,7 @@ export function OwnerDecisionPackageR1() {
               <h1 className="mt-3 text-3xl font-medium tracking-[-0.04em] sm:text-5xl">业主决策包 R1</h1>
               <p className="mt-3 max-w-4xl text-sm leading-7 text-white/70">把已确认输入、业主取舍、现场复尺、厂家资料、专业签认和冻结项分开登记。它是沟通/参考层，不是施工图、BOM、IFC、下单或发布放行。</p>
             </div>
-            <div className="flex gap-2"><Link className="rounded-full border border-white/20 px-4 py-2 text-sm text-white/80" href="/owner-communication">返回业主沟通模型</Link><Link className="rounded-full bg-[#d4bf93] px-4 py-2 text-sm font-bold text-[#28312d]" href="/preview">统一入口</Link></div>
+            <div className="flex flex-wrap gap-2"><Link className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/20 px-4 py-2 text-center text-sm leading-5 text-white/80" href="/owner-communication">返回业主沟通模型</Link><Link className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#d4bf93] px-4 py-2 text-center text-sm font-bold leading-5 text-[#28312d]" href="/preview">统一入口</Link></div>
           </div>
           <div className="mt-7 grid gap-3 text-xs md:grid-cols-4">
             <div className="rounded-2xl bg-white/10 p-4"><div className="text-white/50">REVISION</div><div className="mt-2 break-all font-mono text-[11px]">{ownerDecisionPackageR1.revision}</div></div>

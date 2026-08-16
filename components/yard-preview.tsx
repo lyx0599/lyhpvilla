@@ -54,7 +54,7 @@ function YardPlanOverview({ structure, furniture }: { structure: HouseStructure;
   });
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-[#d7d0c4] bg-[#faf8f2] shadow-[0_18px_55px_rgba(75,64,48,0.08)]" data-yard-plan="overview">
+    <div className="order-[4] overflow-hidden rounded-[2rem] border border-[#d7d0c4] bg-[#faf8f2] shadow-[0_18px_55px_rgba(75,64,48,0.08)] lg:order-1" data-yard-plan="overview">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e4ddd2] px-5 py-4 sm:px-7">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7c8a6b]">2D / unified courtyard truth</p>
@@ -155,7 +155,7 @@ export function YardPreview() {
         </div>
       </header>
       <section className="mx-auto grid max-w-7xl gap-6 px-5 py-7 sm:px-8 lg:px-12 lg:py-10">
-        <details className="order-0 rounded-3xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-sm sm:p-5" data-testid="yard-runtime-evidence-boundaries">
+        <details className="order-[3] rounded-3xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-sm sm:p-5 lg:order-0" data-testid="yard-runtime-evidence-boundaries">
           <summary className="min-h-11 cursor-pointer list-none rounded-xl px-2 py-2 font-semibold leading-6">展开 YARD 现场深化边界（FIELD_REMEASURE / VENDOR / PROFESSIONAL）</summary>
           <div className="mt-3 grid gap-3 border-t border-amber-200 pt-3 sm:grid-cols-3">
             <div className="rounded-2xl bg-white/60 p-3"><p className="text-[10px] font-black tracking-[0.16em] text-blue-900">FIELD_REMEASURE</p><p className="mt-1 leading-6">完成面标高、排水坡向、地漏、户外柜检修/开合、门净宽与维护带，须现场/CAD 补证。</p></div>
@@ -164,7 +164,7 @@ export function YardPreview() {
           </div>
         </details>
         <YardPlanOverview structure={unifiedCourtyardModel.houseStructure} furniture={yardFurniture} />
-        <section className="relative order-1 h-[620px] overflow-hidden rounded-[2rem] border border-[#ccd5c8] bg-[#dde5dc] shadow-[0_18px_55px_rgba(61,78,61,0.12)] sm:h-[720px]" data-testid="yard-3d-overview">
+        <section className="relative order-[1] h-[280px] overflow-hidden rounded-[2rem] border border-[#ccd5c8] bg-[#dde5dc] shadow-[0_18px_55px_rgba(61,78,61,0.12)] sm:h-[720px] lg:order-2" data-testid="yard-3d-overview">
           <Floor3DView
             floor={floor}
             houseStructure={presentationStructure}
@@ -205,7 +205,7 @@ export function YardPreview() {
             {authoredCameraView?.name ?? "全院 3D 总览"}
           </div>
         </section>
-        <section aria-label="院子 Top5 实时机位" className="order-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-5" data-testid="yard-top-five-cameras">
+        <section aria-label="院子 Top5 实时机位" className="order-[2] grid grid-cols-2 gap-3 sm:grid-cols-2 lg:order-3 lg:grid-cols-5" data-testid="yard-top-five-cameras">
           {yardTopFive.map((view) => {
             const active = (authoredCameraView?.id ?? "view-yard-all") === view.id;
             return <Link className={`rounded-2xl border p-4 transition ${active ? "border-[#52674f] bg-[#dce7d2] shadow-[0_10px_30px_rgba(61,78,61,0.13)]" : "border-[#d4ddd0] bg-[#f7f8f3] hover:-translate-y-0.5 hover:border-[#819479]"}`} href={`/yard-preview?camera=${view.id}`} key={view.id}>
@@ -215,7 +215,7 @@ export function YardPreview() {
             </Link>;
           })}
         </section>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="order-[5] grid gap-4 md:grid-cols-2 lg:order-4">
           <article className="rounded-3xl border border-[#d4ddd0] bg-[#f7f8f3] p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#71826b]">North yard / 入户</p>
             <h2 className="mt-2 text-xl font-semibold">北院保持迎宾与户外厨房</h2>
@@ -227,7 +227,7 @@ export function YardPreview() {
             <p className="mt-2 text-sm leading-6 text-[#647063]">当前休闲平台、洗衣平台、晾晒区、直线步道、菜园和宠物洗脚区不合并为单一花园；后续按排水、遮阳和维护顺序深化。</p>
           </article>
         </div>
-        <aside className="rounded-3xl border border-amber-200 bg-amber-50/80 p-5 text-sm leading-6 text-amber-950" data-testid="yard-construction-unknowns">
+        <aside className="order-[6] rounded-3xl border border-amber-200 bg-amber-50/80 p-5 text-sm leading-6 text-amber-950 lg:order-5" data-testid="yard-construction-unknowns">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-800">现场深化保留 unknown / estimated</p>
           <p className="mt-2">完成面标高、排水坡向与地漏位置；防水收口；RCD 回路、IP 等级、接头与驱动检修；BBQ 防火排烟；遮阳抗风；院门净宽及儿童、老人和宠物安全，均须以现场复尺和专业深化为准。本预览不虚构施工尺寸或设备参数。</p>
         </aside>
