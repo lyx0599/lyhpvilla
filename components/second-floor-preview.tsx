@@ -30,6 +30,10 @@ export function SecondFloorPreview() {
     () => workspace.furniture.filter((item) => item.floorId === secondFloorId),
     [workspace.furniture]
   );
+  const drawingItems = useMemo(
+    () => workspace.drawingItems.filter((item) => item.floorId === secondFloorId),
+    [workspace.drawingItems]
+  );
 
   if (!floor || !structure) {
     return <main className="grid min-h-screen place-items-center bg-[#e9e2d7] text-stone-700">2F 数据暂不可用</main>;
@@ -47,9 +51,9 @@ export function SecondFloorPreview() {
           stairOpenings={workspace.stairOpenings}
           furniture={furniture}
           allFurniture={workspace.furniture}
-          drawingItems={[]}
-          allDrawingItems={[]}
-          drawingSheetType="sitePlan"
+          drawingItems={drawingItems}
+          allDrawingItems={workspace.drawingItems}
+          drawingSheetType="lightingPlan"
           cameraViews={workspace.cameraViews}
           cameraViewRequest={requestedCameraView}
           roomTourViews={workspace.roomTourViews}
@@ -57,11 +61,9 @@ export function SecondFloorPreview() {
           selectedObjectId={selectedObjectId}
           selectedFurnitureId=""
           showObjectIds={false}
-          externalPresentationMode
           presentationWallDisplayMode="full"
           cameraCollisionEnabledOverride={false}
           cameraLockEnabledOverride
-          hidePresentationUi
           mobileQuality="high"
           onShowObjectIdsChange={() => undefined}
           onSelectStructure={setSelectedObjectId}

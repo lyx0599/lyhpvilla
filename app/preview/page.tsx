@@ -4,7 +4,7 @@ import type { FloorId } from "@/types/space";
 
 export const metadata = {
   title: "全屋设计预览 · 林屿湖畔",
-  description: "林屿湖畔四层空间、固定机位、材质与灯光体系统一预览入口"
+  description: "林屿湖畔四层空间、南北院、固定机位、材质与灯光体系统一预览入口"
 };
 
 const floorCards: Array<{
@@ -56,6 +56,16 @@ const floorCards: Array<{
     action: "进入 2F 十机位预览",
     tone: "from-[#d0c1a7] to-[#8d7c63]",
     usesDedicatedPreview: true
+  },
+  {
+    floorId: "YARD",
+    eyebrow: "首层外部空间",
+    title: "南院生活 · 北院入户",
+    summary: "锁定南北院边界、铺装、花境、围栏/屏风与 1F 建筑关系，直接查看统一庭院 2D 总览和 3D 机位。",
+    route: "/yard-preview",
+    action: "进入院子 2D / 3D 预览",
+    tone: "from-[#78846e] to-[#3e5145]",
+    usesDedicatedPreview: true
   }
 ];
 
@@ -68,7 +78,7 @@ const systemHighlights = [
   {
     index: "02",
     title: "统一灯光",
-    text: "日光、日常、活动、夜间、清洁五类场景覆盖四层；默认复跑保留人工深化点位。"
+    text: "日光、日常、活动、夜间、清洁五类场景覆盖四层与院子；默认复跑保留人工深化点位。"
   },
   {
     index: "03",
@@ -83,10 +93,10 @@ const systemHighlights = [
 ];
 
 function FloorGlyph({ floorId }: { floorId: FloorId }) {
-  const level = floorId === "B2" ? 0 : floorId === "B1" ? 1 : floorId === "1F" ? 2 : 3;
+  const level = floorId === "B2" ? 0 : floorId === "B1" ? 1 : floorId === "1F" ? 2 : floorId === "2F" ? 3 : 4;
   return (
     <div aria-hidden className="flex h-20 w-20 flex-col-reverse gap-1.5 rounded-2xl border border-white/20 bg-black/10 p-4 shadow-inner backdrop-blur">
-      {[0, 1, 2, 3].map((item) => (
+      {[0, 1, 2, 3, 4].map((item) => (
         <span
           className={`h-1.5 rounded-full transition ${item === level ? "bg-[#f4ead8] shadow-[0_0_14px_rgba(244,234,216,0.7)]" : "bg-white/20"}`}
           key={item}
@@ -98,8 +108,12 @@ function FloorGlyph({ floorId }: { floorId: FloorId }) {
 
 export default function WholeHousePreviewPage() {
   const workspace = defaultSpaceData.workspace;
-  const totalCameras = workspace.cameraViews.filter((item) => ["B2", "B1", "1F", "2F"].includes(item.floor)).length;
-  const sceneCount = new Set(workspace.lightingDesign.scenes.map((scene) => scene.id).filter((id) => id.startsWith("SCENE-MWN-V1-"))).size;
+  const totalCameras = workspace.cameraViews.filter((item) => ["B2", "B1", "1F", "2F", "YARD"].includes(item.floor)).length;
+  const sceneCount = new Set(
+    workspace.lightingDesign.scenes
+      .map((scene) => scene.id)
+      .filter((id) => id.startsWith("SCENE-MWN-V1-") || id.startsWith("SCENE-WLC-V1-YARD-"))
+  ).size;
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#eeebe4] text-[#262b28]">
@@ -110,12 +124,17 @@ export default function WholeHousePreviewPage() {
           <nav className="flex items-center justify-between gap-4 text-sm">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#c9b995]">Lin Yu Lakeside</p>
-              <p className="mt-1 text-sm text-white/60">四层住宅设计模型</p>
+              <p className="mt-1 text-sm text-white/60">四层住宅与南北院设计模型</p>
             </div>
             <Link className="rounded-full border border-white/20 bg-white/5 px-4 py-2 font-medium text-white/80 transition hover:border-white/40 hover:bg-white/10 hover:text-white" href="/">
               打开完整工作台
             </Link>
           </nav>
+
+          <div className="mt-5 flex flex-wrap gap-2 text-xs">
+            <Link className="rounded-full border border-[#d7c49d]/50 bg-[#d7c49d]/10 px-3 py-2 font-semibold text-[#e8d9ba] hover:bg-[#d7c49d]/20" href="/owner-communication">打开业主沟通模型 R1</Link>
+            <span className="rounded-full border border-white/10 px-3 py-2 text-white/55">REFERENCE · 非施工 / 非下单</span>
+          </div>
 
           <div className="mt-16 grid gap-10 lg:grid-cols-[1.45fr_0.8fr] lg:items-end">
             <div>
@@ -129,8 +148,8 @@ export default function WholeHousePreviewPage() {
             </div>
             <div className="grid grid-cols-3 gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur">
               <div className="rounded-2xl bg-black/10 p-4">
-                <p className="text-2xl font-medium">4</p>
-                <p className="mt-1 text-xs text-white/50">室内楼层</p>
+                <p className="text-2xl font-medium">4+1</p>
+                <p className="mt-1 text-xs text-white/50">室内 + 院子</p>
               </div>
               <div className="rounded-2xl bg-black/10 p-4">
                 <p className="text-2xl font-medium">{totalCameras}</p>
@@ -151,7 +170,7 @@ export default function WholeHousePreviewPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#887357]">Floor preview</p>
             <h2 className="mt-2 text-3xl font-medium tracking-[-0.03em]">选择楼层</h2>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-black/50">预览页只加载模型所需资源；本地高清效果图、对比板与过程截图均不进入 GitHub Pages。</p>
+          <p className="max-w-xl text-sm leading-6 text-black/50">预览页只加载模型所需资源；院子无需进入编辑器手动寻找，南院与北院沿用当前统一庭院数据。</p>
         </div>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2">

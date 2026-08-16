@@ -112,6 +112,11 @@ import type {
 import type { Drawing3DViewPreset, Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
 import type { LightingDesign } from "@/types/workspace";
 import { resolvePublicAssetUrl } from "@/lib/external-asset-manifest";
+import {
+  wholeHouseLightingFloorPolicies,
+  wholeHouseLightingSceneId,
+  wholeHouseLightingScenes
+} from "@/lib/whole-house-design-system";
 
 export type LightingObjectControlRequest = { id: string; action: "locate" | "toggle"; nonce: number };
 export type LightingRuntimeState = Record<string, { on: boolean; brightness: number }>;
@@ -7167,6 +7172,17 @@ function WalkInCloset3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Cabinet3DGroup(props: FurnitureAssetGroupProps) {
+  const cabinetOpenAmount = props.cabinetOpenAmount
+    ?? (props.item.cabinetInterior?.doorStates && Object.values(props.item.cabinetInterior.doorStates).some(Boolean) ? 1 : 0);
+  const b2SpecialCabinetInteriorVariant = [
+    "b2OpenFoyerRack",
+    "b2LeftWallFoyerRun",
+    "b2MiniWaterBar",
+    "b2MemorialLegoDisplay"
+  ].includes(props.item.render3d?.variantId ?? "");
+  if (b2SpecialCabinetInteriorVariant && props.item.cabinetInterior && cabinetOpenAmount > 0.04) {
+    return <FineVariantFurniture3DGroup {...props} cabinetOpenAmount={cabinetOpenAmount} />;
+  }
   if (props.item.render3d?.variantId === "b2CurvedCornerWineCabinet") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY } = metrics;
@@ -9354,10 +9370,22 @@ type LightingSceneMode = "dayWithLights" | "dusk" | "night" | "artificialOnly" |
 type LightingExperienceScope = "wholeHouse" | "currentFloor" | "currentRoom";
 export type LightingWallMode = "smartCutaway" | "transparent" | "hideOccluding" | "full";
 type LightingAnalysisMode = "none" | "brightness" | "colorTemperature";
-type LightingRoomViewMode = "inventory" | "full" | "human" | "top";
+type LightingRoomViewMode = "inventory" | "full" | "human" | "use" | "top";
+type LightingExperienceSurface = "spaces" | "views" | "fixtures";
+type LightingUiState = "closed" | `experience:${LightingExperienceSurface}` | "professional:analysis";
 type VillaOverviewMode = "wholeVilla" | "singleFloor" | "angled";
 export type RoomCeilingMode = "hidden" | "translucent" | "solid";
 export type MaterialCategoryFilter = "all" | "structure" | "furniture" | "outdoor";
+
+// R1 release boundary: only these workspace scene IDs may enter the shared
+// lighting UI, defaults, saved-camera restore, or render preflight.
+const officialLightingSceneIdsByFloor: Record<Floor["id"], readonly string[]> = {
+  B2: ["SCENE-MWN-V1-B2-DAYLIGHT", "SCENE-MWN-V1-B2-DAILY", "SCENE-MWN-V1-B2-ACTIVITY", "SCENE-MWN-V1-B2-NIGHT", "SCENE-MWN-V1-B2-CLEANING"],
+  B1: ["SCENE-MWN-V1-B1-DAYLIGHT", "SCENE-MWN-V1-B1-DAILY", "SCENE-MWN-V1-B1-ACTIVITY", "SCENE-MWN-V1-B1-NIGHT", "SCENE-MWN-V1-B1-CLEANING"],
+  "1F": ["SCENE-MWN-V1-1F-DAYLIGHT", "SCENE-MWN-V1-1F-DAILY", "SCENE-MWN-V1-1F-ACTIVITY", "SCENE-MWN-V1-1F-NIGHT", "SCENE-MWN-V1-1F-CLEANING"],
+  "2F": ["SCENE-MWN-V1-2F-DAYLIGHT", "SCENE-MWN-V1-2F-DAILY", "SCENE-MWN-V1-2F-ACTIVITY", "SCENE-MWN-V1-2F-NIGHT", "SCENE-MWN-V1-2F-CLEANING"],
+  YARD: ["SCENE-WLC-V1-YARD-DAYLIGHT", "SCENE-WLC-V1-YARD-DAILY", "SCENE-WLC-V1-YARD-ACTIVITY", "SCENE-WLC-V1-YARD-NIGHT", "SCENE-WLC-V1-YARD-CLEANING"]
+};
 
 export type Shared3DSceneSettings = {
   drawingSheetType: DrawingSheetType;
@@ -11025,14 +11053,19 @@ function Floor3DScene({
     : lightingActive
       ? lightingScene === "dusk" || lightingScene === "beamAnalysis" ? 0.12 : 0.28
       : floorOverviewPresentation ? 0.24 : firstFloorScene ? (presentationMode ? 0.56 : 0.34) : presentationMode ? 0.72 : 0.46;
-  const toneMappingExposure = lightingBlackout
+  const lightingFloorPolicy = wholeHouseLightingFloorPolicies[houseStructure.floorId];
+  const floorExposureMultiplier = 2 ** lightingFloorPolicy.exposureCompensationEv;
+  const baseToneMappingExposure = lightingBlackout
     ? 1
     : lightingDarkScene
     ? lightingHasEnabledFixtures ? 1.02 : 0.68
     : floorOverviewPresentation ? 0.84 : yardScene ? 1.04 : firstFloorScene ? (presentationMode ? 0.98 : 0.94) : presentationMode ? 1.06 : 1;
-  const ambientIntensity = lightingBlackout ? 0 : lightingEnvironment?.ambient ?? (floorOverviewPresentation ? 0.24 : yardScene ? 0.46 : firstFloorScene ? (presentationMode ? 0.36 : 0.3) : presentationMode ? 0.42 : 0.36);
+  const toneMappingExposure = baseToneMappingExposure * floorExposureMultiplier;
+  const baseAmbientIntensity = lightingBlackout ? 0 : lightingEnvironment?.ambient ?? (floorOverviewPresentation ? 0.24 : yardScene ? 0.46 : firstFloorScene ? (presentationMode ? 0.36 : 0.3) : presentationMode ? 0.42 : 0.36);
+  const ambientIntensity = baseAmbientIntensity * lightingFloorPolicy.ambientFill;
   const keyLightIntensity = lightingBlackout ? 0 : lightingEnvironment?.key ?? (floorOverviewPresentation ? 0.95 : yardScene ? 1.82 : firstFloorScene ? (presentationMode ? 1.38 : 1.18) : presentationMode ? 1.6 : 1.35);
-  const fillLightIntensity = lightingBlackout ? 0 : lightingEnvironment?.fill ?? (floorOverviewPresentation ? 0.18 : yardScene ? 0.44 : firstFloorScene ? (presentationMode ? 0.4 : 0.3) : presentationMode ? 0.52 : 0.4);
+  const baseFillLightIntensity = lightingBlackout ? 0 : lightingEnvironment?.fill ?? (floorOverviewPresentation ? 0.18 : yardScene ? 0.44 : firstFloorScene ? (presentationMode ? 0.4 : 0.3) : presentationMode ? 0.52 : 0.4);
+  const fillLightIntensity = baseFillLightIntensity * lightingFloorPolicy.ambientFill;
   const floorShadowOpacity = lightingBlackout ? 0 : presentationMode ? (floorOverviewPresentation ? 0.24 : 0.18) : 0.12;
   const balancedQuality = mobileQuality === "balanced";
   const shadowMapSize = presentationMode && !balancedQuality ? 2048 : 1024;
@@ -11438,7 +11471,7 @@ function Floor3DScene({
           structure={houseStructure}
           heightMode={furnitureHeightMode}
           sceneLod={presentationMode ? sceneVisibility.lod : "balanced"}
-          cabinetOpenAmount={explorationCabinetStates?.[item.id]?.currentAmount}
+          cabinetOpenAmount={explorationCabinetStates?.[item.id]?.currentAmount ?? ((selectedFurnitureId === item.id || selectedObjectId === item.id) && isCabinetLike(item) ? 1 : undefined)}
           materialPreview={materialPreview}
           designStyle={designStyle}
           selected={selectedFurnitureId === item.id || selectedObjectId === item.id || Boolean(selectedFurnitureMaterialText && materialText(item) === selectedFurnitureMaterialText)}
@@ -12226,15 +12259,15 @@ export function Floor3DView({
   const [renderSceneEvidence, setRenderSceneEvidence] = useState<RenderSceneEvidence>(emptyRenderSceneEvidence);
   const [drawingViewPreset, setDrawingViewPreset] = useState<Drawing3DViewPreset>(drawingProfile.defaultPreset);
   const [lightingScene, setLightingScene] = useState<LightingSceneMode>("dayWithLights");
-  const [activeLightingControlSceneId, setActiveLightingControlSceneId] = useState("SCENE-DAILY");
+  // Independent fixture testing is the default entry state. Official scenes are
+  // recall-only shortcuts and must not silently control a room on entry.
+  const [activeLightingControlSceneId, setActiveLightingControlSceneId] = useState("__manual__");
   const [lightingExperienceScope, setLightingExperienceScope] = useState<LightingExperienceScope>("wholeHouse");
   const [selectedLightingSpaceId, setSelectedLightingSpaceId] = useState<string | null>(null);
   const [lightingWallMode, setLightingWallMode] = useState<LightingWallMode>("smartCutaway");
   const [lightingAnalysisMode, setLightingAnalysisMode] = useState<LightingAnalysisMode>("none");
-  const [advancedLightingOpen, setAdvancedLightingOpen] = useState(false);
-  const [lightingRoomPanelOpen, setLightingRoomPanelOpen] = useState(false);
+  const [lightingUiState, setLightingUiState] = useState<LightingUiState>("closed");
   const [lightingGroupOverrides, setLightingGroupOverrides] = useState<Record<string, number>>({});
-  const [lightingPanelCollapsed, setLightingPanelCollapsed] = useState(true);
   useEffect(() => {
     setPresentationMode(mobilePresentationMode || externalPresentationMode);
   }, [externalPresentationMode, mobilePresentationMode]);
@@ -12243,6 +12276,9 @@ export function Floor3DView({
   const [lightingSoloGroupId, setLightingSoloGroupId] = useState<string | null>(null);
   const [lightingItemOverrides, setLightingItemOverrides] = useState<Record<string, number>>({});
   const lightingSoloBackupRef = useRef<Record<string, number> | null>(null);
+  const [lightingSoloItemId, setLightingSoloItemId] = useState<string | null>(null);
+  const lightingItemSoloBackupRef = useRef<Record<string, number> | null>(null);
+  const [lightingInteractionScope, setLightingInteractionScope] = useState<"lights-only" | "design">("lights-only");
   const pendingRoomEntryRef = useRef<{ floorId: Floor["id"]; roomId: string } | null>(null);
   const previousFloorIdRef = useRef<Floor["id"]>(floor.id);
   const [showFixtureModels, setShowFixtureModels] = useState(true);
@@ -12255,18 +12291,81 @@ export function Floor3DView({
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState<MaterialCategoryFilter>("all");
   const gestureRef = useRef({ pointers: new Map<number, { x: number; y: number }>(), moved: false });
   const suppressSelectionUntilRef = useRef(0);
+  const openLightingSurface = lightingUiState === "closed"
+    ? null
+    : lightingUiState === "professional:analysis"
+      ? "analysis"
+      : lightingUiState.slice("experience:".length) as LightingExperienceSurface;
+  const advancedLightingOpen = openLightingSurface === "analysis";
+  const lightingRoomPanelOpen = openLightingSurface === "spaces";
+  const lightingPanelCollapsed = openLightingSurface === null;
+  // Retained during the recovery patch so existing branches stay type-checkable;
+  // all lighting UI is rendered through the exclusive workflow surface above.
+  // Keep the retired lighting panels type-checked while the mutually-exclusive
+  // workflow below is the sole rendered lighting UI.
+  const legacyLightingUiEnabled: boolean = false;
+  const resetProfessionalLightingInspection = () => {
+    setLightingAnalysisMode("none");
+    setShowFixtureIds(false);
+    setShowBeamCones(false);
+    setShowLightSpots(false);
+    setShowControlRelations(false);
+    setShowIlluminanceLayer(false);
+  };
+  const openLightingExperienceSurface = (surface: LightingExperienceSurface) => {
+    resetProfessionalLightingInspection();
+    setLightingWallMode("smartCutaway");
+    setRoomCeilingMode("hidden");
+    setShowFixtureModels(true);
+    setRenderCameraPanelOpen(false);
+    setCameraSettingsOpen(false);
+    setTourPanelOpen(false);
+    setLightingInteractionScope("lights-only");
+    setLightingUiState(`experience:${surface}`);
+  };
+  const openProfessionalLightingInspection = () => {
+    setRenderCameraPanelOpen(false);
+    setCameraSettingsOpen(false);
+    setTourPanelOpen(false);
+    setLightingInteractionScope("design");
+    setLightingUiState("professional:analysis");
+  };
+  const closeLightingUi = () => {
+    resetProfessionalLightingInspection();
+    setLightingWallMode("smartCutaway");
+    setRoomCeilingMode("hidden");
+    setLightingInteractionScope("design");
+    setLightingUiState("closed");
+  };
+  // Compatibility helpers keep existing camera and selection entry points on the
+  // same exclusive surface state while the lighting workflow is rebuilt here.
+  const setAdvancedLightingOpen = (next: SetStateAction<boolean>) => {
+    const value = typeof next === "function" ? next(advancedLightingOpen) : next;
+    if (value) openProfessionalLightingInspection(); else closeLightingUi();
+  };
+  const setLightingRoomPanelOpen = (open: boolean) => {
+    if (open) openLightingExperienceSurface("spaces"); else closeLightingUi();
+  };
+  const setLightingPanelCollapsed = (collapsed: boolean) => {
+    if (collapsed) closeLightingUi(); else openLightingExperienceSurface(selectedLightingSpaceId ? "fixtures" : "spaces");
+  };
+  const lightingCompactLayout = mobilePresentationMode || canvasViewport.width < 640;
   const cameraViewport = useMemo<CameraViewport>(() => {
     const lightingActive = villaExperienceEnabled || drawingSheetType === "lightingPlan";
-    const leftInset = !mobilePresentationMode && lightingActive && !lightingPanelCollapsed && lightingExperienceScope !== "currentRoom" ? 304 : 0;
-    const rightInset = !mobilePresentationMode && (renderCameraPanelOpen || cameraSettingsOpen || (lightingActive && lightingExperienceScope === "currentRoom" && !lightingPanelCollapsed)) ? 336 : 0;
+    const lightingSurfaceOpen = lightingActive && openLightingSurface !== null;
+    const leftInset = 0;
+    const rightInset = !lightingCompactLayout && (renderCameraPanelOpen || cameraSettingsOpen || lightingSurfaceOpen) ? 336 : 0;
+    const bottomInset = lightingCompactLayout && lightingSurfaceOpen
+      ? Math.min(520, Math.round(canvasViewport.height * 0.56)) + 84
+      : lightingCompactLayout ? 92 : 72;
     return {
       ...canvasViewport,
       leftInset,
       rightInset,
-      bottomInset: mobilePresentationMode ? 92 : 72,
-      mobile: mobilePresentationMode
+      bottomInset,
+      mobile: lightingCompactLayout
     };
-  }, [cameraSettingsOpen, canvasViewport, drawingSheetType, lightingExperienceScope, lightingPanelCollapsed, mobilePresentationMode, renderCameraPanelOpen, villaExperienceEnabled]);
+  }, [cameraSettingsOpen, canvasViewport, drawingSheetType, lightingCompactLayout, openLightingSurface, renderCameraPanelOpen, villaExperienceEnabled]);
   useEffect(() => {
     try {
       setRenderCameras(parseSavedRenderCameras(
@@ -12366,8 +12465,19 @@ export function Floor3DView({
     () => drawingItems.filter((item) => drawingProfile.drawingCategories.includes(item.category)),
     [drawingItems, drawingProfile.drawingCategories]
   );
-  const availableLightingControlScenes = useMemo(() => (lightingDesign?.scenes ?? []).filter((scene) => !scene.floorId || scene.floorId === floor.id), [floor.id, lightingDesign?.scenes]);
-  const activeLightingControlScene = availableLightingControlScenes.find((scene) => scene.id === activeLightingControlSceneId) ?? availableLightingControlScenes[0];
+  const officialLightingSceneIds = officialLightingSceneIdsByFloor[floor.id];
+  const availableLightingControlScenes = useMemo(() => {
+    const officialIds = new Set(officialLightingSceneIds);
+    return (lightingDesign?.scenes ?? []).filter((scene) => scene.floorId === floor.id && officialIds.has(scene.id));
+  }, [floor.id, lightingDesign?.scenes, officialLightingSceneIds]);
+  const independentLightingTestActive = activeLightingControlSceneId === "__manual__";
+  const activeLightingControlScene = independentLightingTestActive
+    ? undefined
+    : availableLightingControlScenes.find((scene) => scene.id === activeLightingControlSceneId) ?? availableLightingControlScenes[0];
+  const activeOfficialLightingSceneId = independentLightingTestActive ? "__manual__" : activeLightingControlScene?.id ?? "";
+  useEffect(() => {
+    if (!independentLightingTestActive && activeLightingControlSceneId !== activeOfficialLightingSceneId) setActiveLightingControlSceneId(activeOfficialLightingSceneId);
+  }, [activeLightingControlSceneId, activeOfficialLightingSceneId, independentLightingTestActive]);
   const floorLights = useMemo(() => drawingItems.filter((item) => item.category === "light"), [drawingItems]);
   const villaSpaceDirectory = useMemo<VillaSpaceDirectoryEntry[]>(() => {
     const hasDedicatedYard = Boolean(houseStructuresByFloor.YARD?.outdoors.length);
@@ -12399,6 +12509,13 @@ export function Floor3DView({
       });
     });
   }, [houseStructuresByFloor, villaDrawingItems, villaFurniture]);
+  // The room chooser is always scoped to the rendered floor.  Keep the full
+  // directory only for explicit cross-floor entry points and whole-villa stats;
+  // showing its rows in a floor view can leave stale rooms in the UI.
+  const currentFloorSpaceDirectory = useMemo(
+    () => villaSpaceDirectory.filter((space) => space.floorId === floor.id),
+    [floor.id, villaSpaceDirectory]
+  );
   const villaQuickSpaces = useMemo(() => [...villaSpaceDirectory].sort((a, b) => {
     const priority = (entry: VillaSpaceDirectoryEntry) => /厨房/.test(entry.name) ? 0
       : entry.floorId === "1F" && /客厅/.test(entry.name) ? 1
@@ -12407,14 +12524,14 @@ export function Floor3DView({
             : 10 + villaFloorOrder.indexOf(entry.floorId);
     return priority(a) - priority(b) || a.name.localeCompare(b.name, "zh-CN");
   }), [villaSpaceDirectory]);
+  const currentFloorQuickSpaces = useMemo(
+    () => villaQuickSpaces.filter((space) => space.floorId === floor.id),
+    [floor.id, villaQuickSpaces]
+  );
   const villaConfiguredLightCount = useMemo(() => villaDrawingItems.filter((item) => item.category === "light").length, [villaDrawingItems]);
   const lightingControlBrightness = useMemo(() => {
     const next = new Map<string, number>();
-    if (activeLightingControlSceneId === "__all_on__") {
-      floorLights.forEach((item) => item.controlGroupId && next.set(item.controlGroupId, 100));
-    } else {
-      activeLightingControlScene?.groupStates.forEach((state) => next.set(state.controlGroupId, state.on ? state.brightness : 0));
-    }
+    activeLightingControlScene?.groupStates.forEach((state) => next.set(state.controlGroupId, state.on ? state.brightness : 0));
     Object.entries(lightingGroupOverrides).forEach(([groupId, brightness]) => next.set(groupId, brightness));
     return next;
   }, [activeLightingControlScene, activeLightingControlSceneId, floorLights, lightingGroupOverrides]);
@@ -12429,22 +12546,10 @@ export function Floor3DView({
   useEffect(() => {
     lightingRuntimeCallbackRef.current?.(Object.fromEntries(Array.from(lightingItemBrightness, ([id, brightness]) => [id, { on: brightness > 0, brightness }])));
   }, [lightingItemBrightness]);
-  const primaryLightingScenes = useMemo(() => {
-    const requested = [
-      ["SCENE-DAILY", "日常"],
-      ["SCENE-GATHERING", "会客"],
-      ["SCENE-DINING", "用餐"],
-      ["SCENE-MOVIE", "观影"],
-      ["SCENE-ALL-CLEAN", "清洁"],
-      ["SCENE-BEDTIME", "睡前"],
-      ["SCENE-NIGHT", "起夜"],
-      ["SCENE-AWAY", "离家"],
-      ["SCENE-YARD-RELAX", "庭院休闲"]
-    ] as const;
-    const availableIds = new Set(availableLightingControlScenes.map((scene) => scene.id));
-    const scenes: Array<{ id: string; label: string }> = requested.filter(([id]) => availableIds.has(id)).map(([id, label]) => ({ id, label }));
-    return scenes.concat({ id: "__all_on__", label: "全开" });
-  }, [availableLightingControlScenes]);
+  const primaryLightingScenes = useMemo(() => [
+    { id: "__manual__", label: "独立试灯（无场景）" },
+    ...availableLightingControlScenes.map((scene) => ({ id: scene.id, label: scene.name }))
+  ], [availableLightingControlScenes]);
   const lightingSpaceSummaries = useMemo<LightingSpaceSummary[]>(() => {
     const hasDedicatedYard = Boolean(houseStructuresByFloor.YARD?.outdoors.length);
     const spaces = [
@@ -12482,6 +12587,9 @@ export function Floor3DView({
     });
   }, [floor.id, floorLights, furniture, houseStructure.outdoors, houseStructure.rooms, houseStructuresByFloor.YARD, lightingControlBrightness, lightingItemBrightness]);
   const selectedLightingSpace = lightingSpaceSummaries.find((summary) => summary.id === selectedLightingSpaceId) ?? null;
+  const selectedLightingSpaceHas2fCameraConflict = floor.id === "2F"
+    && selectedLightingSpace?.id === "ROOM-2F-001"
+    && roomTourViews.some((view) => view.floorId === "2F" && view.roomId === "ROOM-2F-001" && /主卫/.test(view.name));
   const selectedExperienceRoom = selectedLightingSpace?.kind === "room"
     ? houseStructure.rooms.find((room) => room.id === selectedLightingSpace.id) ?? null
     : null;
@@ -12571,6 +12679,14 @@ export function Floor3DView({
       return true;
     });
   }, [floorCameraViews]);
+  const lightingScopedCameraViews = useMemo(() => {
+    if (!(villaExperienceEnabled || drawingSheetType === "lightingPlan") || lightingExperienceScope !== "currentRoom" || !selectedLightingSpace) return cameraPickerViews;
+    return cameraPickerViews.filter((view) => (
+      view.roomId === (selectedLightingSpace.kind === "room" ? selectedLightingSpace.id : undefined)
+      || view.outdoorId === (selectedLightingSpace.kind === "outdoor" ? selectedLightingSpace.id : undefined)
+      || (view.category === "general" && view.name === "鸟瞰")
+    ));
+  }, [cameraPickerViews, drawingSheetType, lightingExperienceScope, selectedLightingSpace, villaExperienceEnabled]);
   const activeCameraView = floorCameraViews.find((view) => view.id === activeCameraViewId) ?? null;
   const activeCameraViewName = activeCameraView?.name ?? (cameraRequest.fixedView?.id === activeCameraViewId ? cameraRequest.fixedView.name : null);
   const activateFloorCameraView = (
@@ -12592,7 +12708,6 @@ export function Floor3DView({
     if (notifySelection && view.fixedView) onSelectCameraView?.(view.fixedView);
     if (!preserveLightingScene && (villaExperienceEnabled || drawingSheetType === "lightingPlan") && view.recommendedLightingScene) setLightingScene(view.recommendedLightingScene);
     if (!preserveLightingScene && (villaExperienceEnabled || drawingSheetType === "lightingPlan") && view.recommendedLightingSceneId) {
-      setLightingGroupOverrides({});
       setActiveLightingControlSceneId(view.recommendedLightingSceneId);
     }
   };
@@ -12673,20 +12788,28 @@ export function Floor3DView({
         ? { x: composition.target.x + baseDistance * 0.05, y: Math.max(4.2, composition.target.y + baseDistance * 1.12), z: composition.target.z + baseDistance * 0.05 }
         : mode === "human"
           ? { ...composition.cameraPosition, y: 1.62 }
+          : mode === "use"
+            ? {
+                x: composition.target.x + (composition.cameraPosition.x - composition.target.x) * 0.58,
+                y: 1.48,
+                z: composition.target.z + (composition.cameraPosition.z - composition.target.z) * 0.58
+              }
           : composition.cameraPosition;
     const target = mode === "top"
       ? { ...composition.target, y: 0.25 }
       : mode === "human"
         ? { ...composition.target, y: 1.38 }
+        : mode === "use"
+          ? { ...composition.target, y: 1.18 }
         : composition.target;
-    const viewLabel = mode === "inventory" ? "斜俯视盘点" : mode === "full" ? "室内全景" : mode === "human" ? "自由探索" : "俯视房间";
+    const viewLabel = mode === "inventory" ? "房间斜俯" : mode === "full" ? "室内全景" : mode === "human" ? "人眼视角" : mode === "use" ? "使用位近景" : "俯视房间";
     const fixedView: FixedCameraView = {
       id: `lighting-room-${space.id}-${mode}`,
       name: `${space.name} ${viewLabel}`,
       floor: floor.id,
       cameraPosition,
       target,
-      fov: mode === "top" ? 46 : mode === "human" ? 58 : composition.fov,
+      fov: mode === "top" ? 46 : mode === "human" ? 58 : mode === "use" ? 46 : composition.fov,
       mode: "perspective",
       description: mode === "inventory" ? `${space.name}灯具斜俯视盘点：同时查看灯具数量、位置与开关状态。` : `${space.name}${viewLabel}`
     };
@@ -12695,7 +12818,7 @@ export function Floor3DView({
       floorId: floor.id,
       name: fixedView.name,
       category: "lighting-scene",
-      cameraMode: mode === "human" ? "walkthrough" : mode === "full" ? "tour" : "orbit",
+      cameraMode: mode === "human" ? "walkthrough" : mode === "full" || mode === "use" ? "tour" : "orbit",
       cameraPosition,
       target,
       roomId: space.kind === "room" ? space.id : undefined,
@@ -12711,15 +12834,17 @@ export function Floor3DView({
     setSelectedLightingSpaceId(space.id);
     setLightingExperienceScope("currentRoom");
     setLightingWallMode("smartCutaway");
-    setLightingRoomViewMode("full");
+    setLightingRoomViewMode("inventory");
     setLightingSelectedGroupId(null);
     setLightingSoloGroupId(null);
-    setLightingPanelCollapsed(false);
+    setLightingSoloItemId(null);
+    lightingItemSoloBackupRef.current = null;
+    setLightingInteractionScope("lights-only");
+    setLightingUiState("experience:fixtures");
     setRoomCeilingMode("hidden");
     setShowFixtureModels(true);
-    setAdvancedLightingOpen(false);
-    setLightingRoomPanelOpen(false);
-    const roomView = buildLightingRoomFullView(space, "full") ?? floorCameraViews.find((view) => view.roomId === space.id || view.outdoorId === space.id);
+    resetProfessionalLightingInspection();
+    const roomView = buildLightingRoomFullView(space, "inventory") ?? floorCameraViews.find((view) => view.roomId === space.id || view.outdoorId === space.id);
     if (roomView) activateFloorCameraView(roomView, true);
     else requestFreeBrowse();
   };
@@ -12736,8 +12861,7 @@ export function Floor3DView({
     setLightingExperienceScope(scope);
     setSelectedLightingSpaceId(null);
     setLightingWallMode("smartCutaway");
-    setLightingRoomPanelOpen(false);
-    setLightingPanelCollapsed(true);
+    setLightingUiState("experience:spaces");
     setRoomCeilingMode("hidden");
     setVillaOverviewMode(scope === "currentFloor" ? "singleFloor" : "wholeVilla");
     const overview = floorCameraViews.find((view) => view.name === "鸟瞰");
@@ -12764,9 +12888,8 @@ export function Floor3DView({
       setLightingSelectedGroupId(null);
       setLightingSoloGroupId(null);
       setRoomCeilingMode("hidden");
-      setAdvancedLightingOpen(false);
-      setLightingRoomPanelOpen(false);
-      setLightingPanelCollapsed(true);
+      resetProfessionalLightingInspection();
+      setLightingUiState("experience:fixtures");
       const isPendant = (item: DrawingItem) => /pendant|吊灯/i.test(`${item.lightType ?? ""} ${item.type ?? ""} ${item.label ?? ""}`);
       const closeupLight = drawingItems.find((item) => item.category === "light" && (item.relatedRoomId ?? item.roomId) === targetSpace.id && isPendant(item))
         ?? drawingItems.find((item) => item.category === "light" && item.floorId === floor.id && isPendant(item))
@@ -12819,9 +12942,7 @@ export function Floor3DView({
     if (roomView) activateFloorCameraView(roomView, true);
   };
   const setLightingGroupBrightness = (groupId: string, brightness: number) => {
-    setLightingGroupOverrides((current) => ({ ...current, [groupId]: brightness }));
-    const groupLightIds = new Set(floorLights.filter((item) => item.controlGroupId === groupId).map((item) => item.id));
-    setLightingItemOverrides((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !groupLightIds.has(id))));
+    setLightingGroupOverrides((current) => ({ ...current, [groupId]: Math.max(0, Math.min(100, brightness)) }));
   };
   const toggleLightingGroup = (groupId: string, on: boolean) => setLightingGroupBrightness(groupId, on ? Math.max(65, lightingControlBrightness.get(groupId) ?? 70) : 0);
   const toggleLightingItem = (itemId: string) => {
@@ -12831,6 +12952,71 @@ export function Floor3DView({
     const groupBrightness = item.controlGroupId ? lightingControlBrightness.get(item.controlGroupId) ?? 70 : 70;
     setLightingItemOverrides((current) => ({ ...current, [item.id]: currentBrightness > 0 ? 0 : Math.max(65, groupBrightness) }));
     setLightingSelectedGroupId(item.controlGroupId ?? null);
+  };
+  const setLightingItemBrightness = (itemId: string, brightness: number) => {
+    const item = floorLights.find((candidate) => candidate.id === itemId);
+    if (!item) return;
+    setLightingItemOverrides((current) => ({ ...current, [item.id]: Math.max(0, Math.min(100, brightness)) }));
+    setLightingSelectedGroupId(item.controlGroupId ?? null);
+  };
+  const startIndependentLightingTest = () => {
+    // Entering manual test mode deliberately starts dark. A later scene choice
+    // is only a recall shortcut; it never becomes required navigation.
+    setActiveLightingControlSceneId("__manual__");
+    setLightingGroupOverrides({});
+    setLightingItemOverrides({});
+    setLightingSoloGroupId(null);
+    setLightingSoloItemId(null);
+    setLightingSelectedGroupId(null);
+    lightingSoloBackupRef.current = null;
+    lightingItemSoloBackupRef.current = null;
+  };
+  const restoreLightingSceneForCurrentRoom = () => {
+    const roomLightIds = new Set(selectedLightingSpace?.lightIds ?? []);
+    const roomGroupIds = new Set(floorLights
+      .filter((item) => roomLightIds.has(item.id))
+      .map((item) => item.controlGroupId)
+      .filter((id): id is string => Boolean(id)));
+    setLightingGroupOverrides((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !roomGroupIds.has(id))));
+    setLightingItemOverrides((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !roomLightIds.has(id))));
+    setLightingSoloGroupId(null);
+    setLightingSoloItemId(null);
+    lightingSoloBackupRef.current = null;
+    lightingItemSoloBackupRef.current = null;
+  };
+  const applyOfficialLightingScene = (sceneId: string) => {
+    setActiveLightingControlSceneId(sceneId);
+  };
+  const activatePrimaryLightingScene = (sceneId: string) => {
+    if (sceneId === "__manual__") {
+      startIndependentLightingTest();
+      return;
+    }
+    applyOfficialLightingScene(sceneId);
+  };
+  const toggleLightingItemSolo = (itemId: string) => {
+    if (!selectedLightingSpace || !selectedLightingSpace.lightIds.includes(itemId)) return;
+    const roomLightIds = new Set(selectedLightingSpace.lightIds);
+    if (lightingSoloItemId === itemId) {
+      const backup = lightingItemSoloBackupRef.current ?? {};
+      setLightingItemOverrides((current) => ({
+        ...Object.fromEntries(Object.entries(current).filter(([id]) => !roomLightIds.has(id))),
+        ...backup
+      }));
+      lightingItemSoloBackupRef.current = null;
+      setLightingSoloItemId(null);
+      return;
+    }
+    if (!lightingItemSoloBackupRef.current) {
+      lightingItemSoloBackupRef.current = Object.fromEntries(Object.entries(lightingItemOverrides).filter(([id]) => roomLightIds.has(id)));
+    }
+    const selectedBrightness = lightingItemBrightness.get(itemId) ?? 0;
+    setLightingItemOverrides((current) => ({
+      ...current,
+      ...Object.fromEntries(Array.from(roomLightIds, (id) => [id, id === itemId ? Math.max(65, selectedBrightness) : 0]))
+    }));
+    setLightingSoloItemId(itemId);
+    setLightingSelectedGroupId(floorLights.find((item) => item.id === itemId)?.controlGroupId ?? null);
   };
   const toggleLightingGroupSolo = (groupId: string) => {
     if (lightingSoloGroupId === groupId) {
@@ -12850,17 +13036,17 @@ export function Floor3DView({
     setLightingSelectedGroupId(groupId);
   };
   const setRoomLightingAll = (on: boolean) => {
-    setLightingGroupOverrides(Object.fromEntries(lightingRoomGroups.map((group) => [group.id, on ? 100 : 0])));
-    const roomLightIds = new Set(lightingRoomGroups.flatMap((group) => group.items.map((item) => item.id)));
-    setLightingItemOverrides((current) => Object.fromEntries(Object.entries(current).filter(([id]) => !roomLightIds.has(id))));
+    setLightingGroupOverrides((current) => ({ ...current, ...Object.fromEntries(lightingRoomGroups.map((group) => [group.id, on ? 100 : 0])) }));
     setLightingSoloGroupId(null);
+    setLightingSoloItemId(null);
     lightingSoloBackupRef.current = null;
+    lightingItemSoloBackupRef.current = null;
   };
   const changeVillaOverviewMode = (mode: VillaOverviewMode) => {
     setVillaOverviewMode(mode);
     setSelectedLightingSpaceId(null);
     setLightingExperienceScope(mode === "singleFloor" ? "currentFloor" : "wholeHouse");
-    setLightingPanelCollapsed(true);
+      setLightingUiState("closed");
     setRoomCeilingMode("hidden");
     setCameraMode("orbit");
     if (mode === "singleFloor") {
@@ -13175,14 +13361,16 @@ export function Floor3DView({
     setShowIlluminanceLayer(false);
     setShowFixtureModels(villaExperienceEnabled);
     setShowFixtureIds(false);
-    setAdvancedLightingOpen(false);
+    setLightingUiState("closed");
     setLightingAnalysisMode("none");
     setLightingGroupOverrides({});
-    setLightingPanelCollapsed(true);
     setLightingRoomViewMode("full");
     setLightingSelectedGroupId(null);
     setLightingSoloGroupId(null);
+    setLightingSoloItemId(null);
+    setLightingInteractionScope("lights-only");
     lightingSoloBackupRef.current = null;
+    lightingItemSoloBackupRef.current = null;
     setMaterialCategoryFilter("all");
   }, [drawingSheetType, villaExperienceEnabled]);
   useEffect(() => {
@@ -13196,11 +13384,19 @@ export function Floor3DView({
       setLightingExperienceScope("wholeHouse");
       setSelectedLightingSpaceId(null);
       setLightingWallMode("smartCutaway");
-      setLightingRoomPanelOpen(false);
-      setLightingPanelCollapsed(true);
+      setLightingUiState("closed");
       setLightingRoomViewMode("full");
       setLightingSelectedGroupId(null);
       setLightingSoloGroupId(null);
+      setLightingSoloItemId(null);
+      setLightingInteractionScope("lights-only");
+      if (floorChanged) {
+        // A floor change starts a new inspection context. Never carry an old
+        // room's manual scene overrides into the newly rendered floor.
+        setLightingGroupOverrides({});
+        setLightingItemOverrides({});
+      }
+      lightingItemSoloBackupRef.current = null;
     }
     if (mobilePresentationMode) {
       // The first 3D view restores the four-storey composition. Choosing a
@@ -13260,10 +13456,14 @@ export function Floor3DView({
     setLightingWallMode("smartCutaway");
     setLightingRoomViewMode("inventory");
     setRoomCeilingMode("hidden");
-    setLightingRoomPanelOpen(false);
-    setLightingPanelCollapsed(true);
-    const inventoryView = buildLightingRoomFullView(space, "inventory");
-    if (inventoryView) activateFloorCameraView(inventoryView, true);
+    setLightingUiState("experience:fixtures");
+    setLightingInteractionScope("lights-only");
+    // Locate is deliberately a selection/highlight action. It must not pull a
+    // user-controlled camera into a forced closeup.
+    if (lightingObjectControlRequest.action === "toggle") {
+      const inventoryView = buildLightingRoomFullView(space, "inventory");
+      if (inventoryView) activateFloorCameraView(inventoryView, true);
+    }
   }, [floor.id, lightingObjectControlRequest?.nonce]);
   useEffect(() => {
     if (drawingSheetType !== "wallFinishPlan" || !selectedObjectId) return;
@@ -13364,7 +13564,7 @@ export function Floor3DView({
     roomCeilingMode,
     cameraCollisionEnabled: cameraCollisionEnabledOverride ?? cameraCollisionEnabled,
     lightingScene,
-    lightingSceneId: activeLightingControlSceneId === "__all_on__" ? undefined : activeLightingControlSceneId,
+    lightingSceneId: activeOfficialLightingSceneId || undefined,
     enabledLightCount: lightingSummary.enabledLights,
     knownRenderMaterialTokens,
     knownPbrMaterialTokens,
@@ -13419,7 +13619,7 @@ export function Floor3DView({
       focus: resolveCurrentSavedFocus(),
       cameraMode,
       lightingScene,
-      lightingSceneId: activeLightingControlSceneId,
+      lightingSceneId: activeOfficialLightingSceneId || undefined,
       presentationMode,
       editorMode: presentationMode ? "presentation" : "edit",
       materialPreview,
@@ -13436,7 +13636,7 @@ export function Floor3DView({
   };
   const applyRenderCamera = (camera: RenderCameraRecord) => {
     setLightingScene(camera.lightingScene);
-    if (camera.lightingSceneId) setActiveLightingControlSceneId(camera.lightingSceneId);
+    if (camera.lightingSceneId && officialLightingSceneIds.includes(camera.lightingSceneId)) setActiveLightingControlSceneId(camera.lightingSceneId);
     setPresentationMode(camera.presentationMode);
     setMaterialPreview(camera.materialPreview);
     setDesignStyle(camera.designStyle);
@@ -13494,6 +13694,9 @@ export function Floor3DView({
     setCameraStorageNotice(preflight.warningCount > 0 ? `PNG 已输出；同时保留 ${preflight.warningCount} 项非阻断提醒。` : "PNG 已输出；渲染预检全部通过。");
   };
   const lightingExperienceActive = villaExperienceEnabled || drawingSheetType === "lightingPlan";
+  const lightsOnlyInteraction = lightingExperienceActive
+    && lightingExperienceScope === "currentRoom"
+    && lightingInteractionScope === "lights-only";
   const lightingBlackoutActive = lightingExperienceActive
     && lightingSummary.enabledLights === 0;
 
@@ -13523,13 +13726,14 @@ export function Floor3DView({
       data-villa-overview-mode={villaOverviewMode}
       data-villa-stack-floor-count={VILLA_BUILDING_FLOOR_IDS.filter((floorId) => Boolean(houseStructuresByFloor[floorId])).length}
       data-mobile-wall-treatment={mobilePresentationMode ? "full-height-translucent" : undefined}
-      data-villa-space-count={villaSpaceDirectory.length}
+      data-villa-space-count={currentFloorSpaceDirectory.length}
       data-villa-light-count={villaConfiguredLightCount}
       data-current-space-floor={selectedLightingSpace?.floorId ?? ""}
       data-lighting-scene={lightingExperienceActive ? lightingScene : undefined}
       data-lighting-experience-scope={lightingExperienceActive ? lightingExperienceScope : undefined}
       data-lighting-wall-mode={lightingExperienceActive ? lightingWallMode : undefined}
       data-lighting-analysis-mode={lightingExperienceActive ? lightingAnalysisMode : undefined}
+      data-lighting-interaction-scope={lightingExperienceActive ? lightingInteractionScope : undefined}
       data-lighting-blackout={lightingBlackoutActive ? "true" : "false"}
       data-furniture-height-mode={effectiveFurnitureHeightMode}
       data-wall-display-mode={effectiveCameraWallDisplayMode}
@@ -13555,7 +13759,7 @@ export function Floor3DView({
         camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}
         gl={{ antialias: presentationMode && (!mobilePresentationMode || mobileQuality === "high"), preserveDrawingBuffer: presentationMode, powerPreference: mobilePresentationMode && mobileQuality === "balanced" ? "low-power" : "high-performance" }}
         onPointerMissed={() => {
-          if (!presentationMode && selectionAllowed()) onClearSelection?.();
+          if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onClearSelection?.();
         }}
         onCreated={({ gl, scene, camera }) => {
           canvasElementRef.current = gl.domElement;
@@ -13627,13 +13831,14 @@ export function Floor3DView({
           selectedObjectId={presentationMode ? "" : selectedObjectId}
           selectedFurnitureId={presentationMode ? "" : selectedFurnitureId}
           onSelectStructure={(objectId) => {
-            if (!presentationMode && selectionAllowed()) onSelectStructure(objectId);
+            if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onSelectStructure(objectId);
           }}
           onSelectFurniture={(item, part) => {
-            if (!presentationMode && selectionAllowed()) onSelectFurniture(item, part);
+            if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onSelectFurniture(item, part);
           }}
           onSelectDrawingItem={(drawingItemId) => {
-            if (!presentationMode && selectionAllowed()) onSelectDrawingItem(drawingItemId);
+            const drawingItem = drawingItems.find((item) => item.id === drawingItemId);
+            if (!presentationMode && selectionAllowed() && (!lightsOnlyInteraction || drawingItem?.category === "light")) onSelectDrawingItem(drawingItemId);
           }}
           onEnterRoom={(floorId, roomId) => {
             if (floorId !== floor.id) {
@@ -13644,7 +13849,10 @@ export function Floor3DView({
             const space = lightingSpaceSummaries.find((item) => item.id === roomId);
             if (space) enterLightingSpace(space);
           }}
-          onToggleControlGroup={(groupId) => toggleLightingGroup(groupId, (lightingControlBrightness.get(groupId) ?? 0) <= 0)}
+        onToggleControlGroup={(groupId) => {
+          if (lightsOnlyInteraction) return;
+          toggleLightingGroup(groupId, (lightingControlBrightness.get(groupId) ?? 0) <= 0);
+        }}
           onHoverObject={onHoverObject}
           onClearHoverObject={onClearHoverObject}
         />
@@ -13655,6 +13863,34 @@ export function Floor3DView({
         className={`pointer-events-none absolute inset-0 z-[1] bg-black transition-opacity duration-300 ${lightingBlackoutActive ? "opacity-100" : "opacity-0"}`}
         data-testid="lighting-blackout-overlay"
       />
+
+      {lightingExperienceActive && (
+        <div
+          className={`pointer-events-none absolute z-[98] ${mobilePresentationMode ? "inset-x-3 top-[4.25rem] flex justify-center" : "inset-x-4 top-4 flex justify-center"}`}
+          data-current-floor={floor.id}
+          data-testid="lighting-workflow-nav"
+        >
+          <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/80 bg-stone-950/82 p-1.5 text-[11px] font-black text-white shadow-xl backdrop-blur-xl">
+            <span className="shrink-0 rounded-full bg-amber-300 px-3 py-2 text-stone-950">{floor.id === "YARD" ? "院子" : floor.id}</span>
+            <span className="shrink-0 px-2 text-white/70">{floor.id === "YARD" ? "当前区域" : "当前楼层房间"}</span>
+            {currentFloorSpaceDirectory.map((space) => (
+              <button
+                key={space.id}
+                aria-pressed={selectedLightingSpaceId === space.id}
+                className={`max-w-32 shrink-0 truncate rounded-full px-3 py-2 transition ${selectedLightingSpaceId === space.id ? "bg-white text-stone-950" : "bg-white/10 hover:bg-white/20"}`}
+                data-lighting-room-id={space.id}
+                onClick={() => {
+                  const lightingSpace = lightingSpaceSummaries.find((candidate) => candidate.id === space.id);
+                  if (lightingSpace) enterLightingSpace(lightingSpace);
+                }}
+                type="button"
+              >
+                {space.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {renderCameraPanelOpen && !mobilePresentationMode && (
         <aside className="absolute right-4 top-20 z-[96] flex max-h-[calc(100%-7rem)] w-80 flex-col overflow-hidden rounded-2xl border border-white/85 bg-[#faf8f4]/96 text-stone-800 shadow-2xl backdrop-blur-xl" data-testid="render-camera-panel">
@@ -13746,13 +13982,60 @@ export function Floor3DView({
         </aside>
       )}
 
-      {lightingExperienceActive && !mobilePresentationMode && lightingExperienceScope !== "currentRoom" && (
+      {lightingExperienceActive && (
+        <>
+          <div className={`pointer-events-none absolute z-[88] ${lightingCompactLayout ? "inset-x-3 top-[4.25rem] flex justify-center" : "right-4 top-4"}`} data-current-floor={floor.id} data-testid="lighting-workflow-nav">
+            <div className="pointer-events-auto flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/75 bg-stone-950/80 p-1.5 text-[11px] font-black text-white shadow-lg backdrop-blur">
+              {([['spaces', '1 空间'], ['fixtures', '2 全部单灯'], ['views', '视角']] as Array<[LightingExperienceSurface, string]>).map(([surface, label]) => (
+                <button key={surface} aria-pressed={openLightingSurface === surface} className={`shrink-0 rounded-full px-3 py-2 ${openLightingSurface === surface ? "bg-white text-stone-950" : "bg-white/10 hover:bg-white/20"}`} onClick={() => openLightingExperienceSurface(surface)} type="button">{label}</button>
+              ))}
+              <span className="mx-0.5 h-5 w-px shrink-0 bg-white/20" />
+              {lightsOnlyInteraction && <span className="shrink-0 rounded-full bg-emerald-400/20 px-3 py-2 text-emerald-100" data-testid="lighting-interaction-lock">验灯锁定</span>}
+              {lightsOnlyInteraction && <button className="shrink-0 rounded-full bg-white/10 px-3 py-2 hover:bg-white/20" onClick={openProfessionalLightingInspection} type="button">退出验灯</button>}
+              <button aria-pressed={advancedLightingOpen} className={`shrink-0 rounded-full px-3 py-2 ${advancedLightingOpen ? "bg-amber-300 text-stone-950" : "bg-white/10 hover:bg-white/20"}`} onClick={openProfessionalLightingInspection} type="button">专业检查</button>
+            </div>
+          </div>
+
+          {openLightingSurface !== null && openLightingSurface !== "analysis" && (
+            <aside className={`absolute z-[92] flex flex-col overflow-hidden border border-white/85 bg-[#faf8f4]/97 text-stone-800 shadow-2xl backdrop-blur-xl ${lightingCompactLayout ? "inset-x-3 bottom-44 max-h-[56%] rounded-3xl" : "bottom-20 right-4 top-20 w-80 rounded-2xl"}`} data-lighting-experience-surface={openLightingSurface} data-testid="lighting-experience-panel">
+              <div className="shrink-0 border-b border-stone-200 px-4 py-3">
+                <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">{floor.id === "YARD" ? "院子" : floor.id} · Lighting experience</div><h2 className="mt-1 text-lg font-black">{openLightingSurface === "spaces" ? (floor.id === "YARD" ? "选择北院或南院" : "选择本层房间") : openLightingSurface === "views" ? "选择视角" : `${selectedLightingSpace?.name ?? "先选择空间"} · 场景与单灯`}</h2></div><button aria-label="关闭灯光体验" className="grid size-9 shrink-0 place-items-center rounded-full bg-stone-100 text-lg" onClick={closeLightingUi} type="button">×</button></div>
+                <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1" aria-label="灯光体验步骤">
+                  {([['spaces', '空间'], ['fixtures', '全部单灯'], ['views', '相机']] as Array<[LightingExperienceSurface, string]>).map(([surface, label]) => <button key={surface} aria-current={openLightingSurface === surface ? "step" : undefined} className={`rounded-lg px-2 py-2 text-[10px] font-black ${openLightingSurface === surface ? "bg-stone-900 text-white" : "text-stone-500"}`} onClick={() => openLightingExperienceSurface(surface)} type="button">{label}</button>)}
+                </div>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                {openLightingSurface === "spaces" && <>
+                  <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-5 text-amber-900">按楼层进入房间后，会自动 fit 到斜俯宽景并展开全部单灯。相机与控制组均为次级操作。</p>
+                  <div className="space-y-2" data-testid="lighting-current-floor-space-list">{currentFloorSpaceDirectory.map((space) => <button key={`${space.floorId}-${space.id}`} aria-pressed={selectedLightingSpaceId === space.id} className={`w-full rounded-xl border p-3 text-left ${selectedLightingSpaceId === space.id ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white"}`} data-lighting-room-id={space.id} onClick={() => enterVillaSpace(space)} type="button"><span className="flex items-center justify-between gap-3"><span className="min-w-0"><span className="block text-[10px] font-black text-amber-700">{floor.id === "YARD" ? "庭院" : "房间"}</span><span className="mt-1 block truncate text-sm font-black">{space.name}</span></span><span className="shrink-0 text-right text-[10px] font-bold text-stone-500">{space.lightCount} 盏<br />{space.switchCount} 个开关</span></span></button>)}</div>
+                </>}
+                {openLightingSurface === "views" && <>
+                  <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-5 text-amber-900">{selectedLightingSpace ? `${selectedLightingSpace.name}：默认斜俯宽景已生效；这里仅切换用户主动选择的相机。` : "请先在“空间”中选择房间或庭院。"}</p>
+                  {selectedLightingSpace && <div className="grid grid-cols-2 gap-2">{([['inventory', '灯具盘点'], ['full', '室内全景'], ['human', '人眼视角'], ['top', '俯视房间']] as Array<[LightingRoomViewMode, string]>).map(([mode, label]) => <button key={mode} aria-pressed={lightingRoomViewMode === mode} className={`min-h-16 rounded-xl border px-3 py-2 text-left text-xs font-black ${lightingRoomViewMode === mode ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white"}`} onClick={() => { changeLightingRoomViewMode(mode); openLightingExperienceSurface("fixtures"); }} type="button">{label}</button>)}</div>}
+                </>}
+                {openLightingSurface === "fixtures" && <>
+                  {!selectedLightingSpace ? <p className="rounded-xl bg-amber-50 px-3 py-3 text-xs font-bold text-amber-900">请先选择空间。</p> : <>
+                    <div className="mb-3 flex flex-wrap gap-2"><button className="flex-1 rounded-lg bg-stone-900 px-2 py-2 text-[11px] font-bold text-white" onClick={() => setRoomLightingAll(true)} type="button">本空间全开</button><button className="flex-1 rounded-lg bg-stone-200 px-2 py-2 text-[11px] font-bold" onClick={() => setRoomLightingAll(false)} type="button">本空间全关</button><button className="rounded-lg bg-amber-600 px-2 py-2 text-[11px] font-bold text-white" onClick={startIndependentLightingTest} type="button">{independentLightingTestActive ? "重置试灯" : "独立试灯"}</button><button className="rounded-lg bg-amber-100 px-2 py-2 text-[11px] font-bold text-amber-900" onClick={restoreLightingSceneForCurrentRoom} type="button">{independentLightingTestActive ? "清除调整" : "恢复场景"}</button></div>
+                    <p className="mb-3 text-[10px] font-bold leading-4 text-stone-500">{independentLightingTestActive ? "无场景独立试灯：默认全暗；每盏灯可独立开关、0–100 亮度、定位与只看此灯。" : "正式场景只作快捷预设；单灯与灯组调整优先于场景。"} 默认展开全部 {selectedLightingSpace.totalLightCount} 盏单灯。真实受光、邻室溢光与曝光稳定待 Stage B。</p>
+                    {selectedLightingSpaceHas2fCameraConflict && <p className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] font-bold leading-4 text-amber-900" data-testid="lighting-camera-safety-notice">检测到 2F 房间 ID 与旧机位名称冲突：归属待核，禁止自动跳转；当前采用 room bounds 自动宽景。</p>}
+                    <div className="space-y-2">{floorLights.filter((item) => selectedLightingSpace.lightIds.includes(item.id)).map((item) => { const on = (lightingItemBrightness.get(item.id) ?? 0) > 0; const candidateStatus = item.status === "confirmed" ? "候选已确认" : "候选待确认"; const solo = lightingSoloItemId === item.id; return <div key={item.id} className={`rounded-xl border bg-white p-3 ${selectedObjectId === item.id ? "border-amber-500 ring-2 ring-amber-100" : "border-stone-200"}`}><div className="flex items-start justify-between gap-2"><button className="min-w-0 flex-1 text-left" onClick={() => onSelectDrawingItem(item.id)} type="button"><div className="truncate text-xs font-black">{item.label || item.id}</div><div className="mt-1 text-[10px] text-stone-500">{item.id} · {item.lightType ?? item.type} · {item.colorTemperature ?? "—"}</div><div className="mt-1 text-[10px] text-stone-500">{item.circuitId ?? item.relatedCircuit ?? "回路待定"} · {item.positionMm ? `${Math.round(item.positionMm.x)}, ${Math.round(item.positionMm.y)} mm` : "位置待定"}</div></button><button aria-label={`${item.label || item.id} 单灯开关`} aria-pressed={on} className={`rounded-full px-2 py-1 text-[10px] font-black ${on ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-500"}`} onClick={() => toggleLightingItem(item.id)} type="button">{on ? "开" : "关"}</button></div><div className="mt-2 flex items-center gap-2"><input aria-label={`${item.label || item.id} 模拟亮度`} className="min-w-0 flex-1 accent-amber-500" max="100" min="0" onInput={(event) => setLightingItemBrightness(item.id, Number(event.currentTarget.value))} type="range" value={lightingItemBrightness.get(item.id) ?? 0} /><span className="w-8 text-right text-[10px] font-black">{Math.round(lightingItemBrightness.get(item.id) ?? 0)}%</span></div><div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-bold text-stone-500"><span>{item.lightSpec?.fixtureFamily ?? "灯具家族待定"}</span><span>{candidateStatus}</span></div><div className="mt-2 flex gap-2"><button className="rounded-md bg-stone-100 px-2 py-1.5 text-[10px] font-bold text-stone-700" onClick={() => onSelectDrawingItem(item.id)} type="button">定位</button><button aria-pressed={solo} className={`rounded-md px-2 py-1.5 text-[10px] font-bold ${solo ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-900"}`} onClick={() => toggleLightingItemSolo(item.id)} type="button">{solo ? "退出只看此灯" : "只看此灯"}</button></div></div>; })}</div>
+                  </>}
+                </>}
+              </div>
+            </aside>
+          )}
+
+          {advancedLightingOpen && <aside className={`absolute z-[97] overflow-y-auto border border-white/80 bg-[#faf8f4]/98 p-4 text-stone-800 shadow-2xl backdrop-blur ${lightingCompactLayout ? "inset-x-3 bottom-3 max-h-[62%] rounded-3xl" : "right-4 top-20 max-h-[calc(100%-10rem)] w-80 rounded-2xl"}`} data-testid="lighting-advanced-analysis"><div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Professional inspection</div><h3 className="mt-1 text-lg font-black">专业检查</h3></div><button aria-label="关闭专业检查" className="grid size-9 shrink-0 place-items-center rounded-full bg-stone-100 text-lg" onClick={closeLightingUi} type="button">×</button></div><p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[10px] font-semibold leading-4 text-amber-900">控制组与分析图层仅用于专业检查，不作为业主主导航。无场景试灯从全暗开始；正式场景仅为快捷预设。单灯与灯组手动调整优先于场景，且切换楼层时清除。真实逐灯受光、邻室溢光和曝光稳定待 Stage B。</p><div className="mt-4 rounded-xl bg-stone-100 p-3"><div className="text-[11px] font-black text-stone-500">场景快捷预设</div><select aria-label="灯光快捷预设" className="mt-2 h-9 w-full rounded-lg border-0 bg-white px-2 text-xs font-bold" value={activeOfficialLightingSceneId} onChange={(event) => event.target.value === "__manual__" ? startIndependentLightingTest() : applyOfficialLightingScene(event.target.value)}>{primaryLightingScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.label}</option>)}</select></div><div className="mt-4"><div className="text-[11px] font-black text-stone-500">分析叠层</div><div className="mt-2 grid grid-cols-2 gap-2">{([['none', '关闭分析层'], ['brightness', '整体亮度热力图'], ['colorTemperature', '色温分布']] as Array<[LightingAnalysisMode, string]>).map(([mode, label]) => <button key={mode} aria-pressed={lightingAnalysisMode === mode} className={`min-h-10 rounded-xl px-3 py-2 text-xs font-bold ${lightingAnalysisMode === mode ? "bg-stone-900 text-white" : "bg-stone-100 text-stone-700"}`} onClick={() => setLightingAnalysisMode(mode)} type="button">{label}</button>)}</div></div><details className="mt-5 rounded-xl bg-stone-100 p-3 text-xs"><summary className="cursor-pointer font-black">调试信息</summary><div className="mt-2 space-y-1 text-[10px] text-stone-600"><div>范围：{lightingExperienceScope}</div><div>相机：{cameraMode}</div><div>预设：{independentLightingTestActive ? "无场景独立试灯" : activeOfficialLightingSceneId || "未配置"}</div></div></details></aside>}
+        </>
+      )}
+
+      {legacyLightingUiEnabled && lightingExperienceActive && !mobilePresentationMode && lightingExperienceScope !== "currentRoom" && (
         <aside className={`absolute left-4 z-[82] overflow-hidden rounded-2xl border border-white/80 bg-stone-950/78 text-white shadow-2xl backdrop-blur-xl ${lightingPanelCollapsed ? "bottom-20 max-w-[calc(100%-2rem)]" : "bottom-20 top-4 flex w-72 flex-col"}`} data-testid="lighting-room-overview-panel">
           {lightingPanelCollapsed && (
             <div className="flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto p-1.5">
               <span className="shrink-0 rounded-lg bg-white/12 px-3 py-2 text-xs font-black">{selectedLightingSpace?.name ?? "选择房间"}</span>
-              {villaQuickSpaces.slice(0, 6).map((space) => <button key={`${space.floorId}-${space.id}`} className={`max-w-28 shrink-0 truncate rounded-lg px-3 py-2 text-xs font-bold ${selectedLightingSpaceId === space.id && floor.id === space.floorId ? "bg-amber-300 text-stone-950" : "bg-white/10 hover:bg-white/20"}`} onClick={() => enterVillaSpace(space)} type="button">{villaFloorShortLabels[space.floorId]} · {space.name}</button>)}
-              {villaSpaceDirectory.length > 6 && <button className="shrink-0 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold" onClick={() => setLightingPanelCollapsed(false)} type="button">全屋空间</button>}
+              {currentFloorQuickSpaces.slice(0, 6).map((space) => <button key={`${space.floorId}-${space.id}`} className={`max-w-28 shrink-0 truncate rounded-lg px-3 py-2 text-xs font-bold ${selectedLightingSpaceId === space.id ? "bg-amber-300 text-stone-950" : "bg-white/10 hover:bg-white/20"}`} onClick={() => enterVillaSpace(space)} type="button">{space.name}</button>)}
+              {currentFloorSpaceDirectory.length > 6 && <button className="shrink-0 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold" onClick={() => setLightingPanelCollapsed(false)} type="button">本层空间</button>}
               <button aria-label="展开房间导航" className="grid size-8 shrink-0 place-items-center rounded-lg bg-white/10" onClick={() => setLightingPanelCollapsed(false)} type="button">＋</button>
             </div>
           )}
@@ -13762,7 +14045,7 @@ export function Floor3DView({
             <div className="mt-1 flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-base font-black">全屋灯光总览</h2>
-                <p className="mt-0.5 text-[11px] text-stone-300">{lightingBlackoutActive ? "全灯关闭 · 全黑亮度评估" : `${activeLightingControlSceneId === "__all_on__" ? "全开" : activeLightingControlScene?.name ?? "日常"} · ${lightingSceneModeLabels[lightingScene]}`}</p>
+                <p className="mt-0.5 text-[11px] text-stone-300">{lightingBlackoutActive ? "全灯关闭 · 全黑亮度评估" : `${activeLightingControlSceneId === "__manual__" ? "试灯 · 无场景" : activeLightingControlSceneId === "__all_on__" ? "全开" : activeLightingControlScene?.name ?? "日常"} · ${lightingSceneModeLabels[lightingScene]}`}</p>
               </div>
               <div className="flex items-center gap-1">
                 <button aria-label="收起房间导航" className="grid size-8 place-items-center rounded-full bg-white/10 text-lg" onClick={() => setLightingPanelCollapsed(true)} type="button">−</button>
@@ -13771,20 +14054,20 @@ export function Floor3DView({
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-stone-300">
-              <span>全部楼层与庭院</span>
-              <span>{villaSpaceDirectory.length} 个空间</span>
+              <span>{floor.label} · 本层空间</span>
+              <span>{currentFloorSpaceDirectory.length} 个空间</span>
             </div>
             <div className="space-y-2">
-              {villaSpaceDirectory.map((space) => (
+              {currentFloorSpaceDirectory.map((space) => (
                 <button
                   key={`${space.floorId}-${space.id}`}
-                  aria-pressed={selectedLightingSpaceId === space.id && floor.id === space.floorId}
-                  className={`w-full overflow-hidden rounded-xl border p-3 text-left transition hover:-translate-y-0.5 ${selectedLightingSpaceId === space.id && floor.id === space.floorId ? "border-amber-300 bg-white/16" : "border-white/10 bg-white/8 hover:bg-white/12"}`}
+                  aria-pressed={selectedLightingSpaceId === space.id}
+                  className={`w-full overflow-hidden rounded-xl border p-3 text-left transition hover:-translate-y-0.5 ${selectedLightingSpaceId === space.id ? "border-amber-300 bg-white/16" : "border-white/10 bg-white/8 hover:bg-white/12"}`}
                   data-lighting-room-id={space.id}
                   onClick={() => enterVillaSpace(space)}
                   type="button"
                 >
-                  <span className="flex items-center justify-between gap-3"><span className="min-w-0"><span className="block text-[10px] font-black text-amber-200">{villaFloorShortLabels[space.floorId]} · {space.kind === "outdoor" ? "庭院" : "房间"}</span><span className="mt-1 block truncate text-sm font-black">{space.name}</span></span><span className="shrink-0 text-right text-[10px] text-stone-300"><span className="block">{space.lightCount} 盏灯</span><span className="mt-1 block">{space.switchCount} 个开关</span></span></span>
+                  <span className="flex items-center justify-between gap-3"><span className="min-w-0"><span className="block text-[10px] font-black text-amber-200">{floor.id === "YARD" ? "庭院" : "房间"}</span><span className="mt-1 block truncate text-sm font-black">{space.name}</span></span><span className="shrink-0 text-right text-[10px] text-stone-300"><span className="block">{space.lightCount} 盏灯</span><span className="mt-1 block">{space.switchCount} 个开关</span></span></span>
                 </button>
               ))}
             </div>
@@ -13804,7 +14087,7 @@ export function Floor3DView({
                         className="mt-1 w-full accent-amber-400"
                         max="100"
                         min="0"
-                        onChange={(event) => setLightingGroupOverrides((current) => ({ ...current, [groupId]: Number(event.target.value) }))}
+                        onInput={(event) => setLightingGroupOverrides((current) => ({ ...current, [groupId]: Number(event.currentTarget.value) }))}
                         type="range"
                         value={lightingControlBrightness.get(groupId) ?? 0}
                       />
@@ -13818,7 +14101,7 @@ export function Floor3DView({
         </aside>
       )}
 
-      {lightingExperienceActive && !mobilePresentationMode && lightingExperienceScope === "currentRoom" && selectedLightingSpace && !lightingPanelCollapsed && (
+      {legacyLightingUiEnabled && lightingExperienceActive && !mobilePresentationMode && lightingExperienceScope === "currentRoom" && selectedLightingSpace && !lightingPanelCollapsed && (
         <aside className="absolute bottom-20 right-4 top-20 z-[85] flex w-80 flex-col overflow-hidden rounded-2xl border border-white/80 bg-[#faf8f4]/96 text-stone-800 shadow-2xl backdrop-blur-xl" data-testid="lighting-room-group-panel">
           <div className="border-b border-stone-200 px-4 py-3">
             <div className="flex items-center justify-between gap-2"><div><div className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">{villaFloorShortLabels[selectedLightingSpace.floorId]} · 当前空间灯组</div><h3 className="mt-1 text-lg font-black">{selectedLightingSpace.name}</h3></div><button aria-label="关闭灯组面板" className="grid size-8 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setLightingPanelCollapsed(true)} type="button">×</button></div>
@@ -13839,9 +14122,9 @@ export function Floor3DView({
                 <div className="flex items-start gap-2"><button className="min-w-0 flex-1 text-left" onClick={() => setLightingSelectedGroupId(group.id)} type="button"><div className="truncate text-sm font-black">{group.label}</div><div className="mt-1 text-[10px] text-stone-500">{group.items.length} 盏 · {group.fixtureTypes} · {group.colorTemperature ?? "3000K"}</div></button><button aria-label={`${group.label}开关`} aria-pressed={group.enabled} className={`rounded-full px-2 py-1 text-[10px] font-black ${group.enabled ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-500"}`} onClick={() => toggleLightingGroup(group.id, !group.enabled)} type="button">{group.enabled ? "开" : "关"}</button></div>
                 <div className="mt-2 flex items-center gap-2"><input aria-label={`${group.label}亮度`} className="min-w-0 flex-1 accent-amber-500" max="100" min="0" onChange={(event) => setLightingGroupBrightness(group.id, Number(event.target.value))} type="range" value={group.brightness} /><span className="w-8 text-right text-[10px] font-black">{Math.round(group.brightness)}%</span></div>
                 <div className="mt-2 flex gap-1"><button className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-bold ${lightingSoloGroupId === group.id ? "bg-amber-500 text-white" : "bg-stone-100"}`} onClick={() => toggleLightingGroupSolo(group.id)} type="button">{lightingSoloGroupId === group.id ? "退出单组预览" : "只看该组"}</button><button className="rounded-md bg-stone-100 px-2 py-1.5 text-[10px] font-bold" onClick={() => setLightingSelectedGroupId(group.id)} type="button">高亮</button></div>
-                {lightingSelectedGroupId === group.id && <div className="mt-2 border-t border-stone-200 pt-2"><div className="mb-1 text-[10px] font-black text-stone-500">单灯调试</div>{group.items.map((item) => {
+                {lightingSelectedGroupId === group.id && <div className="mt-2 border-t border-stone-200 pt-2"><div className="mb-1 text-[10px] font-black text-stone-500">单灯调试 · 可独立调光</div>{group.items.map((item) => {
                   const itemOn = (lightingItemBrightness.get(item.id) ?? 0) > 0;
-                  return <div key={item.id} className="mb-1 rounded-lg bg-stone-50 px-2 py-1.5 text-[10px]"><div className="flex items-center justify-between gap-2"><span className="truncate font-bold">{item.label ?? item.id}</span><span>{item.colorTemperature ?? "3000K"}</span></div><div className="mt-1 flex items-center justify-between gap-2 text-stone-500"><span className="min-w-0 flex-1 truncate">{item.id} · {item.lightType ?? item.type}</span><button className="font-bold text-amber-800" onClick={() => { onSelectDrawingItem(item.id); changeLightingRoomViewMode("inventory"); }} type="button">定位</button><button aria-label={`${item.label ?? item.id} 单灯开关`} aria-pressed={itemOn} className={`rounded-full px-2 py-1 font-black ${itemOn ? "bg-emerald-600 text-white" : "bg-stone-200 text-stone-500"}`} onClick={() => toggleLightingItem(item.id)} type="button">{itemOn ? "开" : "关"}</button></div></div>;
+                  return <div key={item.id} className="mb-1 rounded-lg bg-stone-50 px-2 py-1.5 text-[10px]"><div className="flex items-center justify-between gap-2"><span className="truncate font-bold">{item.label ?? item.id}</span><span>{item.colorTemperature ?? "3000K"}</span></div><div className="mt-1 flex items-center justify-between gap-2 text-stone-500"><span className="min-w-0 flex-1 truncate">{item.id} · {item.lightType ?? item.type}</span><button className="font-bold text-amber-800" onClick={() => { onSelectDrawingItem(item.id); changeLightingRoomViewMode("inventory"); }} type="button">定位</button><button aria-label={`${item.label ?? item.id} 单灯开关`} aria-pressed={itemOn} className={`rounded-full px-2 py-1 font-black ${itemOn ? "bg-emerald-600 text-white" : "bg-stone-200 text-stone-500"}`} onClick={() => toggleLightingItem(item.id)} type="button">{itemOn ? "开" : "关"}</button></div><input aria-label={`${item.label ?? item.id} 单灯亮度`} className="mt-1 w-full accent-emerald-600" max="100" min="0" onChange={(event) => setLightingItemBrightness(item.id, Number(event.target.value))} type="range" value={lightingItemBrightness.get(item.id) ?? 0} /></div>;
                 })}</div>}
               </div>)}
             </div>
@@ -13849,33 +14132,33 @@ export function Floor3DView({
         </aside>
       )}
 
-      {lightingExperienceActive && !mobilePresentationMode && lightingExperienceScope === "currentRoom" && selectedLightingSpace && lightingPanelCollapsed && (
+      {legacyLightingUiEnabled && lightingExperienceActive && !mobilePresentationMode && lightingExperienceScope === "currentRoom" && selectedLightingSpace && lightingPanelCollapsed && (
         <button className="absolute right-4 top-24 z-[86] rounded-xl border border-white/80 bg-white/92 px-3 py-3 text-xs font-black text-stone-800 shadow-lg backdrop-blur" onClick={() => setLightingPanelCollapsed(false)} type="button">灯组 ›</button>
       )}
 
-      {lightingExperienceActive && !mobilePresentationMode && !advancedLightingOpen && (
+      {legacyLightingUiEnabled && lightingExperienceActive && !mobilePresentationMode && !advancedLightingOpen && (
         <aside className="absolute bottom-4 left-1/2 z-[84] -translate-x-1/2 rounded-xl border border-white/80 bg-stone-950/78 p-1.5 text-[11px] font-bold text-white shadow-lg backdrop-blur" data-testid="lighting-scene-summary">
-          {lightingExperienceScope === "currentRoom" && selectedLightingSpace ? <div className="flex items-center gap-1"><span className="rounded-lg bg-emerald-500/20 px-3 py-2 text-emerald-100">已开 {selectedLightingSpace.enabledLightCount} / {selectedLightingSpace.totalLightCount} 盏</span><button className="rounded-lg bg-amber-400 px-3 py-2 text-stone-950 hover:bg-amber-300" onClick={() => changeLightingRoomViewMode("inventory")} type="button">灯具盘点</button><button className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20" onClick={() => changeLightingRoomViewMode("full")} type="button">推荐站位</button></div> : <div className="px-3 py-2"><span className="font-black">{villaOverviewMode === "wholeVilla" ? "整套别墅" : villaOverviewMode === "angled" ? "斜向别墅" : floor.label}</span><span className="mx-2 text-white/35">·</span><span>{villaSpaceDirectory.length} 个可进入空间 · {villaConfiguredLightCount} 盏灯已配置</span></div>}
+          {lightingExperienceScope === "currentRoom" && selectedLightingSpace ? <div className="flex items-center gap-1"><span className="rounded-lg bg-emerald-500/20 px-3 py-2 text-emerald-100">已开 {selectedLightingSpace.enabledLightCount} / {selectedLightingSpace.totalLightCount} 盏</span><button className="rounded-lg bg-amber-400 px-3 py-2 text-stone-950 hover:bg-amber-300" onClick={() => changeLightingRoomViewMode("inventory")} type="button">灯具盘点</button><button className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20" onClick={() => changeLightingRoomViewMode("full")} type="button">推荐站位</button></div> : <div className="px-3 py-2"><span className="font-black">{villaOverviewMode === "wholeVilla" ? "整套别墅" : villaOverviewMode === "angled" ? "斜向别墅" : floor.label}</span><span className="mx-2 text-white/35">·</span><span>{currentFloorSpaceDirectory.length} 个本层空间 · {villaConfiguredLightCount} 盏灯已配置</span></div>}
         </aside>
       )}
 
-      {lightingExperienceActive && mobilePresentationMode && (
+      {legacyLightingUiEnabled && lightingExperienceActive && mobilePresentationMode && (
         <div className="pointer-events-none absolute inset-x-3 top-[4.25rem] z-[88] flex justify-center">
           <div className="pointer-events-auto flex max-w-full items-center gap-1 rounded-full border border-white/70 bg-stone-950/78 p-1.5 text-[11px] font-bold text-white shadow-lg backdrop-blur">
-            <button className="max-w-28 truncate rounded-full bg-white/10 px-3 py-2" onClick={() => setLightingRoomPanelOpen(true)} type="button">空间 · {selectedLightingSpace?.name ?? villaSpaceDirectory.length}</button>
+            <button className="max-w-28 truncate rounded-full bg-white/10 px-3 py-2" onClick={() => setLightingRoomPanelOpen(true)} type="button">空间 · {selectedLightingSpace?.name ?? currentFloorSpaceDirectory.length}</button>
             <button aria-label="围绕焦点向左旋转" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => requestCameraAdjustment({ action: "orbit", yawDelta: -Math.PI / 15 })} type="button">↶</button>
             <button aria-label="围绕焦点向右旋转" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => requestCameraAdjustment({ action: "orbit", yawDelta: Math.PI / 15 })} type="button">↷</button>
             <button aria-label="拉近镜头" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => requestCameraAdjustment({ action: "zoom", zoomFactor: 0.84 })} type="button">＋</button>
             <button aria-label="拉远镜头" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10" onClick={() => requestCameraAdjustment({ action: "zoom", zoomFactor: 1.18 })} type="button">−</button>
             <button className="rounded-full bg-white/10 px-3 py-2" onClick={resetRecommendedCamera} type="button">推荐</button>
-            <div className="flex rounded-full bg-white/10 p-0.5"><button className={`rounded-full px-2 py-1 ${lightingScene === "dayWithLights" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("dayWithLights")} type="button">白天</button><button className={`rounded-full px-2 py-1 ${lightingScene === "night" ? "bg-white text-stone-900" : ""}`} onClick={() => setLightingScene("night")} type="button">夜间</button><button className={`rounded-full px-2 py-1 ${lightingScene === "artificialOnly" ? "bg-amber-300 text-stone-950" : ""}`} onClick={() => setLightingScene("artificialOnly")} type="button">评估</button></div>
+                <div className="flex max-w-72 overflow-x-auto rounded-full bg-white/10 p-0.5"><button aria-pressed={activeLightingControlSceneId === "__manual__"} className={`shrink-0 rounded-full px-2 py-1 ${activeLightingControlSceneId === "__manual__" ? "bg-emerald-300 text-stone-950" : ""}`} onClick={() => activatePrimaryLightingScene("__manual__")} type="button">试灯</button>{primaryLightingScenes.map((scene) => <button key={scene.id} aria-pressed={activeLightingControlSceneId === scene.id} className={`shrink-0 rounded-full px-2 py-1 ${activeLightingControlSceneId === scene.id ? "bg-amber-300 text-stone-950" : ""}`} onClick={() => activatePrimaryLightingScene(scene.id)} type="button">{scene.label}</button>)}</div>
             <button className="rounded-full bg-white/10 px-3 py-2" onClick={() => returnToLightingOverview()} type="button">全屋总览</button>
             <button className={`rounded-full px-3 py-2 ${advancedLightingOpen ? "bg-amber-400 text-stone-950" : "bg-white/10"}`} onClick={() => setAdvancedLightingOpen((open) => !open)} type="button">分析</button>
           </div>
         </div>
       )}
 
-      {lightingExperienceActive && advancedLightingOpen && (
+      {legacyLightingUiEnabled && lightingExperienceActive && advancedLightingOpen && (
         <aside className={`absolute z-[97] overflow-y-auto border border-white/80 bg-[#faf8f4]/98 p-4 text-stone-800 shadow-2xl backdrop-blur ${mobilePresentationMode ? "inset-x-3 bottom-3 max-h-[62%] rounded-3xl pb-[max(1rem,env(safe-area-inset-bottom))]" : "right-4 top-20 max-h-[calc(100%-10rem)] w-80 rounded-2xl"}`} data-testid="lighting-advanced-analysis">
           <div className="flex items-start justify-between gap-3">
             <div><div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Advanced analysis</div><h3 className="mt-1 text-lg font-black">高级分析</h3></div>
@@ -13888,7 +14171,7 @@ export function Floor3DView({
             <button className="rounded-lg bg-stone-800 px-3 py-2 text-xs font-black text-white" onClick={() => setVillaExperienceEnabled(false)} type="button">进入工程 3D 工具</button>
           </div>
           <div className="mt-4">
-            <div className="rounded-xl bg-stone-100 p-3"><div className="text-[11px] font-black text-stone-500">高级场景</div><select aria-label="高级灯光场景" className="mt-2 h-9 w-full rounded-lg border-0 bg-white px-2 text-xs font-bold" value={activeLightingControlSceneId} onChange={(event) => { setLightingGroupOverrides({}); setActiveLightingControlSceneId(event.target.value); }}>{primaryLightingScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.label}</option>)}</select></div>
+            <div className="rounded-xl bg-stone-100 p-3"><div className="text-[11px] font-black text-stone-500">灯光来源</div><select aria-label="正式灯光场景" className="mt-2 h-9 w-full rounded-lg border-0 bg-white px-2 text-xs font-bold" value={activeLightingControlSceneId} onChange={(event) => activatePrimaryLightingScene(event.target.value)}><option value="__manual__">试灯：无场景、全部独立</option>{primaryLightingScenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.label}</option>)}<option value="__all_on__">专业检查：全开</option></select>{activeLightingControlSceneId === "__manual__" && <p className="mt-2 rounded-lg bg-emerald-50 px-2.5 py-2 text-[10px] font-semibold leading-4 text-emerald-800">当前不读取日常/活动/夜间假设；每盏灯从关闭开始，单独点击和调亮。</p>}</div>
           </div>
           <div className="mt-4">
             <div className="text-[11px] font-black text-stone-500">分析叠层</div>
@@ -13928,15 +14211,15 @@ export function Floor3DView({
         </aside>
       )}
 
-      {lightingExperienceActive && mobilePresentationMode && lightingRoomPanelOpen && (
+      {legacyLightingUiEnabled && lightingExperienceActive && mobilePresentationMode && lightingRoomPanelOpen && (
         <div className="absolute inset-0 z-[99] flex items-end bg-stone-950/25" data-testid="mobile-lighting-room-drawer" onClick={() => setLightingRoomPanelOpen(false)}>
           <div className="max-h-[68%] w-full overflow-y-auto rounded-t-3xl border border-white/80 bg-[#faf8f4]/98 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="mx-auto h-1 w-10 rounded-full bg-stone-300" />
-            <div className="mt-3 flex items-center justify-between"><div><div className="text-xs font-bold text-stone-500">全屋 · {villaSpaceDirectory.length} 个空间</div><h3 className="text-lg font-black text-stone-900">选择房间或庭院</h3></div><button aria-label="关闭房间预览" className="grid size-10 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setLightingRoomPanelOpen(false)} type="button">×</button></div>
+            <div className="mt-3 flex items-center justify-between"><div><div className="text-xs font-bold text-stone-500">{floor.label} · {currentFloorSpaceDirectory.length} 个空间</div><h3 className="text-lg font-black text-stone-900">选择房间或庭院</h3></div><button aria-label="关闭房间预览" className="grid size-10 place-items-center rounded-full bg-stone-100 text-lg" onClick={() => setLightingRoomPanelOpen(false)} type="button">×</button></div>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              {villaSpaceDirectory.map((space) => (
-                <button key={`${space.floorId}-${space.id}`} className={`rounded-2xl border p-3 text-left ${selectedLightingSpaceId === space.id && floor.id === space.floorId ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white"}`} onClick={() => enterVillaSpace(space)} type="button">
-                  <span className="block text-[10px] font-black text-amber-700">{villaFloorShortLabels[space.floorId]}</span>
+              {currentFloorSpaceDirectory.map((space) => (
+                <button key={`${space.floorId}-${space.id}`} className={`rounded-2xl border p-3 text-left ${selectedLightingSpaceId === space.id ? "border-amber-500 bg-amber-50" : "border-stone-200 bg-white"}`} onClick={() => enterVillaSpace(space)} type="button">
+                  <span className="block text-[10px] font-black text-amber-700">{floor.id === "YARD" ? "庭院" : "房间"}</span>
                   <span className="mt-1 block truncate text-sm font-black">{space.name}</span>
                   <span className="mt-2 block text-[10px] font-bold text-stone-500">{space.lightCount} 盏灯 · {space.switchCount} 个开关</span>
                 </button>
@@ -13998,15 +14281,15 @@ export function Floor3DView({
             {lightingExperienceActive && lightingExperienceScope === "currentRoom" && selectedLightingSpace && (
               <div className="mt-4 rounded-xl bg-amber-50 p-3">
                 <div className="text-[11px] font-black text-amber-900">{selectedLightingSpace.name} · 灯光视角</div>
-                <div className="mt-2 grid grid-cols-3 gap-1">
-                  {([['inventory', '灯具盘点'], ['full', '室内全景'], ['top', '俯视房间']] as Array<[LightingRoomViewMode, string]>).map(([mode, label]) => (
+                <div className="mt-2 grid grid-cols-4 gap-1">
+                  {([['inventory', '房间斜俯'], ['full', '室内全景'], ['human', '人眼近景'], ['top', '俯视房间']] as Array<[LightingRoomViewMode, string]>).map(([mode, label]) => (
                     <button key={mode} aria-pressed={lightingRoomViewMode === mode} className={`rounded-lg px-2 py-2 text-[10px] font-bold ${lightingRoomViewMode === mode ? "bg-stone-900 text-white" : "bg-white text-stone-600"}`} onClick={() => changeLightingRoomViewMode(mode)} type="button">{label}</button>
                   ))}
                 </div>
               </div>
             )}
             <div className="mt-4 grid grid-cols-2 gap-2">
-              {cameraPickerViews.map((view) => (
+              {lightingScopedCameraViews.map((view) => (
                 <button
                   key={view.id}
                   className={`min-h-16 rounded-2xl border p-3 text-left transition active:scale-[0.98] ${view.id === activeCameraViewId ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white text-stone-800"}`}
@@ -14067,19 +14350,16 @@ export function Floor3DView({
               </button>
               {sceneControlsOpen && (lightingExperienceActive ? (
             <>
-              <select aria-label="当前房间" className="h-8 max-w-44 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-950 outline-none" value={selectedLightingSpaceId ?? ""} onChange={(event) => { if (!event.target.value) { returnToLightingOverview(); return; } const space = villaSpaceDirectory.find((item) => item.id === event.target.value); if (space) enterVillaSpace(space); }}>
-                <option value="">{lightingExperienceScope === "currentRoom" ? "选择全屋空间" : "别墅总览"}</option>
-                {villaFloorOrder.map((floorId) => {
-                  const spaces = villaSpaceDirectory.filter((space) => space.floorId === floorId);
-                  return spaces.length ? <optgroup key={floorId} label={villaFloorShortLabels[floorId]}>{spaces.map((space) => <option key={`${space.floorId}-${space.id}`} value={space.id}>{space.name}</option>)}</optgroup> : null;
-                })}
+              <select aria-label="当前楼层房间" className="h-8 max-w-44 rounded-md border border-amber-200 bg-amber-50 px-2 text-xs font-bold text-amber-950 outline-none" value={selectedLightingSpaceId ?? ""} onChange={(event) => { if (!event.target.value) { returnToLightingOverview(); return; } const space = currentFloorSpaceDirectory.find((item) => item.id === event.target.value); if (space) enterVillaSpace(space); }}>
+                <option value="">{lightingExperienceScope === "currentRoom" ? `选择${floor.label}空间` : `${floor.label}总览`}</option>
+                {currentFloorSpaceDirectory.map((space) => <option key={`${space.floorId}-${space.id}`} value={space.id}>{space.name}</option>)}
               </select>
               {lightingExperienceScope !== "currentRoom" && <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="别墅总览视角">
                 {([['wholeVilla','全屋俯视'],['singleFloor','单层俯视'],['angled','斜向总览']] as Array<[VillaOverviewMode,string]>).map(([mode,label]) => <button key={mode} aria-pressed={villaOverviewMode === mode} className={`rounded px-2 py-1.5 text-xs font-bold ${villaOverviewMode === mode ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => changeVillaOverviewMode(mode)} type="button">{label}</button>)}
               </div>}
               {lightingExperienceScope !== "currentRoom" && villaOverviewMode === "singleFloor" && <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="按楼层显示">{(["B2","B1","1F","2F","YARD"] as Floor["id"][]).filter((floorId) => Boolean(houseStructuresByFloor[floorId])).map((floorId) => <button key={floorId} aria-pressed={floor.id === floorId} className={`rounded px-2 py-1.5 text-xs font-bold ${floor.id === floorId ? "bg-amber-500 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => onSelectFloor?.(floorId)} type="button">{floorId === "YARD" ? "院子" : floorId}</button>)}</div>}
-              <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="灯光时间模式">
-                {([['dayWithLights','白天'],['night','夜间'],['artificialOnly','灯光评估']] as Array<[LightingSceneMode,string]>).map(([mode,label]) => <button key={mode} aria-pressed={lightingScene === mode} className={`rounded px-2 py-1.5 text-xs font-bold ${lightingScene === mode ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => setLightingScene(mode)} type="button">{label}</button>)}
+              <div className="flex items-center gap-1 rounded-md bg-stone-100 p-1" aria-label="正式灯光场景">
+                {primaryLightingScenes.map((scene) => <button key={scene.id} aria-pressed={activeLightingControlSceneId === scene.id} className={`rounded px-2 py-1.5 text-xs font-bold ${activeLightingControlSceneId === scene.id ? "bg-stone-900 text-white" : "text-stone-600 hover:bg-white"}`} onClick={() => activatePrimaryLightingScene(scene.id)} type="button">{scene.label}</button>)}
               </div>
               <button className="rounded-md bg-amber-100 px-3 py-2 text-xs font-black text-amber-900 hover:bg-amber-200" onClick={enterPhysicalFixtureCloseup} type="button">灯具实体近看</button>
               {lightingExperienceScope === "currentRoom" && <button className="rounded-md bg-stone-900 px-3 py-2 text-xs font-bold text-white" onClick={() => returnToLightingOverview()} type="button">返回总览</button>}
