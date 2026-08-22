@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { YardPreview } from "@/components/yard-preview";
 
 export const metadata = {
-  title: "院子 2D / 3D 预览 · 林屿湖畔",
+  title: "院子实时预览 · 林屿湖畔",
   description: "林屿湖畔南院与北院统一庭院 2D 总览、3D 总览及固定机位"
 };
 

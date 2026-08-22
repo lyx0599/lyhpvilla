@@ -12,6 +12,7 @@ const sha = crypto.createHash("sha256").update(fs.readFileSync(dataPath)).digest
 
 assert.equal(sha, "8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831");
 assert.match(report, /当前复审修正（2026-08-16）/);
+assert.match(report, /canonical rebuild current baseline/);
 assert.match(report, /2026-08-12 历史快照/);
 assert.match(report, /app\/yard-preview\/page\.tsx/);
 assert.match(report, /25 个 `cabinetInterior`/);

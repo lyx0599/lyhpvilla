@@ -53,7 +53,7 @@ export function SecondFloorPreview() {
           allFurniture={workspace.furniture}
           drawingItems={drawingItems}
           allDrawingItems={workspace.drawingItems}
-          drawingSheetType="lightingPlan"
+          drawingSheetType="sitePlan"
           cameraViews={workspace.cameraViews}
           cameraViewRequest={requestedCameraView}
           roomTourViews={workspace.roomTourViews}
@@ -61,9 +61,9 @@ export function SecondFloorPreview() {
           selectedObjectId={selectedObjectId}
           selectedFurnitureId=""
           showObjectIds={false}
+          externalPresentationMode
           presentationWallDisplayMode="full"
           cameraCollisionEnabledOverride={false}
-          cameraLockEnabledOverride
           mobileQuality="high"
           onShowObjectIdsChange={() => undefined}
           onSelectStructure={setSelectedObjectId}
@@ -77,7 +77,7 @@ export function SecondFloorPreview() {
           onLightingRuntimeStateChange={() => undefined}
         />
         <div className="pointer-events-none absolute bottom-4 left-4 rounded-full border border-white/55 bg-[#2e2925]/76 px-4 py-2 text-xs text-white/90 backdrop-blur">
-          {requestedCameraView?.view.name ?? "2F 3D 预览"}
+          {requestedCameraView?.view.name ?? "2F 实时预览"}
         </div>
       </section>
     </main>

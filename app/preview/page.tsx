@@ -33,7 +33,7 @@ const floorCards: Array<{
     title: "洗衣 · 临客 · 阅读",
     summary: "洗衣房、临时客房、开放收纳与休闲阅读区共存，开放洞口和楼梯结构按确认户型显示。",
     route: "/b1-preview",
-    action: "进入 B1 十机位预览",
+    action: "进入 B1 实时预览",
     tone: "from-[#8b7255] to-[#4d4033]",
     usesDedicatedPreview: true
   },
@@ -43,7 +43,7 @@ const floorCards: Array<{
     title: "客厅 · 餐厨 · 日常",
     summary: "客餐厨与首层卧室的完整编辑模型，使用全屋统一材质、灯具家族与五类场景。",
     route: "/",
-    action: "进入 1F 完整模型",
+    action: "进入 1F 实时预览",
     tone: "from-[#bca884] to-[#7d6d52]",
     usesDedicatedPreview: false
   },
@@ -53,7 +53,7 @@ const floorCards: Array<{
     title: "主卧 · 家庭卧室 · 衣帽间",
     summary: "主卧、父母房、儿童房、双侧衣帽柜与两座独立封闭阳台，全部消费共享母体系。",
     route: "/2f-preview",
-    action: "进入 2F 十机位预览",
+    action: "进入 2F 实时预览",
     tone: "from-[#d0c1a7] to-[#8d7c63]",
     usesDedicatedPreview: true
   },
@@ -63,7 +63,7 @@ const floorCards: Array<{
     title: "南院生活 · 北院入户",
     summary: "锁定南北院边界、铺装、花境、围栏/屏风与 1F 建筑关系，直接查看统一庭院 2D 总览和 3D 机位。",
     route: "/yard-preview",
-    action: "进入院子 2D / 3D 预览",
+    action: "进入院子实时预览",
     tone: "from-[#78846e] to-[#3e5145]",
     usesDedicatedPreview: true
   }
@@ -195,7 +195,7 @@ export default function WholeHousePreviewPage() {
                   <div className="flex flex-wrap gap-2 text-[11px] font-medium text-black/50">
                     <span className="rounded-full bg-black/[0.05] px-3 py-1.5">{cameraCount} 个机位</span>
                     <span className="rounded-full bg-black/[0.05] px-3 py-1.5">{furnitureCount} 件模型对象</span>
-                    <span className="rounded-full bg-black/[0.05] px-3 py-1.5">{card.usesDedicatedPreview ? "独立预览" : "完整编辑器"}</span>
+                    <span className="rounded-full bg-black/[0.05] px-3 py-1.5">实时预览</span>
                   </div>
                   <h3 className="mt-5 text-2xl font-medium tracking-[-0.025em]">{card.title}</h3>
                   <p className="mt-3 max-w-xl text-sm leading-7 text-black/55">{card.summary}</p>

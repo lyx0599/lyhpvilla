@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { B2Preview } from "@/components/b2-preview";
 
 export const metadata = {
-  title: "B2 柱体预览 · 林屿湖畔",
+  title: "B2 实时预览 · 林屿湖畔",
   description: "B2 两根柱子与家具布置的 3D 预览"
 };
 

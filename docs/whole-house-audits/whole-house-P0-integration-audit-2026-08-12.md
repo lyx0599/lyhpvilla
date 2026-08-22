@@ -9,6 +9,17 @@
 - 对照执行树：B2 `/Users/lyx/.codex/worktrees/59cf/林屿湖畔`；B1 `/Users/lyx/.codex/worktrees/75bb/林屿湖畔`；1F `/Users/lyx/.codex/worktrees/1be7/林屿湖畔`；2F `/Users/lyx/.codex/worktrees/0bc7/林屿湖畔`；YARD `/Users/lyx/.codex/worktrees/dd4e/林屿湖畔`
 - 证据口径：尺寸、净距、门扇、柜体完成高等未明确现场/供应商来源的数值均视为 `estimated` / 需复尺；本报告不把估算值写成施工级结论
 
+## canonical rebuild current baseline（2026-08-22）
+
+> 本节记录 PMO 授权重建后的当前验收基线。旧升级候选 `6d726842…` 仅保留在下方历史快照中；本轮 R1 真值已恢复并锁定为旧 canonical `8790920…`，不得将候选数据混入 RC1。
+
+- 当前 canonical：`data/default-workspace.json`
+- 当前 data SHA-256：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`
+- 当前 revision：`whole-house-lighting-cabinet-yard-integration-v1-20260812`
+- 当前 `savedAt`：`2026-08-12T18:00:00.000+08:00`
+- 当前读取计数：92 furniture、25 `cabinetInterior`、39 lighting scenes、74 cameraViews
+- 边界：本次只恢复已批准 canonical 文件并更新审计真值；Furniture R1 证据仍为隔离验收，不进入 RC1；未 commit/push。
+
 ## 当前复审修正（2026-08-16）
 
 > 本节是当前主树的有效审计基线。下方原始矩阵和问题清单保留为 **2026-08-12 历史快照**，用于追溯当时的阻断，不得继续把其中的旧入口、旧计数或旧发布状态当作当前事实。
@@ -16,9 +27,9 @@
 ### 当前绑定与边界
 
 - 当前工作目录：`/Users/lyx/Documents/林屿湖畔`；主树仍 dirty，未 commit/push；不得把 dirty 主树直接称为发布真值。
-- canonical data：`data/default-workspace.json`；当前数据内部 `dataRevision=2026-08-03-unified-pbr-material-language-v1`，`savedAt=2026-08-12T18:00:00.000+08:00`。
-- PMO 集成绑定：`whole-house-lighting-cabinet-yard-integration-v1-20260812`。
-- canonical data SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`。
+- canonical data：`data/default-workspace.json`；当前数据内部 `dataRevision=2026-08-03-unified-pbr-material-language-v1`，`savedAt=2026-08-20T15:02:00.178Z`。
+- PMO R1 集成绑定：`whole-house-lighting-cabinet-yard-integration-v1-20260812`。
+- R1 目标 canonical data SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`；当前观测 SHA：`6d726842cbcb19dcbae99a2b95ed55fbacd6edebb2304efb815d4c9cdaf2a6d9`。
 - 当前数据读取事实：92 个 furniture、25 个 `cabinetInterior`、39 个 lighting scenes，五个 floorId（B2/B1/1F/2F/YARD）。
 - 任何 `cabinetInterior`、场景、YARD parity 或业主沟通内容均仍是参考/审计层；现场复尺、厂家资料、专业签认未闭合前，不进入施工、BOM、IFC 或采购。
 

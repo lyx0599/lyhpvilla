@@ -54,7 +54,7 @@ function YardPlanOverview({ structure, furniture }: { structure: HouseStructure;
   });
 
   return (
-    <div className="order-[4] overflow-hidden rounded-[2rem] border border-[#d7d0c4] bg-[#faf8f2] shadow-[0_18px_55px_rgba(75,64,48,0.08)] lg:order-1" data-yard-plan="overview">
+    <div className="order-[3] overflow-hidden rounded-[2rem] border border-[#d7d0c4] bg-[#faf8f2] shadow-[0_18px_55px_rgba(75,64,48,0.08)] lg:order-3" data-yard-plan="overview">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e4ddd2] px-5 py-4 sm:px-7">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7c8a6b]">2D / unified courtyard truth</p>
@@ -141,7 +141,7 @@ export function YardPreview() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#c7d2bd]">LYHP / YARD PREVIEW</p>
-            <h1 className="mt-2 text-3xl font-medium tracking-[-0.03em]">院子 · 南院生活，北院入户</h1>
+            <h1 className="mt-2 text-3xl font-medium tracking-[-0.03em]">院子实时预览</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">当前统一庭院真值：真实南北院边界、铺装、绿化、户外家具、围栏与 1F 建筑关系。此页只读，不改写工作区。</p>
           <div className="mt-3 inline-flex flex-wrap gap-2 text-[10px] font-bold"><span className="rounded-full bg-emerald-300 px-3 py-1.5 text-emerald-950">CANONICAL · 非旧快照</span><span className="rounded-full border border-white/20 px-3 py-1.5 text-white/60">{canonicalRevision}</span></div>
           <div className="mt-3 flex max-w-3xl flex-wrap gap-1.5 text-[10px] font-black tracking-[0.08em]" data-testid="yard-runtime-status-strip" aria-label="YARD 沟通与施工边界状态"><span className="rounded-full bg-rose-300 px-2.5 py-1 text-rose-950">P0</span><span className="rounded-full bg-white/15 px-2.5 py-1 text-white/85">REFERENCE</span><span className="rounded-full bg-amber-200 px-2.5 py-1 text-amber-950">ESTIMATED</span><span className="rounded-full bg-white/15 px-2.5 py-1 text-white/85">UNKNOWN</span><span className="rounded-full bg-rose-200 px-2.5 py-1 text-rose-950">BLOCKED</span><span className="rounded-full border border-white/30 px-2.5 py-1 text-white/90">NOT FOR CONSTRUCTION</span></div>
@@ -164,7 +164,7 @@ export function YardPreview() {
           </div>
         </details>
         <YardPlanOverview structure={unifiedCourtyardModel.houseStructure} furniture={yardFurniture} />
-        <section className="relative order-[1] h-[280px] overflow-hidden rounded-[2rem] border border-[#ccd5c8] bg-[#dde5dc] shadow-[0_18px_55px_rgba(61,78,61,0.12)] sm:h-[720px] lg:order-2" data-testid="yard-3d-overview">
+        <section className="relative order-[1] h-[520px] overflow-hidden rounded-[2rem] border border-[#ccd5c8] bg-[#dde5dc] shadow-[0_18px_55px_rgba(61,78,61,0.12)] sm:h-[720px] lg:order-1" data-testid="yard-3d-overview">
           <Floor3DView
             floor={floor}
             houseStructure={presentationStructure}
@@ -187,8 +187,6 @@ export function YardPreview() {
             externalPresentationMode
             presentationWallDisplayMode="full"
             cameraCollisionEnabledOverride={false}
-            cameraLockEnabledOverride
-            hidePresentationUi
             mobileQuality="high"
             onShowObjectIdsChange={() => undefined}
             onSelectStructure={setSelectedObjectId}
@@ -205,7 +203,7 @@ export function YardPreview() {
             {authoredCameraView?.name ?? "全院 3D 总览"}
           </div>
         </section>
-        <section aria-label="院子 Top5 实时机位" className="order-[2] grid grid-cols-2 gap-3 sm:grid-cols-2 lg:order-3 lg:grid-cols-5" data-testid="yard-top-five-cameras">
+        <section aria-label="院子 Top5 实时机位" className="order-[2] grid grid-cols-2 gap-3 sm:grid-cols-2 lg:order-2 lg:grid-cols-5" data-testid="yard-top-five-cameras">
           {yardTopFive.map((view) => {
             const active = (authoredCameraView?.id ?? "view-yard-all") === view.id;
             return <Link className={`rounded-2xl border p-4 transition ${active ? "border-[#52674f] bg-[#dce7d2] shadow-[0_10px_30px_rgba(61,78,61,0.13)]" : "border-[#d4ddd0] bg-[#f7f8f3] hover:-translate-y-0.5 hover:border-[#819479]"}`} href={`/yard-preview?camera=${view.id}`} key={view.id}>
@@ -215,7 +213,7 @@ export function YardPreview() {
             </Link>;
           })}
         </section>
-        <div className="order-[5] grid gap-4 md:grid-cols-2 lg:order-4">
+        <div className="order-[4] grid gap-4 md:grid-cols-2 lg:order-4">
           <article className="rounded-3xl border border-[#d4ddd0] bg-[#f7f8f3] p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#71826b]">North yard / 入户</p>
             <h2 className="mt-2 text-xl font-semibold">北院保持迎宾与户外厨房</h2>
