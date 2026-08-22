@@ -83,7 +83,7 @@ export function B2Preview() {
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#d8d0c4] bg-[#f7f4ef] px-6 py-5 lg:px-10">
         <div>
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9b7653]">LYHP / B2 preview</p>
-          <h1 className="text-2xl font-semibold tracking-tight">B2 柱体与家具关系预览</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">B2 实时预览</h1>
           <p className="mt-1 text-sm text-[#756c63]">样板间两根柱子 · 石材圆角材质 · 可旋转缩放 3D 场景</p>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-[#d8d0c4] bg-white/70 px-3 py-2 text-xs text-[#756c63]">
@@ -95,7 +95,7 @@ export function B2Preview() {
       <div className="mx-auto grid max-w-[1680px] gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_330px] lg:p-7">
         <section className="relative min-h-[650px] overflow-hidden rounded-[26px] border border-[#d8d0c4] bg-[#e8e1d6] shadow-[0_20px_60px_rgba(86,67,48,0.12)] lg:min-h-[760px]">
           <div className="pointer-events-none absolute left-5 top-5 z-10 rounded-2xl border border-white/60 bg-[#f7f4ef]/85 px-3 py-2 text-xs text-[#665d55] shadow-sm backdrop-blur">
-            <p className="font-semibold text-[#302b27]">B2 · 3D 预览</p>
+            <p className="font-semibold text-[#302b27]">B2 · 实时预览</p>
             <p className="mt-1">拖动旋转 · 滚轮缩放 · 点击柱子查看对象</p>
           </div>
           <Floor3DView

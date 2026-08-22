@@ -2456,7 +2456,7 @@ function createDefaultShared3DSceneSettings(drawingSheetType: DrawingSheetType):
   };
 }
 
-export function SpacePlanner({ data }: { data: SpaceData }) {
+export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData; initialViewMode?: ViewMode }) {
   const defaultSelectedFloorId: FloorId = data.selectedFloorId ?? "1F";
   const initialSelectedFloorId: FloorId = data.floors.some((floor) => floor.id === defaultSelectedFloorId) ? defaultSelectedFloorId : "1F";
   const initialVisualSettings = data.floors.reduce((settingsByFloor, floor) => {
@@ -2475,7 +2475,7 @@ export function SpacePlanner({ data }: { data: SpaceData }) {
   const [selectedFurnitureId, setSelectedFurnitureId] = useState(data.workspace.furniture.find((item) => item.floorId === initialSelectedFloorId)?.id ?? data.workspace.furniture[0]?.id ?? "");
   const [semanticObjects, setSemanticObjects] = useState<SemanticObject[]>(() => data.workspace.semanticObjects);
   const [selectedSemanticObjectId, setSelectedSemanticObjectId] = useState("");
-  const [viewMode, setViewMode] = useState<ViewMode>("2d");
+  const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
   const [editorMode, setEditorMode] = useState<ExplorationEditorMode>("design");
   const explorationReturnStateRef = useRef<{ viewMode: ViewMode; plannerMode: PlannerMode } | null>(null);
   const legacyInitialDrawingSheetType = data.workspace.selectedDrawingSheetType ?? "sitePlan";

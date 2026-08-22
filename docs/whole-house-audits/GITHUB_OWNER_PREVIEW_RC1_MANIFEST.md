@@ -1,20 +1,32 @@
 # GITHUB_OWNER_PREVIEW_RC1_MANIFEST
 
-状态：R3 READY_PENDING_LUNA（P0 Recovery clean tracked-only candidate 已通过；未 `git add`、未 commit、未 push；等待独立 Luna 复核）
+## Canonical rebuild current baseline（2026-08-22）
+
+- R1 目标 canonical data SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`
+- R1 目标 revision：`whole-house-lighting-cabinet-yard-integration-v1-20260812`
+- 当前工作区观测 SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`
+- 当前工作区观测 revision：`whole-house-lighting-cabinet-yard-integration-v1-20260812`
+- 当前 `savedAt`：`2026-08-12T18:00:00.000+08:00`；计数为 92 furniture、25 `cabinetInterior`、39 lighting scenes、74 cameraViews。
+- 升级候选 `6d726842…` 已隔离备份，不纳入当前 R1/RC1；Furniture、旧 snapshot、private/tmp 或未审 patch 均不纳入 RC1。
+- 当前 static gates 已通过；仍需完成 tracked-only staging/独立只读 review 后，才能标记 RC1 READY。
+
+旧基线重检日志保留为历史记录；本轮恢复后 `test-owner-decision-package-r1.mjs`、whole-house integration、current P0 audit、YARD canonical SHA 均已重新通过。
+
+状态：R1 CANONICAL RESTORED（data SHA=`8790920…`；未 `git add`、未 commit、未 push）
 
 ## P0 Recovery R1 clean candidate（真实状态）
 
 - candidate 来源：clean archive `1892fcbc9dd345225e7f9db7c3d2196e8dcfa331`，再应用已审 RC1 commit `3d230785be1e08e1f786b9cc7c3295413239d75f` 的 tracked 白名单；candidate 位于 `/private/tmp/lyhp-owner-rc1-recovery-20260816`，没有复制当前 dirty 树的未跟踪文件。
 - package/script 依赖闭合：移除 clean baseline 中不存在的 apply、Furniture/旧 floor contract 命令；同时移除聚合 `test` 对未纳入 clean tracked candidate 的 2F 临时专项 key 的调用。RC1 不用 untracked 脚本冒充 tracked 来源；2F memory-only 专项仅作为独立审计证据，不进入发布白名单。
-- 2F test：不再 spawn apply 脚本或写 `data/default-workspace.json`；在内存 fixture 中做目标灯去重/desk 宽深归一化并重复运行，读前后 canonical SHA 均为 `8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`。
+- 2F test：不写 `data/default-workspace.json`；在内存 fixture 中做目标灯去重/desk 宽深归一化，canonical SHA 保持 `8790920b…`。
 - Lighting R3：`scripts/test-lighting-design.mjs` PASS，实际 `175 lights / 121 switches`；沟通空间合同为 `24 rooms + North/South YARD = 26`，不是旧的 `167/30` 口径。
 - 决策包：22 records、2 owner questions；顶部移动 CTA `min-h-11`（44px）且 `sourcePaths` 全部指向 candidate 内存在的 tracked 文件；未将 generated JSON/artifacts 纳入 RC1。
 - fresh export：exit 0；本轮 R2 fresh build log=`/private/tmp/lyhp-owner-rc1-r2-build-20260816.log`，字节 SHA=`7cc302215a4a8ced622f6455f9b64add19606746f9b03bbb358209d4b76c5f99`；routes 包含 `/yard-preview`、`/owner-communication`、`/owner-communication/decisions`。
 - YARD static host：`http://127.0.0.1:3243/lyhpvilla/yard-preview/`，PID/session `98206`；HTTP 200、canvas=1、console error/warn 为空；Top5 全院点击后 URL 保留 `/lyhpvilla/yard-preview/?camera=view-yard-all`，HTTP 200、canvas=1。
 
 冻结基线：`1892fcbc9dd345225e7f9db7c3d2196e8dcfa331`
-正式 canonical data SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`
-当前 revision：`whole-house-lighting-cabinet-yard-integration-v1-20260812`
+正式 R1 canonical data SHA：`8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`
+R1 revision：`whole-house-lighting-cabinet-yard-integration-v1-20260812`
 发布水印：`OWNER PREVIEW RC1 · REFERENCE / NOT FOR CONSTRUCTION · NOT FOR PROCUREMENT`
 
 ## 拟发布白名单
@@ -34,7 +46,7 @@
 | `components/yard-preview.tsx` | YARD canonical 2D/3D/Top5；Top5 使用 basePath-aware `Link`；390 首屏 3D + Top5 首卡；mobile order 显式 3D→Top5→details→2D | `6804e7efe5b371b7866941199515846d994dada0cc9b326cde3fc09d5ee22b83` |
 | `lib/owner-decision-package-r1.ts` | 决策包同源数据；sourcePaths 已闭合 | `d5b1691b946fa70a9f665a2f3c52fc28c2e3ccf85662312e53a97c413a6bb50c` |
 | `lib/whole-house-design-system.ts` | 必要设计系统合同 | `6248eff6770115f15942c64ce0e088ef398e08b4ca9ded6601dc9b0e776b412b` |
-| `data/default-workspace.json` | 当前 canonical workspace；必须随 RC1 绑定 | `8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831` |
+| `data/default-workspace.json` | R1 canonical workspace；当前文件已恢复并绑定目标 revision/SHA | `8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831` |
 | `package.json` | 依赖闭合；聚合 `test` 不调用未纳入 tracked candidate 的临时 2F key | `9bf3aa3bda63974d38e7799ae8cd775336d35ecea50e91af20b8dea07b7fb194` |
 | `scripts/check-pages-build.mjs` | Pages 检查补充 YARD route/入口 | `6f8e4c2f806a4bebb963a5887a977a0ae537922bf718d94bfdf6569bc86543dc` |
 | `scripts/test-yard-preview.mjs` | canonical YARD/5 camera/basePath contract | `eb6039cabf02c4d564e4e2e33be4e1b51aa4f63ef15474c1a7acaa8f73b42bdb` |
@@ -55,11 +67,20 @@
 
 ## data/default-workspace.json 合法来源判定
 
-旧 HEAD data SHA 为 `e81d8932ba0669ae62de71fe4f3492f62694b876394c7a6bc82368faf42a2e19`；当前文件从 `defaultWorkspaceRevision=1f-bedroom-open-valet-rack-20260811` 迁移为 `whole-house-lighting-cabinet-yard-integration-v1-20260812`，`savedAt=2026-08-12T18:00:00+08:00`。当前语义计数为五层 `B2/B1/1F/2F/YARD`、92 furniture、25 cabinetInterior、39 lighting scenes、74 cameraViews。
+canonical SHA 为 `8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831`；当前文件绑定 `defaultWorkspaceRevision=whole-house-lighting-cabinet-yard-integration-v1-20260812`，`savedAt=2026-08-12T18:00:00.000+08:00`。当前语义计数为五层 `B2/B1/1F/2F/YARD`、92 furniture、25 cabinetInterior、39 lighting scenes、74 cameraViews。
 
-11626 行大 diff 的可登记来源是已批准的全屋 Lighting/Cabinet/YARD contract migration；它不是 Furniture PBR 候选，且当前 SHA 已由专项和 build/runtime 绑定。因此 RC1 必须携带该 canonical data；不得以旧 SHA 或 b9c0 的 `e81d...` 替代。
+当前 canonical 恢复来源为已批准的 whole-house integration revision；`6d726842…` 仍仅作为 `/private/tmp/lyhp-canonical-backup-20260822/` 中的可回溯升级候选，不是 Furniture PBR 候选，也不进入 RC1。
 
 ## 测试与运行证据
+
+### canonical rebuild R2 历史记录（2026-08-21）
+
+- data SHA 前后曾为升级候选 `6d726842…`；该候选已退出当前 R1。
+- `tsc --noEmit`、Lighting `175 lights / 121 switches`、whole-house integration `25 canonical scenes / 25 cabinetInterior`、当前 P0 audit、owner decision `22 records / 2 questions / 44px CTA`、YARD、owner communication、top-bar 专项全部 PASS。
+- 真实测试日志（完成后再计算 SHA，未把自报 SHA 写入日志）：`/private/tmp/canonical-rebuild-p0-tests-20260821.log`，SHA=`9d87d9e9fac835e36de63fb194ed1e656d8c12fc8609304d6c7df3eda5a14de8`。
+- fresh production build：exit `0`，routes 含 `/yard-preview`、`/owner-communication`、`/owner-communication/decisions`；日志=`/private/tmp/canonical-rebuild-p0-build-20260821.log`，SHA=`4756bc6be5f646f3ae33d22e342ce66452454e60b797e7aceaedeb370d777233`。
+- 当前 3210 healthcheck：开发服务可由主任务启动；本次门禁依赖 static build 与合同测试，不把历史 runtime 证据冒充新基线。
+- Furniture 仍排除：未运行其脏工作树测试，未消费 `e81d…` 或其 patch。
 
 - `tsc --noEmit`：PASS。
 - YARD、owner communication、owner decision、当前 whole-house P0 audit、Lighting 专项：PASS。

@@ -93,8 +93,6 @@ export function B1Preview() {
           externalPresentationMode
           presentationWallDisplayMode={structuralPreview || cutawayPreview ? "cutaway" : "full"}
           cameraCollisionEnabledOverride={false}
-          cameraLockEnabledOverride
-          hidePresentationUi
           mobileQuality="high"
           onShowObjectIdsChange={() => undefined}
           onSelectStructure={setSelectedObjectId}
