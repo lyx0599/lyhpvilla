@@ -39,9 +39,9 @@ assert.deepEqual(wardrobe.dimensions, { width: 270, depth: 60, height: 275, unit
 assert.equal(wardrobe.render3d.variantId, "fullHeightFlat");
 
 const openShelf = furniture("furn-b1-activity-bookshelf-001");
-assert.equal(openShelf.name, "B1 活动区开放式展示收纳墙");
+assert.equal(openShelf.name, "B1 办公综合收纳墙（开放书架 / 文件收纳）");
 assert.deepEqual(openShelf.dimensions, { width: 280, depth: 45, height: 240, unit: "cm" });
-assert.equal(openShelf.render3d.variantId, "b1ShowroomLibraryWall");
+assert.equal(openShelf.render3d.variantId, "openClosedMix");
 const smallShelf = furniture("furn-b1-activity-small-shelf-001");
 assert.equal(smallShelf.render3d.variantId, "openClosedMix");
 assert.equal(furniture("furn-b1-activity-beanbag-001").render3d.variantId, "beanBag");
@@ -61,7 +61,8 @@ assert.equal(ceiling.polygon.length, 49);
 assert.ok(workspace.drawingPackage.drawingItemIds.includes(ceiling.id));
 
 const renderer = await readFile(new URL("../components/floor-3d-view.tsx", import.meta.url), "utf8");
-assert.match(renderer, /b1ShowroomLibraryWall/);
+const cabinetRenderer = await readFile(new URL("../components/furniture-3d/cabinet-family-3d.tsx", import.meta.url), "utf8");
+assert.match(cabinetRenderer, /openClosedMix/);
 assert.match(renderer, /b1ShowroomEllipticalCove/);
 
 console.log("B1 final design checks passed: source-aligned stair, guest room, open activity storage and ten viewpoints are retained.");

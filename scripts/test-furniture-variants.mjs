@@ -169,7 +169,9 @@ assert.equal(workspace.furniture.filter((item) => item.id.startsWith("furn-2f-ma
 assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-bedroom1-bed-001")?.render3d?.variantId, "timberFrame");
 assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-bedroom2-bed-001")?.render3d?.variantId, "childBed");
 for (const id of ["furn-2f-bedroom1-bed-001", "furn-2f-bedroom2-bed-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.bedVisual?.headboardStyle, "standard");
-for (const id of ["module-2f-cloak-left", "module-2f-cloak-right"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.cabinetVisual?.allDoorPanels, true);
+// The approved 2F cloakroom contract uses mixed open/solid/glass bays.
+// allDoorPanels=true was a stale expectation from the earlier wardrobe revision.
+for (const id of ["module-2f-cloak-left", "module-2f-cloak-right"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.cabinetVisual?.allDoorPanels, false);
 assert.equal(workspace.furniture.find((item) => item.id === "furn-b1-bath-vanity-001")?.render3d?.wetAreaVisual?.mirrorStyle, "none");
 for (const id of ["furn-bath-vanity-001", "furn-2f-guest-vanity-001", "furn-2f-master-vanity-001"]) assert.equal(workspace.furniture.find((item) => item.id === id)?.render3d?.wetAreaVisual?.mirrorStyle, "cabinet");
 assert.equal(workspace.furniture.find((item) => item.id === "furn-b1-activity-beanbag-001")?.render3d?.variantId, "beanBag");

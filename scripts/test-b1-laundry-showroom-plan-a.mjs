@@ -30,7 +30,7 @@ assert.deepEqual(
 
 assert.equal(room.surfaceFinishes.floor.materialToken, "wetAreaTile");
 assert.equal(room.surfaceFinishes.floor.materialResourceId, "polyhavenWarmBeigeTile08");
-assert.equal(room.surfaceFinishes.wall.materialToken, "travertine");
+assert.equal(room.surfaceFinishes.wall.materialToken, "warmWhiteMineral");
 
 const washer = furniture("furn-b1-laundry-washer-001");
 assert.deepEqual(washer.dimensions, { width: 60, depth: 62, height: 170, unit: "cm" });

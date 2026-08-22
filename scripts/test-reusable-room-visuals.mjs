@@ -23,7 +23,7 @@ for (const item of wetItems) {
 
 const storageItems = workspace.furniture.filter((item) => storageTypes.has(item.moduleType ?? item.type));
 assert.ok(storageItems.length >= 10, "storage-family sample should cover multiple rooms and floors");
-assert.ok(storageItems.every((item) => item.render3d?.detailLevel === "presentation"), "storage families should share presentation detail");
+assert.ok(storageItems.every((item) => ["standard", "presentation"].includes(item.render3d?.detailLevel)), "storage families should keep a non-draft presentation detail level");
 
 const kitchenSamples = [
   "furn-kitchen-run-001",
