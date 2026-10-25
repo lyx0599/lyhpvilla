@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { createMetricCylinderGeometry } from "@/lib/furniture-surface-geometry";
 import type { ResolvedRender3DMaterialLayer, Render3DMaterialRole } from "@/lib/render3d-assets";
 import type { Render3DMeta } from "@/types/space";
 import type { MaterialDeviceClass, MaterialQualityTier } from "@/lib/material-system";
@@ -68,10 +69,15 @@ export function CylinderPart({ radiusTop, radiusBottom = radiusTop, height, posi
   rotation?: Vec3;
   sides?: number;
 }) {
+  const metricUv = !surface.surfaceSizeM;
+  const geometry = useMemo(() => metricUv
+    ? createMetricCylinderGeometry(radiusTop, radiusBottom, height, sides)
+    : new THREE.CylinderGeometry(radiusTop, radiusBottom, height, sides), [radiusTop, radiusBottom, height, sides, metricUv]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh name={surface.name} userData={surface.userData} castShadow receiveShadow position={position} rotation={rotation}>
-      <cylinderGeometry args={[radiusTop, radiusBottom, height, sides]} />
-      <FurnitureMaterial layer={material} {...surface} surfaceSizeM={surface.surfaceSizeM ?? [Math.PI * (radiusTop + radiusBottom), height]} />
+      <primitive object={geometry} attach="geometry" />
+      <FurnitureMaterial layer={material} {...surface} surfaceSizeM={surface.surfaceSizeM ?? [1, 1]} />
     </mesh>
   );
 }

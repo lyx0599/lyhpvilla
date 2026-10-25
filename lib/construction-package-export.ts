@@ -1,5 +1,5 @@
 import { validateWorkspaceReferences } from "./workspace-reference-validator.ts";
-import { validateFurniturePlacement } from "./furniture-placement.ts";
+import { getFurnitureCenterMm, getFurnitureFootprint, validateFurniturePlacement, type FurniturePlacementWarning } from "./furniture-placement.ts";
 import {
   getVerificationDisplayState,
   getVerificationTargetEntries,
@@ -11,25 +11,25 @@ import {
   verificationStatusLabels
 } from "./dimension-verification.ts";
 import type { VerificationTargetEntry } from "./dimension-verification.ts";
-import type { DrawingItem, DrawingItemCategory, DrawingSheetType, FixedCameraView, Furniture, HouseOutdoorSurface, HouseStructure, VerificationSource, VerificationStatus } from "../types/space";
+import type { DrawingItem, DrawingItemCategory, DrawingSheetType, FixedCameraView, Furniture, HouseDoor, HouseOutdoorSurface, HouseStructure, HouseWindow, VerificationSource, VerificationStatus } from "../types/space";
 import type { WorkspaceDocument } from "../types/workspace";
 import { evaluateOutputDrawings } from "./output-drawings.ts";
 import { getPbrMaterialDefinition, type MaterialRole } from "./material-system.ts";
 
 export const constructionPackageSheets: Array<{ sheetNo: string; title: string; type: DrawingSheetType | null; categories: DrawingItemCategory[]; scale: string }> = [
   { sheetNo: "A-00", title: "图纸目录/总说明", type: null, categories: [], scale: "NTS" },
-  { sheetNo: "A-01", title: "总平面图", type: "sitePlan", categories: [], scale: "1:100" },
-  { sheetNo: "A-02", title: "结构图", type: "structurePlan", categories: [], scale: "1:50" },
-  { sheetNo: "A-03", title: "拆改施工图", type: "demolitionAndBuildPlan", categories: [], scale: "1:50" },
-  { sheetNo: "F-01", title: "家具定位图", type: "furniturePlan", categories: ["cabinet"], scale: "1:50" },
-  { sheetNo: "E-01", title: "插座需求方案（待图纸核对）", type: "socketPlan", categories: ["socket", "network"], scale: "1:50" },
-  { sheetNo: "E-02", title: "开关控制建议图（待图纸核对）", type: "switchPlan", categories: ["switch"], scale: "1:50" },
-  { sheetNo: "L-01", title: "灯光点位图", type: "lightingPlan", categories: ["light"], scale: "1:50" },
-  { sheetNo: "W-01", title: "给水需求方案（待现场复核）", type: "waterSupplyPlan", categories: ["waterSupply"], scale: "1:50" },
-  { sheetNo: "W-02", title: "排水需求方案（待现场复核）", type: "drainagePlan", categories: ["drainage"], scale: "1:50" },
-  { sheetNo: "C-01", title: "吊顶图", type: "ceilingPlan", categories: ["ceiling"], scale: "1:50" },
-  { sheetNo: "M-01", title: "地面铺装图", type: "floorFinishPlan", categories: ["floorFinish"], scale: "1:50" },
-  { sheetNo: "M-02", title: "墙面材料图", type: "wallFinishPlan", categories: ["wallFinish"], scale: "1:50" },
+  { sheetNo: "A-01", title: "总平面图", type: "sitePlan", categories: [], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "A-02", title: "结构图", type: "structurePlan", categories: [], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "A-03", title: "拆改施工图", type: "demolitionAndBuildPlan", categories: [], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "F-01", title: "家具定位图", type: "furniturePlan", categories: ["cabinet"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "E-01", title: "插座需求方案（待图纸核对）", type: "socketPlan", categories: ["socket", "network"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "E-02", title: "开关控制建议图（待图纸核对）", type: "switchPlan", categories: ["switch"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "L-01", title: "灯光点位图", type: "lightingPlan", categories: ["light"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "W-01", title: "给水需求方案（待现场复核）", type: "waterSupplyPlan", categories: ["waterSupply"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "W-02", title: "排水需求方案（待现场复核）", type: "drainagePlan", categories: ["drainage"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "C-01", title: "吊顶图", type: "ceilingPlan", categories: ["ceiling"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "M-01", title: "地面铺装图", type: "floorFinishPlan", categories: ["floorFinish"], scale: "NTS（按标注尺寸）" },
+  { sheetNo: "M-02", title: "墙面材料图", type: "wallFinishPlan", categories: ["wallFinish"], scale: "NTS（按标注尺寸）" },
   { sheetNo: "M-03", title: "材料索引清单（辅助输出）", type: null, categories: ["floorFinish", "wallFinish", "cabinet"], scale: "NTS" },
   { sheetNo: "N-01", title: "待确认项清单（检查附件）", type: null, categories: ["annotation"], scale: "NTS" }
 ];
@@ -41,6 +41,7 @@ export const constructionPackageRecordFields = [
   "fixtureFamily", "powerW", "luminousFluxLm", "cri", "glareRating", "waterproofRating",
   "relatedSwitchId", "relatedRoomId", "hostCeilingAreaId", "relatedFurnitureId", "relatedFurnitureName", "hostWallId", "circuitId", "confidence", "positioningBasis", "positionRule", "pendingConfirmations", "serviceScenario", "status", "notes",
   "outdoorId", "roomAssignmentLocked", "wallAnchor", "clearanceMeta", "placementWarnings", "relatedFurniturePositionMm",
+  "exportScope", "exportDisposition", "positionPercent", "positionMm", "rotationDeg", "widthMm", "depthMm", "heightMm", "dimensionUnit", "sourceDimensionUnit", "geometryStatus",
   "verificationStatus", "verificationSource", "verificationSourceNote", "verificationToleranceMm", "verificationVerifiedAt", "verificationVerifiedBy", "verificationNotes", "verificationDisplayState", "verificationConflicts",
   "createdAt", "updatedAt"
 ] as const;
@@ -88,6 +89,31 @@ function roomNames(workspace: WorkspaceDocument) {
   return result;
 }
 
+type ExportScope = "include" | "exclude" | "review";
+type ExportDisposition = "included" | "excluded" | "pending-confirmation";
+
+function exportDisposition(item: { exportScope?: ExportScope; hidden?: boolean; visible?: boolean }): { scope: ExportScope; disposition: ExportDisposition } {
+  if (item.exportScope === "exclude") return { scope: "exclude", disposition: "excluded" };
+  if (item.exportScope === "include") return { scope: "include", disposition: "included" };
+  if (item.exportScope === "review") return { scope: "review", disposition: "pending-confirmation" };
+  if (item.hidden === true || item.visible === false) return { scope: "review", disposition: "pending-confirmation" };
+  return { scope: "include", disposition: "included" };
+}
+
+function geometryFields(item: Furniture, structure: HouseStructure) {
+  const center = getFurnitureCenterMm(item, structure);
+  return {
+    positionPercent: item.position,
+    positionMm: center,
+    rotationDeg: item.position.rotation,
+    widthMm: item.dimensions.width * 10,
+    depthMm: item.dimensions.depth * 10,
+    heightMm: item.dimensions.height * 10,
+    dimensionUnit: "mm",
+    sourceDimensionUnit: item.dimensions.unit
+  };
+}
+
 function inferYardArea(item: { id: string; name?: string; label?: string }) {
   const text = `${item.id} ${item.name ?? ""} ${item.label ?? ""}`;
   if (/南院/.test(text) || /south/i.test(text)) return { id: "YARD-SOUTH", name: "南院" };
@@ -131,7 +157,7 @@ function drawingRecord(item: DrawingItem, table: string, rooms: Map<string, stri
   };
 }
 
-function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<string, string>): ExportRecord {
+function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<string, string>, structure: HouseStructure): ExportRecord {
   const mep = item.mepMeta ?? {};
   const construction = item.constructionMeta ?? {};
   const requirements = [
@@ -140,10 +166,11 @@ function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<strin
     construction.inspectionAccessRequired ? "检修口" : ""
   ].filter(Boolean);
   const materialIdentity = getPbrMaterialDefinition(item.render3d?.primaryMaterial ?? item.material, "joineryMain");
+  const scope = exportDisposition(item);
   return {
     table: "cabinet", floorId: item.floorId, roomId: item.roomId, roomName: rooms.get(item.outdoorId ?? item.roomId) ?? "未关联区域",
     objectId: item.id, category: "cabinet", type: item.moduleType ?? item.type, label: item.name, quantity: 1,
-    heightMm: item.dimensions.height * 10, materialId: item.material,
+    materialId: item.material,
     materialToken: materialIdentity.token, materialRole: "joineryMain", materialName: materialIdentity.definition.label,
     materialPhysicalSizeMm: materialIdentity.definition.physicalSizeMm, materialSource: materialIdentity.definition.source.name,
     materialLicense: materialIdentity.definition.source.license, relatedFurnitureId: item.id,
@@ -156,7 +183,8 @@ function cabinetRecord(item: Furniture, related: DrawingItem[], rooms: Map<strin
     status: "draft", notes: construction.notes ?? item.constructionNote ?? item.note, createdAt: null, updatedAt: null,
     dimensions: item.dimensions, customMade: Boolean(construction.customMade), installType: construction.installType ?? null,
     reserveSize: construction.reserveSize ?? null, requirements, constructionMeta: item.constructionMeta ?? null,
-    mepMeta: item.mepMeta ?? null, cabinetDesign: item.cabinetDesign ?? null, cabinetInterior: item.cabinetInterior ?? null, relatedDrawingItems: related.map((drawingItem) => drawingItem.id)
+    mepMeta: item.mepMeta ?? null, cabinetDesign: item.cabinetDesign ?? null, cabinetInterior: item.cabinetInterior ?? null, relatedDrawingItems: related.map((drawingItem) => drawingItem.id),
+    exportScope: scope.scope, exportDisposition: scope.disposition, geometryStatus: "executed", ...geometryFields(item, structure)
   };
 }
 
@@ -164,10 +192,12 @@ function furniturePlacementRecord(
   item: Furniture,
   related: DrawingItem[],
   rooms: Map<string, string>,
+  structure: HouseStructure,
   placementWarnings: ReturnType<typeof validateFurniturePlacement>
 ): ExportRecord {
   const warnings = placementWarnings.filter((warning) => warning.furnitureId === item.id);
   const materialIdentity = getPbrMaterialDefinition(item.render3d?.primaryMaterial ?? item.material, "joineryMain");
+  const scope = exportDisposition(item);
   return {
     table: "furniturePlacement",
     floorId: item.floorId,
@@ -179,7 +209,6 @@ function furniturePlacementRecord(
     type: item.moduleType ?? item.type,
     label: item.name,
     quantity: 1,
-    heightMm: item.dimensions.height * 10,
     materialId: item.material,
     materialToken: materialIdentity.token,
     materialRole: materialIdentity.definition.roles[0] ?? "joineryMain",
@@ -197,6 +226,10 @@ function furniturePlacementRecord(
     relatedDrawingItems: related.map((drawingItem) => drawingItem.id),
     position: item.position,
     dimensions: item.dimensions,
+    exportScope: scope.scope,
+    exportDisposition: scope.disposition,
+    geometryStatus: warnings.some((warning) => warning.severity === "error") ? "blocked" : "executed",
+    ...geometryFields(item, structure),
     status: warnings.some((warning) => warning.severity === "error" || warning.severity === "warning") ? "todo" : "draft",
     notes: warnings.map((warning) => warning.message).join("；"),
     createdAt: null,
@@ -266,16 +299,24 @@ function verificationRecord(entry: VerificationTargetEntry, conflictReasons: Map
 export function validateConstructionPackage(workspace: WorkspaceDocument) {
   const references = validateWorkspaceReferences(workspace);
   const verificationEntries = getVerificationTargetEntries(workspace.houseStructuresByFloor);
-  const verificationConflictIds = new Set(references.errors.map((issue) => issue.objectId));
+  const furnitureById = new Map(workspace.furniture.map((item) => [item.id, item]));
+  const includedFurniture = workspace.furniture.filter((item) => exportDisposition(item).disposition === "included");
+  const includedDrawingItems = workspace.drawingItems.filter((item) => {
+    if (exportDisposition(item).disposition !== "included") return false;
+    const relatedFurnitureId = item.relatedFurnitureId ?? (item.hostObjectId && furnitureById.has(item.hostObjectId) ? item.hostObjectId : null);
+    const relatedFurniture = relatedFurnitureId ? furnitureById.get(relatedFurnitureId) : undefined;
+    return !relatedFurnitureId || !relatedFurniture || exportDisposition(relatedFurniture).disposition === "included";
+  });
   const draftItems = workspace.drawingItems.filter((item) => item.status === "draft");
   const todoItems = workspace.drawingItems.filter((item) => item.status === "todo");
   const reviewItems = workspace.drawingItems.filter((item) => item.status === "todo" || /待复核|待确认|人工确认/.test(item.notes));
   const orphanIssues = references.errors.filter((issue) => issue.code.includes("ORPHAN") || issue.code.includes("INVALID_DRAWING_ITEM"));
   const yardItems = workspace.drawingItems.filter((item) => item.floorId === "YARD");
   const yardSurfaces = workspace.houseStructuresByFloor.YARD?.outdoorSurfaces ?? [];
-  const furniturePlacementWarnings = Object.entries(workspace.houseStructuresByFloor).flatMap(([floorId, structure]) => structure
-    ? validateFurniturePlacement(structure, workspace.furniture.filter((item) => item.floorId === floorId), workspace.drawingItems.filter((item) => item.floorId === floorId))
+  const furniturePlacementWarningsByFloor = Object.entries(workspace.houseStructuresByFloor).flatMap(([floorId, structure]) => structure
+    ? validateFurniturePlacement(structure, includedFurniture.filter((item) => item.floorId === floorId), includedDrawingItems.filter((item) => item.floorId === floorId))
     : []);
+  const furniturePlacementWarnings = furniturePlacementWarningsByFloor;
   const warningCounts: ConstructionPackageWarningCounts = {
     draft: draftItems.length, todo: todoItems.length, orphan: orphanIssues.length,
     socketMissingHeight: workspace.drawingItems.filter((item) => ["socket", "network"].includes(item.category) && !item.heightMm).length,
@@ -292,10 +333,36 @@ export function validateConstructionPackage(workspace: WorkspaceDocument) {
     yardNeedsReview: yardItems.filter((item) => item.status !== "confirmed").length + yardSurfaces.filter((item) => item.status !== "confirmed").length,
     dimensionUnconfirmed: verificationEntries.filter((entry) => entry.object.verificationMeta?.status !== "confirmed").length,
     dimensionEstimated: verificationEntries.filter((entry) => ["estimated", "drawing-derived"].includes(entry.object.verificationMeta?.status ?? "unverified")).length,
-    dimensionConflicts: verificationEntries.filter((entry) => verificationConflictIds.has(entry.object.id)).length,
+    // Reference errors are not geometric dimension conflicts. Keep this counter for explicit future checks only.
+    dimensionConflicts: 0,
     furniturePlacement: furniturePlacementWarnings.filter((issue) => issue.severity === "error" || issue.severity === "warning").length
   };
-  return { valid: references.errors.length === 0, errors: references.errors, warnings: references.warnings, orphanIssues, draftItems, todoItems, reviewItems, verificationEntries, furniturePlacementWarnings, warningCounts, mepMaturity: workspace.drawingItems.some((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category) && item.confidence === "constructionConfirmed") ? "partial-construction-confirmed" : "scheme-usable" };
+  const geometryErrors = furniturePlacementWarnings.filter((warning) => warning.severity === "error");
+  const geometryWarnings = furniturePlacementWarnings.filter((warning) => warning.severity === "warning");
+  const geometryErrorsByFloor = Object.fromEntries(Object.entries(workspace.houseStructuresByFloor).map(([floorId, structure]) => [floorId, structure
+    ? validateFurniturePlacement(structure, includedFurniture.filter((item) => item.floorId === floorId), includedDrawingItems.filter((item) => item.floorId === floorId)).filter((warning) => warning.severity === "error")
+    : []]));
+  const dimensionStatusByFloor = Object.fromEntries(Object.entries(workspace.houseStructuresByFloor).map(([floorId]) => [floorId,
+    verificationEntries.some((entry) => entry.floorId === floorId && entry.object.verificationMeta?.status !== "confirmed") ? "pending" : "clear"]));
+  return {
+    valid: references.errors.length === 0 && geometryErrors.length === 0,
+    referenceValid: references.errors.length === 0,
+    geometryValid: geometryErrors.length === 0,
+    errors: references.errors,
+    warnings: references.warnings,
+    orphanIssues,
+    draftItems,
+    todoItems,
+    reviewItems,
+    verificationEntries,
+    furniturePlacementWarnings,
+    geometryErrorsByFloor,
+    dimensionStatusByFloor,
+    geometryCheckStatus: "executed" as const,
+    dimensionComparisonStatus: "not-run" as const,
+    warningCounts,
+    mepMaturity: workspace.drawingItems.some((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category) && item.confidence === "constructionConfirmed") ? "partial-construction-confirmed" : "scheme-usable"
+  };
 }
 
 function isCabinet(item: Furniture) {
@@ -310,13 +377,33 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
     ...(verificationConflictReasons.get(issue.objectId) ?? []),
     issue.message
   ]));
-  const furniture = new Map(workspace.furniture.map((item) => [item.id, item]));
-  const byCategories = (categories: DrawingItemCategory[], table: string) => workspace.drawingItems.filter((item) => categories.includes(item.category)).map((item) => drawingRecord(item, table, rooms, furniture));
-  const cabinets = workspace.furniture.filter(isCabinet).map((item) => cabinetRecord(item, workspace.drawingItems.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id), rooms));
-  const furniturePlacement = workspace.furniture.map((item) => furniturePlacementRecord(
+  const furnitureSelection = workspace.furniture.reduce((result, item) => {
+    const disposition = exportDisposition(item);
+    result[disposition.disposition === "included" ? "included" : disposition.disposition === "excluded" ? "excluded" : "pending"].push(item);
+    return result;
+  }, { included: [] as Furniture[], excluded: [] as Furniture[], pending: [] as Furniture[] });
+  const furnitureById = new Map(workspace.furniture.map((item) => [item.id, item]));
+  const drawingExportDisposition = (item: DrawingItem) => {
+    const own = exportDisposition(item);
+    const relatedId = item.relatedFurnitureId ?? (item.hostObjectId && furnitureById.has(item.hostObjectId) ? item.hostObjectId : null);
+    const related = relatedId ? furnitureById.get(relatedId) : undefined;
+    const relatedDisposition = related ? exportDisposition(related) : null;
+    if (!item.exportScope && relatedDisposition && relatedDisposition.disposition !== "included") return { scope: "review" as const, disposition: "pending-confirmation" as const };
+    return own;
+  };
+  const drawingSelection = workspace.drawingItems.reduce((result, item) => {
+    const disposition = drawingExportDisposition(item);
+    result[disposition.disposition === "included" ? "included" : disposition.disposition === "excluded" ? "excluded" : "pending"].push(item);
+    return result;
+  }, { included: [] as DrawingItem[], excluded: [] as DrawingItem[], pending: [] as DrawingItem[] });
+  const furniture = new Map(furnitureSelection.included.map((item) => [item.id, item]));
+  const byCategories = (categories: DrawingItemCategory[], table: string) => drawingSelection.included.filter((item) => categories.includes(item.category)).map((item) => drawingRecord(item, table, rooms, furniture));
+  const cabinets = furnitureSelection.included.filter(isCabinet).map((item) => cabinetRecord(item, drawingSelection.included.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id), rooms, workspace.houseStructuresByFloor[item.floorId]!));
+  const furniturePlacement = furnitureSelection.included.map((item) => furniturePlacementRecord(
     item,
-    workspace.drawingItems.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id),
+    drawingSelection.included.filter((drawingItem) => drawingItem.relatedFurnitureId === item.id),
     rooms,
+    workspace.houseStructuresByFloor[item.floorId]!,
     validation.furniturePlacementWarnings
   ));
   const yardSurfaces = workspace.houseStructuresByFloor.YARD?.outdoorSurfaces ?? [];
@@ -334,7 +421,7 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
     roomId: null, roomName: "多空间汇总", relatedSwitchId: null, controlGroupId: null,
     notes: `点位：${records.map((record) => record.objectId).join("、")}`
   }));
-  const smartControlNotes = workspace.drawingItems
+  const smartControlNotes = drawingSelection.included
     .filter((item) => ["light", "switch"].includes(item.category) && Boolean(item.smartControl ?? item.needsSmartControl))
     .map((item) => drawingRecord(item, "smartControlNotes", rooms, furniture));
   const lightingScenes = (workspace.lightingDesign?.scenes ?? []).flatMap((scene) => scene.groupStates.map((state) => ({
@@ -351,7 +438,7 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
     drainage: byCategories(["drainage"], "drainage"), ceiling: byCategories(["ceiling"], "ceiling"),
     floorFinish: byCategories(["floorFinish"], "floorFinish"), wallFinish: byCategories(["wallFinish"], "wallFinish"),
     yardFinish: yardSurfaces.map(outdoorSurfaceRecord),
-    outdoorMep: workspace.drawingItems.filter((item) => item.floorId === "YARD" && outdoorCategories.includes(item.category)).map((item) => drawingRecord(item, "outdoorMep", rooms, furniture)),
+    outdoorMep: drawingSelection.included.filter((item) => item.floorId === "YARD" && outdoorCategories.includes(item.category)).map((item) => drawingRecord(item, "outdoorMep", rooms, furniture)),
     furniturePlacement,
     cabinet: cabinets,
     procurementAndMaterials: [
@@ -359,7 +446,11 @@ export function buildConstructionPackageData(workspace: WorkspaceDocument) {
       ...yardSurfaces.map((item) => ({ ...outdoorSurfaceRecord(item), table: "procurementAndMaterials" })),
       ...cabinets.map((item) => ({ ...item, table: "procurementAndMaterials" }))
     ],
-    annotationsAndTodos: workspace.drawingItems.filter((item) => item.category === "annotation" || item.status === "todo" || /待复核|待确认|人工确认/.test(item.notes)).map((item) => drawingRecord(item, "annotationsAndTodos", rooms, furniture)),
+    annotationsAndTodos: drawingSelection.included.filter((item) => item.category === "annotation" || item.status === "todo" || /待复核|待确认|人工确认/.test(item.notes)).map((item) => drawingRecord(item, "annotationsAndTodos", rooms, furniture)),
+    exportReview: [
+      ...furnitureSelection.pending.map((item) => ({ table: "exportReview", floorId: item.floorId, roomId: item.roomId, roomName: rooms.get(item.roomId) ?? "未关联区域", objectId: item.id, category: "furniture", type: item.moduleType ?? item.type, label: item.name, quantity: 0, exportScope: "review", exportDisposition: "pending-confirmation", status: "待确认", notes: "隐藏或未明确纳入本版，未计入家具/柜体/采购数量。" })),
+      ...drawingSelection.pending.map((item) => ({ table: "exportReview", floorId: item.floorId, roomId: item.roomId, roomName: item.roomId ? rooms.get(item.roomId) ?? "未关联区域" : "未关联区域", objectId: item.id, category: item.category, type: item.type, label: item.label, quantity: 0, exportScope: "review", exportDisposition: "pending-confirmation", status: "待确认", notes: "隐藏或未明确纳入本版，未计入本版点位数量。" }))
+    ],
     dimensionVerification
   };
   const cameraViews = requiredConstructionCameraViewIds.map((id) => workspace.cameraViews.find((view) => view.id === id)).filter((view): view is FixedCameraView => Boolean(view));
@@ -396,9 +487,11 @@ function exportOpeningSegment(start: { x: number; y: number }, end: { x: number;
   const length = Math.max(1, Math.hypot(dx, dy));
   const center = { x: start.x + dx * positionOnWall, y: start.y + dy * positionOnWall };
   const half = width / 2;
+  const startT = Math.max(0, Math.min(1, positionOnWall - half / length));
+  const endT = Math.max(0, Math.min(1, positionOnWall + half / length));
   return {
-    start: { x: center.x - dx / length * half, y: center.y - dy / length * half },
-    end: { x: center.x + dx / length * half, y: center.y + dy / length * half },
+    start: { x: start.x + dx * startT, y: start.y + dy * startT },
+    end: { x: start.x + dx * endT, y: start.y + dy * endT },
     normal: { x: -dy / length, y: dx / length }
   };
 }
@@ -427,10 +520,27 @@ function floorVerificationSvg(structure: HouseStructure, sheet: (typeof construc
   };
   const rooms = structure.rooms.map((room) => `<polygon points="${room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}" ${attributes(room)}/>`).join("");
   const outdoors = structure.outdoors.map((outdoor) => `<polygon points="${outdoor.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" ${attributes(outdoor)}/>`).join("");
+  const verificationOpenings = new Map<string, Array<{ opening: HouseDoor | HouseWindow; kind: "door" | "window" }>>();
+  structure.doors.forEach((door) => verificationOpenings.set(door.hostId, [...(verificationOpenings.get(door.hostId) ?? []), { opening: door, kind: "door" }]));
+  structure.windows.forEach((windowObject) => verificationOpenings.set(windowObject.hostId, [...(verificationOpenings.get(windowObject.hostId) ?? []), { opening: windowObject, kind: "window" }]));
+  const verificationLine = (host: ExportHost, width: number, paint: string, openings: Array<{ opening: HouseDoor | HouseWindow; kind: "door" | "window" }>) => {
+    const dx = host.end.x - host.start.x;
+    const dy = host.end.y - host.start.y;
+    const length = Math.max(1, Math.hypot(dx, dy));
+    const ranges = openings.map(({ opening }) => ({ start: Math.max(0, opening.positionOnWall - opening.width / 2 / length), end: Math.min(1, opening.positionOnWall + opening.width / 2 / length) })).sort((left, right) => left.start - right.start);
+    const lines: string[] = [];
+    let cursor = 0;
+    for (const range of ranges) {
+      if (range.start > cursor) lines.push(`<line x1="${host.start.x + dx * cursor}" y1="${host.start.y + dy * cursor}" x2="${host.start.x + dx * range.start}" y2="${host.start.y + dy * range.start}" stroke-width="${width}" ${paint}/>`);
+      cursor = Math.max(cursor, range.end);
+    }
+    if (cursor < 1) lines.push(`<line x1="${host.start.x + dx * cursor}" y1="${host.start.y + dy * cursor}" x2="${host.end.x}" y2="${host.end.y}" stroke-width="${width}" ${paint}/>`);
+    return lines.join("");
+  };
   const walls = structure.walls.map((wall) => wall.kind === "straight"
-    ? `<line x1="${wall.start.x}" y1="${wall.start.y}" x2="${wall.end.x}" y2="${wall.end.y}" ${attributes(wall)}/>`
+    ? verificationLine(wall, 54, attributes(wall).replace(/stroke-width="54"/, ""), verificationOpenings.get(wall.id) ?? [])
     : `<path d="${exportArcPath(wall)}" ${attributes(wall)}/>`).join("");
-  const partitions = structure.partitions.map((partition) => `<line x1="${partition.start.x}" y1="${partition.start.y}" x2="${partition.end.x}" y2="${partition.end.y}" ${attributes(partition)}/>`).join("");
+  const partitions = structure.partitions.map((partition) => verificationLine(partition, 54, attributes(partition).replace(/stroke-width="54"/, ""), verificationOpenings.get(partition.id) ?? [])).join("");
   const stairs = structure.stairs.map((stair) => `<line x1="${stair.start.x}" y1="${stair.start.y}" x2="${stair.end.x}" y2="${stair.end.y}" ${attributes(stair)}/>`).join("");
   const columns = structure.columns.map((column) => `<circle cx="${column.center.x}" cy="${column.center.y}" r="${column.radius + 60}" ${attributes(column)}/>`).join("");
   const doors = structure.doors.map((door) => {
@@ -458,13 +568,79 @@ function floorVerificationSvg(structure: HouseStructure, sheet: (typeof construc
   return `<g data-layer="DimensionVerificationLayer">${rooms}${outdoors}${walls}${partitions}${stairs}${columns}${doors}${windows}${bayWindows}${skylights}${legend}</g>`;
 }
 
+type ExportHost = { start: { x: number; y: number }; end: { x: number; y: number } };
+
+function openingMarkup(host: ExportHost, opening: HouseDoor | HouseWindow, kind: "door" | "window") {
+  const segment = exportOpeningSegment(host.start, host.end, opening.positionOnWall, opening.width);
+  const attrs = `data-opening-id="${esc(opening.id)}" data-opening-kind="${kind}"`;
+  if (kind === "window") {
+    const offset = 55;
+    const first = { start: { x: segment.start.x + segment.normal.x * offset, y: segment.start.y + segment.normal.y * offset }, end: { x: segment.end.x + segment.normal.x * offset, y: segment.end.y + segment.normal.y * offset } };
+    const second = { start: { x: segment.start.x - segment.normal.x * offset, y: segment.start.y - segment.normal.y * offset }, end: { x: segment.end.x - segment.normal.x * offset, y: segment.end.y - segment.normal.y * offset } };
+    const sliding = opening.operation === "sliding" ? `<path d="M ${segment.start.x + 120} ${segment.start.y + 120} l 180 0 m -60 -60 l 60 60 l -60 60 M ${segment.end.x - 120} ${segment.end.y - 120} l -180 0" stroke="#2563eb" stroke-width="24" fill="none"/>` : "";
+    return `<g ${attrs}><line x1="${first.start.x}" y1="${first.start.y}" x2="${first.end.x}" y2="${first.end.y}" stroke="#2563eb" stroke-width="28"/><line x1="${second.start.x}" y1="${second.start.y}" x2="${second.end.x}" y2="${second.end.y}" stroke="#2563eb" stroke-width="28"/>${sliding}</g>`;
+  }
+  const door = opening as HouseDoor;
+  if (door.operation === "sliding") {
+    const tangent = { x: (host.end.x - host.start.x) / Math.max(1, Math.hypot(host.end.x - host.start.x, host.end.y - host.start.y)), y: (host.end.y - host.start.y) / Math.max(1, Math.hypot(host.end.x - host.start.x, host.end.y - host.start.y)) };
+    return `<g ${attrs}><line x1="${segment.start.x}" y1="${segment.start.y}" x2="${segment.end.x}" y2="${segment.end.y}" stroke="#b45309" stroke-width="28" stroke-dasharray="100 65"/><path d="M ${segment.start.x + tangent.x * 190} ${segment.start.y + tangent.y * 190} l ${tangent.x * 220} ${tangent.y * 220} m ${-tangent.x * 70} ${-tangent.y * 70} l ${tangent.x * 70} ${tangent.y * 70} l ${-tangent.x * 70} ${tangent.y * 70} M ${segment.end.x - tangent.x * 190} ${segment.end.y - tangent.y * 190} l ${-tangent.x * 220} ${-tangent.y * 220}" stroke="#b45309" stroke-width="24" fill="none"/></g>`;
+  }
+  if (door.visual?.style === "openPassage" || door.material === "none" || door.visual?.leafCount === 0) {
+    return `<g ${attrs}><line x1="${segment.start.x}" y1="${segment.start.y}" x2="${segment.end.x}" y2="${segment.end.y}" stroke="#b45309" stroke-width="22" stroke-dasharray="70 50"/></g>`;
+  }
+  const opensFromStart = door.openDirection === "leftIn" || door.openDirection === "leftOut";
+  const opensInside = door.openDirection === "leftIn" || door.openDirection === "rightIn";
+  const normal = opensInside ? segment.normal : { x: -segment.normal.x, y: -segment.normal.y };
+  const leafCount = door.visual?.leafCount === 2 ? 2 : 1;
+  const midpoint = { x: (segment.start.x + segment.end.x) / 2, y: (segment.start.y + segment.end.y) / 2 };
+  const leaf = (hinge: { x: number; y: number }, end: { x: number; y: number }) => {
+    const length = Math.hypot(end.x - hinge.x, end.y - hinge.y);
+    const openEnd = { x: hinge.x + normal.x * length, y: hinge.y + normal.y * length };
+    const openVector = { x: openEnd.x - hinge.x, y: openEnd.y - hinge.y };
+    const closedVector = { x: end.x - hinge.x, y: end.y - hinge.y };
+    const sweep = openVector.x * closedVector.y - openVector.y * closedVector.x > 0 ? 1 : 0;
+    return `<line x1="${hinge.x}" y1="${hinge.y}" x2="${openEnd.x}" y2="${openEnd.y}" stroke="#b45309" stroke-width="30"/><path d="M ${openEnd.x} ${openEnd.y} A ${length} ${length} 0 0 ${sweep} ${end.x} ${end.y}" stroke="#b45309" stroke-width="22" fill="none" stroke-dasharray="70 45"/>`;
+  };
+  const leaves = leafCount === 2
+    ? `${leaf(segment.start, midpoint)}${leaf(segment.end, midpoint)}`
+    : leaf(opensFromStart ? segment.start : segment.end, opensFromStart ? segment.end : segment.start);
+  return `<g ${attrs}>${leaves}<line x1="${segment.start.x}" y1="${segment.start.y}" x2="${segment.end.x}" y2="${segment.end.y}" stroke="#b45309" stroke-width="20" stroke-dasharray="70 45"/></g>`;
+}
+
+function hostLineWithOpenings(structure: HouseStructure, hostId: string, base: ExportHost, thickness: number, openings: Array<{ opening: HouseDoor | HouseWindow; kind: "door" | "window" }>) {
+  const dx = base.end.x - base.start.x;
+  const dy = base.end.y - base.start.y;
+  const length = Math.max(1, Math.hypot(dx, dy));
+  const ranges = openings.map(({ opening }) => {
+    const half = opening.width / 2 / length;
+    return { start: Math.max(0, opening.positionOnWall - half), end: Math.min(1, opening.positionOnWall + half) };
+  }).filter((range) => range.end > range.start).sort((left, right) => left.start - right.start);
+  const segments: string[] = [];
+  let cursor = 0;
+  for (const range of ranges) {
+    if (range.start > cursor) segments.push(`<line x1="${base.start.x + dx * cursor}" y1="${base.start.y + dy * cursor}" x2="${base.start.x + dx * range.start}" y2="${base.start.y + dy * range.start}" stroke="#334155" stroke-width="${Math.max(60, thickness)}"/>`);
+    cursor = Math.max(cursor, range.end);
+  }
+  if (cursor < 1) segments.push(`<line x1="${base.start.x + dx * cursor}" y1="${base.start.y + dy * cursor}" x2="${base.end.x}" y2="${base.end.y}" stroke="#334155" stroke-width="${Math.max(60, thickness)}"/>`);
+  const symbols = openings.map(({ opening, kind }) => openingMarkup(base, opening, kind)).join("");
+  return `${segments.join("")}${symbols}`;
+}
+
 function floorSvg(structure: HouseStructure, furniture: Furniture[], items: DrawingItem[], sheet: (typeof constructionPackageSheets)[number], conflictIds: Set<string>) {
   const cs = structure.coordinateSystem;
   const filtered = sheet.categories.length ? items.filter((item) => sheet.categories.includes(item.category)) : [];
-  const walls = structure.walls.map((wall) => wall.kind === "straight" ? `<line x1="${wall.start.x}" y1="${wall.start.y}" x2="${wall.end.x}" y2="${wall.end.y}" stroke="#334155" stroke-width="${Math.max(60, wall.thickness)}"/>` : "").join("");
+  const openingsByHost = new Map<string, Array<{ opening: HouseDoor | HouseWindow; kind: "door" | "window" }>>();
+  structure.doors.forEach((door) => openingsByHost.set(door.hostId, [...(openingsByHost.get(door.hostId) ?? []), { opening: door, kind: "door" }]));
+  structure.windows.forEach((windowObject) => openingsByHost.set(windowObject.hostId, [...(openingsByHost.get(windowObject.hostId) ?? []), { opening: windowObject, kind: "window" }]));
+  const walls = structure.walls.map((wall) => wall.kind === "straight" ? hostLineWithOpenings(structure, wall.id, wall, wall.thickness, openingsByHost.get(wall.id) ?? []) : `<path d="${exportArcPath(wall)}" stroke="#334155" stroke-width="${Math.max(60, wall.thickness)}" fill="none"/>`).join("");
+  const partitions = structure.partitions.map((partition) => hostLineWithOpenings(structure, partition.id, partition, partition.thickness, openingsByHost.get(partition.id) ?? [])).join("");
   const rooms = [...structure.rooms.map((room) => ({ name: room.name, points: room.boundary })), ...structure.outdoors.map((room) => ({ name: room.name, points: room.polygon }))].map((room) => room.points.length > 2 ? `<polygon points="${room.points.map((point) => `${point.x},${point.y}`).join(" ")}" fill="none" stroke="#94a3b8" stroke-width="24"/><text x="${room.points[0].x + 120}" y="${room.points[0].y + 220}" font-size="150" fill="#475569">${esc(room.name)}</text>` : "").join("");
   const surfaces = sheet.type === "sitePlan" || sheet.type === "floorFinishPlan" ? structure.outdoorSurfaces.map((surface) => `<polygon points="${surface.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" fill="${surface.surfaceType === "planting" ? "#dcfce7" : "#f1f5f9"}" stroke="#64748b" stroke-width="24"/><text x="${surface.polygon[0]?.x ?? 0}" y="${(surface.polygon[0]?.y ?? 0) + 150}" font-size="120">${esc(surface.label ?? surface.name)}</text>`).join("") : "";
-  const furnitureSvg = ["furniturePlan", "sitePlan", "socketPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan"].includes(sheet.type ?? "") ? furniture.map((item) => { const x = cs.origin.x + item.position.x / 100 * cs.width; const y = cs.origin.y + item.position.y / 100 * cs.height; return `<rect x="${x - item.dimensions.width * 5}" y="${y - item.dimensions.depth * 5}" width="${item.dimensions.width * 10}" height="${item.dimensions.depth * 10}" fill="#e2e8f0" stroke="#64748b" stroke-width="20"/><text x="${x}" y="${y}" text-anchor="middle" font-size="110">${esc(item.code)}</text>`; }).join("") : "";
+  const furnitureSvg = ["furniturePlan", "sitePlan", "socketPlan", "lightingPlan", "waterSupplyPlan", "drainagePlan"].includes(sheet.type ?? "") ? furniture.map((item) => {
+    const center = getFurnitureCenterMm(item, structure);
+    const footprint = getFurnitureFootprint(item, structure);
+    return `<polygon points="${footprint.map((point) => `${point.x},${point.y}`).join(" ")}" fill="#e2e8f0" stroke="#64748b" stroke-width="20" data-furniture-id="${esc(item.id)}" data-rotation="${item.position.rotation}"/><text x="${center.x}" y="${center.y}" text-anchor="middle" font-size="110">${esc(item.code)}</text>`;
+  }).join("") : "";
   const controlLines = sheet.type === "switchPlan" ? filtered.flatMap((item) => (item.controlledLightIds ?? []).map((lightId) => {
     const light = items.find((candidate) => candidate.id === lightId && candidate.category === "light");
     return light ? `<line x1="${item.positionMm.x}" y1="${item.positionMm.y}" x2="${light.positionMm.x}" y2="${light.positionMm.y}" stroke="#2563eb" stroke-width="24" stroke-dasharray="90 60" opacity=".7"/>` : "";
@@ -479,7 +655,7 @@ function floorSvg(structure: HouseStructure, furniture: Furniture[], items: Draw
     return `${item.polygon?.length ? `<polygon points="${item.polygon.map((point) => `${point.x},${point.y}`).join(" ")}" fill="#dbeafe" fill-opacity=".5" stroke="#2563eb" stroke-width="35"/>` : ""}<circle cx="${item.positionMm.x}" cy="${item.positionMm.y}" r="150" fill="#fff" stroke="#2563eb" stroke-width="38"/><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 20}" font-size="130" font-weight="700">${esc(main)}</text><text x="${item.positionMm.x + 190}" y="${item.positionMm.y + 160}" font-size="105" fill="#475569">${esc(detail)}</text>`;
   }).join("");
   const verification = floorVerificationSvg(structure, sheet, conflictIds);
-  return `<svg viewBox="${cs.origin.x} ${cs.origin.y} ${cs.width} ${cs.height}" role="img" aria-label="${esc(sheet.title)}"><rect x="${cs.origin.x}" y="${cs.origin.y}" width="${cs.width}" height="${cs.height}" fill="#fff"/>${surfaces}${rooms}${walls}${furnitureSvg}${controlLines}${itemSvg}${verification}</svg>`;
+  return `<svg viewBox="${cs.origin.x} ${cs.origin.y} ${cs.width} ${cs.height}" role="img" aria-label="${esc(sheet.title)}"><rect x="${cs.origin.x}" y="${cs.origin.y}" width="${cs.width}" height="${cs.height}" fill="#fff"/>${surfaces}${rooms}${walls}${partitions}${furnitureSvg}${controlLines}${itemSvg}${verification}</svg>`;
 }
 
 function recordsTable(title: string, records: ExportRecord[]) {
@@ -500,9 +676,19 @@ function recordsTable(title: string, records: ExportRecord[]) {
       const warnings = Array.isArray(record.placementWarnings) ? record.placementWarnings : [];
       const anchorText = anchor ? `${record.hostWallId ?? "待重绑"} · ${anchor.side} · 离墙 ${anchor.offsetMm} mm · ${anchor.followWall ? "随墙" : "不随墙"}` : "未绑定";
       const clearanceText = clearance ? Object.entries(clearance).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => `${key}: ${value}`).join("；") : "未设置";
-      return `<tr><td>${esc(record.floorId)}</td><td>${esc(record.roomName)}</td><td>${esc(record.objectId)}</td><td>${esc(record.label)}</td><td>${esc(record.roomAssignmentLocked ? "人工锁定" : "自动")}</td><td>${esc(anchorText)}</td><td>${esc(clearanceText)}</td><td>${warnings.length}</td><td>${esc(record.notes)}</td></tr>`;
+      return `<tr><td>${esc(record.floorId)}</td><td>${esc(record.roomName)}</td><td>${esc(record.objectId)}</td><td>${esc(record.label)}</td><td>${esc(record.positionMm ? JSON.stringify(record.positionMm) : "")}</td><td>${esc(record.rotationDeg)}°</td><td>${esc(record.widthMm)}×${esc(record.depthMm)}×${esc(record.heightMm)} ${esc(record.dimensionUnit)}</td><td>${esc(record.roomAssignmentLocked ? "人工锁定" : "自动")}</td><td>${esc(anchorText)}</td><td>${esc(clearanceText)}</td><td>${warnings.length}</td><td>${esc(record.exportDisposition)}</td><td>${esc(record.notes)}</td></tr>`;
     }).join("");
-    return `<section><h2>${esc(title)}</h2><table><thead><tr><th>楼层</th><th>归属空间</th><th>家具 ID</th><th>名称</th><th>房间归属</th><th>墙体关系</th><th>预留/操作空间</th><th>警告</th><th>说明</th></tr></thead><tbody>${rows || "<tr><td colspan='9'>暂无记录</td></tr>"}</tbody></table></section>`;
+    return `<section><h2>${esc(title)}</h2><table><thead><tr><th>楼层</th><th>归属空间</th><th>家具 ID</th><th>名称</th><th>中心坐标 mm</th><th>旋转</th><th>宽×深×高</th><th>房间归属</th><th>墙体关系</th><th>预留/操作空间</th><th>警告</th><th>导出范围</th><th>说明</th></tr></thead><tbody>${rows || "<tr><td colspan='13'>暂无记录</td></tr>"}</tbody></table></section>`;
+  }
+  const isCabinetTable = records.some((record) => ["cabinet", "procurementAndMaterials"].includes(String(record.table)) && record.category === "cabinet");
+  if (isCabinetTable) {
+    const rows = records.map((record) => `<tr><td>${esc(record.floorId)}</td><td>${esc(record.roomName)}</td><td>${esc(record.objectId)}</td><td>${esc(record.label)}</td><td>${esc(record.positionMm ? JSON.stringify(record.positionMm) : "")}</td><td>${esc(record.rotationDeg)}°</td><td>${esc(record.widthMm)}×${esc(record.depthMm)}×${esc(record.heightMm)} ${esc(record.dimensionUnit)}</td><td>${esc(record.materialId)}</td><td>${esc(record.exportDisposition)}</td><td>${esc(record.notes)}</td></tr>`).join("");
+    return `<section><h2>${esc(title)}</h2><table><thead><tr><th>楼层</th><th>区域</th><th>柜体 ID</th><th>名称</th><th>中心坐标 mm</th><th>旋转</th><th>宽×深×高</th><th>材料</th><th>导出范围</th><th>备注</th></tr></thead><tbody>${rows || "<tr><td colspan='10'>暂无记录</td></tr>"}</tbody></table></section>`;
+  }
+  const isExportReviewTable = records.some((record) => record.table === "exportReview");
+  if (isExportReviewTable) {
+    const rows = records.map((record) => `<tr><td>${esc(record.floorId)}</td><td>${esc(record.objectId)}</td><td>${esc(record.label)}</td><td>${esc(record.category)}</td><td>${esc(record.exportDisposition)}</td><td>${esc(record.notes)}</td></tr>`).join("");
+    return `<section><h2>${esc(title)}</h2><table><thead><tr><th>楼层</th><th>对象 ID</th><th>名称</th><th>类别</th><th>处理</th><th>说明</th></tr></thead><tbody>${rows || "<tr><td colspan='6'>暂无记录</td></tr>"}</tbody></table></section>`;
   }
   const isLightingTable = records.some((record) => ["lighting", "luminaireSchedule", "switchControl", "smartControlNotes", "lightingScenes"].includes(String(record.table)));
   if (isLightingTable) {
@@ -516,12 +702,14 @@ function recordsTable(title: string, records: ExportRecord[]) {
 export function constructionPackageToHtml(workspace: WorkspaceDocument) {
   const data = buildConstructionPackageData(workspace);
   const warning = data.validation.warningCounts;
-  const verificationConflictIds = new Set(data.validation.errors.map((issue) => issue.objectId));
+  // Reference errors and dimensional conflicts are separate; no explicit geometric conflict is inferred here.
+  const verificationConflictIds = new Set<string>();
   const floorSections = workspace.floors.map((floor) => {
     const structure = workspace.houseStructuresByFloor[floor.id];
     if (!structure) return "";
-    const furniture = workspace.furniture.filter((item) => item.floorId === floor.id);
-    const items = workspace.drawingItems.filter((item) => item.floorId === floor.id);
+    const furniture = workspace.furniture.filter((item) => item.floorId === floor.id && exportDisposition(item).disposition === "included");
+    const items = workspace.drawingItems.filter((item) => item.floorId === floor.id && exportDisposition(item).disposition === "included");
+    const floorGeometryIssues = (data.validation.furniturePlacementWarnings as FurniturePlacementWarning[]).filter((issue) => issue.furnitureId && workspace.furniture.some((item) => item.id === issue.furnitureId && item.floorId === floor.id));
     const readiness = evaluateOutputDrawings({
       structure,
       furniture,
@@ -529,8 +717,11 @@ export function constructionPackageToHtml(workspace: WorkspaceDocument) {
       stairSystems: workspace.stairSystems.filter((system) => system.lowerFloorId === floor.id || system.upperFloorId === floor.id),
       stairLandings: workspace.stairLandings.filter((landing) => landing.lowerFloorId === floor.id || landing.upperFloorId === floor.id),
       stairOpenings: workspace.stairOpenings.filter((opening) => opening.floorId === floor.id),
-      errorCount: data.validation.errors.length,
-      warningCount: Object.values(data.validation.warningCounts).reduce((sum, count) => sum + count, 0)
+      errorCount: floorGeometryIssues.filter((issue) => issue.severity === "error").length,
+      warningCount: floorGeometryIssues.filter((issue) => issue.severity === "warning").length,
+      geometryCheckStatus: data.validation.geometryCheckStatus,
+      geometryIssues: floorGeometryIssues,
+      dimensionCheckStatus: data.validation.dimensionStatusByFloor[floor.id] as "not-run" | "pending" | "clear" | "conflict"
     });
     const readinessById = new Map(readiness.map((drawing) => [drawing.id, drawing]));
     const formalSheets = constructionPackageSheets.filter((sheet) => {
@@ -538,11 +729,18 @@ export function constructionPackageToHtml(workspace: WorkspaceDocument) {
       const definitionId = outputDefinitionIdBySheetType[sheet.type];
       return definitionId ? readinessById.get(definitionId)?.status === "ready" : false;
     });
-    const drawings = formalSheets.map((sheet) => `<article><header><div><strong>${sheet.sheetNo} ${esc(sheet.title)}</strong><small>${esc(floor.label)} · ${esc(floor.subtitle)} · ${sheet.scale}</small></div><span>${sheetStatus(items, sheet.categories)}</span></header>${floorSvg(structure, furniture, items, sheet, verificationConflictIds)}<footer>版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</footer></article>`).join("");
-    const incomplete = readiness.filter((drawing) => drawing.status !== "ready").map((drawing) => `<tr><td>${esc(drawing.number)}</td><td>${esc(drawing.name)}</td><td>${esc(drawing.status === "draft" ? "草稿" : "未完成")}</td><td>${esc(drawing.missing.join("、"))}</td></tr>`).join("");
-    return `<section class="floor"><h2>${esc(floor.label)} · ${esc(floor.subtitle)}</h2>${drawings || "<p>当前楼层暂无满足导出条件的正式图纸。</p>"}<h3>未完成图纸</h3><table><thead><tr><th>图号</th><th>图名</th><th>状态</th><th>缺失内容</th></tr></thead><tbody>${incomplete || "<tr><td colspan='4'>全部正式图纸已满足条件</td></tr>"}</tbody></table></section>`;
+    const communicationSheets = constructionPackageSheets.filter((sheet) => sheet.type && outputDefinitionIdBySheetType[sheet.type]);
+    const drawings = communicationSheets.map((sheet) => {
+      const definitionId = outputDefinitionIdBySheetType[sheet.type!];
+      const drawing = readinessById.get(definitionId!);
+      if (!drawing) return "";
+      const state = drawing.exportable ? "正式候选" : "沟通草稿（不可宣称施工交付）";
+      return `<article class="${drawing.exportable ? "formal-sheet" : "draft-sheet"}"><header><div><strong>${sheet.sheetNo} ${esc(sheet.title)}</strong><small>${esc(floor.label)} · ${esc(floor.subtitle)} · ${sheet.scale}</small></div><span>${state}<br/>${sheetStatus(items, sheet.categories)}</span></header>${floorSvg(structure, furniture, items, sheet, verificationConflictIds)}<footer>字段 ${drawing.fieldStatus} · 几何 ${drawing.geometryStatus} · 尺寸 ${drawing.dimensionStatus} · 详见本楼层 readiness 表与检查附件 · 版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</footer></article>`;
+    }).join("");
+    const incomplete = readiness.filter((drawing) => drawing.status !== "ready").map((drawing) => `<tr><td>${esc(drawing.number)}</td><td>${esc(drawing.name)}</td><td>${esc(drawing.status === "draft" ? "草稿" : "未完成")}</td><td>${esc(drawing.fieldStatus)}</td><td>${esc(drawing.geometryStatus)}</td><td>${esc(drawing.dimensionStatus)}</td><td>${esc(drawing.missing.concat(drawing.blockingIssues).join("；"))}</td></tr>`).join("");
+    return `<section class="floor"><h2>${esc(floor.label)} · ${esc(floor.subtitle)}</h2>${drawings || "<p>当前楼层暂无可导出的沟通图形。</p>"}<h3>未完成图纸 / readiness</h3><table><thead><tr><th>图号</th><th>图名</th><th>状态</th><th>字段</th><th>几何</th><th>尺寸</th><th>缺失内容/阻断</th></tr></thead><tbody>${incomplete || "<tr><td colspan='7'>全部图纸已满足正式候选条件</td></tr>"}</tbody></table></section>`;
   }).join("");
-  const warningRows = Object.entries({ "草稿项": warning.draft, "待确认项": warning.todo, "孤立引用": warning.orphan, "家具定位提醒": warning.furniturePlacement, "插座缺少高度": warning.socketMissingHeight, "开关缺少关联灯具": warning.switchMissingLights, "灯具缺少色温": warning.lightMissingColorTemperature, "灯具系统字段不完整": warning.lightIncompleteSystemFields, "灯具/开关控制组不一致": warning.controlGroupMismatch, "排水点缺少类型": warning.drainageMissingType, "铺装/墙面缺少材质": warning.finishMissingMaterial, "庭院待复核": warning.yardNeedsReview, "尺寸未确认": warning.dimensionUnconfirmed, "按图/视觉估算": warning.dimensionEstimated, "尺寸冲突": warning.dimensionConflicts }).map(([label, count]) => `<tr><td>${label}</td><td>${count}</td><td>${count ? "导出后继续复核" : "通过"}</td></tr>`).join("");
+  const warningRows = Object.entries({ "草稿项": warning.draft, "待确认项": warning.todo, "孤立引用": warning.orphan, "家具定位提醒": warning.furniturePlacement, "插座缺少高度": warning.socketMissingHeight, "开关缺少关联灯具": warning.switchMissingLights, "灯具缺少色温": warning.lightMissingColorTemperature, "灯具系统字段不完整": warning.lightIncompleteSystemFields, "灯具/开关控制组不一致": warning.controlGroupMismatch, "排水点缺少类型": warning.drainageMissingType, "铺装/墙面缺少材质": warning.finishMissingMaterial, "庭院待复核": warning.yardNeedsReview, "尺寸未确认": warning.dimensionUnconfirmed, "按图/视觉估算": warning.dimensionEstimated }).map(([label, count]) => `<tr><td>${label}</td><td>${count}</td><td>${count ? "导出后继续复核" : "通过"}</td></tr>`).join("") + `<tr><td>尺寸冲突比对</td><td>未执行</td><td>不宣称通过；保留尺寸复核台账</td></tr>`;
   const cameraRows = data.cameraViews.map((view) => `<tr><td>${esc(view.floor)}</td><td>${esc(view.name)}</td><td>${esc(view.description ?? "")}</td><td><button type="button" data-camera-view="${esc(view.id)}">在应用中打开固定视角并手动截图</button></td></tr>`).join("");
   const tableSections = [
     ["插座/弱电点位表", data.tables.socketAndNetwork], ["开关控制表", data.tables.switchControl], ["灯光点位表", data.tables.lighting],
@@ -550,9 +748,9 @@ export function constructionPackageToHtml(workspace: WorkspaceDocument) {
     ["给水点位表", data.tables.waterSupply], ["排水点位表", data.tables.drainage], ["吊顶区域表", data.tables.ceiling],
     ["地面铺装表", data.tables.floorFinish], ["墙面材料表", data.tables.wallFinish], ["庭院铺装/绿化表", data.tables.yardFinish],
     ["户外水电点位表", data.tables.outdoorMep], ["家具定位复核表", data.tables.furniturePlacement], ["柜体深化表", data.tables.cabinet], ["材料/采购清单", data.tables.procurementAndMaterials],
-    ["施工备注/待确认项表", data.tables.annotationsAndTodos], ["尺寸复核台账", data.tables.dimensionVerification]
+    ["施工备注/待确认项表", data.tables.annotationsAndTodos], ["导出范围待确认附表", data.tables.exportReview], ["尺寸复核台账", data.tables.dimensionVerification]
   ].map(([title, records]) => recordsTable(title as string, records as ExportRecord[])).join("");
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>施工沟通包</title><style>body{margin:0;background:#eef1f4;color:#17202a;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif}main{max-width:1180px;margin:auto;padding:28px}section{background:#fff;border:1px solid #d7dde5;margin:0 0 24px;padding:22px}h1,h2{margin:0 0 14px}.cover{min-height:55vh;display:flex;flex-direction:column;justify-content:center}.meta,small,footer{display:block;color:#64748b;font-size:12px}.notice{border-left:5px solid #d97706;background:#fff7ed}article{border-top:1px solid #d7dde5;padding:18px 0;break-inside:avoid}article header{display:flex;justify-content:space-between;gap:16px}article header span{font-weight:700;color:#475569}svg{display:block;width:100%;max-height:720px;border:1px solid #d7dde5;margin:12px 0}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d7dde5;padding:7px;text-align:left;vertical-align:top}button{border:1px solid #cbd5e1;background:#fff;padding:6px 9px}@media print{body{background:#fff}main{padding:0}section{border-color:#999}.cover{page-break-after:always}button{display:none}}</style></head><body><main><section class="cover"><p class="meta">CONSTRUCTION COMMUNICATION PACKAGE</p><h1>装修施工沟通包</h1><p>面向施工队、家人和供应商的第一版沟通文件</p><p class="meta">版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</p></section><section class="notice"><h2>使用说明与复尺提醒</h2><p>本包表达方案意图、预留点位、控制关系、材料与待确认事项，不是专业机电管线路径图。所有尺寸、标高、设备参数、材料批次和安装条件必须在施工前结合现场复尺、厂家深化图和专业人员意见确认。</p></section><section><h2>A-00 图纸目录/总说明</h2><table><thead><tr><th>图号</th><th>图名</th><th>比例</th></tr></thead><tbody>${constructionPackageSheets.map((sheet) => `<tr><td>${sheet.sheetNo}</td><td>${esc(sheet.title)}</td><td>${sheet.scale}</td></tr>`).join("")}<tr><td>M-01Y</td><td>庭院铺装/绿化专项</td><td>NTS</td></tr></tbody></table></section><section class="notice"><h2>施工包检查</h2><table><thead><tr><th>检查项</th><th>数量</th><th>处理建议</th></tr></thead><tbody>${warningRows}</tbody></table></section>${floorSections}<section><h2>庭院专项</h2><p>庭院铺装、绿化和户外点位来自 YARD 主数据，并按南院、北院/入户庭院或全院标识。</p></section>${tableSections}<section><h2>固定 3D 视角截图入口</h2><p>截图时请在应用中关闭编辑控件、选择框和调试层，只保留模型、家具、庭院及必要标注。</p><table><thead><tr><th>楼层</th><th>视角</th><th>说明</th><th>截图入口</th></tr></thead><tbody>${cameraRows}</tbody></table></section></main></body></html>`;
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>施工沟通包</title><style>body{margin:0;background:#eef1f4;color:#17202a;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei",sans-serif}main{max-width:1180px;margin:auto;padding:28px}section{background:#fff;border:1px solid #d7dde5;margin:0 0 24px;padding:22px}h1,h2{margin:0 0 14px}.cover{min-height:55vh;display:flex;flex-direction:column;justify-content:center}.meta,small,footer{display:block;color:#64748b;font-size:12px}.notice{border-left:5px solid #d97706;background:#fff7ed}article{border-top:1px solid #d7dde5;padding:18px 0;break-inside:avoid}article header{display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:start;gap:16px}article header span{font-weight:700;color:#475569;white-space:normal;overflow-wrap:anywhere}svg{display:block;width:100%;max-height:720px;border:1px solid #d7dde5;margin:12px 0}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d7dde5;padding:7px;text-align:left;vertical-align:top}button{border:1px solid #cbd5e1;background:#fff;padding:6px 9px}@media print{body{background:#fff}main{padding:0}section{border-color:#999}.cover{page-break-after:always}button{display:none}}</style></head><body><main><section class="cover"><p class="meta">CONSTRUCTION COMMUNICATION PACKAGE</p><h1>装修施工沟通包</h1><p>面向施工队、家人和供应商的第一版沟通文件</p><p class="meta">版本 ${esc(data.packageVersion)} · 导出时间 ${esc(data.exportedAt)}</p></section><section class="notice"><h2>使用说明与复尺提醒</h2><p>本包表达方案意图、预留点位、控制关系、材料与待确认事项，不是专业机电管线路径图。所有尺寸、标高、设备参数、材料批次和安装条件必须在施工前结合现场复尺、厂家深化图和专业人员意见确认。</p></section><section><h2>A-00 图纸目录/总说明</h2><table><thead><tr><th>图号</th><th>图名</th><th>比例</th></tr></thead><tbody>${constructionPackageSheets.map((sheet) => `<tr><td>${sheet.sheetNo}</td><td>${esc(sheet.title)}</td><td>${sheet.scale}</td></tr>`).join("")}<tr><td>M-01Y</td><td>庭院铺装/绿化专项</td><td>NTS</td></tr></tbody></table></section><section class="notice"><h2>施工包检查</h2><table><thead><tr><th>检查项</th><th>数量</th><th>处理建议</th></tr></thead><tbody>${warningRows}</tbody></table></section>${floorSections}<section><h2>庭院专项</h2><p>庭院铺装、绿化和户外点位来自 YARD 主数据，并按南院、北院/入户庭院或全院标识。</p></section>${tableSections}<section><h2>固定 3D 视角截图入口</h2><p>截图时请在应用中关闭编辑控件、选择框和调试层，只保留模型、家具、庭院及必要标注。</p><table><thead><tr><th>楼层</th><th>视角</th><th>说明</th><th>截图入口</th></tr></thead><tbody>${cameraRows}</tbody></table></section></main></body></html>`;
 }
 
 function csvCell(value: unknown) {

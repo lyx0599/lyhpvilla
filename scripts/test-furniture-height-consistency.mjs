@@ -19,7 +19,7 @@ function expectedHeightRange(item) {
   if (kind === "tallCabinet" && /tower|fullHeight/i.test(item.render3d?.variantId ?? "")) return [240, 275];
   if (kind !== "wardrobe") return expectedHeightRangesCm[kind];
   if (item.render3d?.variantId === "boutiqueOpenValetRack") return [160, 220];
-  if (item.render3d?.assetType === "walkInCloset" || /fullHeight|TopHung/i.test(item.render3d?.variantId ?? "")) return [240, 275];
+  if (item.render3d?.assetType === "walkInCloset" || /fullHeight|TopHung/i.test(item.render3d?.variantId ?? "") || item.render3d?.cabinetVisual?.topGapMm !== undefined) return [240, 275];
   return expectedHeightRangesCm.wardrobe;
 }
 

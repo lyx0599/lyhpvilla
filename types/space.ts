@@ -150,6 +150,8 @@ export type DrawingItem = {
   notes: string;
   source: DrawingItemSource;
   status: DrawingItemStatus;
+  /** Export scope is independent from display visibility; legacy objects without it are included unless hidden. */
+  exportScope?: "include" | "exclude" | "review";
   quantity: number;
   verificationMeta?: VerificationMeta;
   generatedKey?: string;
@@ -1060,6 +1062,12 @@ export type HouseOutdoor = SyncObjectState & VerificationState & {
   outdoorType: "frontYard" | "backYard" | "sideYard" | "bbq" | "lawn" | "patio";
   polygon: MmPoint[];
   area: number;
+  enclosure?: {
+    type: string;
+    heightMm: number;
+    glass?: string;
+    frameColor?: string;
+  };
 };
 
 /** A functional exterior room. Kept with the building structure so 2D, 3D,
@@ -1090,9 +1098,9 @@ export type HouseFence = SyncObjectState & {
   end: MmPoint;
   height: number;
   thickness: number;
-  material: "wood" | "metal" | "masonry" | "hedge";
-  editable: true;
-  removable: true;
+  material: "wood" | "metal" | "glass" | "masonry" | "hedge";
+  editable: boolean;
+  removable: boolean;
 };
 
 export type HouseOutdoorSurface = SyncObjectState & {
@@ -1336,6 +1344,8 @@ export type Furniture = {
   locked?: boolean;
   visible?: boolean;
   hidden?: boolean;
+  /** Export scope is independent from display visibility; explicit include keeps a hidden construction object exportable. */
+  exportScope?: "include" | "exclude" | "review";
   interaction?: ObjectInteractionFlags;
   verificationMeta?: VerificationMeta;
 };

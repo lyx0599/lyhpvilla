@@ -5,6 +5,8 @@ import * as THREE from "three";
 import type { Render3DMaterialRole } from "@/lib/render3d-assets";
 import { getShowroomMaterialResource } from "@/lib/showroom-material-resources";
 import { resolvePublicAssetUrl } from "@/lib/external-asset-manifest";
+import { relativeRoughnessByte } from "@/lib/render-material-calibration";
+import { idleRenderCacheKeys } from "@/lib/render-cache-budget";
 import {
   getMaterialResolution,
   getPbrMaterialDefinition,
@@ -38,11 +40,16 @@ type Options = {
   neutralColor?: boolean;
 };
 
-type ProceduralPbrQualitySettings = { quality: MaterialQualityTier; device: MaterialDeviceClass };
+export type ProceduralPbrQualitySettings = {
+  quality: MaterialQualityTier;
+  device: MaterialDeviceClass;
+  maxTextureSize?: 512 | 1024;
+  includeHeightMap?: boolean;
+};
 const ProceduralPbrQualityContext = createContext<ProceduralPbrQualitySettings>({ quality: "standard", device: "desktop" });
 
-export function ProceduralPbrQualityProvider({ quality, device, children }: ProceduralPbrQualitySettings & { children: ReactNode }) {
-  const value = useMemo(() => ({ quality, device }), [device, quality]);
+export function ProceduralPbrQualityProvider({ quality, device, maxTextureSize, includeHeightMap, children }: ProceduralPbrQualitySettings & { children: ReactNode }) {
+  const value = useMemo(() => ({ quality, device, maxTextureSize, includeHeightMap }), [device, quality, maxTextureSize, includeHeightMap]);
   return createElement(ProceduralPbrQualityContext.Provider, { value }, children);
 }
 
@@ -57,10 +64,12 @@ type PbrMapCacheEntry = {
   maps: ProceduralPbrMaps;
   estimatedBytes: number;
   refs: number;
+  mounted: boolean;
   lastUsed: number;
 };
 
 const MAX_PBR_MAP_CACHE_ENTRIES = 32;
+const MAX_PBR_MAP_CACHE_BYTES = 128 * 1024 * 1024;
 const pbrMapCache = new Map<string, PbrMapCacheEntry>();
 let pruneTimer: number | null = null;
 let pbrMapGenerationCount = 0;
@@ -72,21 +81,26 @@ function disposePbrMaps(maps: ProceduralPbrMaps) {
 
 function prunePbrMapCache() {
   pruneTimer = null;
-  if (pbrMapCache.size <= MAX_PBR_MAP_CACHE_ENTRIES) return;
-  const idleEntries = Array.from(pbrMapCache.entries())
-    .filter(([, entry]) => entry.refs === 0)
-    .sort(([, left], [, right]) => left.lastUsed - right.lastUsed);
-  while (pbrMapCache.size > MAX_PBR_MAP_CACHE_ENTRIES && idleEntries.length) {
-    const [key, entry] = idleEntries.shift()!;
+  const now = Date.now();
+  // React may yield after useMemo creates a map but before its ownership effect
+  // commits. A zero refcount at that point is NOT an idle/disposable texture.
+  const candidates = Array.from(pbrMapCache, ([key, entry]) => [key, {
+    ...entry,
+    refs: entry.refs || (now - entry.lastUsed < (entry.mounted ? 2000 : 60000) ? 1 : 0)
+  }] as const);
+  for (const key of idleRenderCacheKeys(candidates.map(([key, entry]) => [key, entry]), MAX_PBR_MAP_CACHE_ENTRIES, MAX_PBR_MAP_CACHE_BYTES)) {
+    const entry = pbrMapCache.get(key)!;
     pbrMapCache.delete(key);
     disposePbrMaps(entry.maps);
     pbrMapEvictionCount += 1;
   }
+  const overBudget = pbrMapCache.size > MAX_PBR_MAP_CACHE_ENTRIES || Array.from(pbrMapCache.values()).reduce((sum, entry) => sum + entry.estimatedBytes, 0) > MAX_PBR_MAP_CACHE_BYTES;
+  if (overBudget && Array.from(pbrMapCache.values()).some((entry) => entry.refs === 0)) schedulePbrMapPrune();
 }
 
 function schedulePbrMapPrune() {
   if (typeof window === "undefined" || pruneTimer !== null) return;
-  pruneTimer = window.setTimeout(prunePbrMapCache, 0);
+  pruneTimer = window.setTimeout(prunePbrMapCache, 2000);
 }
 
 function seededNoise(x: number, y: number, seed: number) {
@@ -184,7 +198,9 @@ function buildPbrMaps(
   device: MaterialDeviceClass,
   token: PbrMaterialToken,
   resourceId?: string,
-  neutralColor = false
+  neutralColor = false,
+  maxTextureSize?: 512 | 1024,
+  includeHeightMap = true
 ) {
   if (typeof document === "undefined") return null;
   pbrMapGenerationCount += 1;
@@ -192,7 +208,7 @@ function buildPbrMaps(
   const unified = getPbrMaterialDefinition(token).definition;
   const resolvedBase = neutralColor ? "#ffffff" : resource?.baseColor ?? baseColor ?? unified.baseColor;
   const resolvedAccent = neutralColor ? "#d2d2d2" : resource?.accentColor ?? accentColor ?? unified.accentColor;
-  const size = getMaterialResolution(token, quality, device);
+  const size = Math.min(getMaterialResolution(token, quality, device), maxTextureSize ?? Infinity);
   if (quality === "draft") {
     const canvas = makeCanvas(size);
     const context = canvas.getContext("2d");
@@ -224,7 +240,7 @@ function buildPbrMaps(
   const normalCanvas = makeCanvas(size);
   const roughnessCanvas = makeCanvas(size);
   const aoCanvas = makeCanvas(size);
-  const heightCanvas = unified.channels.height ? makeCanvas(size) : null;
+  const heightCanvas = includeHeightMap && unified.channels.height ? makeCanvas(size) : null;
   const color = colorCanvas.getContext("2d");
   const normal = normalCanvas.getContext("2d");
   const roughness = roughnessCanvas.getContext("2d");
@@ -255,7 +271,6 @@ function buildPbrMaps(
   const oakFloor = token === "oakFloor";
   const travertine = token === "travertine";
   const tiled = token === "wetAreaTile" || token === "courtyardStone";
-  const herringbone = resourceId === "showroomPaleHerringbone";
   const burl = resource?.family === "burlWood";
   const verticalOak = resourceId === "showroomWarmOakVertical";
   const woven = resourceId === "showroomWovenHeadboard";
@@ -430,6 +445,24 @@ function buildPbrMaps(
       normal.strokeStyle = loop % 2 ? "rgb(124,133,252)" : "rgb(133,124,252)";
       [color, normal].forEach((ctx) => { ctx.lineWidth = Math.max(1, radius * 0.38); ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 1.75); ctx.stroke(); });
     }
+  } else if (kind === "leather") {
+    // Fine, irregular pores rather than the fabric weave (or wall veins).
+    // Keep their scale and distribution stable across quality resolutions.
+    const baseline = resource?.roughness ?? unified.roughness;
+    for (let pore = 0; pore < 3200; pore += 1) {
+      const x = seededNoise(pore, 19, 61) * size;
+      const y = seededNoise(pore, 31, 43) * size;
+      const radius = size * (0.0007 + seededNoise(pore, 41, 29) * 0.0012);
+      color.fillStyle = "rgba(35,24,19,.055)";
+      normal.fillStyle = pore % 2 ? "rgb(125,130,254)" : "rgb(130,125,254)";
+      const value = Math.round(Math.max(0, baseline - 0.06 * seededNoise(pore, 53, 17)) * 255);
+      roughness.fillStyle = `rgb(${value},${value},${value})`;
+      [color, normal, roughness].forEach((ctx) => {
+        ctx.beginPath();
+        ctx.ellipse(x, y, radius, radius * 0.65, pore % 7, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
   } else if (fabric) {
     const weaveStep = woven ? Math.max(3, size / 80) : lineStep;
     for (let offset = 0; offset < size; offset += weaveStep) {
@@ -437,9 +470,9 @@ function buildPbrMaps(
       normal.lineWidth = 1;
       normal.beginPath(); normal.moveTo(offset, 0); normal.lineTo(offset, size); normal.stroke();
       normal.beginPath(); normal.moveTo(0, offset); normal.lineTo(size, offset); normal.stroke();
-      roughness.fillStyle = kind === "leather" ? "rgb(150,150,150)" : "rgb(232,232,232)";
+      roughness.fillStyle = "rgb(232,232,232)";
       roughness.fillRect(offset, 0, woven ? 2 : 1, size); roughness.fillRect(0, offset, size, woven ? 2 : 1);
-      color.strokeStyle = kind === "leather" ? "rgba(65,39,25,.09)" : "rgba(76,62,50,.11)";
+      color.strokeStyle = "rgba(76,62,50,.11)";
       color.strokeRect(offset, 0, 1, size); color.strokeRect(0, offset, size, 1);
     }
   } else if (lacquer) {
@@ -492,26 +525,6 @@ function buildPbrMaps(
         [color, normal, ao].forEach((ctx) => { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke(); });
       }
     }
-    if (herringbone) {
-      const unit = size / 8;
-      color.strokeStyle = "rgba(92,78,61,.46)";
-      normal.strokeStyle = "rgb(128,116,250)";
-      ao.strokeStyle = "rgba(54,45,37,.5)";
-      [color, normal, ao].forEach((ctx) => { ctx.lineWidth = Math.max(1, size / 420); });
-      for (let row = -1; row < 10; row += 1) {
-        for (let column = -2; column < 10; column += 1) {
-          const x = column * unit + (row % 2 ? unit / 2 : 0);
-          const y = row * unit;
-          [color, normal, ao].forEach((ctx) => {
-            ctx.beginPath();
-            ctx.moveTo(x, y + unit / 2);
-            ctx.lineTo(x + unit / 2, y);
-            ctx.lineTo(x + unit, y + unit / 2);
-            ctx.stroke();
-          });
-        }
-      }
-    }
   } else if (metal) {
     for (let x = 0; x < size; x += 3) {
       color.fillStyle = x % 9 ? "rgba(255,255,255,.035)" : "rgba(25,25,25,.045)";
@@ -536,6 +549,19 @@ function buildPbrMaps(
     height.drawImage(aoCanvas, 0, 0);
     height.globalAlpha = 1;
   }
+
+  // Only generated maps are calibrated. External PBR textures retain their
+  // authored values, and the optional synthesized height above is unchanged.
+  const roughnessPixels = roughness.getImageData(0, 0, size, size);
+  const baseline = resource?.roughness ?? unified.roughness;
+  const lookup = Uint8Array.from({ length: 256 }, (_, value) => relativeRoughnessByte(value, baseline));
+  for (let index = 0; index < roughnessPixels.data.length; index += 4) {
+    const value = lookup[roughnessPixels.data[index + 1]];
+    roughnessPixels.data[index] = value;
+    roughnessPixels.data[index + 1] = value;
+    roughnessPixels.data[index + 2] = value;
+  }
+  roughness.putImageData(roughnessPixels, 0, 0);
 
   return {
     map: configure(new THREE.CanvasTexture(colorCanvas), repeat, rotation, true),
@@ -565,10 +591,11 @@ export function useProceduralPbrMaps({
   const resolvedToken = token ?? resolvePbrMaterialToken(resourceId ?? kind ?? undefined);
   const tier = resolveQualityTier(quality ?? inheritedQuality.quality);
   const resolvedDevice = device ?? inheritedQuality.device;
+  const { maxTextureSize, includeHeightMap = true } = inheritedQuality;
   const roundedRotation = Math.round(rotation * 1000) / 1000;
   const transformKey = canonicalTransform ? "material-transform" : `${repeatX}|${repeatY}|${roundedRotation}`;
   const colorKey = neutralColor ? "neutral" : `${baseColor}|${accentColor}`;
-  const cacheKey = kind ? `${kind}|${resolvedToken}|${colorKey}|${transformKey}|${tier}|${resolvedDevice}|${resourceId ?? "local"}` : "none";
+  const cacheKey = kind ? `${kind}|${resolvedToken}|${colorKey}|${transformKey}|${tier}|${resolvedDevice}|${resourceId ?? "local"}|${maxTextureSize ?? "full"}|height=${includeHeightMap}` : "none";
   const externalMaps = useExternalPbrMaps(resourceId, canonicalTransform ? [1, 1] : [repeatX, repeatY], canonicalTransform ? 0 : roundedRotation);
   const maps = useMemo(
     () => {
@@ -579,25 +606,27 @@ export function useProceduralPbrMaps({
         cached.lastUsed = Date.now();
         return cached.maps;
       }
-      const generated = buildPbrMaps(kind, baseColor, accentColor, canonicalTransform ? [1, 1] : [repeatX, repeatY], canonicalTransform ? 0 : roundedRotation, tier, resolvedDevice, resolvedToken, resourceId, neutralColor);
+      const generated = buildPbrMaps(kind, baseColor, accentColor, canonicalTransform ? [1, 1] : [repeatX, repeatY], canonicalTransform ? 0 : roundedRotation, tier, resolvedDevice, resolvedToken, resourceId, neutralColor, maxTextureSize, includeHeightMap);
       if (generated) {
         const textureCount = [generated.map, generated.normalMap, generated.roughnessMap, generated.aoMap, generated.bumpMap].filter(Boolean).length;
         pbrMapCache.set(cacheKey, {
           maps: generated,
           estimatedBytes: generated.map.image.width * generated.map.image.height * 4 * textureCount,
           refs: 0,
+          mounted: false,
           lastUsed: Date.now()
         });
         schedulePbrMapPrune();
       }
       return generated;
     },
-    [accentColor, baseColor, cacheKey, canonicalTransform, externalMaps, kind, neutralColor, repeatX, repeatY, resolvedDevice, resolvedToken, resourceId, roundedRotation, tier]
+    [accentColor, baseColor, cacheKey, canonicalTransform, externalMaps, kind, neutralColor, repeatX, repeatY, resolvedDevice, resolvedToken, resourceId, roundedRotation, tier, maxTextureSize, includeHeightMap]
   );
   useEffect(() => {
     const entry = pbrMapCache.get(cacheKey);
     if (!entry || !maps) return;
     entry.refs += 1;
+    entry.mounted = true;
     entry.lastUsed = Date.now();
     schedulePbrMapPrune();
     return () => {
@@ -617,6 +646,7 @@ export function getProceduralPbrCacheStats() {
     entries: pbrMapCache.size,
     activeEntries: Array.from(pbrMapCache.values()).filter((entry) => entry.refs > 0).length,
     maxEntries: MAX_PBR_MAP_CACHE_ENTRIES,
+    maxBytes: MAX_PBR_MAP_CACHE_BYTES,
     evictions: pbrMapEvictionCount,
     estimatedBytes: Array.from(pbrMapCache.values()).reduce((sum, entry) => sum + entry.estimatedBytes, 0),
     generatedMaps: pbrMapGenerationCount

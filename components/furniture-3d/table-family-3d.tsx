@@ -78,10 +78,7 @@ export function DiningTableFamily3D(props: FurnitureFamily3DProps) {
     <group>
       {round ? (
         <group position={[0, topY, 0]}>
-          <mesh castShadow receiveShadow>
-            <cylinderGeometry args={[roundRadius, roundRadius, topThickness, asset.detailLevel === "presentation" ? 72 : 40]} />
-            <FurnitureMaterial layer={woodMaterial} role="wood" repeat={[5.4, 5.4]} roughness={0.52} />
-          </mesh>
+          <CylinderPart radiusTop={roundRadius} height={topThickness} position={[0, 0, 0]} sides={asset.detailLevel === "presentation" ? 72 : 40} material={woodMaterial} role="wood" roughness={0.52} />
           {asset.detailLevel === "presentation" && <>
             <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -topThickness * 0.04, 0]} castShadow>
               <torusGeometry args={[roundRadius - 0.012, 0.018, 14, 80]} />

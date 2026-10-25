@@ -22,14 +22,21 @@ export type DecisionItem = {
 
 export const ownerDecisionPackageR1 = {
   packageId: "OWNER_DECISION_PACKAGE_R1",
-  revision: "whole-house-lighting-cabinet-yard-integration-v1-20260812",
-  dataSha: "8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831",
+  revision: "2f-cloakroom-bridge-removal-v1-20260910",
+  dataSha: "885607ed10918935a6cbf668133571319d8e97c3e9ffb0eded873cd2d0ad8692",
+  dataShaScope: "B1 合入后的当前主数据生成快照；主文件后续变化不会自动更新此 SHA，需重新生成并登记。",
+  historicalBaseline: {
+    revision: "whole-house-lighting-cabinet-yard-integration-v1-20260812",
+    dataSha: "8790920b120e37b5fdd7515479caf1c28e478bd78823621434b14acfa18be831",
+    note: "以上字段仅作为 2026-08 全屋沟通基线留档；当前问题清单绑定 2026-09 桥柜取消后的主 data。"
+  },
   classification: "REFERENCE / COMMUNICATION ONLY",
   disclaimer: "不修改主 data、Guard、施工、BOM、IFC 或采购；不把估算毫米当施工真值。",
   confirmedInputs: [
     "1F A/A/A：连续整墙干吧；墙边隐藏插座+预留空管；冰箱 placeholder。",
     "干吧无固定上下水意图；餐桌保留 4–6 / 8–10 双态；沙发可向电视方向有限移动。",
-    "1F 1800mm 仅为研究目标；placeholder 不等于 SKU 或采购事实。"
+    "1F 1800mm 仅为研究目标；placeholder 不等于 SKU 或采购事实。",
+    "2F 衣帽间保留 1800×700mm 升降桌；桌上桥柜已取消，专属灯光/控制引用已清理，桌位与窗扇/椅后退仍待复尺闭合。"
   ],
   minimalUserQuestions: [
     {
@@ -38,12 +45,6 @@ export const ownerDecisionPackageR1 = {
       question: "在现场复尺和湿吧 MEP 证据闭合后，B2 聚会桌—湿吧优先保留哪一种沟通方案？",
       options: ["A：桌位优先，湿吧保持当前参考位置", "B：湿吧优先，接受桌椅/通道重新排布", "Deferred：先不定，等复尺包回传"]
     },
-    {
-      id: "Q-2F-DESK-01",
-      itemId: "DEC-2F-DESK-BRIDGE-CABINET",
-      question: "2F 升降桌与桥柜是否按当前代表性参考方向继续深化？",
-      options: ["A：保留升降桌—桥柜关系，待动态包络复核", "B：允许改为独立桌/柜段，待复尺后重算", "Deferred：不在本轮锁定"]
-    }
   ],
   items: [
     {
@@ -216,26 +217,25 @@ export const ownerDecisionPackageR1 = {
       defaultDeferredMeaning: "不删座、不缩干吧、不猜 SKU 来掩盖冲突。"
     },
     {
-      id: "DEC-2F-DESK-BRIDGE-CABINET",
+      id: "CONF-2F-DESK-OPEN-ABOVE",
       floorId: "2F",
-      title: "升降桌—桥柜动态包络",
-      status: "OWNER_DECISION_REQUIRED",
-      objectIds: ["FURN-2F-LIFT-DESK", "CAB-2F-BRIDGE"],
+      title: "升降桌保留与桌上开敞操作包络",
+      status: "CONFIRMED",
+      objectIds: ["FURN-2F-LIFT-DESK"],
       sourcePaths: ["docs/whole-house-audits/whole-house-P0-integration-audit-2026-08-12.md", "components/owner-communication-model.tsx"],
-      impact: "决定家具家族候选与走行空间，但不应以视觉比例替代动态包络。",
-      latestDecisionMilestone: "复尺/动态包络证据后，PRE-IFC 前",
-      options: ["保留当前关系", "允许独立桌/柜段", "Deferred"],
-      defaultDeferredMeaning: "只登记审美方向，不消费为几何或 BOM。",
-      userQuestion: "2F 是否按当前升降桌—桥柜关系继续深化，还是允许拆成独立桌/柜段？"
+      impact: "升降桌保留，桌上桥柜取消；窗扇、椅后退、升降行程和通道包络仍按现场复尺证据执行，不把视觉比例替代为施工真值。",
+      latestDecisionMilestone: "已确认；PRE-IFC 前仅补现场复尺证据",
+      options: ["保留 1800×700mm 升降桌，桌上保持开敞"],
+      defaultDeferredMeaning: "桥柜取消决定已生效；不恢复桥柜或消费为几何/BOM。"
     },
     {
       id: "FIELD-2F-ROOM-BOUNDS",
       floorId: "2F",
-      title: "桥柜行程、主卫、阳台门槛与 roomId/camera 归属",
+      title: "窗前桌位、主卫、阳台门槛与 roomId/camera 归属",
       status: "FIELD_REMEASURE",
-      objectIds: ["BOUNDS-2F-BRIDGE-TRAVEL", "ROOM-2F-MASTER-BATH", "ROOM-2F-BALCONY", "CAMERA-2F-ROOM-MAP"],
+      objectIds: ["FURN-2F-LIFT-DESK", "ROOM-2F-MASTER-BATH", "ROOM-2F-BALCONY", "CAMERA-2F-ROOM-MAP"],
       sourcePaths: ["docs/whole-house-audits/whole-house-P0-integration-audit-2026-08-12.md"],
-      impact: "影响家具包络、门槛/排水和房间导航真值。",
+      impact: "影响桌面升降、窗扇开启、椅后退、通道包络、门槛/排水和房间导航真值。",
       latestDecisionMilestone: "2F CAD/现场复尺后",
       options: ["绑定真实 datum/bounds", "冲突项保持 BLOCKED"],
       defaultDeferredMeaning: "不修正 roomId/camera 冲突，不改主 data。"
@@ -255,9 +255,9 @@ export const ownerDecisionPackageR1 = {
     {
       id: "BLOCK-2F-ROOM-CONFLICT",
       floorId: "2F",
-      title: "房间身份、升降桌/桥柜、主卫与阳台未闭合",
+      title: "房间身份、升降桌、主卫与阳台未闭合",
       status: "BLOCKED",
-      objectIds: ["ROOM-2F-ROOMID-CONFLICT", "CAB-2F-BRIDGE", "ROOM-2F-MASTER-BATH"],
+      objectIds: ["ROOM-2F-ROOMID-CONFLICT", "FURN-2F-LIFT-DESK", "ROOM-2F-MASTER-BATH"],
       sourcePaths: ["docs/whole-house-audits/whole-house-P0-integration-audit-2026-08-12.md"],
       impact: "冻结专属精修和施工化升级，保留当前沟通模型。",
       latestDecisionMilestone: "复尺 + 专业签认 + PMO 再审",

@@ -15,9 +15,12 @@ const channel = process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === "0" ? undefined : "
 console.log(`visual QA: ${probeMode ? "probe" : "capture"} -> ${outputDir}`);
 
 const scenes = [
-  { id: "1f-living", floorId: "1F", viewName: "1F 沙发模块细节", buttonName: "沙发模块细节", buttonCategory: "结构 / 特征视角" },
-  { id: "1f-dining", floorId: "1F", viewName: "1F 餐桌", buttonName: "餐桌", buttonCategory: "结构 / 特征视角" },
-  { id: "2f-master-bedroom", floorId: "2F", viewName: "卧室", buttonName: "卧室", buttonCategory: "房间视角" }
+  // Keep these labels aligned with the canonical 1F view registry. The previous
+  // short labels stopped matching after the visual-system naming pass, which
+  // made the capture fail before any viewport evidence was written.
+  { id: "1f-living", floorId: "1F", viewName: "低靠背浅弧沙发细节", buttonName: "低靠背浅弧沙发细节", buttonCategory: "结构 / 特征视角" },
+  { id: "1f-dining", floorId: "1F", viewName: "高级电动转盘圆桌", buttonName: "高级电动转盘圆桌", buttonCategory: "结构 / 特征视角" },
+  { id: "2f-master-bedroom", floorId: "2F", viewName: "05 主卧真实入户", buttonName: "05 主卧真实入户", buttonCategory: "结构 / 特征视角" }
 ];
 
 function cacheBustedUrl(url) {

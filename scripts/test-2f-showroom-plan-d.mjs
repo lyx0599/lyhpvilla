@@ -51,9 +51,7 @@ assert.equal(wardrobe.hostWallId, "W-2F-011");
 assert.equal(wardrobe.render3d.variantId, "shallowTopHungSlidingTextile");
 assert.equal(wardrobe.render3d.cabinetVisual.doorCount, 4);
 
-const desk = furniture("module-2f-window-desk");
-assert.deepEqual(desk.dimensions, { width: 180, depth: 70, height: 74, unit: "cm" });
-assert.equal(desk.render3d.variantId, "luxuryElectricBladePedestal");
+assert.equal(workspace.furniture.some((item) => item.id === "module-2f-window-desk"), false, "The cancelled cloakroom desk must not return to the candidate model.");
 
 assert.deepEqual(furniture("furn-2f-master-bathtub-001").dimensions, { width: 170, depth: 70, height: 60, unit: "cm" });
 assert.deepEqual(furniture("furn-2f-master-toilet-001").dimensions, { width: 60, depth: 70, height: 78, unit: "cm" });

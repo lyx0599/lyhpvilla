@@ -304,7 +304,28 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
   const sliding = variant === "slidingPanels";
   const integratedWardrobe = variant === "integratedTaupeWardrobe";
   const floorY = -height / 2;
-  const cabinetVisual = item.render3d?.cabinetVisual;
+  // Explicit access plans opt into the two-track wardrobe geometry. Keep the
+  // extension local until the persisted data type is promoted.
+  const cabinetVisual = item.render3d?.cabinetVisual as (NonNullable<typeof item.render3d>["cabinetVisual"] & {
+    accessPlanId?: string;
+    panelThicknessMm?: number;
+    trackCenterDistanceMm?: number;
+  }) | undefined;
+  const slidingAccessPlan = sliding && Boolean(cabinetVisual?.accessPlanId);
+  const doorStates = item.cabinetInterior?.doorStates ?? {};
+  const leftHalfRequested = slidingAccessPlan && Boolean(doorStates.leftHalfOpen ?? doorStates.left);
+  const rightHalfRequested = slidingAccessPlan && Boolean(doorStates.rightHalfOpen ?? doorStates.right);
+  // A single half-open state is the only supported presentation state. If a
+  // stale editor payload marks both sides, fail closed rather than moving both
+  // leaves and presenting an ambiguous opening.
+  const leftHalfOpen = leftHalfRequested && !rightHalfRequested;
+  const rightHalfOpen = rightHalfRequested && !leftHalfRequested;
+  const slidingOpenAmount = slidingAccessPlan && (leftHalfOpen || rightHalfOpen) ? Math.max(runtimeOpenAmount, 1) : 0;
+  const panelThickness = slidingAccessPlan ? 0.018 : undefined;
+  const doorThickness = slidingAccessPlan ? 0.024 : 0.045;
+  const trackCenterDistance = slidingAccessPlan
+    ? Math.max(0.04, (cabinetVisual?.trackCenterDistanceMm ?? 45) / 1000)
+    : undefined;
   const forceGlassDoors = cabinetVisual?.frontStyle === "glass" && cabinetVisual.allDoorPanels !== false;
   const glass = forceGlassDoors || variant === "glassDisplay" || variant === "slimGlassFrame";
   const open = variant === "openClosedMix" || variant === "woodWarmWhite";
@@ -313,13 +334,15 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
     : cabinetVisual?.glassTone === "smoked"
       ? "#55473f"
       : undefined;
-  const configuredBays = cabinetVisual?.bays?.filter((bay) => bay.widthRatio > 0).slice(0, 8) ?? [];
+  const configuredBays = cabinetVisual?.bays?.filter((bay) => bay.widthRatio > 0).slice(0, slidingAccessPlan ? 2 : 8) ?? [];
   const fallbackPanelCount = Math.max(3, Math.min(6, Math.round(width / 0.58)));
-  const panelCount = configuredBays.length || fallbackPanelCount;
+  const panelCount = slidingAccessPlan ? 2 : configuredBays.length || fallbackPanelCount;
   const gap = 0.006;
-  const bayRatios = configuredBays.length
-    ? configuredBays.map((bay) => bay.widthRatio)
-    : Array.from({ length: panelCount }, () => 1);
+  const bayRatios = slidingAccessPlan
+    ? [1, 1]
+    : configuredBays.length
+      ? configuredBays.map((bay) => bay.widthRatio)
+      : Array.from({ length: panelCount }, () => 1);
   const ratioTotal = Math.max(0.001, bayRatios.reduce((sum, ratio) => sum + ratio, 0));
   const usableBayWidth = Math.max(0.12, width - gap * (panelCount + 1));
   let bayCursor = -width / 2 + gap;
@@ -330,7 +353,7 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
     return result;
   });
   const openIndex = Math.min(panelCount - 1, Math.floor(resolved.variation.panelBias * panelCount));
-  const carcassThickness = Math.min(0.045, Math.max(0.025, width * 0.018));
+  const carcassThickness = panelThickness ?? Math.min(0.045, Math.max(0.025, width * 0.018));
   const carcassY = floorY + height * 0.5;
   const carcassMaterial = cabinetLayer(props, "carcass");
   const doorMaterial = cabinetLayer(props, "door");
@@ -339,19 +362,21 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
   const doorRole = doorMaterial.role;
   return (
     <group name="realistic-built-in-tall-cabinet">
-      <RoundedPart name={`${item.id}-cabinet-body-back`} userData={cabinetPartData("cabinet-body")} size={[width - carcassThickness * 2, height * 0.91, carcassThickness]} position={[0, carcassY, -depth * 0.46]} radius={0.008} detailLevel={asset.detailLevel} material={carcassMaterial} role={carcassMaterial.role} repeat={[Math.max(3, panelCount), 6]} />
+      <RoundedPart name={`${item.id}-cabinet-body-back`} userData={cabinetPartData("cabinet-body")} size={[width - carcassThickness * 2, height * 0.91, carcassThickness]} position={[0, carcassY, slidingAccessPlan ? -depth / 2 + carcassThickness / 2 : -depth * 0.46]} radius={0.008} detailLevel={asset.detailLevel} material={carcassMaterial} role={carcassMaterial.role} repeat={[Math.max(3, panelCount), 6]} />
       {[-1, 1].map((side) => (
         <RoundedPart key={side} name={`${item.id}-cabinet-body-side-${side}`} userData={cabinetPartData("cabinet-body")} size={[carcassThickness, height * 0.96, depth * 0.92]} position={[side * (width / 2 - carcassThickness / 2), carcassY, 0]} radius={0.009} detailLevel={asset.detailLevel} material={carcassMaterial} role={carcassMaterial.role} repeat={[1, 6]} />
       ))}
       {[-1, 1].map((side) => (
-        <RoundedPart key={side} name={`${item.id}-cabinet-body-cap-${side}`} userData={cabinetPartData("cabinet-body")} size={[width, carcassThickness, depth * 0.92]} position={[0, carcassY + side * (height * 0.48 - carcassThickness / 2), 0]} radius={0.009} detailLevel={asset.detailLevel} material={carcassMaterial} role={carcassMaterial.role} repeat={[Math.max(3, panelCount), 1]} />
+        <RoundedPart key={side} name={`${item.id}-cabinet-body-cap-${side}`} userData={cabinetPartData("cabinet-body")} size={[width, carcassThickness, depth * 0.92]} position={[0, slidingAccessPlan ? side * (height / 2 - carcassThickness / 2) : carcassY + side * (height * 0.48 - carcassThickness / 2), 0]} radius={0.009} detailLevel={asset.detailLevel} material={carcassMaterial} role={carcassMaterial.role} repeat={[Math.max(3, panelCount), 1]} />
       ))}
       <RoundedPart name={`${item.id}-cabinet-door-top`} userData={cabinetPartData("cabinet-door")} size={[width * 0.995, Math.min(0.075, height * 0.035), depth * 0.96]} position={[0, floorY + height - Math.min(0.075, height * 0.035) / 2, 0]} radius={0.006} detailLevel={asset.detailLevel} material={doorMaterial} role={doorRole} repeat={[Math.max(3, panelCount), 1]} />
       {[-1, 1].map((side) => {
-        const scribeWidth = Math.max(0.012, Math.min(0.09, (cabinetVisual?.sideScribeMm ?? Math.min(55, width * 25)) / 1000));
+        const scribeWidth = slidingAccessPlan
+          ? 0.018
+          : Math.max(0.012, Math.min(0.09, (cabinetVisual?.sideScribeMm ?? Math.min(55, width * 25)) / 1000));
         return <RoundedPart key={`scribe-${side}`} name={`${item.id}-cabinet-door-scribe-${side}`} userData={cabinetPartData("cabinet-door")} size={[scribeWidth, height * 0.94, depth * 0.98]} position={[side * (width / 2 - scribeWidth / 2), floorY + height * 0.5, 0]} radius={0.005} detailLevel={asset.detailLevel} material={doorMaterial} role={doorRole} repeat={[1, 7]} />;
       })}
-      {bayMetrics.slice(0, -1).map((bay, index) => (
+      {(!slidingAccessPlan || !item.cabinetInterior?.modules.some((module) => module.kind === "divider")) && bayMetrics.slice(0, -1).map((bay, index) => (
         <RoundedPart key={index} name={`${item.id}-cabinet-body-divider-${index}`} userData={cabinetPartData("cabinet-body")} size={[0.018, height * 0.89, depth * 0.76]} position={[bay.x + bay.width / 2 + gap / 2, carcassY, -depth * 0.05]} radius={0.005} detailLevel={asset.detailLevel} material={carcassMaterial} role={carcassMaterial.role} />
       ))}
       <RoundedPart
@@ -363,13 +388,18 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
         role={carcassMaterial.role}
         color="#75614d"
       />
-      {runtimeOpenAmount > 0.01 && <RoundedPart size={[width * 0.94, height * 0.88, 0.024]} position={[0, carcassY, depth * 0.455]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#3d342c" />}
-      {sliding && [-1, 1].map((side) => <RoundedPart key={`track-${side}`} name={`${item.id}-cabinet-hardware-track-${side}`} userData={cabinetPartData("cabinet-hardware")} size={[width * 0.94, 0.018, 0.045]} position={[0, floorY + height * (side > 0 ? 0.945 : 0.055), depth * 0.47]} radius={0.004} detailLevel={asset.detailLevel} material={hardwareMaterial} role="metal" />)}
+      {runtimeOpenAmount > 0.01 && !slidingAccessPlan && <RoundedPart size={[width * 0.94, height * 0.88, 0.024]} position={[0, carcassY, depth * 0.455]} radius={0.006} detailLevel={asset.detailLevel} material={asset.materials.accent} role="wood" color="#3d342c" />}
+      {sliding && [-1, 1].map((side) => {
+        const trackZ = slidingAccessPlan
+          ? depth / 2 - doorThickness / 2 - (trackCenterDistance ?? 0.045) / 2
+          : depth * 0.47;
+        return <RoundedPart key={`track-${side}`} name={`${item.id}-cabinet-hardware-track-${side}`} userData={cabinetPartData("cabinet-hardware")} size={[width * 0.94, 0.018, slidingAccessPlan ? (trackCenterDistance ?? 0.045) + 0.012 : 0.045]} position={[0, floorY + height * (side > 0 ? 0.945 : 0.055), trackZ]} radius={0.004} detailLevel={asset.detailLevel} material={hardwareMaterial} role="metal" />;
+      })}
       {bayMetrics.map((bay, index) => {
         const { x, width: panelWidth } = bay;
-        const requestedFront = bay.config?.frontType;
-        const openBay = requestedFront === "open" || (!requestedFront && !forceGlassDoors && open && index === openIndex);
-        const glassBay = requestedFront === "glass" || (!requestedFront && (forceGlassDoors || (glass && (index === openIndex || (panelCount > 4 && index === openIndex - 1)))));
+        const requestedFront = slidingAccessPlan ? "solid" : bay.config?.frontType;
+        const openBay = !slidingAccessPlan && (requestedFront === "open" || (!requestedFront && !forceGlassDoors && open && index === openIndex));
+        const glassBay = !slidingAccessPlan && (requestedFront === "glass" || (!requestedFront && (forceGlassDoors || (glass && (index === openIndex || (panelCount > 4 && index === openIndex - 1))))));
         const drawerBay = requestedFront === "drawer";
         if (openBay) {
           return (
@@ -398,8 +428,9 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
             </group>
           );
         }
+        const optPanelWidth = slidingAccessPlan ? (width - (cabinetVisual?.sideScribeMm ?? 18) / 1000 * 2) / 2 : panelWidth;
         const panel = <>
-            <RoundedPart name={`${item.id}-${glassBay ? "cabinet-glass" : "cabinet-door"}-${index}`} userData={cabinetPartData(glassBay ? "cabinet-glass" : "cabinet-door")} size={[panelWidth, height * 0.91, 0.045]} radius={0.008} detailLevel={asset.detailLevel} material={glassBay ? glassMaterial : doorMaterial} role={glassBay ? "glass" : doorRole} color={glassBay ? glassColor : undefined} opacity={glassBay ? 0.3 : undefined} repeat={[2, 6]} />
+            <RoundedPart name={`${item.id}-${glassBay ? "cabinet-glass" : "cabinet-door"}-${index}`} userData={cabinetPartData(glassBay ? "cabinet-glass" : "cabinet-door")} size={[optPanelWidth, height * 0.91, doorThickness]} radius={0.008} detailLevel={asset.detailLevel} material={glassBay ? glassMaterial : doorMaterial} role={glassBay ? "glass" : doorRole} color={glassBay ? glassColor : undefined} opacity={glassBay ? 0.3 : undefined} repeat={[2, 6]} />
             {glassBay && (
               <group>
                 {[-1, 1].map((side) => <RoundedPart key={side} name={`${item.id}-cabinet-hardware-glass-frame-${side}`} userData={cabinetPartData("cabinet-hardware")} size={[0.025, height * 0.89, 0.055]} position={[side * panelWidth * 0.47, 0, 0.018]} radius={0.006} detailLevel={asset.detailLevel} material={hardwareMaterial} role="metal" />)}
@@ -409,10 +440,17 @@ function TallCabinet3D(props: FurnitureFamily3DProps) {
             {!glassBay && variant !== "fullHeightFlat" && !integratedWardrobe && !sliding && <RoundedPart name={`${item.id}-cabinet-hardware-handle-${index}`} userData={cabinetPartData("cabinet-hardware")} size={[0.012, Math.min(0.18, height * 0.1), 0.018]} position={[panelWidth * 0.37 * (index % 2 ? -1 : 1), 0, 0.035]} radius={0.004} detailLevel={asset.detailLevel} material={hardwareMaterial} role="metal" />}
             {!glassBay && integratedWardrobe && <RoundedPart name={`${item.id}-cabinet-hardware-recess-${index}`} userData={cabinetPartData("cabinet-hardware")} size={[0.009, height * 0.72, 0.012]} position={[panelWidth * 0.465 * (index % 2 ? -1 : 1), 0, 0.034]} radius={0.003} detailLevel={asset.detailLevel} material={hardwareMaterial} role="metal" color="#8d8175" opacity={0.32} />}
           </>;
-        const panelPosition: [number, number, number] = [x, floorY + height * 0.5, depth * (sliding && index % 2 ? 0.46 : 0.495)];
+        const optPanelX = slidingAccessPlan ? (index === 0 ? -optPanelWidth / 2 : optPanelWidth / 2) : x;
+        const panelTrackZ = slidingAccessPlan
+          ? depth / 2 - doorThickness / 2 - (index === 0 ? (trackCenterDistance ?? 0.045) : 0)
+          : depth * (sliding && index % 2 ? 0.46 : 0.495);
+        const panelPosition: [number, number, number] = [optPanelX, floorY + height * 0.5, panelTrackZ];
         if (sliding) {
           const slideDirection = index % 2 ? -1 : 1;
-          return <group key={index} position={[panelPosition[0] + slideDirection * runtimeOpenAmount * panelWidth * 0.72, panelPosition[1], panelPosition[2]]}>{panel}</group>;
+          const move = slidingAccessPlan
+            ? (index === 0 ? (leftHalfOpen ? optPanelWidth * slidingOpenAmount : 0) : (rightHalfOpen ? -optPanelWidth * slidingOpenAmount : 0))
+            : slideDirection * runtimeOpenAmount * panelWidth * 0.72;
+          return <group key={index} position={[panelPosition[0] + move, panelPosition[1], panelPosition[2]]}>{panel}</group>;
         }
         return (
           <AnimatedCabinetLeaf key={index} position={panelPosition} width={panelWidth} hingeSide={index % 2 ? 1 : -1} openAmount={runtimeOpenAmount}>

@@ -2,6 +2,8 @@ import type { DrawingItem, DrawingItemCategory, Furniture, HouseStructure, Stair
 import type { DesignWorkspaceId } from "@/lib/drawing-workspaces";
 
 export type DrawingStatus = "draft" | "ready" | "incomplete";
+export type DrawingGeometryStatus = "not-run" | "clear" | "blocked";
+export type DrawingDimensionStatus = "not-run" | "pending" | "clear" | "conflict";
 
 export type DrawingDefinition = {
   id: string;
@@ -19,6 +21,11 @@ export type DrawingDefinition = {
 export type DrawingReadiness = DrawingDefinition & {
   missing: string[];
   objectCount: number;
+  fieldStatus: "complete" | "incomplete";
+  geometryStatus: DrawingGeometryStatus;
+  dimensionStatus: DrawingDimensionStatus;
+  blockingIssues: string[];
+  communicationExportable: boolean;
   updatedAt?: string;
 };
 
@@ -31,11 +38,14 @@ export type DrawingReadinessContext = {
   stairOpenings: StairOpening[];
   errorCount: number;
   warningCount: number;
+  geometryCheckStatus?: "not-run" | "executed";
+  geometryIssues?: Array<{ furnitureId?: string; severity?: string; message: string }>;
+  dimensionCheckStatus?: DrawingDimensionStatus;
 };
 
 export const outputDrawingDefinitions: DrawingDefinition[] = [
   { id: "layout-plan", number: "A-01", name: "平面布置图", workspace: "space", requiredObjectTypes: ["墙体", "门窗", "房间"], visibleLayers: ["墙体", "门窗", "房间", "家具轮廓"], annotationTypes: ["房间名称", "主要尺寸"], legendItems: ["墙体", "门", "窗", "楼梯"], exportable: true, status: "draft" },
-  { id: "renovation-plan", number: "A-02", name: "拆改图", workspace: "renovation", requiredObjectTypes: ["保留对象", "拆除对象", "新建对象"], visibleLayers: ["原始结构", "拆除", "新建"], annotationTypes: ["拆改标注"], legendItems: ["保留", "拆除", "新建"], exportable: true, status: "draft" },
+  { id: "renovation-plan", number: "A-03", name: "拆改图", workspace: "renovation", requiredObjectTypes: ["保留对象", "拆除对象", "新建对象"], visibleLayers: ["原始结构", "拆除", "新建"], annotationTypes: ["拆改标注"], legendItems: ["保留", "拆除", "新建"], exportable: true, status: "draft" },
   { id: "furniture-position-plan", number: "F-01", name: "家具定位图", workspace: "furniture", requiredObjectTypes: ["家具", "固定柜体"], visibleLayers: ["墙体", "门窗", "家具", "柜体"], annotationTypes: ["家具定位", "尺寸"], legendItems: ["活动家具", "固定柜体", "设备"], exportable: true, status: "draft" },
   { id: "socket-plan", number: "E-01", name: "插座点位图", workspace: "mep", requiredObjectTypes: ["插座", "设备电源"], visibleLayers: ["墙体", "家具轮廓", "插座"], annotationTypes: ["安装高度", "定位尺寸"], legendItems: ["普通插座", "防水插座", "地插", "网络接口"], exportable: true, status: "draft" },
   { id: "switch-plan", number: "E-02", name: "开关控制图", workspace: "mep", requiredObjectTypes: ["开关", "受控灯具"], visibleLayers: ["墙体", "开关", "灯具", "控制关系"], annotationTypes: ["安装高度", "控制连线"], legendItems: ["单控", "双控", "场景开关"], exportable: true, status: "draft" },
@@ -53,6 +63,14 @@ const hasAnnotation = (items: DrawingItem[], pattern: RegExp) => items.some((ite
 
 export function evaluateOutputDrawings(context: DrawingReadinessContext): DrawingReadiness[] {
   const { structure, furniture, drawingItems, stairSystems, stairLandings, stairOpenings } = context;
+  const geometryCheckStatus = context.geometryCheckStatus ?? "not-run";
+  const dimensionCheckStatus = context.dimensionCheckStatus ?? "not-run";
+  const hasGeometryError = (definition: DrawingDefinition) => {
+    if (geometryCheckStatus !== "executed") return false;
+    if (!(context.geometryIssues ?? []).some((issue) => issue.severity === "error")) return false;
+    // Furniture placement errors affect the furniture and point drawings on this floor.
+    return ["layout-plan", "furniture-position-plan", "socket-plan", "switch-plan", "lighting-plan", "water-plan", "drainage-plan"].includes(definition.id);
+  };
   return outputDrawingDefinitions.map((definition) => {
     const missing: string[] = [];
     let objectCount = 0;
@@ -114,7 +132,29 @@ export function evaluateOutputDrawings(context: DrawingReadinessContext): Drawin
       if (structure.stairs.some((stair) => !stair.stepCount || !stair.width || !stair.height)) missing.push("踏步参数");
       missing.push("楼梯剖面", "净高", "栏杆高度");
     }
-    const status: DrawingStatus = missing.length ? (objectCount ? "incomplete" : "draft") : "ready";
-    return { ...definition, status, exportable: definition.id === "stair-detail" ? false : definition.exportable && status === "ready", missing, objectCount, updatedAt: drawingItems.map((item) => item.updatedAt).filter(Boolean).sort().at(-1) };
+    const fieldStatus = missing.length ? "incomplete" : "complete";
+    const geometryStatus: DrawingGeometryStatus = geometryCheckStatus === "not-run" ? "not-run" : hasGeometryError(definition) ? "blocked" : "clear";
+    const dimensionStatus: DrawingDimensionStatus = dimensionCheckStatus;
+    const blockingIssues = [
+      ...missing.map((item) => `字段待补：${item}`),
+      ...(geometryStatus === "blocked" ? (context.geometryIssues ?? []).filter((issue) => issue.severity === "error").map((issue) => `几何错误：${issue.message}`) : []),
+      ...(dimensionStatus === "conflict" ? ["尺寸存在明确冲突，需解决后再交付"] : []),
+      ...(dimensionStatus === "pending" ? ["尺寸尚未完成现场/图纸核对"] : []),
+      ...(geometryStatus === "not-run" ? ["几何校验尚未执行"] : [])
+    ];
+    const status: DrawingStatus = fieldStatus === "incomplete" ? (objectCount ? "incomplete" : "draft") : geometryStatus === "blocked" || dimensionStatus === "conflict" || dimensionStatus === "pending" || dimensionStatus === "not-run" || geometryStatus === "not-run" ? "incomplete" : "ready";
+    return {
+      ...definition,
+      status,
+      exportable: definition.id === "stair-detail" ? false : definition.exportable && status === "ready",
+      fieldStatus,
+      geometryStatus,
+      dimensionStatus,
+      blockingIssues,
+      communicationExportable: objectCount > 0 || definition.id === "layout-plan",
+      missing,
+      objectCount,
+      updatedAt: drawingItems.map((item) => item.updatedAt).filter(Boolean).sort().at(-1)
+    };
   });
 }

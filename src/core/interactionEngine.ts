@@ -172,6 +172,8 @@ export function handleDrag(model: InteractionModel, state: InteractionGuardState
   }
 
   if ((model.houseStructure.columns ?? []).some((column) => column.id === objectId)) {
+    const column = (model.houseStructure.columns ?? []).find((candidate) => candidate.id === objectId);
+    if (column?.supportsFloorId) return model;
     return {
       ...model,
       houseStructure: {

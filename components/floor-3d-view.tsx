@@ -1,15 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { FurnitureFamily3D } from "@/components/furniture-family-3d";
+// Keep the candidate's fine furniture path local. The main-app alias can point
+// at the shared renderer when this isolated preview is built from the root.
+import { FurnitureFamily3D } from "./furniture-family-3d";
 import { ConstructionAnchorLayer } from "@/components/furniture-3d/construction-anchor-layer";
 import { SelectionBounds } from "@/components/scene-3d/selection-bounds";
 import { useProceduralPbrMaps, type ProceduralPbrKind } from "@/components/scene-3d/procedural-pbr";
 import { PbrMaterial, PbrQualityProvider } from "@/components/scene-3d/pbr-material";
 import { ScenePerformanceMonitor } from "@/components/scene-3d/performance-monitor";
 import { SceneReflectionEnvironment } from "@/components/scene-3d/reflection-environment";
+import { isFloorOverviewPresentation } from "@/lib/scene-presentation";
+import { cameraPoseChanged } from "@/lib/camera-pose-report";
+import { buildHerringbonePlanks } from "@/lib/herringbone-layout";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -730,8 +735,13 @@ function RoundedBoxMesh({
   );
 }
 
-function shouldUseFineAsset({ materialPreview, resolvedAsset, cabinetOpenAmount }: FurnitureAssetGroupProps) {
-  return resolvedAsset.assetType === "desk" || cabinetOpenAmount !== undefined || (materialPreview && resolvedAsset.detailLevel !== "draft");
+function shouldUseFineAsset({ item, materialPreview, resolvedAsset, cabinetOpenAmount }: FurnitureAssetGroupProps) {
+  const cabinetVisual = item.render3d?.cabinetVisual as (NonNullable<Furniture["render3d"]>["cabinetVisual"] & { accessPlanId?: string }) | undefined;
+  const hasExplicitSlidingAccessPlan = item.render3d?.variantId === "slidingPanels" && Boolean(cabinetVisual?.accessPlanId);
+  return resolvedAsset.assetType === "desk"
+    || cabinetOpenAmount !== undefined
+    || hasExplicitSlidingAccessPlan
+    || (materialPreview && resolvedAsset.detailLevel !== "draft");
 }
 
 function isClosetFurnitureModule(item: Furniture, structure: HouseStructure) {
@@ -2538,41 +2548,49 @@ function RoomFloorMesh({
     Math.max(0.1, bounds.maxZ - bounds.minZ)
   ];
   return (
-    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018 + index * 0.002, 0]}>
-      <primitive object={geometry} attach="geometry" />
-      <PbrMaterial
-        token={floorStyle.materialToken}
-        fallbackRole={floorStyle.materialRole}
-        resourceId={floorStyle.materialResourceId}
-        color={floorStyle.base}
-        accentColor={floorStyle.joint}
-        surfaceSizeM={surfaceSizeM}
-        uvRotationDeg={(floorStyle.directionDeg ?? 0) + (floorStyle.uvRotationDeg ?? 0)}
-        normalStrength={floorStyle.kind === "wood" ? 0.18 : floorStyle.kind === "microcement" ? 0.13 : 0.16}
-        roughness={floorStyle.roughness}
-      />
-    </mesh>
+    <>
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018 + index * 0.002, 0]}>
+        <primitive object={geometry} attach="geometry" />
+        <PbrMaterial
+          token={floorStyle.materialToken}
+          fallbackRole={floorStyle.materialRole}
+          resourceId={floorStyle.materialResourceId}
+          color={floorStyle.base}
+          accentColor={floorStyle.joint}
+          surfaceSizeM={surfaceSizeM}
+          uvRotationDeg={(floorStyle.directionDeg ?? 0) + (floorStyle.uvRotationDeg ?? 0)}
+          normalStrength={floorStyle.kind === "wood" ? 0.18 : floorStyle.kind === "microcement" ? 0.13 : 0.16}
+          roughness={floorStyle.roughness}
+        />
+      </mesh>
+      {floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN && <ShowroomHerringboneOverlay
+        geometry={geometry}
+        bounds={bounds}
+        elevation={0.018 + index * 0.002}
+        plankWidth={(floorStyle.tileWidthMm ?? 180) * MM_TO_M}
+        plankLength={(floorStyle.tileLengthMm ?? 720) * MM_TO_M}
+        seamWidth={(floorStyle.seamWidthMm ?? 2) * MM_TO_M}
+      />}
+    </>
   );
 }
 
 function ShowroomHerringboneOverlay({
-  roomId,
-  width,
-  depth,
-  base,
+  geometry,
+  bounds,
+  elevation,
   plankWidth,
   plankLength,
-  resolution = 1024,
-  opacity = 0.82
+  seamWidth,
+  resolution = 1024
 }: {
-  roomId: string;
-  width: number;
-  depth: number;
-  base: string;
+  geometry: THREE.BufferGeometry;
+  bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+  elevation: number;
   plankWidth: number;
   plankLength: number;
+  seamWidth: number;
   resolution?: number;
-  opacity?: number;
 }) {
   const texture = useMemo(() => {
     if (typeof document === "undefined") return null;
@@ -2583,47 +2601,35 @@ function ShowroomHerringboneOverlay({
     if (!context) return null;
 
     context.clearRect(0, 0, canvas.width, canvas.height);
-    context.strokeStyle = "rgba(82, 67, 53, 0.54)";
-    context.lineWidth = 2.5;
-    context.lineJoin = "round";
-
-    const stepX = Math.max(0.28, plankLength * 0.68);
-    const stepZ = Math.max(0.28, plankLength * 0.68);
-    const rowCount = Math.ceil(depth / stepZ) + 3;
-    const columnCount = Math.ceil(width / stepX) + 3;
-    for (let row = -1; row < rowCount; row += 1) {
-      for (let column = -1; column < columnCount; column += 1) {
-        const rotation = (row + column) % 2 === 0 ? Math.PI / 4 : -Math.PI / 4;
-        const x = (-width / 2 + column * stepX + (row % 2 ? stepX * 0.34 : 0)) / width * canvas.width + canvas.width / 2;
-        const z = (-depth / 2 + row * stepZ) / depth * canvas.height + canvas.height / 2;
-        context.save();
-        context.translate(x, z);
-        context.rotate(rotation);
-        context.strokeRect(
-          -plankWidth / 2 / width * canvas.width,
-          -plankLength / 2 / depth * canvas.height,
-          plankWidth / width * canvas.width,
-          plankLength / depth * canvas.height
-        );
-        context.restore();
-      }
+    const width = Math.max(0.1, bounds.maxX - bounds.minX);
+    const depth = Math.max(0.1, bounds.maxZ - bounds.minZ);
+    context.setTransform(resolution / width, 0, 0, resolution / depth, -bounds.minX / width * resolution, -bounds.minZ / depth * resolution);
+    context.strokeStyle = "rgba(92, 78, 61, 0.42)";
+    context.lineWidth = seamWidth;
+    context.lineJoin = "miter";
+    const planks = buildHerringbonePlanks({ minX: bounds.minX, maxX: bounds.maxX, minY: bounds.minZ, maxY: bounds.maxZ }, plankLength, plankWidth);
+    context.beginPath();
+    for (const polygon of planks) {
+      polygon.forEach((point, index) => index === 0 ? context.moveTo(point.x, point.y) : context.lineTo(point.x, point.y));
+      context.closePath();
     }
+    context.stroke();
 
     const nextTexture = new THREE.CanvasTexture(canvas);
     nextTexture.colorSpace = THREE.SRGBColorSpace;
+    nextTexture.anisotropy = 8;
     nextTexture.needsUpdate = true;
     return nextTexture;
-  }, [depth, plankLength, plankWidth, resolution, width]);
+  }, [bounds.minX, bounds.maxX, bounds.minZ, bounds.maxZ, plankLength, plankWidth, resolution, seamWidth]);
 
   useEffect(() => () => texture?.dispose(), [texture]);
 
   return (
-    <group key={`${roomId}-herringbone-overlay`} position={[0, 0.057, 0]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[width, depth]} />
-        <meshBasicMaterial map={texture ?? undefined} transparent opacity={opacity} color={base} />
-      </mesh>
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, elevation, 0]} receiveShadow>
+      {/* Reuse the real floor polygon, including its stair openings. */}
+      <primitive object={geometry} attach="geometry" />
+      <meshStandardMaterial map={texture ?? undefined} transparent opacity={texture ? 1 : 0} roughness={0.82} depthWrite={false} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+    </mesh>
   );
 }
 
@@ -2647,22 +2653,8 @@ function RoomFloorFinishOverlay({
   const centerZ = bounds.minZ + depth / 2;
   const floorStyle = getRoomFloorStyle(room, structure, designStyle);
   const isWood = floorStyle.kind === "wood";
-  if (floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN) {
-    return (
-      <group position={[centerX, 0, centerZ]}>
-        <ShowroomHerringboneOverlay
-          roomId={room.id}
-          width={width}
-          depth={depth}
-          base={floorStyle.base}
-          plankWidth={Math.max(0.12, (floorStyle.tileWidthMm ?? 180) * MM_TO_M)}
-          plankLength={Math.max(0.42, (floorStyle.tileLengthMm ?? 720) * MM_TO_M)}
-          resolution={presentationMode ? 1024 : 512}
-          opacity={presentationMode ? 0.82 : 0.72}
-        />
-      </group>
-    );
-  }
+  // Herringbone seams are drawn once by RoomFloorMesh on the clipped polygon.
+  if (floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN) return null;
   if (floorStyle.kind === "microcement") return null;
   const tileWidth = Math.max(0.3, (floorStyle.tileWidthMm ?? (floorStyle.kind === "stone" ? 720 : 900)) * MM_TO_M);
   const tileLength = Math.max(0.3, (floorStyle.tileLengthMm ?? (floorStyle.kind === "stone" ? 720 : 900)) * MM_TO_M);
@@ -3242,8 +3234,39 @@ function OutdoorGroundMesh({
           </mesh>
         );
       })}
+      {outdoor.enclosure && <OutdoorEnclosureMesh outdoor={outdoor} structure={structure} />}
     </group>
   );
+}
+
+function OutdoorEnclosureMesh({ outdoor, structure }: { outdoor: HouseOutdoor; structure: HouseStructure }) {
+  const enclosure = outdoor.enclosure;
+  if (!enclosure || !outdoor.polygon || outdoor.polygon.length < 2) return null;
+  const height = Math.min(3.2, Math.max(1.2, enclosure.heightMm * MM_TO_M));
+  const frameColor = enclosure.frameColor ?? "#796d61";
+  return <group name={`${outdoor.id}-enclosure-glazing`}>
+    {outdoor.polygon.map((start, index) => {
+      const end = outdoor.polygon[(index + 1) % outdoor.polygon.length];
+      const isCoveredBySolidWall = structure.walls.some((wall) => wall.kind === "straight" && ((Math.abs(wall.start.x - start.x) < 2 && Math.abs(wall.start.y - start.y) < 2 && Math.abs(wall.end.x - end.x) < 2 && Math.abs(wall.end.y - end.y) < 2) || (Math.abs(wall.start.x - end.x) < 2 && Math.abs(wall.start.y - end.y) < 2 && Math.abs(wall.end.x - start.x) < 2 && Math.abs(wall.end.y - start.y) < 2)));
+      if (isCoveredBySolidWall) return null;
+      const metrics = lineMetrics(start, end, structure);
+      const frame = 0.035;
+      return <group key={`${outdoor.id}-enclosure-${index}`} position={[metrics.midpoint.x, height / 2, metrics.midpoint.z]} rotation={[0, metrics.rotationY, 0]}>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[metrics.length, height - frame * 2, 0.016]} />
+          <meshPhysicalMaterial color="#b9d7d8" transparent opacity={0.2} transmission={0.72} roughness={0.08} metalness={0.08} thickness={0.01} depthWrite={false} />
+        </mesh>
+        {[[-metrics.length / 2, 0], [metrics.length / 2, 0]].map(([x], side) => <mesh key={`frame-${side}`} position={[x, 0, 0]} castShadow>
+          <boxGeometry args={[frame, height, frame]} />
+          <meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.5} />
+        </mesh>)}
+        {[0.02, 0.98].map((ratio) => <mesh key={`rail-${ratio}`} position={[0, height * ratio - height / 2, 0]} castShadow>
+          <boxGeometry args={[metrics.length, frame, frame]} />
+          <meshStandardMaterial color={frameColor} roughness={0.34} metalness={0.5} />
+        </mesh>)}
+      </group>;
+    })}
+  </group>;
 }
 
 function LandscapePlantCluster({ x, y = 0.055, z, scale, index, herb = false }: { x: number; y?: number; z: number; scale: number; index: number; herb?: boolean }) {
@@ -3441,13 +3464,16 @@ function FenceMesh({
   onClearHover: (id: string) => void;
 }) {
   const metrics = useMemo(() => lineMetrics(fence.start, fence.end, structure), [fence.end, fence.start, structure]);
-  const height = Math.min(0.98, Math.max(0.52, fence.height * MM_TO_M));
+  const isGlass = fence.material === "glass";
+  const height = isGlass
+    ? Math.min(3.2, Math.max(1.2, fence.height * MM_TO_M))
+    : Math.min(0.98, Math.max(0.52, fence.height * MM_TO_M));
   const thickness = Math.max(0.045, fence.thickness * MM_TO_M);
   const metal = fence.material === "metal";
   const spacing = metal ? 0.42 : 0.16;
   const memberCount = Math.max(3, Math.min(metal ? 28 : 48, Math.ceil(metrics.length / spacing)));
   const memberWidth = metal ? 0.035 : Math.min(0.115, metrics.length / memberCount * 0.72);
-  const color = selected ? "#2563eb" : metal ? effectMaterialCatalog.blackMetal.color : "#806449";
+  const color = selected ? "#2563eb" : metal ? effectMaterialCatalog.blackMetal.color : isGlass ? "#a9c8c9" : "#806449";
   const memberPositions = Array.from({ length: memberCount }, (_, index) => -metrics.length / 2 + metrics.length * (index + 0.5) / memberCount);
   const handleSelect = (event: ThreeEvent<MouseEvent>) => { event.stopPropagation(); onSelect(fence.id); };
   const handleHover = (event: ThreeEvent<PointerEvent>) => { event.stopPropagation(); onHover(fence.id); };
@@ -3464,21 +3490,36 @@ function FenceMesh({
         <boxGeometry args={[metrics.length, height, Math.max(0.08, thickness * 2)]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      {memberPositions.map((x, index) => (
+      {isGlass && (
+        <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
+          <boxGeometry args={[metrics.length, height - 0.06, Math.max(0.012, thickness * 0.3)]} />
+          <meshPhysicalMaterial
+            color={selected ? "#8fb8c1" : "#b9d7d8"}
+            transparent
+            opacity={selected ? 0.34 : 0.2}
+            transmission={0.72}
+            roughness={0.08}
+            metalness={0.08}
+            thickness={0.01}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      {(isGlass ? [-metrics.length / 2, metrics.length / 2] : memberPositions).map((x, index) => (
         <mesh key={`fence-member-${index}`} position={[x, height / 2, 0]} castShadow receiveShadow>
-          <boxGeometry args={[memberWidth, height, thickness]} />
-          <meshStandardMaterial color={color} roughness={metal ? 0.35 : 0.78} metalness={metal ? 0.65 : 0.02} />
+          <boxGeometry args={[isGlass ? Math.max(0.028, thickness * 0.7) : memberWidth, height, isGlass ? Math.max(0.028, thickness * 0.7) : thickness]} />
+          <meshStandardMaterial color={color} roughness={metal || isGlass ? 0.35 : 0.78} metalness={metal || isGlass ? 0.35 : 0.02} />
         </mesh>
       ))}
-      {(metal ? [0.18, 0.82] : [0.24, 0.7]).map((ratio) => (
+      {(isGlass ? [0.02, 0.98] : metal ? [0.18, 0.82] : [0.24, 0.7]).map((ratio) => (
         <mesh key={`fence-rail-${ratio}`} position={[0, height * ratio, -thickness * 0.6]} castShadow>
-          <boxGeometry args={[metrics.length, metal ? 0.045 : 0.065, thickness * 0.72]} />
-          <meshStandardMaterial color={color} roughness={metal ? 0.34 : 0.76} metalness={metal ? 0.68 : 0.02} />
+          <boxGeometry args={[metrics.length, isGlass ? 0.035 : metal ? 0.045 : 0.065, isGlass ? 0.035 : thickness * 0.72]} />
+          <meshStandardMaterial color={color} roughness={metal || isGlass ? 0.34 : 0.76} metalness={metal || isGlass ? 0.5 : 0.02} />
         </mesh>
       ))}
       <mesh position={[0, 0.025, 0]} receiveShadow>
         <boxGeometry args={[metrics.length, 0.05, thickness * 1.35]} />
-        <meshStandardMaterial color={metal ? "#4b5051" : "#70685d"} roughness={0.8} />
+        <meshStandardMaterial color={metal || isGlass ? "#4b5051" : "#70685d"} roughness={0.8} />
       </mesh>
     </group>
   );
@@ -7541,7 +7582,75 @@ function Shower3DGroup(props: FurnitureAssetGroupProps) {
   return <VariantFurniture3DGroup {...props} />;
 }
 
+type B1SleeperSofaState = "folded-sofa" | "expanded-bed";
+
+/**
+ * B1 candidate renderer: the folded sofa and the forward-opening sleep surface
+ * share one fixed rear-back anchor.  The state is data-controlled so the
+ * workspace operating-state selector can switch the real renderer without
+ * replacing the object with a renamed bed.
+ */
+function B1SleeperSofa3DGroup(props: FurnitureAssetGroupProps) {
+  const metrics = useFineAssetMetrics(props);
+  const { position, width, depth, height, rotation, groupY } = metrics;
+  const itemWithStates = props.item as Furniture & {
+    operatingStates?: { currentDisplay?: B1SleeperSofaState; states?: Array<{ id: B1SleeperSofaState; dimensionsCm?: { width?: number; depth?: number }; sleepSurfaceCm?: { width?: number; depth?: number }; backThicknessCm?: number }> };
+  };
+  const render3d = props.item.render3d as typeof props.item.render3d & {
+    sofaBedState?: B1SleeperSofaState;
+    sofaBedExpandedDepthCm?: number;
+    sofaBedExpandedOuterDepthCm?: number;
+    sofaBedSleepSurfaceWidthCm?: number;
+    sofaBedBackThicknessCm?: number;
+    sofaBedSleepSurfaceStartsAtRear?: boolean;
+    sofaBedShowEnvelope?: boolean;
+  };
+  const state: B1SleeperSofaState = render3d?.sofaBedState ?? itemWithStates.operatingStates?.currentDisplay ?? "folded-sofa";
+  const expandedState = itemWithStates.operatingStates?.states?.find((candidate) => candidate.id === "expanded-bed");
+  const sleepSurfaceWidth = Math.max(0.2, (render3d?.sofaBedSleepSurfaceWidthCm ?? expandedState?.sleepSurfaceCm?.width ?? expandedState?.dimensionsCm?.width ?? width * 100) / 100);
+  const sleepSurfaceDepth = Math.max(0.2, ((render3d?.sofaBedExpandedDepthCm ?? expandedState?.sleepSurfaceCm?.depth ?? 200) / 100));
+  const backThickness = Math.max(0.04, (render3d?.sofaBedBackThicknessCm ?? expandedState?.backThicknessCm ?? 17) / 100);
+  const explicitOuterDepth = render3d?.sofaBedExpandedOuterDepthCm;
+  const expandedOuterDepth = explicitOuterDepth != null
+    ? Math.max(0.2, explicitOuterDepth / 100)
+    : Math.max(sleepSurfaceDepth + backThickness, 2.17);
+  const foldedDepth = Math.max(0.2, depth);
+  const floorY = -height / 2;
+  const rearOuterEdgeZ = -foldedDepth / 2;
+  const rearAnchorZ = rearOuterEdgeZ + backThickness / 2;
+  const seatDepth = Math.max(0.2, foldedDepth - backThickness - 0.05) * 0.68;
+  const seatCenterZ = rearOuterEdgeZ + backThickness + seatDepth / 2;
+  const sleepStartsAtRear = Boolean(render3d?.sofaBedSleepSurfaceStartsAtRear);
+  const sleepCenterZ = sleepStartsAtRear
+    ? rearOuterEdgeZ + sleepSurfaceDepth / 2
+    : rearOuterEdgeZ + backThickness + sleepSurfaceDepth / 2;
+  const isExpanded = state === "expanded-bed";
+  return (
+    <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
+      <group name={`${props.item.id}-sofa-bed-${state}`} userData={{ sofaBedState: state, fixedBackAnchor: "rear-wall-anchor", expansionDirection: "single-sided-forward", outerEnvelopeDepthM: expandedOuterDepth, sleepSurfaceDepthM: sleepSurfaceDepth }}>
+        {isExpanded ? (
+          <>
+            <RoundedBoxMesh args={[sleepSurfaceWidth, 0.2, sleepSurfaceDepth]} position={[0, floorY + 0.31, sleepCenterZ]} radius={0.075} color="#d9d0c3" roughness={0.94} />
+            <RoundedBoxMesh args={[sleepSurfaceWidth, 0.055, sleepSurfaceDepth * 0.96]} position={[0, floorY + 0.43, sleepCenterZ]} radius={0.035} color="#f0ebe2" roughness={0.96} />
+            {[-0.18, 0.18].map((pillowZ) => <RoundedBoxMesh key={`pillow-${pillowZ}`} args={[0.3, 0.12, 0.32]} position={[-sleepSurfaceWidth / 2 + 0.22, floorY + 0.55, sleepCenterZ + pillowZ]} radius={0.04} color="#eadfd1" roughness={0.94} />)}
+            {render3d?.sofaBedShowEnvelope !== false && <RoundedBoxMesh args={[sleepSurfaceWidth, 0.012, expandedOuterDepth]} position={[0, floorY + 0.08, rearOuterEdgeZ + expandedOuterDepth / 2]} radius={0.005} color="#d78d46" emissive="#9a5d2c" emissiveIntensity={0.22} roughness={0.35} />}
+          </>
+        ) : (
+          <>
+            <RoundedBoxMesh args={[width * 0.98, 0.18, foldedDepth * 0.94]} position={[0, floorY + 0.12, 0]} radius={0.06} color="#332a24" roughness={0.58} />
+            <RoundedBoxMesh args={[width * 0.94, height * 0.58, backThickness]} position={[0, floorY + height * 0.64, rearAnchorZ]} radius={0.075} color="#5e5148" roughness={0.84} />
+            <RoundedBoxMesh args={[width * 0.86, 0.2, seatDepth * 0.82]} position={[0, floorY + 0.31, seatCenterZ + 0.02]} radius={0.08} color="#b5a594" roughness={0.92} />
+            <RoundedBoxMesh args={[width * 0.82, 0.16, foldedDepth * 0.64]} position={[0, floorY + 0.39, seatCenterZ + 0.03]} radius={0.065} color="#c8b9aa" roughness={0.92} />
+            <RoundedBoxMesh args={[width * 0.82, height * 0.38, 0.13]} position={[0, floorY + height * 0.63, rearAnchorZ + 0.08]} radius={0.055} color="#aa998a" roughness={0.9} />
+          </>
+        )}
+      </group>
+    </SelectableFurnitureGroup>
+  );
+}
+
 function Sofa3DGroup(props: FurnitureAssetGroupProps) {
+  if (props.item.id === "furn-b1-guest-bed-001") return <B1SleeperSofa3DGroup {...props} />;
   if (props.item.render3d?.variantId === "b2FourSeatLeather") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY } = metrics;
@@ -8928,14 +9037,17 @@ function RenderToneMapping({
   presentationMode,
   mobilePresentationMode,
   mobileQuality,
-  exposure
+  exposure,
+  staticPreview = false
 }: {
   presentationMode: boolean;
   mobilePresentationMode: boolean;
   mobileQuality: MobileQuality;
   exposure?: number;
+  staticPreview?: boolean;
 }) {
   const { gl } = useThree();
+  const shadowRefreshElapsed = useRef(0);
   useEffect(() => {
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = exposure ?? (presentationMode ? 1.06 : 1);
@@ -8943,6 +9055,28 @@ function RenderToneMapping({
     gl.shadowMap.enabled = !mobilePresentationMode || mobileQuality === "high";
     gl.shadowMap.type = THREE.PCFSoftShadowMap;
   }, [exposure, gl, mobilePresentationMode, mobileQuality, presentationMode]);
+  useEffect(() => {
+    if (!staticPreview) return;
+    const previous = gl.shadowMap.autoUpdate;
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    return () => { gl.shadowMap.autoUpdate = previous; gl.shadowMap.needsUpdate = true; };
+  }, [gl, staticPreview]);
+  // A scene commit (floor, wall mode, camera preset, lights, quality) invalidates
+  // baked shadows. Orbiting alone does not move the static shadow casters.
+  useEffect(() => {
+    if (staticPreview) gl.shadowMap.needsUpdate = true;
+  });
+  useFrame((_, delta) => {
+    if (!staticPreview) return;
+    // Also pick up asynchronously loaded assets/textures in nested components.
+    // Interactive editors/exploration retain full-rate dynamic shadows.
+    shadowRefreshElapsed.current += delta;
+    if (shadowRefreshElapsed.current >= 0.5) {
+      shadowRefreshElapsed.current = 0;
+      gl.shadowMap.needsUpdate = true;
+    }
+  });
   return null;
 }
 
@@ -8988,6 +9122,7 @@ function CameraRig({
   const forwardVectorRef = useRef(new THREE.Vector3());
   const rightVectorRef = useRef(new THREE.Vector3());
   const poseReportElapsedRef = useRef(0);
+  const lastReportedPoseRef = useRef<CameraPlanPose | null>(null);
   const transitionRef = useRef<{
     elapsed: number;
     duration: number;
@@ -9242,7 +9377,7 @@ function CameraRig({
       poseReportElapsedRef.current = 0;
       const controls = controlsRef.current;
       if (!controls) return;
-      onCameraPlanPoseChange({
+      const nextPose: CameraPlanPose = {
         cameraX: camera.position.x,
         cameraY: camera.position.y,
         cameraZ: camera.position.z,
@@ -9250,7 +9385,12 @@ function CameraRig({
         targetY: controls.target.y,
         targetZ: controls.target.z,
         fov: camera instanceof THREE.PerspectiveCamera ? camera.fov : 42
-      });
+      };
+      // Damping leaves sub-pixel residuals. Do not rebuild the React scene and
+      // rerun preflight 12 times/sec after the camera has already settled.
+      if (!cameraPoseChanged(lastReportedPoseRef.current, nextPose)) return;
+      lastReportedPoseRef.current = nextPose;
+      onCameraPlanPoseChange(nextPose);
     };
     if (lockFixedView && fixedView) {
       transitionRef.current = null;
@@ -10759,6 +10899,16 @@ function LocalClippingController() {
   return null;
 }
 
+// Camera position is UI state, not scene geometry. Keep the large scene tree
+// out of those updates without dropping changes to any actual scene props.
+const MemoFloor3DScene = memo(Floor3DScene);
+
+function useSceneEvent<Args extends unknown[]>(handler: (...args: Args) => void) {
+  const latest = useRef(handler);
+  useEffect(() => { latest.current = handler; }, [handler]);
+  return useCallback((...args: Args) => latest.current(...args), []);
+}
+
 function Floor3DScene({
   drawingSheetType,
   drawingItems,
@@ -10799,6 +10949,8 @@ function Floor3DScene({
   cameraTransitionDuration = 0.9,
   cameraCollisionEnabled = true,
   cameraLockEnabled = false,
+  staticPreview = false,
+  onCameraInteractionChange,
   onCameraPlanPoseChange = () => undefined,
   sceneController,
   explorationDoorStates,
@@ -10868,6 +11020,8 @@ function Floor3DScene({
   cameraTransitionDuration?: number;
   cameraCollisionEnabled?: boolean;
   cameraLockEnabled?: boolean;
+  staticPreview?: boolean;
+  onCameraInteractionChange?: (active: boolean) => void;
   onCameraPlanPoseChange?: (pose: CameraPlanPose) => void;
   sceneController?: ReactNode;
   explorationDoorStates?: ExplorationDoorStates;
@@ -10906,10 +11060,14 @@ function Floor3DScene({
     if (cameraInteractionReleaseTimerRef.current) clearTimeout(cameraInteractionReleaseTimerRef.current);
     if (active) {
       setCameraInteractionActive(true);
+      onCameraInteractionChange?.(true);
       return;
     }
-    cameraInteractionReleaseTimerRef.current = setTimeout(() => setCameraInteractionActive(false), 320);
-  }, []);
+    cameraInteractionReleaseTimerRef.current = setTimeout(() => {
+      setCameraInteractionActive(false);
+      onCameraInteractionChange?.(false);
+    }, 320);
+  }, [onCameraInteractionChange]);
   useEffect(() => () => {
     if (cameraInteractionReleaseTimerRef.current) clearTimeout(cameraInteractionReleaseTimerRef.current);
   }, []);
@@ -11010,7 +11168,14 @@ function Floor3DScene({
   // A floor overview is a review view, not a lighting-analysis cutaway. Do
   // not let a previously selected lighting wall mode make the whole house
   // read as a translucent shell when the user enters presentation mode.
-  const floorOverviewPresentation = presentationMode && !stackedVillaOverview && !currentSpaceActive;
+  const floorOverviewPresentation = isFloorOverviewPresentation({
+    presentationMode,
+    stackedVillaOverview,
+    currentSpaceActive,
+    exploration: sceneMode === "exploration",
+    fixedView: fixedCameraView,
+    storyHeightMm: resolveStructureStoryHeightMm(houseStructure)
+  });
   const lightingWallDisplayMode = mobilePresentationMode
     ? "full"
     : wallDisplayModeOverride
@@ -11122,10 +11287,10 @@ function Floor3DScene({
   const pbrQuality = presentationMode ? (balancedQuality ? "standard" : "presentation") : "draft";
   const pbrDevice = mobilePresentationMode ? "mobile" : "desktop";
   return (
-    <PbrQualityProvider quality={pbrQuality} device={pbrDevice}>
+    <PbrQualityProvider quality={pbrQuality} device={pbrDevice} maxTextureSize={staticPreview ? (balancedQuality ? 512 : 1024) : undefined} includeHeightMap={staticPreview ? false : undefined}>
       <ScenePerformanceMonitor mode={presentationMode ? "presentation" : "edit"} interactionActive={cameraInteractionActive} />
       <LocalClippingController />
-      <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} />
+      <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} staticPreview={staticPreview} />
       <SceneReflectionEnvironment presentationMode={presentationMode} intensity={reflectionEnvironmentIntensity} />
       {sceneController ?? <CameraRig
         key={fixedCameraView?.id ?? "free-camera"}
@@ -11142,11 +11307,13 @@ function Floor3DScene({
         transitionDuration={cameraTransitionDuration}
         collisionEnabled={cameraCollisionEnabled}
         lockFixedView={cameraLockEnabled}
-        onInteractionChange={presentationMode ? undefined : handleCameraInteractionChange}
+        onInteractionChange={presentationMode && !staticPreview ? undefined : handleCameraInteractionChange}
         onCameraPlanPoseChange={onCameraPlanPoseChange}
       />}
       <color attach="background" args={[sceneBackground]} />
-      <fog attach="fog" args={[sceneBackground, yardScene ? 18 : 12, yardScene ? 42 : 28]} />
+      {/* Indoor furniture and floor overviews must retain their material colour.
+          Atmospheric fog belongs only to distant outdoor views. */}
+      {yardScene && !floorOverviewPresentation && <fog attach="fog" args={[sceneBackground, 26, 65]} />}
       <ambientLight intensity={ambientIntensity} />
       <directionalLight
         castShadow={presentationMode && (!mobilePresentationMode || mobileQuality === "high")}
@@ -12226,6 +12393,7 @@ export function Floor3DView({
   const [cameraWallModeOverride, setCameraWallModeOverride] = useState<Drawing3DWallMode | null>(() => presentationWallDisplayMode ?? null);
   const [canvasViewport, setCanvasViewport] = useState<CameraViewport>(() => ({ width: mobilePresentationMode ? 390 : 1280, height: mobilePresentationMode ? 844 : 720, mobile: mobilePresentationMode }));
   const [canvasReadyVersion, setCanvasReadyVersion] = useState(0);
+  const [previewInteractionActive, setPreviewInteractionActive] = useState(false);
   const [materialPreview, setMaterialPreview] = useState(true);
   const [showServicePoints, setShowServicePoints] = useState(false);
   const [showStairDebug, setShowStairDebug] = useState(false);
@@ -13353,7 +13521,8 @@ export function Floor3DView({
   useEffect(() => {
     setMaterialPreview(villaExperienceEnabled || drawingProfile.materialMode === "realistic");
     setShowServicePoints(false);
-    setPresentationMode(false);
+    // Sheet initialization must not undo a dedicated preview's presentation mode.
+    setPresentationMode(mobilePresentationMode || externalPresentationMode);
     setCeilingSolid(false);
     setShowBeamCones(false);
     setShowLightSpots(false);
@@ -13372,7 +13541,7 @@ export function Floor3DView({
     lightingSoloBackupRef.current = null;
     lightingItemSoloBackupRef.current = null;
     setMaterialCategoryFilter("all");
-  }, [drawingSheetType, villaExperienceEnabled]);
+  }, [drawingSheetType, villaExperienceEnabled, mobilePresentationMode, externalPresentationMode]);
   useEffect(() => {
     const floorChanged = previousFloorIdRef.current !== floor.id;
     previousFloorIdRef.current = floor.id;
@@ -13571,6 +13740,29 @@ export function Floor3DView({
     sceneEvidence
   });
   const currentRenderPreflight = getCurrentRenderPreflight();
+  const selectSceneStructure = useSceneEvent((objectId: string) => {
+    if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onSelectStructure(objectId);
+  });
+  const selectSceneFurniture = useSceneEvent((item: Furniture, part?: string) => {
+    if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onSelectFurniture(item, part);
+  });
+  const selectSceneDrawingItem = useSceneEvent((drawingItemId: string) => {
+    const drawingItem = drawingItems.find((item) => item.id === drawingItemId);
+    if (!presentationMode && selectionAllowed() && (!lightsOnlyInteraction || drawingItem?.category === "light")) onSelectDrawingItem(drawingItemId);
+  });
+  const enterSceneRoom = useSceneEvent((floorId: Floor["id"], roomId: string) => {
+    if (floorId !== floor.id) {
+      pendingRoomEntryRef.current = { floorId, roomId };
+      onSelectFloor?.(floorId);
+      return;
+    }
+    const space = lightingSpaceSummaries.find((item) => item.id === roomId);
+    if (space) enterLightingSpace(space);
+  });
+  const toggleSceneControlGroup = useSceneEvent((groupId: string) => {
+    if (lightsOnlyInteraction) return;
+    toggleLightingGroup(groupId, (lightingControlBrightness.get(groupId) ?? 0) <= 0);
+  });
   useEffect(() => {
     if (!renderCameraPanelOpen) return;
     const timer = window.setTimeout(() => {
@@ -13702,7 +13894,7 @@ export function Floor3DView({
 
   return (
     <div
-      className={`relative h-full overflow-hidden bg-[#ede7da] transition ${mobilePresentationMode ? "min-h-0 rounded-none border-0 shadow-none" : `min-h-[560px] rounded-[1.75rem] border ${presentationMode ? "border-white/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.48),0_22px_90px_rgba(84,69,50,0.18)]" : "border-white/70 shadow-inner"}`}`}
+      className={`relative h-full overflow-hidden bg-[#ede7da] transition ${mobilePresentationMode || hidePresentationUi ? "min-h-0 rounded-none border-0 shadow-none" : `min-h-[560px] rounded-[1.75rem] border ${presentationMode ? "border-white/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.48),0_22px_90px_rgba(84,69,50,0.18)]" : "border-white/70 shadow-inner"}`}`}
       onDoubleClick={() => {
         if (mobilePresentationMode) resetMobileCamera();
       }}
@@ -13753,11 +13945,13 @@ export function Floor3DView({
         // user switches floors. The scene contents can update in-place; a
         // floor id in this key would tear down the Canvas and recreate the
         // renderer, PMREM environment and shader programs on every switch.
-        key={`${presentationMode ? "presentation" : "edit"}-${mobileQuality}`}
+        // The legacy mobile presentation changes creation-only antialias/power
+        // options with quality, so that mode still needs a new context.
+        key={`${presentationMode ? "presentation" : "edit"}-${mobilePresentationMode ? mobileQuality : "desktop"}`}
         shadows={!mobilePresentationMode || mobileQuality === "high"}
-        dpr={mobilePresentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : presentationMode ? [1.1, 1.75] : [1, 1.5]}
+        dpr={hidePresentationUi && externalPresentationMode ? [1, mobileQuality === "high" && !previewInteractionActive ? 1.5 : 1] : mobilePresentationMode || presentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : [1, 1.5]}
         camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}
-        gl={{ antialias: presentationMode && (!mobilePresentationMode || mobileQuality === "high"), preserveDrawingBuffer: presentationMode, powerPreference: mobilePresentationMode && mobileQuality === "balanced" ? "low-power" : "high-performance" }}
+        gl={{ antialias: presentationMode && (!mobilePresentationMode || mobileQuality === "high"), preserveDrawingBuffer: presentationMode && !hidePresentationUi, powerPreference: mobilePresentationMode && mobileQuality === "balanced" ? "low-power" : "high-performance" }}
         onPointerMissed={() => {
           if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onClearSelection?.();
         }}
@@ -13773,7 +13967,9 @@ export function Floor3DView({
           });
         }}
       >
-        <Floor3DScene
+        <MemoFloor3DScene
+          staticPreview={hidePresentationUi && externalPresentationMode && !villaExperienceEnabled}
+          onCameraInteractionChange={hidePresentationUi && externalPresentationMode ? setPreviewInteractionActive : undefined}
           drawingSheetType={drawingSheetType}
           drawingItems={drawingItems}
           allDrawingItems={villaDrawingItems}
@@ -13830,29 +14026,11 @@ export function Floor3DView({
           allFurniture={villaFurniture}
           selectedObjectId={presentationMode ? "" : selectedObjectId}
           selectedFurnitureId={presentationMode ? "" : selectedFurnitureId}
-          onSelectStructure={(objectId) => {
-            if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onSelectStructure(objectId);
-          }}
-          onSelectFurniture={(item, part) => {
-            if (!presentationMode && !lightsOnlyInteraction && selectionAllowed()) onSelectFurniture(item, part);
-          }}
-          onSelectDrawingItem={(drawingItemId) => {
-            const drawingItem = drawingItems.find((item) => item.id === drawingItemId);
-            if (!presentationMode && selectionAllowed() && (!lightsOnlyInteraction || drawingItem?.category === "light")) onSelectDrawingItem(drawingItemId);
-          }}
-          onEnterRoom={(floorId, roomId) => {
-            if (floorId !== floor.id) {
-              pendingRoomEntryRef.current = { floorId, roomId };
-              onSelectFloor?.(floorId);
-              return;
-            }
-            const space = lightingSpaceSummaries.find((item) => item.id === roomId);
-            if (space) enterLightingSpace(space);
-          }}
-        onToggleControlGroup={(groupId) => {
-          if (lightsOnlyInteraction) return;
-          toggleLightingGroup(groupId, (lightingControlBrightness.get(groupId) ?? 0) <= 0);
-        }}
+          onSelectStructure={selectSceneStructure}
+          onSelectFurniture={selectSceneFurniture}
+          onSelectDrawingItem={selectSceneDrawingItem}
+          onEnterRoom={enterSceneRoom}
+          onToggleControlGroup={toggleSceneControlGroup}
           onHoverObject={onHoverObject}
           onClearHoverObject={onClearHoverObject}
         />

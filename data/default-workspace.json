@@ -1,8 +1,8 @@
 {
   "schemaVersion": 19,
   "dataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "defaultWorkspaceRevision": "whole-house-lighting-cabinet-yard-integration-v1-20260812",
-  "savedAt": "2026-08-12T18:00:00.000+08:00",
+  "defaultWorkspaceRevision": "parent-child-c2-v4-confirmed-model-v7-closet-r01",
+  "savedAt": "2026-10-12T16:19:40.397Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
   "selectedDrawingSheetType": "sitePlan",
@@ -1595,7 +1595,7 @@
     {
       "id": "module-2f-cloak-left",
       "code": "WD-2F-L",
-      "name": "衣帽间西侧全深色玻璃衣柜",
+      "name": "衣帽间西侧可调金属架＋深色玻璃平开门确认候选 R01",
       "type": "wardrobe",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
@@ -1603,14 +1603,14 @@
       "floorId": "2F",
       "roomId": "ROOM-2F-002",
       "dimensions": {
-        "width": 195,
+        "width": 224,
         "depth": 60,
-        "height": 275,
+        "height": 247,
         "unit": "cm"
       },
-      "material": "深茶灰玻璃 + 黑钛细框 + 暖橡木柜内层板 + 3000K感应灯",
-      "note": "两侧到顶柜保留重点设计意图；为1800×700mm升降桌让出北侧开间，外廓为estimated。",
-      "constructionNote": "两侧柜由原全长候选收敛为南侧约1950mm功能段，北窗桌位保留；门板采用封闭/茶玻混合，避免两侧全透视杂乱。柜内灯带采用门控/感应与emissive表达，不新增实时投影灯。",
+      "material": "可调深色金属架 + 深色可透视玻璃 + 精致细边框平开门 + 3000K柜内感应灯",
+      "note": "LYHP-2F-CLO-001-R01确认候选：完成面工作基线2078×2480mm；两侧柜深600mm；候选柜长2240mm；中央完成面通道878mm。飘窗/台座保留，外凸深度、台高、侧垛、窗扇扫掠与帘轨待实测，不套用主卧550mm。内部为可调金属架、可调层板和挂杆；外部为深色可透视玻璃、精致细边框平开门。西侧L1包/浅抽、L2长挂、L3双短挂、L4叠放；东侧R4叠放、R3/R2双短挂、R1长挂。本人60–80件挂衣仍待容量复核，不写成容量通过。",
+      "constructionNote": "确认候选仅写入衣帽间，不代表施工放行。沿两侧墙布置，平开门按单侧/分区开启；飘窗台座端部和入口帘束收口必须按现场复尺复核。保留穿衣镜、包/浅抽与小物收纳；去除固定桌位。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -1620,253 +1620,58 @@
       "position": {
         "x": 47.36,
         "y": 22.7777777778,
-        "rotation": 90
+        "rotation": 270
       },
-      "color": "#d8c2a4",
-      "wardrobeDesign": {
-        "columns": 4,
-        "rows": 4,
-        "cells": [
-          {
-            "id": "cell-0-0",
-            "column": 0,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-0",
-            "column": 1,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-0",
-            "column": 2,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-0",
-            "column": 3,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-0-1",
-            "column": 0,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-1",
-            "column": 1,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-1",
-            "column": 2,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-1",
-            "column": 3,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-0-2",
-            "column": 0,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-2",
-            "column": 1,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-2",
-            "column": 2,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-2",
-            "column": 3,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-0-3",
-            "column": 0,
-            "row": 3,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-3",
-            "column": 1,
-            "row": 3,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-3",
-            "column": 2,
-            "row": 3,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-3",
-            "column": 3,
-            "row": 3,
-            "kind": "open"
-          }
-        ],
-        "columnWidths": [
-          30,
-          30,
-          22,
-          18
-        ],
-        "modules": [
-          {
-            "id": "top-quilt-left",
-            "kind": "open",
-            "label": "顶部被子/换季区",
-            "column": 0,
-            "columnSpan": 4,
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 20,
-            "shelfCount": 2
-          },
-          {
-            "id": "long-hanging-left",
-            "kind": "hanging-long",
-            "label": "长衣主挂区",
-            "column": 0,
-            "columnSpan": 1,
-            "x": 0,
-            "y": 20,
-            "width": 30,
-            "height": 80
-          },
-          {
-            "id": "short-hanging-left-a",
-            "kind": "hanging-short",
-            "label": "短衣双层挂区",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 30,
-            "y": 20,
-            "width": 30,
-            "height": 40
-          },
-          {
-            "id": "short-hanging-left-b",
-            "kind": "hanging-short",
-            "label": "短衣下挂区",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 30,
-            "y": 60,
-            "width": 30,
-            "height": 40
-          },
-          {
-            "id": "bag-open-left",
-            "kind": "open",
-            "label": "包包开放格",
-            "column": 2,
-            "columnSpan": 1,
-            "x": 60,
-            "y": 20,
-            "width": 22,
-            "height": 58,
-            "shelfCount": 4
-          },
-          {
-            "id": "drawer-left",
-            "kind": "drawer",
-            "label": "小件抽屉",
-            "column": 2,
-            "columnSpan": 1,
-            "x": 60,
-            "y": 78,
-            "width": 22,
-            "height": 22,
-            "drawerRows": 2,
-            "drawerColumns": 1
-          },
-          {
-            "id": "narrow-hanging-left",
-            "kind": "hanging-long",
-            "label": "备用挂衣/礼服",
-            "column": 3,
-            "columnSpan": 1,
-            "x": 82,
-            "y": 20,
-            "width": 18,
-            "height": 80
-          }
-        ],
-        "notes": "衣帽间初版：以挂衣为主，顶部和侧边承担包包、被子、换季件；叠放区尽量少，仅保留必要开放格和少量抽屉，后续可进入衣柜设计器继续拖动微调。"
-      },
+      "color": "#5e554d",
       "render3d": {
         "assetType": "walkInCloset",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "smokedGlass",
-        "accentMaterial": "blackTitanium",
+        "primaryMaterial": "smokedGlass",
+        "secondaryMaterial": "adjustableMetal",
+        "accentMaterial": "darkBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "glassDisplay",
+        "variantId": "adjustableMetal-smokedGlass-swingDoors-r01",
         "variationSeed": 549471985,
         "styleSource": "manual",
         "cabinetVisual": {
-          "frontStyle": "glass",
-          "handleStyle": "edgePull",
+          "frontStyle": "slimGlassFrame",
+          "handleStyle": "slimEdgePull",
           "glassTone": "smoked",
-          "allDoorPanels": false,
+          "allDoorPanels": true,
           "displayContents": true,
           "interiorLighting": true,
           "bays": [
             {
-              "widthRatio": 1,
+              "widthRatio": 957,
               "frontType": "solid",
               "interiorLighting": false
             },
             {
-              "widthRatio": 1,
-              "frontType": "glass",
-              "interiorLighting": true
-            },
-            {
-              "widthRatio": 1,
+              "widthRatio": 957,
               "frontType": "solid",
               "interiorLighting": false
-            },
-            {
-              "widthRatio": 1,
-              "frontType": "glass",
-              "interiorLighting": true
             }
-          ]
+          ],
+          "openingMode": "swing",
+          "doorCount": 4,
+          "accessPlanId": "module-2f-cloak-left-swing-glass-r01",
+          "panelThicknessMm": 18,
+          "leafCount": 4
         },
         "cabinetMaterialOverrides": {
-          "carcass": "warmOak",
-          "door": "warmOak",
+          "carcass": "adjustableMetal",
+          "door": "smokedGlass",
           "glass": "smokedGlass",
-          "hardware": "blackTitanium"
+          "hardware": "darkBronze",
+          "shelf": "adjustableMetal"
         },
-        "primaryMaterialResourceId": "showroomWarmOakVertical",
+        "primaryMaterialResourceId": "showroomDarkBronze",
         "accentMaterialResourceId": "showroomDarkBronze",
-        "styleLocked": true
+        "styleLocked": true,
+        "accessPlanId": "module-2f-cloak-left-swing-glass-r01"
       },
       "mepMeta": {
         "needsSocket": true,
@@ -1887,20 +1692,20 @@
         "needsVentilation": false,
         "needsSmartControl": true,
         "relatedCircuit": "常规插座回路",
-        "notes": "满墙到顶柜体采用灰色透明玻璃门和黑钛窄框；复核玻璃安全等级、门缝、铰链及柜内感应灯带。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。"
+        "notes": "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜内灯带电源、驱动、门控感应与检修位随定制柜深化，电源点与柜体定位同步复核。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
         "reserveSize": "195x60x275cm (estimated)",
-        "wallDependency": "绑定 W-2F-004；北侧为1800×700mm升降桌开间，现场复尺后确认收口、桥柜端部和柜门开启。",
-        "floorDependency": "按完成面标高校核落地尺寸",
-        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "wallDependency": "绑定 W-2F-004；两侧柜南段长度、端部收口与北侧窗前桌位关系待现场复尺。",
+        "floorDependency": "按完成面标高校核落地尺寸与踢脚收口",
+        "ceilingDependency": "柜体到顶与吊顶、灯带电源及检修空间协同",
         "waterproofRequired": false,
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "两侧柜由原全长候选收敛为南侧约1950mm功能段，北窗桌位保留；门板采用封闭/茶玻混合，避免两侧全透视杂乱。柜内灯带采用门控/感应与emissive表达，不新增实时投影灯。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。"
+        "notes": "衣帽间挂衣优先候选；已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。下单前须核对墙体完成面、窗扇、入口通道与现场尺寸。"
       },
       "constructionAnchors": {
         "points": [
@@ -1935,14 +1740,7 @@
         "topClosureMm": 50,
         "source": "storyHeight"
       },
-      "visual": {
-        "glassTone": "light-smoked-bronze",
-        "glassOpacity": 0.42,
-        "frameColor": "#4b4138",
-        "frameDensity": "low",
-        "interiorFinish": "warm-light-oak",
-        "interiorLighting": "3000K-integrated"
-      },
+      "visual": "封闭暖木门板、黑钛双轨、暖木内胆与3000K柜内灯带；不再保留玻璃门描述。",
       "notes": "标准600mm进深；浅烟茶玻璃、减框分格和暖木内胆，避免深黑玻璃造成压抑。",
       "hostWallId": "W-2F-004",
       "cabinetInterior": {
@@ -1951,9 +1749,9 @@
         "panelThicknessMm": 18,
         "interiorWidthMm": 1914,
         "interiorHeightMm": 2714,
-        "interiorDepthMm": 582,
-        "openingMode": "doubleSwing",
-        "doorCount": 4,
+        "interiorDepthMm": 510,
+        "openingMode": "swing",
+        "doorCount": 2,
         "doorStates": {},
         "modules": [
           {
@@ -1961,168 +1759,244 @@
             "kind": "shelf",
             "label": "顶部换季/被品层",
             "x": 0,
-            "y": 2694,
+            "y": 2450,
             "z": 0,
             "width": 1914,
             "height": 20,
-            "depth": 582,
+            "depth": 510,
             "adjustable": false,
             "fixed": true,
-            "materialPart": "carcass"
+            "materialPart": "carcass",
+            "notes": "顶部低频周转/被品层；板上至柜顶约244mm，不能代替挂衣净高。"
           },
           {
-            "id": "module-2f-cloak-left-hanging-long",
+            "id": "module-2f-cloak-left-short-lower",
             "kind": "hanging",
-            "label": "长衣与礼服挂区",
+            "label": "下层裤装/短件挂位（主力双层）",
             "x": 0,
             "y": 0,
             "z": 0,
-            "width": 478,
-            "height": 2634,
-            "depth": 582,
+            "width": 920,
+            "height": 1320,
+            "depth": 510,
             "adjustable": true,
             "materialPart": "hardware",
-            "notes": "挂杆高度按成人衣长复尺。"
+            "notes": "下杆中心约968mm；优先裤装/短件，不按900mm上衣净空验收。渲染挂杆长度按 module.width×0.88：约810mm。"
           },
           {
-            "id": "module-2f-cloak-left-hanging-short",
+            "id": "module-2f-cloak-left-short-upper",
             "kind": "hanging",
-            "label": "短衣双层挂区",
-            "x": 478,
-            "y": 0,
+            "label": "上层短衣挂位（主力双层）",
+            "x": 0,
+            "y": 1320,
             "z": 0,
-            "width": 478,
-            "height": 2284,
-            "depth": 582,
+            "width": 920,
+            "height": 930,
+            "depth": 510,
             "adjustable": true,
             "materialPart": "hardware",
-            "notes": "上、下挂杆均可在柜体深化时调节。"
+            "notes": "上杆中心约2008mm；模块净落衣约930mm，按900mm常规上衣加约30mm余量，衣架厚度与衣物样本待复核。渲染挂杆长度按 module.width×0.88：约810mm。"
+          },
+          {
+            "id": "module-2f-cloak-left-short-top-shelf",
+            "kind": "shelf",
+            "label": "短挂上方周转层板",
+            "x": 0,
+            "y": 2250,
+            "z": 0,
+            "width": 920,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "fixed": false,
+            "materialPart": "carcass",
+            "notes": "双挂上方周转层板；上杆至板底约261mm，按衣架钩与衣物样本复核。"
+          },
+          {
+            "id": "module-2f-cloak-left-long",
+            "kind": "hanging",
+            "label": "少量长衣/礼服与裤装挂区",
+            "x": 975,
+            "y": 0,
+            "z": 0,
+            "width": 650,
+            "height": 2450,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "hardware",
+            "notes": "长挂杆中心约1782mm；顶部低频层板另行表达，渲染挂杆长度按 module.width×0.88：约572mm，长衣衣长待样本复核。"
+          },
+          {
+            "id": "module-2f-cloak-left-bay-divider-short-long",
+            "kind": "divider",
+            "label": "短挂与长挂承重竖板",
+            "x": 939,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2450,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "carcass",
+            "notes": "柜内立面承重/分格竖板；与两半门功能边界对应，施工时按五金与板厚深化。"
+          },
+          {
+            "id": "module-2f-cloak-left-bay-divider-long-small",
+            "kind": "divider",
+            "label": "长挂与小件承重竖板",
+            "x": 1625,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2450,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "carcass",
+            "notes": "柜内立面承重/分格竖板；与两半门功能边界对应，施工时按五金与板厚深化。"
           },
           {
             "id": "module-2f-cloak-left-drawers",
             "kind": "drawer",
-            "label": "小件抽屉",
-            "x": 956,
+            "label": "必要小件抽屉",
+            "x": 1647,
             "y": 0,
             "z": 0,
-            "width": 478,
+            "width": 267,
             "height": 360,
-            "depth": 582,
+            "depth": 510,
             "adjustable": true,
             "fixed": false,
-            "materialPart": "hardware"
+            "materialPart": "hardware",
+            "notes": "必要小件抽屉；净高、轨道承重与前方开门取用按五金型号复核。"
           },
           {
-            "id": "module-2f-cloak-left-folded-1",
+            "id": "module-2f-cloak-left-bags-shelf-1",
             "kind": "shelf",
-            "label": "叠放层板 1",
-            "x": 956,
+            "label": "包袋格层板 1",
+            "x": 1647,
             "y": 410,
             "z": 0,
-            "width": 478,
+            "width": 267,
             "height": 20,
-            "depth": 582,
-            "adjustable": true,
-            "materialPart": "carcass"
-          },
-          {
-            "id": "module-2f-cloak-left-folded-2",
-            "kind": "shelf",
-            "label": "叠放层板 2",
-            "x": 956,
-            "y": 790,
-            "z": 0,
-            "width": 478,
-            "height": 20,
-            "depth": 582,
-            "adjustable": true,
-            "materialPart": "carcass"
-          },
-          {
-            "id": "module-2f-cloak-left-folded-3",
-            "kind": "shelf",
-            "label": "叠放层板 3",
-            "x": 956,
-            "y": 1170,
-            "z": 0,
-            "width": 478,
-            "height": 20,
-            "depth": 582,
-            "adjustable": true,
-            "materialPart": "carcass"
-          },
-          {
-            "id": "module-2f-cloak-left-display",
-            "kind": "open",
-            "label": "包袋/饰品半开放格",
-            "x": 1434,
-            "y": 0,
-            "z": 0,
-            "width": 480,
-            "height": 760,
-            "depth": 582,
+            "depth": 510,
             "adjustable": true,
             "materialPart": "glass",
-            "notes": "仅保留一组展示门板，避免全柜透明。"
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
+          },
+          {
+            "id": "module-2f-cloak-left-bags-shelf-2",
+            "kind": "shelf",
+            "label": "包袋格层板 2",
+            "x": 1647,
+            "y": 760,
+            "z": 0,
+            "width": 267,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "glass",
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
+          },
+          {
+            "id": "module-2f-cloak-left-bags-shelf-3",
+            "kind": "shelf",
+            "label": "包袋格层板 3",
+            "x": 1647,
+            "y": 1110,
+            "z": 0,
+            "width": 267,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "glass",
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
+          },
+          {
+            "id": "module-2f-cloak-left-bags-shelf-4",
+            "kind": "shelf",
+            "label": "包袋格层板 4",
+            "x": 1647,
+            "y": 1460,
+            "z": 0,
+            "width": 267,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "glass",
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
           }
         ],
         "notes": [
-          "衣帽间两侧柜为功能候选，外廓与桥柜端部待复尺。",
-          "关闭态不生成层板/挂杆/设备盒；打开态才显示本布局。",
-          "北窗升降桌1800×700mm为高频办公硬需求，不以缩小桌面解决碰撞。"
+          "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜内层板、竖板、挂杆和抽屉仍由显式模块表达。",
+          "当前模块有效深度510mm为候选表达；600mm柜体及背板、门板、容差、现场完成面、五金和衣物样本仍须复核，不沿用旧双轨扣减口径。",
+          "挂杆位于显式模块深度中心，renderer 不再使用 depth×0.22 前移偏移；实际挂杆长度按 module.width×0.88，不把分区净宽直接当作杆长。",
+          "短挂杆中心约968mm / 2008mm（含18mm内腔板原点）；上层约930mm净落衣，按900mm常规上衣加约30mm余量，下层优先裤装/短件。",
+          "本柜渲染挂杆长度约810mm + 810mm（短挂双层合计约1620mm）；长挂/再穿位按各模块实际宽度另计，不能虚增总挂衣量。"
         ],
         "createdFrom": "saved"
       },
       "cabinetDesign": {
         "template": "cabinet",
-        "title": "衣帽间封闭/茶玻混合到顶柜",
-        "designThinking": "深茶玻璃和黑钛作为重点语言，但以封闭门板压住视觉噪声；挂衣、叠放、抽屉、少量展示并存。",
-        "recommendedPlacement": "沿两侧墙南段布置，北侧为升降桌与桥柜候选开间。",
+        "title": "短挂优先的金属架＋玻璃细框平开方向衣柜",
+        "designThinking": "以双层短挂承接日常上衣和裤装悬挂，保留少量长衣、抽屉与整宽包袋层板；不把叠放区当主功能。",
+        "recommendedPlacement": "沿现有两侧墙南段布置，北侧保留窗前1800×700mm升降桌；外廓和通道均为候选，待现场复尺。",
         "layoutNotes": [
-          "编辑态保持简模；柜门打开或对象进入柜体设计态时才显示内部模块。",
-          "材质仅引用 modern-warm-natural canonical PBR，不新增同义材质。"
+          "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选，不沿用旧两扇移门、双轨或错轨操作映射。",
+          "柜内立面由 cabinetInterior.modules 表达；模块有效深度510mm，挂杆长度和衣架厚度仍需现场样本复核。",
+          "窗前1800×700mm升降桌保持独立；桌面、窗扇、椅子和入口通道另行复核。"
         ],
         "zones": [
           {
-            "id": "hanging",
-            "label": "挂衣",
-            "role": "长衣与短衣",
-            "widthPercent": 50,
-            "heightPercent": 92,
-            "detail": "两段可调挂杆，保持日常取衣优先"
+            "id": "short-hang",
+            "label": "双层短挂",
+            "role": "上层短衣 + 下层裤装/短件",
+            "widthPercent": 48,
+            "heightPercent": 83,
+            "detail": "中心高约968/2008mm；渲染杆长约810mm+810mm，上层按900mm上衣+约30mm余量。"
           },
           {
-            "id": "folded",
-            "label": "叠放",
-            "role": "叠衣与床品",
-            "widthPercent": 25,
-            "heightPercent": 72,
-            "detail": "固定层板可调"
+            "id": "long-hang",
+            "label": "少量长衣",
+            "role": "礼服/长外套",
+            "widthPercent": 34,
+            "heightPercent": 83,
+            "detail": "中心高约1782mm；渲染杆长约572mm，长衣衣长待样本复核。"
           },
           {
             "id": "small-items",
-            "label": "小件",
-            "role": "抽屉与包袋",
-            "widthPercent": 25,
-            "heightPercent": 40,
-            "detail": "抽屉+一组半开放展示格"
+            "label": "抽屉与包袋",
+            "role": "小件/包袋",
+            "widthPercent": 18,
+            "heightPercent": 58,
+            "detail": "267mm整宽包袋层板与必要抽屉。"
           }
         ],
         "cautionNotes": [
-          "柜体长度、墙面垂直度、门扇开启和桥柜端部必须现场确认。"
+          "1950×600×2750mm 为模型候选，不是现场实测；墙体垂直度、踢脚、完成面和顶封板须复尺。",
+          "桌北缘至柜体北端模型间隙约25mm；平开方向的实际门叶宽、铰链、开启半径、桌端/窗扇端外摆和各格可取性须在门数与分格确认后，以现场及厂家图纸复核。",
+          "当前只确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜前约1050mm通道须结合桌椅历史条件、窗扇和入口转身复核，不宣称平开已施工通过。",
+          "D-2F-002 为无门扇开放洞口；当前 BLOCKS_DOOR 约195mm 为两侧柜角靠近洞口的既有保守提醒，不等于新增平开门冲突，需按现场门洞净宽和转身动作复核。",
+          "挂衣净空按当前候选模块高度表达，衣长、衣架厚度、裤架和灯带检修方式由柜体厂家深化。"
         ]
       },
       "verificationMeta": {
         "status": "estimated",
         "source": "manual-input",
-        "sourceNote": "本轮为柜体功能候选深化；建筑边界、柜体外廓和完成面尺寸仍须现场复尺，未改变任何墙体或结构对象。",
+        "sourceNote": "功能和柜内分区为本轮候选深化；1950×600×2750mm外廓、墙体完成面、门轨、挂衣净空和桌椅/窗扇关系仍须现场复尺。 用户已确认金属架、玻璃细框平开、L3挂衣/L4叠放方向；用户已确认R16正面图质感。每侧四门叶尚待确认，几何/五金/现场尺寸待核；仅设计讨论，不作施工放行。",
         "toleranceMm": 100
+      },
+      "clearanceMeta": {
+        "frontMm": 878,
+        "serviceMm": 300,
+        "doorSwingMm": 400,
+        "status": "estimated",
+        "notes": "完成面中央通道工作值878mm；平开门按单侧/分区开启，不承诺两侧最大扇同时全开。飘窗台座、帘束、抽屉拉出和人体站位待现场复核。"
       }
     },
     {
       "id": "module-2f-cloak-right",
       "code": "WD-2F-R",
-      "name": "衣帽间东侧全深色玻璃衣柜",
+      "name": "衣帽间东侧可调金属架＋深色玻璃平开门确认候选 R01",
       "type": "wardrobe",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
@@ -2130,14 +2004,14 @@
       "floorId": "2F",
       "roomId": "ROOM-2F-002",
       "dimensions": {
-        "width": 195,
+        "width": 224,
         "depth": 60,
-        "height": 275,
+        "height": 247,
         "unit": "cm"
       },
-      "material": "深茶灰玻璃 + 黑钛细框 + 暖橡木柜内层板 + 3000K感应灯",
-      "note": "两侧到顶柜保留重点设计意图；为1800×700mm升降桌让出北侧开间，外廓为estimated。",
-      "constructionNote": "两侧柜由原全长候选收敛为南侧约1950mm功能段，北窗桌位保留；门板采用封闭/茶玻混合，避免两侧全透视杂乱。柜内灯带采用门控/感应与emissive表达，不新增实时投影灯。",
+      "material": "可调深色金属架 + 深色可透视玻璃 + 精致细边框平开门 + 3000K柜内感应灯",
+      "note": "LYHP-2F-CLO-001-R01确认候选：完成面工作基线2078×2480mm；两侧柜深600mm；候选柜长2240mm；中央完成面通道878mm。飘窗/台座保留，外凸深度、台高、侧垛、窗扇扫掠与帘轨待实测，不套用主卧550mm。内部为可调金属架、可调层板和挂杆；外部为深色可透视玻璃、精致细边框平开门。西侧L1包/浅抽、L2长挂、L3双短挂、L4叠放；东侧R4叠放、R3/R2双短挂、R1长挂。本人60–80件挂衣仍待容量复核，不写成容量通过。",
+      "constructionNote": "确认候选仅写入衣帽间，不代表施工放行。沿两侧墙布置，平开门按单侧/分区开启；飘窗台座端部和入口帘束收口必须按现场复尺复核。保留穿衣镜、包/浅抽与小物收纳；去除固定桌位。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -2149,239 +2023,56 @@
         "y": 22.7777777778,
         "rotation": 90
       },
-      "color": "#d6b892",
-      "wardrobeDesign": {
-        "columns": 4,
-        "rows": 4,
-        "cells": [
-          {
-            "id": "cell-0-0",
-            "column": 0,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-0",
-            "column": 1,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-0",
-            "column": 2,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-0",
-            "column": 3,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-0-1",
-            "column": 0,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-1",
-            "column": 1,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-1",
-            "column": 2,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-1",
-            "column": 3,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-0-2",
-            "column": 0,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-2",
-            "column": 1,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-2",
-            "column": 2,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-2",
-            "column": 3,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-0-3",
-            "column": 0,
-            "row": 3,
-            "kind": "open"
-          },
-          {
-            "id": "cell-1-3",
-            "column": 1,
-            "row": 3,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-3",
-            "column": 2,
-            "row": 3,
-            "kind": "open"
-          },
-          {
-            "id": "cell-3-3",
-            "column": 3,
-            "row": 3,
-            "kind": "open"
-          }
-        ],
-        "columnWidths": [
-          24,
-          28,
-          28,
-          20
-        ],
-        "modules": [
-          {
-            "id": "top-quilt-right",
-            "kind": "open",
-            "label": "顶部被褥整包区",
-            "column": 0,
-            "columnSpan": 4,
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 24,
-            "shelfCount": 2
-          },
-          {
-            "id": "bag-display-right",
-            "kind": "open",
-            "label": "包包展示格",
-            "column": 0,
-            "columnSpan": 1,
-            "x": 0,
-            "y": 24,
-            "width": 24,
-            "height": 76,
-            "shelfCount": 5
-          },
-          {
-            "id": "short-hanging-right-a",
-            "kind": "hanging-short",
-            "label": "短衣挂区",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 24,
-            "y": 24,
-            "width": 28,
-            "height": 38
-          },
-          {
-            "id": "short-hanging-right-b",
-            "kind": "hanging-short",
-            "label": "短衣下挂区",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 24,
-            "y": 62,
-            "width": 28,
-            "height": 38
-          },
-          {
-            "id": "long-hanging-right",
-            "kind": "hanging-long",
-            "label": "长衣/大衣区",
-            "column": 2,
-            "columnSpan": 1,
-            "x": 52,
-            "y": 24,
-            "width": 28,
-            "height": 76
-          },
-          {
-            "id": "quilt-tall-right",
-            "kind": "open",
-            "label": "被子立放/行李区",
-            "column": 3,
-            "columnSpan": 1,
-            "x": 80,
-            "y": 24,
-            "width": 20,
-            "height": 76,
-            "shelfCount": 2
-          }
-        ],
-        "notes": "衣帽间初版：以挂衣为主，顶部和侧边承担包包、被子、换季件；叠放区尽量少，仅保留必要开放格和少量抽屉，后续可进入衣柜设计器继续拖动微调。"
-      },
+      "color": "#62584e",
       "render3d": {
         "assetType": "walkInCloset",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "smokedGlass",
-        "accentMaterial": "blackTitanium",
+        "primaryMaterial": "smokedGlass",
+        "secondaryMaterial": "adjustableMetal",
+        "accentMaterial": "darkBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "glassDisplay",
+        "variantId": "adjustableMetal-smokedGlass-swingDoors-r01",
         "variationSeed": 2768185234,
         "styleSource": "manual",
         "cabinetVisual": {
-          "frontStyle": "glass",
-          "handleStyle": "edgePull",
+          "frontStyle": "slimGlassFrame",
+          "handleStyle": "slimEdgePull",
           "glassTone": "smoked",
-          "allDoorPanels": false,
+          "allDoorPanels": true,
           "displayContents": true,
           "interiorLighting": true,
           "bays": [
             {
-              "widthRatio": 1,
+              "widthRatio": 957,
               "frontType": "solid",
               "interiorLighting": false
             },
             {
-              "widthRatio": 1,
-              "frontType": "glass",
-              "interiorLighting": true
-            },
-            {
-              "widthRatio": 1,
+              "widthRatio": 957,
               "frontType": "solid",
               "interiorLighting": false
-            },
-            {
-              "widthRatio": 1,
-              "frontType": "glass",
-              "interiorLighting": true
             }
-          ]
+          ],
+          "openingMode": "swing",
+          "doorCount": 4,
+          "accessPlanId": "module-2f-cloak-right-swing-glass-r01",
+          "panelThicknessMm": 18,
+          "leafCount": 4
         },
         "cabinetMaterialOverrides": {
-          "carcass": "warmOak",
-          "door": "warmOak",
+          "carcass": "adjustableMetal",
+          "door": "smokedGlass",
           "glass": "smokedGlass",
-          "hardware": "blackTitanium"
+          "hardware": "darkBronze",
+          "shelf": "adjustableMetal"
         },
-        "primaryMaterialResourceId": "showroomWarmOakVertical",
+        "primaryMaterialResourceId": "showroomDarkBronze",
         "accentMaterialResourceId": "showroomDarkBronze",
-        "styleLocked": true
+        "styleLocked": true,
+        "accessPlanId": "module-2f-cloak-right-swing-glass-r01"
       },
       "mepMeta": {
         "needsSocket": true,
@@ -2402,20 +2093,20 @@
         "needsVentilation": false,
         "needsSmartControl": true,
         "relatedCircuit": "常规插座回路",
-        "notes": "满墙到顶柜体采用灰色透明玻璃门和黑钛窄框；复核玻璃安全等级、门缝、铰链及柜内感应灯带。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。"
+        "notes": "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜内灯带电源、驱动、门控感应与检修位随定制柜深化，电源点与柜体定位同步复核。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
         "reserveSize": "195x60x275cm (estimated)",
-        "wallDependency": "绑定 W-2F-005；北侧为1800×700mm升降桌开间，现场复尺后确认收口、桥柜端部和柜门开启。",
-        "floorDependency": "按完成面标高校核落地尺寸",
-        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "wallDependency": "绑定 W-2F-005；两侧柜南段长度、端部收口与北侧窗前桌位关系待现场复尺。",
+        "floorDependency": "按完成面标高校核落地尺寸与踢脚收口",
+        "ceilingDependency": "柜体到顶与吊顶、灯带电源及检修空间协同",
         "waterproofRequired": false,
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "两侧柜由原全长候选收敛为南侧约1950mm功能段，北窗桌位保留；门板采用封闭/茶玻混合，避免两侧全透视杂乱。柜内灯带采用门控/感应与emissive表达，不新增实时投影灯。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。 柜内灯带驱动、电源和检修位随柜体厂家深化，门控感应优先。"
+        "notes": "衣帽间挂衣优先候选；已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。下单前须核对墙体完成面、窗扇、入口通道与现场尺寸。"
       },
       "constructionAnchors": {
         "points": [
@@ -2451,14 +2142,7 @@
         "topClosureMm": 50,
         "source": "storyHeight"
       },
-      "visual": {
-        "glassTone": "light-smoked-bronze",
-        "glassOpacity": 0.42,
-        "frameColor": "#4b4138",
-        "frameDensity": "low",
-        "interiorFinish": "warm-light-oak",
-        "interiorLighting": "3000K-integrated"
-      },
+      "visual": "封闭暖木门板、黑钛双轨、暖木内胆与3000K柜内灯带；不再保留玻璃门描述。",
       "notes": "标准600mm进深；浅烟茶玻璃、减框分格和暖木内胆，避免深黑玻璃造成压抑。",
       "cabinetInterior": {
         "schemaVersion": 1,
@@ -2466,9 +2150,9 @@
         "panelThicknessMm": 18,
         "interiorWidthMm": 1914,
         "interiorHeightMm": 2714,
-        "interiorDepthMm": 582,
-        "openingMode": "doubleSwing",
-        "doorCount": 4,
+        "interiorDepthMm": 510,
+        "openingMode": "swing",
+        "doorCount": 2,
         "doorStates": {},
         "modules": [
           {
@@ -2476,257 +2160,239 @@
             "kind": "shelf",
             "label": "顶部换季/被品层",
             "x": 0,
-            "y": 2694,
+            "y": 2450,
             "z": 0,
             "width": 1914,
             "height": 20,
-            "depth": 582,
+            "depth": 510,
             "adjustable": false,
             "fixed": true,
-            "materialPart": "carcass"
+            "materialPart": "carcass",
+            "notes": "顶部低频周转/被品层；板上至柜顶约244mm，不能代替挂衣净高。"
           },
           {
-            "id": "module-2f-cloak-right-hanging-long",
+            "id": "module-2f-cloak-right-long",
             "kind": "hanging",
             "label": "长衣/大衣挂区",
             "x": 0,
             "y": 0,
             "z": 0,
-            "width": 478,
-            "height": 2634,
-            "depth": 582,
+            "width": 900,
+            "height": 2450,
+            "depth": 510,
             "adjustable": true,
             "materialPart": "hardware",
-            "notes": "挂杆高度按成人衣长复尺。"
+            "notes": "长挂杆中心约1782mm；顶部低频层板另行表达，渲染挂杆长度按 module.width×0.88：约792mm，长衣衣长待样本复核。"
           },
           {
-            "id": "module-2f-cloak-right-hanging-short",
+            "id": "module-2f-cloak-right-rewear-lower",
             "kind": "hanging",
-            "label": "短衣双层挂区",
-            "x": 478,
+            "label": "入口再穿裤装/短件挂位（靠门端）",
+            "x": 975,
             "y": 0,
             "z": 0,
-            "width": 478,
-            "height": 2284,
-            "depth": 582,
+            "width": 650,
+            "height": 1320,
+            "depth": 510,
             "adjustable": true,
             "materialPart": "hardware",
-            "notes": "上、下挂杆均可在柜体深化时调节。"
+            "notes": "下杆中心约968mm；优先裤装/短件/再穿位，不按900mm上衣净空验收。渲染挂杆长度按 module.width×0.88：约572mm。"
+          },
+          {
+            "id": "module-2f-cloak-right-short-upper",
+            "kind": "hanging",
+            "label": "日常短衣上挂位",
+            "x": 975,
+            "y": 1320,
+            "z": 0,
+            "width": 650,
+            "height": 930,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "hardware",
+            "notes": "上杆中心约2008mm；模块净落衣约930mm，按900mm常规上衣加约30mm余量，衣架厚度与衣物样本待复核。渲染挂杆长度按 module.width×0.88：约572mm。"
+          },
+          {
+            "id": "module-2f-cloak-right-short-top-shelf",
+            "kind": "shelf",
+            "label": "短挂上方周转层板",
+            "x": 975,
+            "y": 2250,
+            "z": 0,
+            "width": 650,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "fixed": false,
+            "materialPart": "carcass",
+            "notes": "双挂上方周转层板；上杆至板底约261mm，按衣架钩与衣物样本复核。"
+          },
+          {
+            "id": "module-2f-cloak-right-bay-divider-long-short",
+            "kind": "divider",
+            "label": "长挂与短挂承重竖板",
+            "x": 939,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2450,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "carcass",
+            "notes": "柜内立面承重/分格竖板；与两半门功能边界对应，施工时按五金与板厚深化。"
+          },
+          {
+            "id": "module-2f-cloak-right-bay-divider-short-small",
+            "kind": "divider",
+            "label": "短挂与小件承重竖板",
+            "x": 1625,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2450,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "carcass",
+            "notes": "柜内立面承重/分格竖板；与两半门功能边界对应，施工时按五金与板厚深化。"
           },
           {
             "id": "module-2f-cloak-right-drawers",
             "kind": "drawer",
-            "label": "小件抽屉",
-            "x": 956,
+            "label": "必要小件抽屉",
+            "x": 1647,
             "y": 0,
             "z": 0,
-            "width": 478,
+            "width": 267,
             "height": 360,
-            "depth": 582,
+            "depth": 510,
             "adjustable": true,
             "fixed": false,
-            "materialPart": "hardware"
+            "materialPart": "hardware",
+            "notes": "必要小件抽屉；净高、轨道承重与前方开门取用按五金型号复核。"
           },
           {
-            "id": "module-2f-cloak-right-folded-1",
+            "id": "module-2f-cloak-right-bags-shelf-1",
             "kind": "shelf",
-            "label": "叠放层板 1",
-            "x": 956,
+            "label": "包袋格层板 1",
+            "x": 1647,
             "y": 410,
             "z": 0,
-            "width": 478,
+            "width": 267,
             "height": 20,
-            "depth": 582,
-            "adjustable": true,
-            "materialPart": "carcass"
-          },
-          {
-            "id": "module-2f-cloak-right-folded-2",
-            "kind": "shelf",
-            "label": "叠放层板 2",
-            "x": 956,
-            "y": 790,
-            "z": 0,
-            "width": 478,
-            "height": 20,
-            "depth": 582,
-            "adjustable": true,
-            "materialPart": "carcass"
-          },
-          {
-            "id": "module-2f-cloak-right-folded-3",
-            "kind": "shelf",
-            "label": "叠放层板 3",
-            "x": 956,
-            "y": 1170,
-            "z": 0,
-            "width": 478,
-            "height": 20,
-            "depth": 582,
-            "adjustable": true,
-            "materialPart": "carcass"
-          },
-          {
-            "id": "module-2f-cloak-right-display",
-            "kind": "open",
-            "label": "包袋/行李半开放格",
-            "x": 1434,
-            "y": 0,
-            "z": 0,
-            "width": 480,
-            "height": 760,
-            "depth": 582,
+            "depth": 510,
             "adjustable": true,
             "materialPart": "glass",
-            "notes": "仅保留一组展示门板，避免全柜透明。"
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
+          },
+          {
+            "id": "module-2f-cloak-right-bags-shelf-2",
+            "kind": "shelf",
+            "label": "包袋格层板 2",
+            "x": 1647,
+            "y": 760,
+            "z": 0,
+            "width": 267,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "glass",
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
+          },
+          {
+            "id": "module-2f-cloak-right-bags-shelf-3",
+            "kind": "shelf",
+            "label": "包袋格层板 3",
+            "x": 1647,
+            "y": 1110,
+            "z": 0,
+            "width": 267,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "glass",
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
+          },
+          {
+            "id": "module-2f-cloak-right-bags-shelf-4",
+            "kind": "shelf",
+            "label": "包袋格层板 4",
+            "x": 1647,
+            "y": 1460,
+            "z": 0,
+            "width": 267,
+            "height": 20,
+            "depth": 510,
+            "adjustable": true,
+            "materialPart": "glass",
+            "notes": "267mm整宽包袋层板；少量包袋展示，不作为叠衣主容量。"
           }
         ],
         "notes": [
-          "衣帽间两侧柜为功能候选，外廓与桥柜端部待复尺。",
-          "关闭态不生成层板/挂杆/设备盒；打开态才显示本布局。",
-          "北窗升降桌1800×700mm为高频办公硬需求，不以缩小桌面解决碰撞。"
+          "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜内层板、竖板、挂杆和抽屉仍由显式模块表达。",
+          "当前模块有效深度510mm为候选表达；600mm柜体及背板、门板、容差、现场完成面、五金和衣物样本仍须复核，不沿用旧双轨扣减口径。",
+          "挂杆位于显式模块深度中心，renderer 不再使用 depth×0.22 前移偏移；实际挂杆长度按 module.width×0.88，不把分区净宽直接当作杆长。",
+          "短挂杆中心约968mm / 2008mm（含18mm内腔板原点）；上层约930mm净落衣，按900mm常规上衣加约30mm余量，下层优先裤装/短件。",
+          "本柜渲染挂杆长度约572mm + 572mm（短挂双层合计约1144mm）；长挂/再穿位按各模块实际宽度另计，不能虚增总挂衣量。"
         ],
         "createdFrom": "saved"
       },
       "cabinetDesign": {
         "template": "cabinet",
-        "title": "衣帽间封闭/茶玻混合到顶柜",
-        "designThinking": "深茶玻璃和黑钛作为重点语言，但以封闭门板压住视觉噪声；挂衣、叠放、抽屉、少量展示并存。",
-        "recommendedPlacement": "沿两侧墙南段布置，北侧为升降桌与桥柜候选开间。",
+        "title": "长短挂结合的金属架＋玻璃细框平开方向衣柜",
+        "designThinking": "以长衣与短衣悬挂为主，入口端设置少量再穿衣物挂位，保留必要抽屉和整宽包袋层板。",
+        "recommendedPlacement": "沿现有两侧墙南段布置，北侧保留窗前1800×700mm升降桌；外廓和通道均为候选，待现场复尺。",
         "layoutNotes": [
-          "编辑态保持简模；柜门打开或对象进入柜体设计态时才显示内部模块。",
-          "材质仅引用 modern-warm-natural canonical PBR，不新增同义材质。"
+          "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选，不沿用旧两扇移门、双轨或错轨操作映射。",
+          "柜内立面由 cabinetInterior.modules 表达；模块有效深度510mm，挂杆长度和衣架厚度仍需现场样本复核。",
+          "窗前1800×700mm升降桌保持独立；桌面、窗扇、椅子和入口通道另行复核。"
         ],
         "zones": [
           {
-            "id": "hanging",
-            "label": "挂衣",
-            "role": "长衣与短衣",
-            "widthPercent": 50,
-            "heightPercent": 92,
-            "detail": "两段可调挂杆，保持日常取衣优先"
+            "id": "long-hang",
+            "label": "长衣挂",
+            "role": "长衣/大衣",
+            "widthPercent": 48,
+            "heightPercent": 83,
+            "detail": "中心高约1782mm；渲染杆长约792mm，长衣衣长待样本复核。"
           },
           {
-            "id": "folded",
-            "label": "叠放",
-            "role": "叠衣与床品",
-            "widthPercent": 25,
-            "heightPercent": 72,
-            "detail": "固定层板可调"
+            "id": "short-hang",
+            "label": "短挂与再穿位",
+            "role": "上层短衣 + 下层裤装/再穿",
+            "widthPercent": 34,
+            "heightPercent": 83,
+            "detail": "中心高约968/2008mm；渲染杆长约572mm+572mm。"
           },
           {
             "id": "small-items",
-            "label": "小件",
-            "role": "抽屉与包袋",
-            "widthPercent": 25,
-            "heightPercent": 40,
-            "detail": "抽屉+一组半开放展示格"
+            "label": "抽屉与包袋",
+            "role": "小件/包袋",
+            "widthPercent": 18,
+            "heightPercent": 58,
+            "detail": "267mm整宽包袋层板与必要抽屉。"
           }
         ],
         "cautionNotes": [
-          "柜体长度、墙面垂直度、门扇开启和桥柜端部必须现场确认。"
+          "1950×600×2750mm 为模型候选，不是现场实测；墙体垂直度、踢脚、完成面和顶封板须复尺。",
+          "桌北缘至柜体北端模型间隙约25mm；平开方向的实际门叶宽、铰链、开启半径、桌端/窗扇端外摆和各格可取性须在门数与分格确认后，以现场及厂家图纸复核。",
+          "当前只确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜前约1050mm通道须结合桌椅历史条件、窗扇和入口转身复核，不宣称平开已施工通过。",
+          "D-2F-002 为无门扇开放洞口；当前 BLOCKS_DOOR 约195mm 为两侧柜角靠近洞口的既有保守提醒，不等于新增平开门冲突，需按现场门洞净宽和转身动作复核。",
+          "挂衣净空按当前候选模块高度表达，衣长、衣架厚度、裤架和灯带检修方式由柜体厂家深化。"
         ]
       },
       "verificationMeta": {
         "status": "estimated",
         "source": "manual-input",
-        "sourceNote": "本轮为柜体功能候选深化；建筑边界、柜体外廓和完成面尺寸仍须现场复尺，未改变任何墙体或结构对象。",
+        "sourceNote": "功能和柜内分区为本轮候选深化；1950×600×2750mm外廓、墙体完成面、门轨、挂衣净空和桌椅/窗扇关系仍须现场复尺。 用户已确认金属架、玻璃细框平开、L3挂衣/L4叠放方向；用户已确认R16正面图质感。每侧四门叶尚待确认，几何/五金/现场尺寸待核；仅设计讨论，不作施工放行。",
         "toleranceMm": 100
+      },
+      "clearanceMeta": {
+        "frontMm": 878,
+        "serviceMm": 300,
+        "doorSwingMm": 400,
+        "status": "estimated",
+        "notes": "完成面中央通道工作值878mm；平开门按单侧/分区开启，不承诺两侧最大扇同时全开。飘窗台座、帘束、抽屉拉出和人体站位待现场复核。"
       }
-    },
-    {
-      "id": "module-2f-window-desk",
-      "code": "DS-2F-001",
-      "name": "衣帽间1.8m×0.7m高定电动升降桌",
-      "type": "custom",
-      "floorId": "2F",
-      "roomId": "ROOM-2F-002",
-      "dimensions": {
-        "width": 180,
-        "depth": 70,
-        "height": 74,
-        "unit": "cm"
-      },
-      "material": "40mm烟熏胡桃木大板 + 香槟古铜双升降刀片柱",
-      "note": "标准 1800×700mm 大木板升降电脑桌，可双人并排或电脑加手作；电动高度调节范围约 650–1250mm。",
-      "constructionNote": "成品双电机升降桌；桌板 1800×700×40mm，靠窗居中，预留独立五孔、网络、桌下理线和升降行程，复核窗扇开启。",
-      "serviceRequirements": {
-        "water": false,
-        "drainage": false,
-        "power": true,
-        "exhaust": false
-      },
-      "position": {
-        "x": 54.43333333333333,
-        "y": 7.777777777777778,
-        "rotation": 0
-      },
-      "color": "#c8a887",
-      "render3d": {
-        "assetType": "desk",
-        "detailLevel": "presentation",
-        "stylePreset": "modernNatural",
-        "primaryMaterial": "darkWalnut",
-        "secondaryMaterial": "brushedBronze",
-        "accentMaterial": "brushedBronze",
-        "visibleIn3d": true,
-        "selectableIn3d": true,
-        "childrenMode": "grouped",
-        "variantId": "luxuryElectricBladePedestal",
-        "variationSeed": 1478649303,
-        "styleSource": "manual"
-      },
-      "mepMeta": {
-        "needsSocket": true,
-        "socketCount": 3,
-        "socketHeight": 300,
-        "needsSwitch": true,
-        "switchControl": [
-          "电脑桌任务灯"
-        ],
-        "needsLighting": true,
-        "lightingType": "task",
-        "lightColorTemperature": "3000K",
-        "needsWaterSupply": false,
-        "waterSupplyType": "none",
-        "needsDrainage": false,
-        "drainageType": "none",
-        "needsNetwork": true,
-        "needsVentilation": false,
-        "needsSmartControl": false,
-        "relatedCircuit": "常规插座回路",
-        "notes": "靠窗预留独立五孔、网络、USB-C、桌下理线槽及双电机升降电源，桌后不得设置固定挡板。"
-      },
-      "constructionMeta": {
-        "customMade": false,
-        "installType": "finishedFurniture",
-        "reserveSize": "180x70x65-125cm",
-        "wallDependency": "绑定 W-2F-002，安装前按墙面完成面复尺并复核收口。",
-        "floorDependency": "按完成面标高校核落地尺寸",
-        "ceilingDependency": "",
-        "waterproofRequired": false,
-        "inspectionAccessRequired": false,
-        "purchaseCategory": "成品家具/办公设备",
-        "supplierType": "升降桌及办公家具供应商",
-        "notes": "桌板净尺寸 1800×700mm，建议 40mm 实木大板；双电机桌架额定承重不低于 100kg，保留完整升降行程。"
-      },
-      "hostWallId": "W-2F-002",
-      "variant": "luxuryElectricBladePedestal",
-      "heightRangeMm": [
-        650,
-        1250
-      ],
-      "currentHeightMm": 740,
-      "visual": {
-        "top": "40mm-smoked-walnut-bookmatched-chamfered",
-        "liftBase": "two-wide-champagne-bronze-telescopic-blade-pedestals",
-        "baseCount": 2,
-        "motorHousing": "recessed-rear-bronze-beam",
-        "cableManagement": "fully-concealed-tray",
-        "controller": "flush-under-right-edge",
-        "cornerRadiusMm": 70
-      },
-      "notes": "正常使用时按740mm坐姿高度展示；可在650–1250mm范围电动升降。双宽刀片升降柱取代外露黑色T脚，保留电机横梁、隐藏线槽及右侧触控器。"
     },
     {
       "id": "furn-2f-guest-shower-001",
@@ -3823,7 +3489,7 @@
     {
       "id": "furn-2f-bedroom1-bed-001",
       "code": "BD-2F-01",
-      "name": "父母房1500mm双人床",
+      "name": "父母房1500mm双人床 · C2候选定位",
       "type": "bed",
       "catalogId": "bedroom-bed",
       "moduleCategory": "bedroom",
@@ -3836,9 +3502,9 @@
         "height": 55,
         "unit": "cm"
       },
-      "material": "浅木床架 + 米灰软包床头",
-      "note": "父母房 1500mm 双人床，床头靠左墙，右侧保留房门至阳台约 850–950mm 的连续通道。",
-      "constructionNote": "床头侧预留五孔、USB-C、阅读灯双控和低位起夜灯；复核右侧通道及阳台门开启。",
+      "material": "浅暖木床架 + 米灰软包床头 + 窄床头置物带",
+      "note": "C2确认图定位：独立床头窄台/薄靠背整体 x=1060..1190mm，完整2000mm模型床芯 x=1190..3190mm，床头朝西、南侧长边沿南墙；原2050mm床架与收口仍须现场复尺。",
+      "constructionNote": "模型床芯包络2000×1500mm；另以独立床头窄置物带表达墙→80–100mm窄台→约30mm薄软包背板→床芯的连续构造。原2050mm床架与现场踢脚/收口仍须复尺，不能视为无条件容纳。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -3846,8 +3512,8 @@
         "exhaust": false
       },
       "position": {
-        "x": 16.25,
-        "y": 77.22222222222223,
+        "x": 18.25,
+        "y": 76.9444444444,
         "rotation": 270
       },
       "color": "#c8a887",
@@ -3866,9 +3532,7 @@
         "styleSource": "manual",
         "bedVisual": {
           "headboardStyle": "standard",
-          "shelfDepthMm": 180,
-          "shelfHeightMm": 640,
-          "chargingNiche": true
+          "chargingNiche": false
         },
         "secondaryMaterialResourceId": "showroomWarmOakVertical"
       },
@@ -3906,12 +3570,18 @@
         "purchaseCategory": "成品家具",
         "supplierType": "成品家具供应商",
         "notes": "床头一体置物深 180mm、高约 640mm，预留五孔/USB-C、阅读灯双控和可检修灯带电源。"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 80
       }
     },
     {
       "id": "furn-2f-bedroom1-wardrobe-001",
       "code": "WD-2F-01",
-      "name": "父母房1200mm浅深移门衣柜",
+      "name": "父母房西墙窄柜 · C2候选",
       "type": "wardrobe",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
@@ -3919,14 +3589,14 @@
       "floorId": "2F",
       "roomId": "ROOM-2F-004",
       "dimensions": {
-        "width": 120,
-        "depth": 55,
+        "width": 85,
+        "depth": 58,
         "height": 240,
         "unit": "cm"
       },
-      "material": "暖白通顶柜体 + 浅橡木收口 + 前后错轨移门",
-      "note": "父母房衣柜深化：通道优先，外廓不扩大；低位常用、轻力开启、抽屉和短挂衣为主，尺寸仍按完成面复尺。",
-      "constructionNote": "按 1200×600mm 完成面复尺，采用通顶移门并复核床头、墙角收口及柜内灯带。",
+      "material": "暖灰米色双门柜体 + 浅暖木收口 + 低对比五金",
+      "note": "C2确认图：西墙窄柜外廓约580×850mm，柜体宽度沿墙向，双门正面朝东；内部可调金属件，不沿用旧1200mm移门假设。",
+      "constructionNote": "按西墙完成面复尺；双门不透明平板/木框门，内部可调层板与挂杆，现场深化踢脚、门洞边收口与开启净距。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -3934,178 +3604,11 @@
         "exhaust": false
       },
       "position": {
-        "x": 13.541666666666666,
-        "y": 60.27777777777777,
-        "rotation": 0
+        "x": 11.25,
+        "y": 63.1666666667,
+        "rotation": 270
       },
       "color": "#c8a887",
-      "wardrobeDesign": {
-        "columns": 3,
-        "rows": 4,
-        "cells": [
-          {
-            "id": "cell-0-0",
-            "column": 0,
-            "row": 0,
-            "kind": "hanging-long"
-          },
-          {
-            "id": "cell-1-0",
-            "column": 1,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-0",
-            "column": 2,
-            "row": 0,
-            "kind": "folded"
-          },
-          {
-            "id": "cell-0-1",
-            "column": 0,
-            "row": 1,
-            "kind": "hanging-long"
-          },
-          {
-            "id": "cell-1-1",
-            "column": 1,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-1",
-            "column": 2,
-            "row": 1,
-            "kind": "folded"
-          },
-          {
-            "id": "cell-0-2",
-            "column": 0,
-            "row": 2,
-            "kind": "hanging-short"
-          },
-          {
-            "id": "cell-1-2",
-            "column": 1,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-2",
-            "column": 2,
-            "row": 2,
-            "kind": "folded"
-          },
-          {
-            "id": "cell-0-3",
-            "column": 0,
-            "row": 3,
-            "kind": "hanging-short"
-          },
-          {
-            "id": "cell-1-3",
-            "column": 1,
-            "row": 3,
-            "kind": "drawer"
-          },
-          {
-            "id": "cell-2-3",
-            "column": 2,
-            "row": 3,
-            "kind": "folded"
-          }
-        ],
-        "modules": [
-          {
-            "id": "recommended-seasonal",
-            "kind": "open",
-            "label": "顶部换季区",
-            "column": 0,
-            "columnSpan": 3,
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 18
-          },
-          {
-            "id": "recommended-long",
-            "kind": "hanging-long",
-            "label": "长衣区",
-            "column": 0,
-            "columnSpan": 1,
-            "x": 0,
-            "y": 18,
-            "width": 38,
-            "height": 82
-          },
-          {
-            "id": "recommended-short",
-            "kind": "hanging-short",
-            "label": "短衣区",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 38,
-            "y": 18,
-            "width": 32,
-            "height": 59
-          },
-          {
-            "id": "recommended-drawer",
-            "kind": "drawer",
-            "label": "抽屉区",
-            "column": 1,
-            "columnSpan": 1,
-            "drawerRows": 3,
-            "drawerColumns": 1,
-            "drawerRowHeights": [
-              33.33,
-              33.33,
-              33.33
-            ],
-            "x": 38,
-            "y": 77,
-            "width": 32,
-            "height": 23
-          },
-          {
-            "id": "recommended-folded",
-            "kind": "folded",
-            "label": "叠放区",
-            "column": 2,
-            "columnSpan": 1,
-            "shelfCount": 4,
-            "shelfLayerHeights": [
-              20,
-              20,
-              20,
-              20,
-              20
-            ],
-            "x": 70,
-            "y": 18,
-            "width": 30,
-            "height": 68
-          },
-          {
-            "id": "recommended-shoe",
-            "kind": "shoe",
-            "label": "鞋包区",
-            "column": 2,
-            "columnSpan": 1,
-            "x": 70,
-            "y": 86,
-            "width": 30,
-            "height": 14
-          }
-        ],
-        "columnWidths": [
-          38,
-          32,
-          30
-        ],
-        "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
-      },
       "render3d": {
         "assetType": "wardrobe",
         "detailLevel": "presentation",
@@ -4116,14 +3619,14 @@
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "slidingPanels",
+        "variantId": "hingedPanels",
         "variationSeed": 67814486,
         "styleSource": "manual",
         "primaryMaterialResourceId": "showroomWarmOakVertical",
         "secondaryMaterialResourceId": "showroomOatTaupeLacquer",
         "styleLocked": true,
         "cabinetVisual": {
-          "frontStyle": "slab",
+          "frontStyle": "framed",
           "handleStyle": "edgePull",
           "allDoorPanels": true,
           "displayContents": false,
@@ -4131,15 +3634,11 @@
           "doorCount": 2,
           "bays": [
             {
-              "widthRatio": 1,
+              "widthRatio": 0.5,
               "frontType": "solid"
             },
             {
-              "widthRatio": 1,
-              "frontType": "solid"
-            },
-            {
-              "widthRatio": 1,
+              "widthRatio": 0.5,
               "frontType": "solid"
             }
           ]
@@ -4147,7 +3646,6 @@
         "cabinetMaterialOverrides": {
           "carcass": "warmOak",
           "door": "oatTaupeLacquer",
-          "glass": "smokedGlass",
           "hardware": "brushedBronze"
         }
       },
@@ -4175,7 +3673,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "120x55x240cm (estimated)",
+        "reserveSize": "85x58x240cm candidate",
         "wallDependency": "靠 W-2F-012 左端布置，安装前按墙面完成面复尺并复核房门洞口。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
@@ -4183,7 +3681,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "父母房衣柜深化：通道优先，外廓不扩大；低位常用、轻力开启、抽屉和短挂衣为主，尺寸仍按完成面复尺。 父母房柜内灯带服务低位常用区；电源与轻力五金、抽屉检修一并复核。 父母房柜内灯带服务低位常用区；电源与轻力五金、抽屉检修一并复核。 父母房柜内灯带服务低位常用区；电源与轻力五金、抽屉检修一并复核。"
+        "notes": "父母房西墙窄柜：双门不透明门板 + 可调金属内部，现场复尺后定制深化。"
       },
       "constructionAnchors": {
         "points": [
@@ -4218,10 +3716,10 @@
         "schemaVersion": 1,
         "template": "wardrobe",
         "panelThicknessMm": 18,
-        "interiorWidthMm": 1164,
+        "interiorWidthMm": 812,
         "interiorHeightMm": 2364,
-        "interiorDepthMm": 532,
-        "openingMode": "sliding",
+        "interiorDepthMm": 544,
+        "openingMode": "hinged",
         "doorCount": 2,
         "doorStates": {},
         "modules": [
@@ -4316,8 +3814,7 @@
           }
         ],
         "notes": [
-          "父母房以通行舒适优先；高位只放换季件，常用物下移。",
-          "不扩大外廓，柜门/抽屉开启净空现场复核。"
+          "双门不透明门板；内部可调金属件，现场按成品五金深化。"
         ],
         "createdFrom": "saved"
       },
@@ -4354,15 +3851,15 @@
       },
       "verificationMeta": {
         "status": "estimated",
-        "source": "manual-input",
-        "sourceNote": "本轮为柜体功能候选深化；建筑边界、柜体外廓和完成面尺寸仍须现场复尺，未改变任何墙体或结构对象。",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
         "toleranceMm": 100
       }
     },
     {
       "id": "furn-2f-bedroom2-bed-001",
       "code": "BD-2F-02",
-      "name": "儿童房1200mm成长床（东墙）",
+      "name": "儿童房1200mm成长床 · v4东侧",
       "type": "bed",
       "catalogId": "bedroom-bed",
       "moduleCategory": "bedroom",
@@ -4375,8 +3872,8 @@
         "height": 52,
         "unit": "cm"
       },
-      "material": "浅木圆角低床 + 米灰软包 + 下层抽拉副床",
-      "note": "床体沿右墙纵向放置，左侧保留房门至阳台的连续通道；抽拉副床仅在需要第二睡位时展开。",
+      "material": "浅暖木圆角单床 + 米灰软包床头",
+      "note": "v4确认图：东侧单床纵向布置，床头朝南（renderer rotation=180）；无抽拉副床、无书桌，床侧保持门—阳台连续通道。",
       "constructionNote": "复核抽拉方向、右墙踢脚线和阳台入口；床侧预留五孔、USB-C与夜灯。",
       "serviceRequirements": {
         "water": false,
@@ -4385,9 +3882,9 @@
         "exhaust": false
       },
       "position": {
-        "x": 49.516666666666666,
-        "y": 73.88888888888889,
-        "rotation": 0
+        "x": 48.6,
+        "y": 72.6666666667,
+        "rotation": 180
       },
       "color": "#c8a887",
       "render3d": {
@@ -4404,10 +3901,8 @@
         "variationSeed": 997052744,
         "styleSource": "manual",
         "bedVisual": {
-          "headboardStyle": "standard",
-          "shelfDepthMm": 180,
-          "shelfHeightMm": 640,
-          "chargingNiche": true
+          "headboardStyle": "low",
+          "shelfHeightMm": 640
         },
         "secondaryMaterialResourceId": "showroomWarmOakVertical"
       },
@@ -4444,7 +3939,13 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "成品家具",
         "supplierType": "成品家具供应商",
-        "notes": "床头一体置物深 180mm、高约 640mm，预留五孔/USB-C、阅读灯双控和可检修灯带电源。"
+        "notes": "v4为单床表达，不配置副床；现场复核东墙踢脚、床头朝南关系与阳台入口。"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 80
       }
     },
     {
@@ -5202,7 +4703,7 @@
     {
       "id": "module-2f-wardrobe-002",
       "code": "WD-002",
-      "name": "儿童房西墙1200mm衣柜",
+      "name": "儿童房西墙1200mm成长衣柜 · v4",
       "type": "wardrobe",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
@@ -5215,8 +4716,8 @@
         "height": 240,
         "unit": "cm"
       },
-      "material": "暖白通顶柜体 + 前后错轨移门",
-      "note": "儿童成长衣柜深化：可调层板、可变挂杆、书包/玩具/衣物成长分区；外廓不扩大，尺寸仍按完成面复尺。",
+      "material": "浅灰绿木框门 + 暖白柜体 + 浅暖木收口",
+      "note": "v4确认图：西墙浅灰绿木框门成长衣柜，承担衣物/书包/玩具收纳；移除学习桌，保持活动面连续。",
       "constructionNote": "按墙面完成面复尺；使用上承重或可靠下轨移门五金，门板分格、轨道检修和防跳装置由柜体厂家深化。",
       "serviceRequirements": {
         "water": false,
@@ -5225,9 +4726,9 @@
         "exhaust": false
       },
       "position": {
-        "x": 34.766666666666666,
-        "y": 65.55555555555556,
-        "rotation": 90
+        "x": 36.0166666667,
+        "y": 71.7777777778,
+        "rotation": 270
       },
       "color": "#c8a887",
       "wardrobeDesign": {
@@ -5402,19 +4903,19 @@
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
         "primaryMaterial": "warmOak",
-        "secondaryMaterial": "oatTaupeLacquer",
+        "secondaryMaterial": "sageGreenLacquer",
         "accentMaterial": "brushedBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "slidingPanels",
+        "variantId": "framedPanels",
         "variationSeed": 1180050680,
         "styleSource": "manual",
         "primaryMaterialResourceId": "showroomWarmOakVertical",
         "secondaryMaterialResourceId": "showroomOatTaupeLacquer",
         "styleLocked": true,
         "cabinetVisual": {
-          "frontStyle": "slab",
+          "frontStyle": "framed",
           "handleStyle": "edgePull",
           "allDoorPanels": true,
           "displayContents": false,
@@ -5422,23 +4923,18 @@
           "doorCount": 2,
           "bays": [
             {
-              "widthRatio": 1,
+              "widthRatio": 0.5,
               "frontType": "solid"
             },
             {
-              "widthRatio": 1,
-              "frontType": "solid"
-            },
-            {
-              "widthRatio": 1,
+              "widthRatio": 0.5,
               "frontType": "solid"
             }
           ]
         },
         "cabinetMaterialOverrides": {
-          "carcass": "warmOak",
-          "door": "oatTaupeLacquer",
-          "glass": "smokedGlass",
+          "carcass": "warmWhiteCeramic",
+          "door": "sageGreenLacquer",
           "hardware": "brushedBronze"
         }
       },
@@ -5474,7 +4970,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "儿童成长衣柜深化：可调层板、可变挂杆、书包/玩具/衣物成长分区；外廓不扩大，尺寸仍按完成面复尺。 儿童房柜内灯带服务成长分区；挂杆和层板可调，驱动留可检修位。 儿童房柜内灯带服务成长分区；挂杆和层板可调，驱动留可检修位。 儿童房柜内灯带服务成长分区；挂杆和层板可调，驱动留可检修位。"
+        "notes": "浅灰绿木框门、内部可调挂杆/层板，现场按儿童身高与五金深化。"
       },
       "constructionAnchors": {
         "points": [
@@ -5667,87 +5163,10 @@
       },
       "verificationMeta": {
         "status": "estimated",
-        "source": "manual-input",
-        "sourceNote": "本轮为柜体功能候选深化；建筑边界、柜体外廓和完成面尺寸仍须现场复尺，未改变任何墙体或结构对象。",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
         "toleranceMm": 100
       }
-    },
-    {
-      "id": "furn-2f-bedroom2-desk-001",
-      "code": "DS-2F-C01",
-      "name": "儿童房西墙1000mm学习桌",
-      "type": "custom",
-      "floorId": "2F",
-      "roomId": "ROOM-2F-005",
-      "dimensions": {
-        "width": 100,
-        "depth": 45,
-        "height": 75,
-        "unit": "cm"
-      },
-      "material": "浅橡木桌面 + 暖白抽屉 + 圆角护边",
-      "note": "位于左墙中段并避开房门扇和阳台入口；桌前与右墙抽拉床之间保留约 1000mm 通道。",
-      "constructionNote": "书桌深度控制 450mm，桌角倒圆；预留双插、USB-C和台灯位。",
-      "serviceRequirements": {
-        "water": false,
-        "drainage": false,
-        "power": true,
-        "exhaust": false
-      },
-      "position": {
-        "x": 34.35,
-        "y": 79.44444444444444,
-        "rotation": 90
-      },
-      "color": "#c8a887",
-      "render3d": {
-        "assetType": "desk",
-        "detailLevel": "presentation",
-        "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "warmWhiteCeramic",
-        "accentMaterial": "brushedBronze",
-        "visibleIn3d": true,
-        "selectableIn3d": true,
-        "childrenMode": "grouped",
-        "variantId": "slimWritingDesk",
-        "variationSeed": 2684354562,
-        "styleSource": "manual",
-        "primaryMaterialResourceId": "showroomWarmOakVertical"
-      },
-      "mepMeta": {
-        "needsSocket": true,
-        "socketCount": 2,
-        "socketHeight": 300,
-        "needsSwitch": false,
-        "switchControl": [],
-        "needsLighting": true,
-        "lightingType": "task",
-        "lightColorTemperature": "3000K",
-        "needsWaterSupply": false,
-        "waterSupplyType": "none",
-        "needsDrainage": false,
-        "drainageType": "none",
-        "needsNetwork": true,
-        "needsVentilation": false,
-        "needsSmartControl": false,
-        "relatedCircuit": "卧室普通插座回路",
-        "notes": "桌面上方预留双插与USB-C，台灯采用可移动式。"
-      },
-      "constructionMeta": {
-        "customMade": false,
-        "installType": "finishedFurniture",
-        "reserveSize": "100x45x75cm",
-        "wallDependency": "靠卧室2左墙中段布置，避开门扇和阳台入口。",
-        "floorDependency": "按完成面标高校核落地尺寸",
-        "ceilingDependency": "",
-        "waterproofRequired": false,
-        "inspectionAccessRequired": false,
-        "purchaseCategory": "成品家具",
-        "supplierType": "儿童家具供应商",
-        "notes": "采用圆角和低VOC涂装，桌下预留腿部空间。"
-      },
-      "notes": "衣柜下方延续同一面墙，面向房内；与床之间约995mm净距。"
     },
     {
       "id": "module-1f-bed-002",
@@ -8594,8 +8013,8 @@
     },
     {
       "id": "furn-b1-room-seasonal-wardrobe-001",
-      "code": "CAB-B1-SLEEP-01",
-      "name": "B1 可变睡眠平台被褥 / 行李柜",
+      "code": "CAB-B1-RESERVE-01",
+      "name": "B1 家庭储备收纳柜（床品 / 行李 / 挂衣 / 囤货，600深候选）",
       "type": "wardrobe",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
@@ -8603,14 +8022,14 @@
       "floorId": "B1",
       "roomId": "ROOM-B1-002",
       "dimensions": {
-        "width": 270,
+        "width": 250,
         "depth": 60,
         "height": 275,
         "unit": "cm"
       },
       "material": "暖白矿物柜门 + 浅橡木柜体 + 古铜细节",
-      "note": "D01 可变睡眠平台的被褥、压缩袋、行李和少量换季物收纳；不代表已确认客房，也不改变房间边界。外廓 270×600×2750mm 仍为估算。",
-      "constructionNote": "沿 W-B1-004 的模块化候选柜；柜体防潮封边、背部通风、顶柜检修和柜门开启均待现场复尺。reserveSize 与当前外廓同步但不构成下单尺寸。",
+      "note": "保留600mm深度的家庭主要储备柜候选：床品、行李大件、少量换季挂衣、家庭囤货、客人临时包衣；沿东侧内完成面约2500×600×2750mm。相对旧2700mm墙向长度缩短200mm，按矩形外廓体积约减少7.4%，不接受用450深度替代。",
+      "constructionNote": "沿W-B1-004内侧候选外廓约x=8785..9385mm、y=500..3000mm；与床展开设计预留端部约635mm名义间距。柜门开启、床品取用、楼梯栏杆边界和完成面须按最终木作复尺。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -8618,108 +8037,60 @@
         "exhaust": false
       },
       "position": {
-        "x": 76.58333333333333,
-        "y": 19.27777777777778,
+        "x": 75.7083,
+        "y": 19.4444,
         "rotation": 90
       },
       "color": "#d8c2a4",
       "wardrobeDesign": {
-        "columns": 3,
-        "rows": 4,
-        "columnWidths": [
-          34,
-          29,
-          37
+        "template": "wardrobe",
+        "title": "B1 家庭储备收纳柜",
+        "designThinking": "B1 沙发床侧家庭储备收纳；与另一侧阅读休闲区分开，不恢复办公主场语义。",
+        "recommendedPlacement": "沿 W-B1-004 原候选墙位；外廓和完成面待复尺",
+        "layoutNotes": [
+          "两扇等宽暖白矿物移门，浅橡木内腔与古铜细节",
+          "床品、行李、换季挂衣、囤货和客人临时物品分区；模块可调",
+          "清洁用品留在 B1 洗衣家政柜，不与床品衣物混放"
         ],
-        "cells": [
+        "zones": [
           {
-            "id": "sleep-cell-bedding",
-            "column": 0,
-            "row": 0,
-            "kind": "folded"
+            "id": "reserve-bedding",
+            "label": "床品 / 客人临时衣物",
+            "role": "bedding-guest",
+            "widthPercent": 28,
+            "heightPercent": 78,
+            "detail": "被褥、床单、客人临时衣物包"
           },
           {
-            "id": "sleep-cell-hanging",
-            "column": 1,
-            "row": 0,
-            "kind": "hanging-short"
-          },
-          {
-            "id": "sleep-cell-luggage",
-            "column": 2,
-            "row": 0,
-            "kind": "folded"
-          },
-          {
-            "id": "sleep-cell-drawers",
-            "column": 1,
-            "row": 3,
-            "kind": "drawer"
-          }
-        ],
-        "modules": [
-          {
-            "id": "sleep-top-bedding",
-            "kind": "open",
-            "label": "顶部换季被褥",
-            "column": 0,
-            "columnSpan": 3,
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 22,
-            "shelfCount": 1
-          },
-          {
-            "id": "sleep-folded-bedding",
-            "kind": "folded",
-            "label": "被子叠放高格",
-            "column": 0,
-            "columnSpan": 1,
-            "x": 0,
-            "y": 22,
-            "width": 34,
-            "height": 42,
-            "shelfCount": 3
-          },
-          {
-            "id": "sleep-hanging",
-            "kind": "hanging-short",
+            "id": "reserve-hanging",
             "label": "少量换季挂衣",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 34,
-            "y": 22,
-            "width": 29,
-            "height": 56
+            "role": "seasonal-hanging",
+            "widthPercent": 24,
+            "heightPercent": 62,
+            "detail": "少量短衣挂放，避免折叠"
           },
           {
-            "id": "sleep-drawers",
-            "kind": "drawer",
-            "label": "压缩袋与小件抽屉",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 34,
-            "y": 78,
-            "width": 29,
-            "height": 22,
-            "drawerRows": 3,
-            "drawerColumns": 1
+            "id": "reserve-luggage",
+            "label": "行李大件",
+            "role": "luggage",
+            "widthPercent": 24,
+            "heightPercent": 78,
+            "detail": "行李箱、收纳箱和压缩袋"
           },
           {
-            "id": "sleep-luggage",
-            "kind": "folded",
-            "label": "行李与收纳箱",
-            "column": 2,
-            "columnSpan": 1,
-            "x": 63,
-            "y": 22,
-            "width": 37,
-            "height": 78,
-            "shelfCount": 4
+            "id": "reserve-pantry",
+            "label": "家庭囤货",
+            "role": "household-stock",
+            "widthPercent": 24,
+            "heightPercent": 62,
+            "detail": "可调层板放家庭储备物品"
           }
         ],
-        "notes": "可变睡眠平台的被褥/行李收纳；不承担家庭主衣柜功能，尺寸待复尺。"
+        "cautionNotes": [
+          "收起/展开沙发床均须可到达柜门和床品格",
+          "柜门开启与展开床沿、楼梯通行净距待现场复核",
+          "外廓为模型候选，不能按现有 reserveSize 直接下单"
+        ]
       },
       "render3d": {
         "assetType": "wardrobe",
@@ -8731,7 +8102,7 @@
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "fullHeightFlat",
+        "variantId": "slidingPanels",
         "variationSeed": 28581990,
         "styleSource": "manual",
         "cabinetMaterialOverrides": {
@@ -8740,14 +8111,27 @@
           "hardware": "brushedBronze"
         },
         "cabinetVisual": {
-          "openingMode": "doubleSwing",
+          "openingMode": "sliding",
           "frontStyle": "slab",
           "handleStyle": "edgePull",
           "allDoorPanels": true,
-          "doorCount": 3,
+          "doorCount": 2,
           "interiorLighting": true,
           "topGapMm": 40,
-          "plinthSetbackMm": 80
+          "plinthSetbackMm": 80,
+          "panelThicknessMm": 18,
+          "trackCenterDistanceMm": 45,
+          "bays": [
+            {
+              "id": "reserve-left-door",
+              "widthRatio": 1
+            },
+            {
+              "id": "reserve-right-door",
+              "widthRatio": 1
+            }
+          ],
+          "accessPlanId": "b1-reserve-two-sliding-equal-bays"
         }
       },
       "mepMeta": {
@@ -8774,7 +8158,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "270x60x275cm",
+        "reserveSize": "250x60x275cm candidate; prior wall run 270x60x275cm",
         "wallDependency": "候选贴 W-B1-004；墙体、挑空栏杆、床侧通道和完成面均待复尺。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
@@ -8782,7 +8166,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "被褥/行李柜的模块化功能验证，不锁最终高度、柜门和墙体收口。"
+        "notes": "600mm深度保留；2500mm墙向长度较旧2700mm候选少200mm，约7.4%矩形外廓体积取舍。挂衣、行李和床品模块仍须按实际箱体/衣物复核。"
       },
       "constructionAnchors": {
         "points": [
@@ -8822,187 +8206,232 @@
         "schemaVersion": 1,
         "template": "wardrobe",
         "panelThicknessMm": 18,
-        "interiorWidthMm": 2664,
+        "interiorWidthMm": 2464,
         "interiorHeightMm": 2714,
-        "interiorDepthMm": 582,
-        "openingMode": "doubleSwing",
-        "doorCount": 3,
-        "doorStates": {},
+        "interiorDepthMm": 510,
+        "openingMode": "sliding",
+        "doorCount": 2,
+        "doorStates": {
+          "leftHalfOpen": false,
+          "rightHalfOpen": false
+        },
         "modules": [
           {
-            "id": "sleep-top-bedding",
-            "kind": "shelf",
-            "label": "顶部换季被褥格",
-            "adjustable": true,
-            "x": 0,
-            "y": 2400,
-            "z": 0,
-            "width": 2664,
-            "height": 18,
-            "depth": 550
-          },
-          {
-            "id": "sleep-bedding-folded",
-            "kind": "shelf",
-            "label": "被子叠放高格",
-            "adjustable": true,
-            "x": 0,
-            "y": 1650,
-            "z": 0,
-            "width": 900,
-            "height": 18,
-            "depth": 550
-          },
-          {
-            "id": "sleep-luggage-closed",
-            "kind": "closed",
-            "label": "折叠行李 / 收纳箱",
-            "adjustable": true,
-            "x": 0,
+            "id": "reserve-left-divider",
+            "kind": "divider",
+            "label": "左右半柜固定竖隔板",
+            "adjustable": false,
+            "x": 1200,
             "y": 0,
             "z": 0,
-            "width": 900,
-            "height": 650,
-            "depth": 550
+            "width": 18,
+            "height": 2350,
+            "depth": 510
           },
           {
-            "id": "sleep-hanging-seasonal",
+            "id": "reserve-left-luggage-top",
+            "kind": "shelf",
+            "label": "左半柜行李大空腔上层板（空腔非实体箱）",
+            "adjustable": true,
+            "x": 18,
+            "y": 850,
+            "z": 0,
+            "width": 1164,
+            "height": 18,
+            "depth": 510
+          },
+          {
+            "id": "reserve-left-bedding-mid",
+            "kind": "shelf",
+            "label": "左半柜床品 / 客人临时衣物层板",
+            "adjustable": true,
+            "x": 18,
+            "y": 1450,
+            "z": 0,
+            "width": 1164,
+            "height": 18,
+            "depth": 510
+          },
+          {
+            "id": "reserve-left-bedding-top",
+            "kind": "shelf",
+            "label": "左半柜低频被褥层板",
+            "adjustable": true,
+            "x": 18,
+            "y": 2050,
+            "z": 0,
+            "width": 1164,
+            "height": 18,
+            "depth": 510
+          },
+          {
+            "id": "reserve-right-divider",
+            "kind": "divider",
+            "label": "右半柜挂衣 / 囤货竖隔板",
+            "adjustable": false,
+            "x": 1868,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2350,
+            "depth": 510
+          },
+          {
+            "id": "reserve-right-hanging",
             "kind": "hanging",
-            "label": "少量换季挂衣",
+            "label": "右半柜少量换季挂衣（650mm段）",
             "adjustable": true,
-            "x": 940,
-            "y": 900,
+            "x": 1218,
+            "y": 850,
             "z": 0,
-            "width": 760,
-            "height": 1600,
-            "depth": 550
+            "width": 632,
+            "height": 1500,
+            "depth": 510
           },
           {
-            "id": "sleep-compression-drawers",
-            "kind": "drawer",
-            "label": "压缩袋 / 小件抽屉",
-            "adjustable": true,
-            "x": 940,
-            "y": 0,
-            "z": 0,
-            "width": 760,
-            "height": 700,
-            "depth": 550
-          },
-          {
-            "id": "sleep-folded-1",
+            "id": "reserve-right-guest-bag",
             "kind": "shelf",
-            "label": "收纳箱层板 1",
+            "label": "右半柜底部客人临时包 / 衣物层板",
             "adjustable": true,
-            "x": 1740,
-            "y": 400,
+            "x": 1218,
+            "y": 720,
             "z": 0,
-            "width": 924,
+            "width": 632,
             "height": 18,
-            "depth": 550
+            "depth": 510
           },
           {
-            "id": "sleep-folded-2",
+            "id": "reserve-right-stock-1",
             "kind": "shelf",
-            "label": "收纳箱层板 2",
+            "label": "右半柜家庭囤货可调层板",
             "adjustable": true,
-            "x": 1740,
-            "y": 900,
+            "x": 1886,
+            "y": 300,
             "z": 0,
-            "width": 924,
+            "width": 560,
             "height": 18,
-            "depth": 550
+            "depth": 510
           },
           {
-            "id": "sleep-folded-3",
+            "id": "reserve-right-stock-2",
             "kind": "shelf",
-            "label": "收纳箱层板 3",
+            "label": "右半柜家庭囤货可调层板 2",
             "adjustable": true,
-            "x": 1740,
-            "y": 1400,
+            "x": 1886,
+            "y": 800,
             "z": 0,
-            "width": 924,
+            "width": 560,
             "height": 18,
-            "depth": 550
+            "depth": 510
           },
           {
-            "id": "sleep-folded-4",
+            "id": "reserve-right-stock-3",
             "kind": "shelf",
-            "label": "收纳箱层板 4",
+            "label": "右半柜家庭囤货可调层板 3",
             "adjustable": true,
-            "x": 1740,
-            "y": 1900,
+            "x": 1886,
+            "y": 1300,
             "z": 0,
-            "width": 924,
+            "width": 560,
             "height": 18,
-            "depth": 550
+            "depth": 510
+          },
+          {
+            "id": "reserve-right-stock-4",
+            "kind": "shelf",
+            "label": "右半柜家庭囤货可调层板 4",
+            "adjustable": true,
+            "x": 1886,
+            "y": 1800,
+            "z": 0,
+            "width": 560,
+            "height": 18,
+            "depth": 510
           }
         ],
         "notes": [
-          "床、柜和睡眠边界仍是产品候选，不是建筑真值。",
-          "内部模块只在柜门打开或对象选中时渲染；关闭状态保持简模。"
+          "柜门关闭时保持简模；打开或选中对象时表达内部模块。",
+          "清洁剂和清洁工具不放入此柜，另由 furn-b1-laundry-cleaning-cabinet-001 承担。",
+          "柜体仍为候选外廓，防潮、背通风、门扇和检修待复尺。",
+          "外柜保留600mm；扣除18mm背板、24mm门板、45mm双轨中心距和3mm容差后，显式内部模块有效深度统一按510mm，层板、竖隔板、挂杆和底部行李空腔用于家庭讨论版，未替代木作深化。"
         ],
-        "createdFrom": "saved"
+        "createdFrom": "b1-storage-candidate-20260909",
+        "accessPlanId": "b1-reserve-two-sliding-equal-bays",
+        "accessStates": {
+          "closed": "两扇等宽移门关闭",
+          "leftHalfOpen": "左半柜可取床品/行李（与右半互斥）",
+          "rightHalfOpen": "右半柜可取挂衣/囤货（与左半互斥）"
+        }
       },
       "cabinetDesign": {
-        "template": "cabinet",
-        "title": "B1 可变睡眠平台被褥 / 行李柜",
-        "designThinking": "B1 D01 办公主场 + 可变睡眠平台；仅做模块化收纳功能验证，不锁建筑墙体或最终加工尺寸。",
-        "recommendedPlacement": "睡眠平台候选墙面 W-B1-004；不锁墙体与最终高度",
+        "template": "wardrobe",
+        "title": "B1 家庭储备收纳柜",
+        "designThinking": "B1 沙发床侧家庭储备收纳；与另一侧阅读休闲区分开，不恢复办公主场语义。",
+        "recommendedPlacement": "沿 W-B1-004 原候选墙位；外廓和完成面待复尺",
         "layoutNotes": [
-          "浅橡木柜体与暖白柜门为主",
-          "灯带仅做门控/选中展示，不新增实时投影灯"
+          "两扇等宽暖白矿物移门，浅橡木内腔与古铜细节",
+          "床品、行李、换季挂衣、囤货和客人临时物品分区；模块可调",
+          "清洁用品留在 B1 洗衣家政柜，不与床品衣物混放"
         ],
         "zones": [
           {
-            "id": "sleep-bedding",
-            "label": "被褥区",
-            "role": "bedding",
-            "widthPercent": 34,
+            "id": "reserve-bedding",
+            "label": "床品 / 客人临时衣物",
+            "role": "bedding-guest",
+            "widthPercent": 28,
             "heightPercent": 78,
-            "detail": "顶部与左侧叠放被褥"
+            "detail": "被褥、床单、客人临时衣物包"
           },
           {
-            "id": "sleep-hanging",
-            "label": "少量挂衣",
+            "id": "reserve-hanging",
+            "label": "少量换季挂衣",
             "role": "seasonal-hanging",
-            "widthPercent": 29,
-            "heightPercent": 58,
-            "detail": "偶住与换季短衣"
+            "widthPercent": 24,
+            "heightPercent": 62,
+            "detail": "少量短衣挂放，避免折叠"
           },
           {
-            "id": "sleep-luggage",
-            "label": "行李 / 收纳箱",
+            "id": "reserve-luggage",
+            "label": "行李大件",
             "role": "luggage",
-            "widthPercent": 37,
+            "widthPercent": 24,
             "heightPercent": 78,
-            "detail": "可调层板和压缩袋"
+            "detail": "行李箱、收纳箱和压缩袋"
+          },
+          {
+            "id": "reserve-pantry",
+            "label": "家庭囤货",
+            "role": "household-stock",
+            "widthPercent": 24,
+            "heightPercent": 62,
+            "detail": "可调层板放家庭储备物品"
           }
         ],
         "cautionNotes": [
-          "不把当前对象命名为已确认客房",
-          "床侧净距和挑空栏杆待复尺",
-          "不得按现有 reserveSize 直接下单"
+          "收起/展开沙发床均须可到达柜门和床品格",
+          "柜门开启与展开床沿、楼梯通行净距待现场复核",
+          "外廓为模型候选，不能按现有 reserveSize 直接下单"
         ]
       },
       "verificationMeta": {
         "status": "estimated",
-        "source": "manual-input",
-        "sourceNote": "B1 可变睡眠平台被褥 / 行李柜；外廓仍为模块化估算，现场完成面、厂家尺寸和固定基层复尺后再升级。",
+        "source": "official-product-family-reference-plus-model-geometry",
+        "sourceNote": "沙发床参考公开ILB400尺寸；储备柜为模型候选，600深保留，2500墙向长度与W-B1-004内侧及展开通路共同校核；现场完成面、最终门扇与厂家图待复尺。",
         "toleranceMm": 80
       },
       "lightingCabinetContract": {
         "schemaVersion": 1,
-        "revision": "b1-lighting-cabinet-contract-v1-20260812",
-        "category": "衣物",
-        "purposeCapacity": "可变睡眠平台的被褥、压缩袋、少量换季挂衣、行李和收纳箱；不承担家庭主衣柜。容量按 cabinetInterior 模块验证，外廓仍为 estimated。",
-        "doorAppearance": "三扇暖白矿物平板对开门，浅橡木柜体，细古铜 edge-pull；门扇分格、床侧净距和挑空收口待复尺。",
+        "revision": "b1-storage-candidate-20260909",
+        "category": "家庭储备收纳",
+        "purposeCapacity": "床品、客人临时衣物包、行李大件、少量换季挂衣、家庭囤货；清洁用品独立在洗衣家政柜。",
+        "doorAppearance": "两扇等宽暖白矿物移门，浅橡木柜体，古铜双轨；左右半柜互斥半开，门扇与展开沙发床净距待复尺。",
         "interiorLayout": {
           "source": "cabinetInterior",
           "template": "wardrobe",
-          "moduleCount": 9,
-          "doorCount": 3,
-          "state": "open-on-select-or-door"
+          "moduleCount": 11,
+          "doorCount": 2,
+          "state": "left-right-half-open-mutually-exclusive",
+          "accessPlanId": "b1-reserve-two-sliding-equal-bays"
         },
         "materialHardware": {
           "stylePreset": "modernNatural",
@@ -9020,42 +8449,42 @@
           "existingControlGroupIds": [
             "CG-B1-B1-002-WARDROBE"
           ],
-          "power": "常规插座回路；柜内灯带驱动和检修口必须可达",
+          "power": "柜内灯带驱动与检修口可达；回路由专业复核",
           "waterSupply": "none",
           "drainage": "none",
           "ventilationAndDehumidification": "柜背通风或除湿设备电源，防潮封边",
-          "inspection": "门控/感应、驱动、电源、柜背和顶柜检修；现场确认回路和柜厂节点",
-          "status": "existing-binding-pending-field-verify"
+          "inspection": "门控/感应、驱动、电源、柜背和顶柜检修；施工前确认柜门与沙发床状态",
+          "status": "candidate-sync-pending-field-verify"
         },
-        "constructionCloseout": "候选贴 W-B1-004；复核墙体、栏杆、床侧通道、完成面、踢脚、顶封、固定基层和门扇开启后再下单。"
+        "constructionCloseout": "候选贴 W-B1-004；复核完成面、踢脚、顶封、固定基层、柜门开启、沙发床展开和楼梯通道后再下单。"
       }
     },
     {
       "id": "furn-b1-guest-bed-001",
-      "code": "BD-B1-01",
-      "name": "B1 客房双人床",
-      "type": "bed",
-      "moduleCategory": "bedroom",
-      "moduleType": "bed",
+      "code": "SF-B1-01",
+      "name": "B1 Splitback 双人沙发床（150×200睡面参考候选）",
+      "type": "sofa",
+      "moduleCategory": "living",
+      "moduleType": "sofa",
       "floorId": "B1",
       "roomId": "ROOM-B1-002",
       "dimensions": {
-        "width": 165,
-        "depth": 200,
-        "height": 95,
+        "width": 200,
+        "depth": 103,
+        "height": 85,
         "unit": "cm"
       },
-      "material": "米灰布艺软包 + 浅橡木床架",
-      "note": "床头贴北墙布置，床尾与 W-B1-014 玻璃护栏保持约 600mm，避免形成 360mm 人物不可通过的夹缝。",
-      "constructionNote": "床头两侧预留插座和双控，复核整墙衣柜开门与床侧通道。",
+      "material": "米灰耐磨布艺 + 浅橡木底座（候选）",
+      "note": "按 Innovation Living ILB400 Splitback 产品族公开尺寸作机构参考：沙发约 200×103cm、睡面 150×200cm。品牌与具体型号未锁定；200×170cm 为本模型的设计预留外廓（额外200mm机构/离墙余量），不是厂家转换扫掠尺寸。",
+      "constructionNote": "保持 ROOM-B1-002 原边界，不移动楼梯、墙体、门窗；长边约2000mm沿X，展开短边约1500mm向南，模型另以200×170cm外廓校核通路。W-B1-014栏杆与柜门开启仍按最终成品外廓复核。",
       "position": {
-        "x": 60,
-        "y": 15.555555555555555,
+        "x": 59.5833,
+        "y": 11.9444,
         "rotation": 0
       },
       "color": "#d8cabc",
       "render3d": {
-        "assetType": "bed",
+        "assetType": "sofa",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
         "primaryMaterial": "warmOak",
@@ -9064,21 +8493,30 @@
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "merged",
-        "variantId": "guestBed",
+        "variantId": "lowCurvedSofa",
         "variationSeed": 2742920275,
-        "styleSource": "manual"
+        "styleSource": "manual",
+        "sofaBedState": "folded-sofa",
+        "sofaBedStateSource": "operatingStates.currentDisplay",
+        "sofaBedExpandedDepthCm": 150,
+        "sofaBedExpandedOuterDepthCm": 170,
+        "sofaBedSleepSurfaceWidthCm": 200,
+        "sofaBedSleepSurfaceDepthCm": 150,
+        "sofaBedBackThicknessCm": 17,
+        "sofaBedFixedBack": "rear-wall-anchor-candidate",
+        "sofaBedExpansionDirection": "single-sided-forward",
+        "sofaBedSleepSurfaceStartsAtRear": true,
+        "sofaBedMechanism": "splitback-product-family-candidate",
+        "sofaBedEnvelopeSource": "design-reserve-not-manufacturer-dimension"
       },
       "mepMeta": {
-        "needsSocket": true,
-        "socketCount": 4,
-        "socketHeight": 650,
-        "needsSwitch": true,
-        "switchControl": [
-          "床头阅读灯",
-          "卧室主灯双控"
-        ],
-        "needsLighting": true,
-        "lightingType": "task",
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
         "lightColorTemperature": "3000K",
         "needsWaterSupply": false,
         "waterSupplyType": "none",
@@ -9087,21 +8525,58 @@
         "needsNetwork": false,
         "needsVentilation": false,
         "needsSmartControl": false,
-        "relatedCircuit": "卧室床头回路",
-        "notes": "床头两侧预留插座和双控，复核整墙衣柜开门与床侧通道。"
+        "relatedCircuit": "B1房间常规回路",
+        "notes": "沙发床不设固定床头基层或专用床头灯；L-B1-V1-06/07 保留为候选墙面阅读光，最终随成品和展开面复核。"
       },
       "constructionMeta": {
         "customMade": false,
         "installType": "finishedFurniture",
-        "reserveSize": "140x200x95cm",
+        "reserveSize": "180x95x85cm folded; 180x200x85cm open candidate",
         "wallDependency": "",
-        "floorDependency": "按完成面标高校核落地尺寸",
+        "floorDependency": "按完成面标高校核收起/展开外廓",
         "ceilingDependency": "",
         "waterproofRequired": false,
         "inspectionAccessRequired": false,
-        "purchaseCategory": "成品家具",
-        "supplierType": "成品家具供应商",
-        "notes": "床头两侧预留插座和双控，复核整墙衣柜开门与床侧通道。"
+        "purchaseCategory": "成品家具候选",
+        "supplierType": "沙发床成品供应商",
+        "notes": "选型未定；展开睡眠面、翻折机构、靠墙退让、门柜碰撞和楼梯通行须现场样品/实测确认。"
+      },
+      "operatingStates": {
+        "schemaVersion": 1,
+        "currentDisplay": "folded-sofa",
+        "states": [
+          {
+            "id": "folded-sofa",
+            "label": "收起：约200×103cm双人沙发",
+            "dimensionsCm": {
+              "width": 200,
+              "depth": 103,
+              "height": 85
+            },
+            "render3dImplemented": true
+          },
+          {
+            "id": "expanded-bed",
+            "label": "展开：150×200cm睡面；200×170cm设计预留外廓",
+            "dimensionsCm": {
+              "width": 200,
+              "depth": 170,
+              "height": 85
+            },
+            "sleepSurfaceCm": {
+              "width": 150,
+              "depth": 200
+            },
+            "backThicknessCm": 17,
+            "render3dImplemented": true,
+            "envelopeType": "design-reserve"
+          }
+        ],
+        "clearanceChecks": [
+          "讨论候选展开包络按2000×1700mm、固定后背边线统一校核；200mm余量为模型设计预留，不是厂家尺寸。",
+          "候选平面参考 x=6150..8150mm、y=560..2260mm；按W-B1-014栏杆内侧保守取南侧绕行798mm（约800mm），须按最终成品扫掠复核。",
+          "东侧2500×600mm储备柜前沿约8785mm，床端至柜前约635mm；柜门开启、取床品与绕行路径待最终型号/现场复尺。"
+        ]
       }
     },
     {
@@ -9978,8 +9453,8 @@
     },
     {
       "id": "furn-b1-activity-piano-001",
-      "code": "CAB-B1-OFFICE-02",
-      "name": "B1 活动区普通开放书架 / 文件收纳",
+      "code": "CAB-B1-LEISURE-02",
+      "name": "B1 可调便携乐器 / 常读书架（原旧 ID）",
       "type": "cabinet",
       "catalogId": "storage-bookshelf",
       "moduleCategory": "storage",
@@ -9994,8 +9469,8 @@
         "unit": "cm"
       },
       "material": "暖白矿物背板 + 浅橡木层板 + 古铜细节",
-      "note": "D02 不需要固定键盘乐器位。保留旧 ID 仅为引用兼容，语义迁移为普通开放书架/文件收纳；不得在 2D、3D、插座或效果图中恢复钢琴。",
-      "constructionNote": "普通开放书架/文件收纳候选，不新增固定乐器基层或专用电源。与儿童玩具矮架的功能分区需清楚，空间碰撞仍待后续 P1。",
+      "note": "1.8m 休闲侧书架候选：常读书、便携乐器可调位、少量封闭小件与展示留白；旧 ID 仅为引用兼容，不恢复钢琴或办公文件语义。",
+      "constructionNote": "沿 W-B1-009 原候选位置微调至休闲区右侧，保留 180×35×200cm 外廓；便携乐器种类未定，模块和竖向分隔可调，不新增固定乐器基层或专用电源。现场复核与 2.8m 综合收纳柜、懒人沙发和楼梯通道的实体包络。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -10003,8 +9478,8 @@
         "exhaust": false
       },
       "position": {
-        "x": 19.2,
-        "y": 84.5,
+        "x": 28,
+        "y": 84,
         "rotation": 0
       },
       "color": "#c8a97d",
@@ -10045,7 +9520,7 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "常规插座回路",
-        "notes": "书架不设置固定机电，按活动区常规插座预留。"
+        "notes": "常读书格与展示格可接活动区常规灯带；便携乐器位不设固定机电，地下层回路和防潮条件施工前复核。"
       },
       "constructionMeta": {
         "customMade": true,
@@ -10076,100 +9551,134 @@
         "doorStates": {},
         "modules": [
           {
-            "id": "legacy-file-open-1",
-            "kind": "open",
-            "label": "普通开放文件格 1",
+            "id": "portable-small-closed",
+            "kind": "closed",
+            "label": "封闭小件 / 乐器配件格",
             "adjustable": true,
             "x": 0,
-            "y": 240,
+            "y": 0,
             "z": 0,
-            "width": 1764,
-            "height": 520,
+            "width": 860,
+            "height": 260,
             "depth": 310
           },
           {
-            "id": "legacy-file-shelf-1",
+            "id": "portable-books-bottom",
             "kind": "shelf",
-            "label": "可调书架层板 1",
+            "label": "常读书格底层板",
             "adjustable": true,
             "x": 0,
-            "y": 800,
+            "y": 280,
             "z": 0,
-            "width": 1764,
+            "width": 860,
             "height": 18,
             "depth": 310
           },
           {
-            "id": "legacy-file-shelf-2",
+            "id": "portable-books-top",
             "kind": "shelf",
-            "label": "可调书架层板 2",
+            "label": "常读书格顶层板",
             "adjustable": true,
             "x": 0,
-            "y": 1280,
+            "y": 1946,
             "z": 0,
-            "width": 1764,
+            "width": 860,
             "height": 18,
             "depth": 310
           },
           {
-            "id": "legacy-file-open-2",
-            "kind": "open",
-            "label": "普通开放文件格 2",
-            "adjustable": true,
-            "x": 0,
-            "y": 1320,
+            "id": "portable-divider-01",
+            "kind": "divider",
+            "label": "阅读 / 便携乐器竖向分隔板",
+            "adjustable": false,
+            "x": 860,
+            "y": 0,
             "z": 0,
-            "width": 1764,
-            "height": 600,
+            "width": 18,
+            "height": 1964,
+            "depth": 310
+          },
+          {
+            "id": "portable-instrument-top",
+            "kind": "shelf",
+            "label": "便携乐器位顶层板",
+            "adjustable": true,
+            "x": 900,
+            "y": 1350,
+            "z": 0,
+            "width": 864,
+            "height": 18,
+            "depth": 310
+          },
+          {
+            "id": "portable-display-top",
+            "kind": "shelf",
+            "label": "展示留白顶层板",
+            "adjustable": true,
+            "x": 900,
+            "y": 1946,
+            "z": 0,
+            "width": 864,
+            "height": 18,
             "depth": 310
           }
         ],
         "notes": [
-          "旧 piano ID 仅做兼容，产品语义为开放书架/文件收纳。"
+          "常读书、便携乐器、封闭小件和展示留白可按物品尺寸调整。",
+          "不固定钢琴；柜内模块表达候选功能，不替代现场量具和成品选型。"
         ],
-        "createdFrom": "saved"
+        "createdFrom": "b1-storage-candidate-20260909"
       },
       "cabinetDesign": {
         "template": "bookshelf",
-        "title": "B1 普通开放书架 / 文件收纳",
-        "designThinking": "B1 D01 办公主场 + 可变睡眠平台；仅做模块化收纳功能验证，不锁建筑墙体或最终加工尺寸。",
-        "recommendedPlacement": "活动区候选墙面；与办公综合收纳墙、儿童矮架的功能和实体边界待后续空间 P1 处理",
+        "title": "B1 可调便携乐器 / 常读书架",
+        "designThinking": "以阅读和轻松休闲为主，便携乐器只保留可调整位置，不恢复旧钢琴或办公语义。",
+        "recommendedPlacement": "W-B1-009 原候选墙位；不改变楼梯、墙体或门窗",
         "layoutNotes": [
-          "只保留普通书架/文件收纳语义",
-          "不新增固定机电"
+          "开放常读书格顺手可取",
+          "便携乐器位按实际种类调整",
+          "底部封闭小件，顶部保留少量展示留白"
         ],
         "zones": [
           {
-            "id": "legacy-file-open",
-            "label": "开放文件与书籍",
-            "role": "open-file-storage",
-            "widthPercent": 100,
-            "heightPercent": 84,
-            "detail": "普通书籍、文件夹和儿童可取读物"
+            "id": "portable-books",
+            "label": "常读书",
+            "role": "open-reference",
+            "widthPercent": 49,
+            "heightPercent": 78,
+            "detail": "日常阅读书籍"
+          },
+          {
+            "id": "portable-instrument",
+            "label": "便携乐器可调位",
+            "role": "portable-instrument",
+            "widthPercent": 49,
+            "heightPercent": 52,
+            "detail": "品类未定，按尺寸复核"
           }
         ],
         "cautionNotes": [
-          "不恢复钢琴或固定乐器位",
-          "旧 ID 不可删除，避免悬空引用",
-          "实体重叠属于后续空间 P1 blocker"
+          "不恢复钢琴或固定乐器基层",
+          "与 2.8m 综合柜、矮架、懒人沙发和楼梯通道做实体包络复核",
+          "外廓和模块均为候选"
         ]
       },
       "verificationMeta": {
         "status": "estimated",
         "source": "manual-input",
-        "sourceNote": "B1 普通开放书架 / 文件收纳；外廓仍为模块化估算，现场完成面、厂家尺寸和固定基层复尺后再升级。",
+        "sourceNote": "B1 可调便携乐器 / 常读书架；180×35×200cm 为模型候选，现场完成面、厂家尺寸和固定基层复尺后再升级。",
         "toleranceMm": 80
       },
       "lightingCabinetContract": {
         "schemaVersion": 1,
-        "revision": "b1-lighting-cabinet-contract-v1-20260812",
-        "category": "书柜",
-        "purposeCapacity": "旧 piano ID 已迁移为普通开放书架/文件收纳；用于书籍、文件和可取读物，不承担键盘乐器容量。",
-        "doorAppearance": "开放层板，浅橡木层板、暖白矿物背板、古铜细节；无固定乐器基层、无专用乐器电源。",
+        "revision": "b1-storage-candidate-20260909",
+        "category": "便携乐器与阅读书架",
+        "purposeCapacity": "常读书、便携乐器可调位、封闭小件、少量展示留白；不承担办公文件、打印耗材或固定钢琴。",
+        "doorAppearance": "开放层板与底部封闭小件格，浅橡木、暖白背板、古铜细节；防倾倒和背板检修待复尺。",
         "interiorLayout": {
           "source": "cabinetInterior",
           "template": "bookshelf",
-          "moduleCount": 4,
+          "moduleCount": 6,
           "doorCount": 0,
           "state": "open-always"
         },
@@ -10181,18 +9690,22 @@
           "lightingTemperature": "3000K"
         },
         "lightingMepInspection": {
-          "lightingIntent": "cabinet-strip-open-shelf-emissive",
+          "lightingIntent": "reading-display-supplement",
           "requiredFixtureFamily": "cabinet-strip",
-          "existingLightIds": [],
-          "existingControlGroupIds": [],
-          "power": "普通插座和开放层板灯带电源按活动区综合定位；不设固定键盘/乐器专用回路",
+          "existingLightIds": [
+            "L-B1-ACT-02"
+          ],
+          "existingControlGroupIds": [
+            "CG-B1-B1-004-ACT"
+          ],
+          "power": "活动区常规回路；不设固定乐器专用电源",
           "waterSupply": "none",
           "drainage": "none",
-          "ventilationAndDehumidification": "地下层防潮封边、背部通风和柜后检修",
-          "inspection": "固定防倾倒、层板灯带、驱动、电源和背板检修；主任务需消费 cabinet-strip 需求",
-          "status": "missing-binding-pending-main-lighting-consumer"
+          "ventilationAndDehumidification": "地下层防潮封边与背部通风待复核",
+          "inspection": "层板灯带、驱动、背板和防倾倒检修",
+          "status": "candidate-sync-pending-field-verify"
         },
-        "constructionCloseout": "候选贴 W-B1-009；与办公综合收纳墙、儿童矮架和活动动线做实体包络复核，旧 ID 仅为引用兼容。"
+        "constructionCloseout": "候选贴 W-B1-009；复核完成面、基层、背板、防倾倒、照明和休闲通道后再定分格。"
       }
     },
     {
@@ -10414,7 +9927,7 @@
     {
       "id": "furn-b1-activity-beanbag-001",
       "code": "BB-B1-01",
-      "name": "B1 活动区舒适懒人沙发",
+      "name": "B1 独立阅读区低位懒人沙发",
       "type": "sofa",
       "catalogId": "living-sofa",
       "moduleCategory": "living",
@@ -10428,8 +9941,8 @@
         "unit": "cm"
       },
       "material": "可拆洗米灰绒布 + 高回弹颗粒填充",
-      "note": "低重心、可移动的包裹式懒人沙发，朝向活动区中心，保留周边自由通行。",
-      "constructionNote": "低重心、可移动的包裹式懒人沙发，朝向活动区中心，保留周边自由通行。",
+      "note": "低位可移动懒人沙发，朝向阅读与轻松休闲收纳区；候选位置已避开共享茶几并留出到达书架的连续地面，不与沙发床侧混用。",
+      "constructionNote": "成品可移动软包坐具；候选位置与茶几分开，472mm 局部伸手缝不再作为必经通道；现场仍复核坐深、落地灯、柜门开启和楼梯侧通行净距。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -10437,8 +9950,8 @@
         "exhaust": false
       },
       "position": {
-        "x": 25,
-        "y": 69.44444444444444,
+        "x": 27,
+        "y": 65,
         "rotation": 25
       },
       "color": "#cfc4b5",
@@ -10455,9 +9968,7 @@
         "variantId": "beanBag",
         "variationSeed": 4006709097,
         "styleSource": "manual",
-        "elevationMm": 0,
-        "modelAssetId": "polyhavenModernArmChair01",
-        "assetUrl": "/assets/external/polyhaven/models/modern_arm_chair_01/2k/modern_arm_chair_01.gltf"
+        "elevationMm": 0
       },
       "mepMeta": {
         "needsSocket": false,
@@ -10603,7 +10114,7 @@
         "unit": "cm"
       },
       "material": "暖灰洞石圆角台座 + 深古铜底座",
-      "note": "放在活动区地毯中心，作为阅读、游戏和休闲的共享落点；高度控制在坐姿视线以下。",
+      "note": "活动区地毯右侧的低矮共享落点，用于阅读、随手物与轻松休闲；候选位置避开懒人沙发实体包络，实际边距按现场复尺调整。",
       "constructionNote": "成品低矮茶几，圆角洞石或同等耐污石材；底部避免尖角，安装后复核与沙发及楼梯通行净距。",
       "serviceRequirements": {
         "water": false,
@@ -10612,7 +10123,7 @@
         "exhaust": false
       },
       "position": {
-        "x": 32.5,
+        "x": 38,
         "y": 70,
         "rotation": 0
       },
@@ -10674,7 +10185,7 @@
     {
       "id": "furn-b1-activity-small-shelf-001",
       "code": "SH-B1-01",
-      "name": "B1 活动区玩具收纳矮架",
+      "name": "B1 活动区零碎收纳矮架",
       "type": "bookshelf",
       "catalogId": "storage-bookshelf",
       "moduleCategory": "storage",
@@ -10689,8 +10200,8 @@
         "unit": "cm"
       },
       "material": "暖木开放架 + 圆角层板",
-      "note": "贴 W-B1-007 的低矮开放格，使用圆角收纳筐分类玩具、积木和手柄，儿童也能自行取放。",
-      "constructionNote": "1200x320x950mm 圆角开放格固定防倾倒，底层放重物，收纳筐留标签位。",
+      "note": "低位开放格与收纳筐，用于阅读配件、便携乐器配件和日常小物；不承担电视、游戏机或办公耗材。",
+      "constructionNote": "保留 W-B1-007 低位候选位置，复核与 2.8m 综合收纳柜、懒人沙发和楼梯通道的实体包络；圆角、防倾倒和地下层防潮待复尺。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -11191,8 +10702,8 @@
     },
     {
       "id": "furn-b1-activity-bookshelf-001",
-      "code": "CAB-B1-OFFICE-01",
-      "name": "B1 办公综合收纳墙（开放书架 / 文件收纳）",
+      "code": "CAB-B1-LEISURE-01",
+      "name": "B1 阅读与轻松休闲综合收纳柜（原 2.8m 综合柜）",
       "type": "cabinet",
       "catalogId": "storage-tall-cabinet",
       "moduleCategory": "storage",
@@ -11207,8 +10718,8 @@
         "unit": "cm"
       },
       "material": "暖白矿物柜门 + 浅橡木柜体 + 少量古铜五金",
-      "note": "D01 办公主场收纳：开放参考书、文件抽屉、封闭耗材和可见留白；不承担固定钢琴或乐器陈列。外廓 280×450×2400mm 仍为估算，不锁 W-B1-007。",
-      "constructionNote": "模块化办公综合收纳墙；实际墙长、基层、插座、线缆、柜门开启和灯带检修现场复尺后深化。避免与儿童矮架形成重复收纳或碰撞。",
+      "note": "另一侧独立阅读休闲区的 2.8m 综合收纳候选：常读书顺手取用、便携乐器可调位、封闭零碎收纳和少量展示留白；清除办公主场、文件和打印耗材语义。外廓 280×45×240cm（2800×450×2400mm）仍为估算。",
+      "constructionNote": "沿 W-B1-007 原候选墙位整合开放书格、可调便携乐器位、封闭零碎和展示留白；实际墙长、基层、柜门开启、背板检修和活动通道现场复尺。不得固定钢琴或把 B2 电视游戏设备迁入。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -11275,7 +10786,7 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "常规插座回路",
-        "notes": "办公屏幕/打印/路由与柜内灯带预留；优先使用暖光 emissive 灯带，不新增大量实时投影灯。"
+        "notes": "常读书格与展示格灯带、柜内电源和背板检修留位；便携乐器位不设固定乐器基层或专用电源，回路施工前复核。"
       },
       "constructionMeta": {
         "customMade": true,
@@ -11293,7 +10804,7 @@
       "verificationMeta": {
         "status": "estimated",
         "source": "manual-input",
-        "sourceNote": "B1 办公综合收纳墙；外廓仍为模块化估算，现场完成面、厂家尺寸和固定基层复尺后再升级。",
+        "sourceNote": "B1 阅读与轻松休闲综合收纳柜；280×45×240cm 为模型候选，现场完成面、厂家尺寸和固定基层复尺后再升级。",
         "toleranceMm": 80
       },
       "cabinetInterior": {
@@ -11308,21 +10819,9 @@
         "doorStates": {},
         "modules": [
           {
-            "id": "office-open-reference",
-            "kind": "open",
-            "label": "开放参考书 / 常用资料格",
-            "adjustable": true,
-            "x": 0,
-            "y": 300,
-            "z": 0,
-            "width": 900,
-            "height": 1800,
-            "depth": 400
-          },
-          {
-            "id": "office-file-drawer",
-            "kind": "drawer",
-            "label": "办公文件抽屉",
+            "id": "leisure-closed-small",
+            "kind": "closed",
+            "label": "封闭零碎收纳",
             "adjustable": true,
             "x": 0,
             "y": 0,
@@ -11332,21 +10831,57 @@
             "depth": 400
           },
           {
-            "id": "office-closed-supplies",
-            "kind": "closed",
-            "label": "封闭耗材柜",
+            "id": "leisure-books-bottom",
+            "kind": "shelf",
+            "label": "常读书格底层板",
             "adjustable": true,
-            "x": 940,
-            "y": 0,
+            "x": 0,
+            "y": 280,
             "z": 0,
-            "width": 880,
-            "height": 1200,
+            "width": 900,
+            "height": 18,
             "depth": 400
           },
           {
-            "id": "office-reference-shelf",
+            "id": "leisure-books-top",
             "kind": "shelf",
-            "label": "可调资料层板",
+            "label": "常读书格顶层板",
+            "adjustable": true,
+            "x": 0,
+            "y": 2100,
+            "z": 0,
+            "width": 900,
+            "height": 18,
+            "depth": 400
+          },
+          {
+            "id": "leisure-divider-01",
+            "kind": "divider",
+            "label": "常读书 / 便携乐器竖向分隔板",
+            "adjustable": false,
+            "x": 900,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2364,
+            "depth": 400
+          },
+          {
+            "id": "leisure-instrument-top",
+            "kind": "shelf",
+            "label": "便携乐器位顶层板",
+            "adjustable": true,
+            "x": 940,
+            "y": 1200,
+            "z": 0,
+            "width": 880,
+            "height": 18,
+            "depth": 400
+          },
+          {
+            "id": "leisure-adjustable-books",
+            "kind": "shelf",
+            "label": "可调常读书层板",
             "adjustable": true,
             "x": 940,
             "y": 1400,
@@ -11356,21 +10891,33 @@
             "depth": 400
           },
           {
-            "id": "office-open-niche",
-            "kind": "open",
-            "label": "设备 / 展示留白格",
+            "id": "leisure-display-top",
+            "kind": "shelf",
+            "label": "展示留白顶层板",
             "adjustable": true,
             "x": 1840,
-            "y": 800,
+            "y": 2346,
             "z": 0,
             "width": 924,
-            "height": 1540,
+            "height": 18,
             "depth": 400
           },
           {
-            "id": "office-bottom-drawer",
-            "kind": "drawer",
-            "label": "打印耗材 / 线材抽屉",
+            "id": "leisure-divider-02",
+            "kind": "divider",
+            "label": "便携乐器 / 展示留白竖向分隔板",
+            "adjustable": false,
+            "x": 1820,
+            "y": 0,
+            "z": 0,
+            "width": 18,
+            "height": 2364,
+            "depth": 400
+          },
+          {
+            "id": "leisure-closed-misc",
+            "kind": "closed",
+            "label": "封闭小件 / 配件",
             "adjustable": true,
             "x": 1840,
             "y": 0,
@@ -11381,62 +10928,63 @@
           }
         ],
         "notes": [
-          "办公综合收纳墙只验证功能模块；实际宽度、门扇分格和设备型号待复尺。",
-          "柜门关闭时不生成内部模块；打开或选中时才显示层板、抽屉和收纳格。"
+          "柜门关闭时保持简模；打开或选中时表达书格、便携乐器位、封闭零碎和展示留白。",
+          "便携乐器种类未定，模块可调整；不表达固定钢琴。"
         ],
-        "createdFrom": "saved"
+        "createdFrom": "b1-storage-candidate-20260909"
       },
       "cabinetDesign": {
         "template": "bookshelf",
-        "title": "B1 办公综合收纳墙",
-        "designThinking": "B1 D01 办公主场 + 可变睡眠平台；仅做模块化收纳功能验证，不锁建筑墙体或最终加工尺寸。",
-        "recommendedPlacement": "活动区/办公主场候选墙面；不以当前墙长锁定",
+        "title": "B1 阅读与轻松休闲综合收纳柜",
+        "designThinking": "B1 休闲区与沙发床储备区分开；以常读书、便携乐器、封闭零碎和少量展示留白为主。",
+        "recommendedPlacement": "W-B1-007 原候选墙位；不改变墙体、楼梯或门窗",
         "layoutNotes": [
-          "浅橡木为主、暖白矿物柜门为辅",
-          "灯带优先 emissive，驱动与检修留位"
+          "暖白矿物门板 + 浅橡木开放格",
+          "开放常读书格顺手可取，封闭零碎降低视觉杂乱",
+          "便携乐器位置可调，不做固定基层"
         ],
         "zones": [
           {
-            "id": "office-open",
-            "label": "开放参考资料",
+            "id": "leisure-books",
+            "label": "常读书",
             "role": "open-reference",
             "widthPercent": 32,
             "heightPercent": 78,
-            "detail": "常用书、文件夹和展示留白"
+            "detail": "顺手可取的常读书"
           },
           {
-            "id": "office-closed",
-            "label": "封闭耗材与文件",
-            "role": "closed-storage",
+            "id": "leisure-instrument",
+            "label": "便携乐器可调位",
+            "role": "portable-instrument",
             "widthPercent": 32,
             "heightPercent": 52,
-            "detail": "打印耗材、线材、办公杂物"
+            "detail": "种类未定，按尺寸调整"
           },
           {
-            "id": "office-device",
-            "label": "设备 / 展示格",
-            "role": "device-niche",
+            "id": "leisure-misc-display",
+            "label": "封闭零碎 / 展示留白",
+            "role": "closed-misc-display",
             "widthPercent": 36,
             "heightPercent": 64,
-            "detail": "显示器附件、资料和可变陈列"
+            "detail": "小件封闭，少量集中展示"
           }
         ],
         "cautionNotes": [
-          "不要恢复固定钢琴位",
-          "与儿童矮架的空间重叠仍属于后续空间 P1 blocker",
-          "所有尺寸待现场复尺"
+          "不恢复固定钢琴位或旧办公设备",
+          "不得把 B2 电视游戏用途迁入 B1",
+          "墙长、门扇、基层、灯带和通道均待现场复尺"
         ]
       },
       "lightingCabinetContract": {
         "schemaVersion": 1,
-        "revision": "b1-lighting-cabinet-contract-v1-20260812",
-        "category": "书柜",
-        "purposeCapacity": "办公主场的开放参考书、文件抽屉、封闭耗材、设备/展示留白；容量以 cabinetInterior 六模块验证，墙长和分格不锁定。",
-        "doorAppearance": "开放/封闭组合；浅橡木柜体、暖白矿物门板、古铜 edge-pull；不恢复固定钢琴或乐器位。",
+        "revision": "b1-storage-candidate-20260909",
+        "category": "阅读与轻松休闲收纳",
+        "purposeCapacity": "常读书、可调便携乐器、封闭零碎、少量集中展示；不承担办公文件、打印耗材或固定钢琴。",
+        "doorAppearance": "开放/封闭组合，浅橡木柜体、暖白矿物门板、古铜 edge-pull；门扇与活动通道待复尺。",
         "interiorLayout": {
           "source": "cabinetInterior",
           "template": "bookshelf",
-          "moduleCount": 6,
+          "moduleCount": 9,
           "doorCount": 2,
           "state": "open-on-select-or-door"
         },
@@ -11448,31 +10996,28 @@
           "lightingTemperature": "3000K"
         },
         "lightingMepInspection": {
-          "lightingIntent": "cabinet-strip-open-shelf-emissive",
+          "lightingIntent": "cabinet-strip-reading-display-emissive",
           "requiredFixtureFamily": "cabinet-strip",
           "existingLightIds": [
             "L-B1-ACT-02"
           ],
-          "existingLightRoles": {
-            "L-B1-ACT-02": "accent-supplement-not-cabinet-strip"
-          },
           "existingControlGroupIds": [
             "CG-B1-B1-004-ACT"
           ],
-          "power": "办公屏幕/打印/网络与柜内灯带驱动；插座、数据、驱动和背板检修留位",
+          "power": "常读书格/展示格灯带驱动与背板检修留位；便携乐器位不设专用电源，回路待复核",
           "waterSupply": "none",
           "drainage": "none",
-          "ventilationAndDehumidification": "背板离墙/防潮封边；柜内设备散热和除湿电源待复尺",
-          "inspection": "柜门、层板灯带、驱动、网络/电源和背板检修；主任务需消费 cabinet-strip 需求",
-          "status": "accent-binding-present-dedicated-strip-pending-main-lighting-consumer"
+          "ventilationAndDehumidification": "背板离墙/防潮封边；地下层除湿条件待复核",
+          "inspection": "柜门、层板灯带、驱动、背板和固定基层检修",
+          "status": "candidate-sync-pending-field-verify"
         },
-        "constructionCloseout": "候选贴 W-B1-007；按实际墙长、基层、吊顶/风口/检修和儿童活动边界复核，清除与矮架的空间冲突后再定分格。"
+        "constructionCloseout": "候选贴 W-B1-007；按实际墙长、基层、吊顶/风口/检修和休闲通道复核后再定分格。"
       }
     },
     {
       "id": "furn-b1-activity-instrument-rack-001",
       "code": "IR-B1-ACT-01",
-      "name": "B1 活动区吉他与尤克里里壁挂乐器墙",
+      "name": "B1 旧墙挂乐器位（历史兼容，不施工）",
       "type": "custom",
       "catalogId": "storage-instrumentRack",
       "moduleCategory": "storage",
@@ -11487,8 +11032,8 @@
         "unit": "cm"
       },
       "material": "深棕竖向木格栅背景 + 黑钛壁挂钩 + 软木接触垫",
-      "note": "D02 已取消固定键盘/乐器位；保留对象 ID 仅供历史引用迁移，当前不进入 2D/3D 交付。",
-      "constructionNote": "不施工、不下单、不预留固定乐器基层或专用插座。",
+      "note": "历史 ID 保留用于引用兼容；当前方案采用柜内可调便携乐器位，不恢复固定墙挂、固定钢琴或专用乐器基层。",
+      "constructionNote": "不施工、不下单、不预留固定乐器基层或专用插座；待实际便携乐器种类确定后在综合柜内调整。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -11511,7 +11056,7 @@
         "visibleIn3d": false,
         "selectableIn3d": false,
         "childrenMode": "grouped",
-        "variantId": "wallMountedGuitarUkulele",
+        "variantId": "legacyHiddenInstrumentRack",
         "variationSeed": 4194144454,
         "styleSource": "manual",
         "elevationMm": 120
@@ -13640,304 +13185,24 @@
       }
     },
     {
-      "id": "furn-2f-balcony-01-cabinet",
-      "code": "WD-2F-01",
-      "name": "阳台1端墙浅柜",
-      "type": "wardrobe",
-      "catalogId": "storage-wardrobe",
-      "moduleCategory": "storage",
-      "moduleType": "wardrobe",
-      "floorId": "2F",
-      "roomId": "OD-2F-BALCONY-01",
-      "dimensions": {
-        "width": 60,
-        "depth": 35,
-        "height": 220,
-        "unit": "cm"
-      },
-      "material": "暖白通顶柜体 + 浅橡木收口 + 前后错轨移门",
-      "note": "衣柜放在卧室1左上角，避开右侧房门—阳台连续通道；移门不占用床侧空间。",
-      "constructionNote": "按 1200×600mm 完成面复尺，采用通顶移门并复核床头、墙角收口及柜内灯带。",
-      "serviceRequirements": {
-        "water": false,
-        "drainage": false,
-        "power": false,
-        "exhaust": false
-      },
-      "position": {
-        "x": 9.375,
-        "y": 93.88888888888889,
-        "rotation": 90
-      },
-      "color": "#c8a887",
-      "wardrobeDesign": {
-        "columns": 3,
-        "rows": 4,
-        "cells": [
-          {
-            "id": "cell-0-0",
-            "column": 0,
-            "row": 0,
-            "kind": "hanging-long"
-          },
-          {
-            "id": "cell-1-0",
-            "column": 1,
-            "row": 0,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-0",
-            "column": 2,
-            "row": 0,
-            "kind": "folded"
-          },
-          {
-            "id": "cell-0-1",
-            "column": 0,
-            "row": 1,
-            "kind": "hanging-long"
-          },
-          {
-            "id": "cell-1-1",
-            "column": 1,
-            "row": 1,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-1",
-            "column": 2,
-            "row": 1,
-            "kind": "folded"
-          },
-          {
-            "id": "cell-0-2",
-            "column": 0,
-            "row": 2,
-            "kind": "hanging-short"
-          },
-          {
-            "id": "cell-1-2",
-            "column": 1,
-            "row": 2,
-            "kind": "open"
-          },
-          {
-            "id": "cell-2-2",
-            "column": 2,
-            "row": 2,
-            "kind": "folded"
-          },
-          {
-            "id": "cell-0-3",
-            "column": 0,
-            "row": 3,
-            "kind": "hanging-short"
-          },
-          {
-            "id": "cell-1-3",
-            "column": 1,
-            "row": 3,
-            "kind": "drawer"
-          },
-          {
-            "id": "cell-2-3",
-            "column": 2,
-            "row": 3,
-            "kind": "folded"
-          }
-        ],
-        "modules": [
-          {
-            "id": "recommended-seasonal",
-            "kind": "open",
-            "label": "顶部换季区",
-            "column": 0,
-            "columnSpan": 3,
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 18
-          },
-          {
-            "id": "recommended-long",
-            "kind": "hanging-long",
-            "label": "长衣区",
-            "column": 0,
-            "columnSpan": 1,
-            "x": 0,
-            "y": 18,
-            "width": 38,
-            "height": 82
-          },
-          {
-            "id": "recommended-short",
-            "kind": "hanging-short",
-            "label": "短衣区",
-            "column": 1,
-            "columnSpan": 1,
-            "x": 38,
-            "y": 18,
-            "width": 32,
-            "height": 59
-          },
-          {
-            "id": "recommended-drawer",
-            "kind": "drawer",
-            "label": "抽屉区",
-            "column": 1,
-            "columnSpan": 1,
-            "drawerRows": 3,
-            "drawerColumns": 1,
-            "drawerRowHeights": [
-              33.33,
-              33.33,
-              33.33
-            ],
-            "x": 38,
-            "y": 77,
-            "width": 32,
-            "height": 23
-          },
-          {
-            "id": "recommended-folded",
-            "kind": "folded",
-            "label": "叠放区",
-            "column": 2,
-            "columnSpan": 1,
-            "shelfCount": 4,
-            "shelfLayerHeights": [
-              20,
-              20,
-              20,
-              20,
-              20
-            ],
-            "x": 70,
-            "y": 18,
-            "width": 30,
-            "height": 68
-          },
-          {
-            "id": "recommended-shoe",
-            "kind": "shoe",
-            "label": "鞋包区",
-            "column": 2,
-            "columnSpan": 1,
-            "x": 70,
-            "y": 86,
-            "width": 30,
-            "height": 14
-          }
-        ],
-        "columnWidths": [
-          38,
-          32,
-          30
-        ],
-        "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
-      },
-      "render3d": {
-        "assetType": "wardrobe",
-        "detailLevel": "presentation",
-        "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "oatTaupeLacquer",
-        "accentMaterial": "brushedBronze",
-        "visibleIn3d": true,
-        "selectableIn3d": true,
-        "childrenMode": "grouped",
-        "variantId": "slidingPanels",
-        "variationSeed": 67814486,
-        "styleSource": "manual",
-        "primaryMaterialResourceId": "showroomWarmOakVertical",
-        "secondaryMaterialResourceId": "showroomOatTaupeLacquer"
-      },
-      "mepMeta": {
-        "needsSocket": false,
-        "socketCount": 0,
-        "socketHeight": 0,
-        "needsSwitch": true,
-        "switchControl": [
-          "柜内灯带门控/感应"
-        ],
-        "needsLighting": true,
-        "lightingType": "cabinetStrip",
-        "lightColorTemperature": "3000K",
-        "needsWaterSupply": false,
-        "waterSupplyType": "none",
-        "needsDrainage": false,
-        "drainageType": "none",
-        "needsNetwork": false,
-        "needsVentilation": false,
-        "needsSmartControl": true,
-        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
-      },
-      "constructionMeta": {
-        "customMade": true,
-        "installType": "customCabinet",
-        "reserveSize": "120x60x275cm",
-        "wallDependency": "靠 W-2F-012 左端布置，安装前按墙面完成面复尺并复核房门洞口。",
-        "floorDependency": "按完成面标高校核落地尺寸",
-        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
-        "waterproofRequired": false,
-        "inspectionAccessRequired": false,
-        "purchaseCategory": "定制柜体/硬装",
-        "supplierType": "全屋定制/木作供应商",
-        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
-      },
-      "constructionAnchors": {
-        "points": [
-          {
-            "id": "furn-2f-bedroom1-wardrobe-001-lighting-power",
-            "type": "power",
-            "label": "柜内灯带电源",
-            "positionMm": {
-              "x": 816,
-              "y": 2280,
-              "z": -252
-            },
-            "installationHeightMm": 2280
-          }
-        ],
-        "installationHeightMm": 0,
-        "notes": "柜体电源点随定制柜移动和旋转同步。"
-      },
-      "hostWallId": "W-2F-012",
-      "cabinetHeight": {
-        "kind": "fullHeight",
-        "topClosureMm": 50,
-        "source": "storyHeight"
-      },
-      "doorType": "sliding",
-      "clearanceMeta": {
-        "frontMm": 500,
-        "status": "compact-but-usable"
-      },
-      "notes": "600×350mm防潮通顶浅柜，只收纳清洁工具和小件，不挤占约1.3m阳台进深。",
-      "outdoorZoneId": "OD-2F-BALCONY-01",
-      "category": "storage",
-      "outdoorId": "OD-2F-BALCONY-01"
-    },
-    {
       "id": "furn-2f-balcony-02-cabinet",
       "code": "WD-2F-01",
-      "name": "阳台2端墙浅柜",
-      "type": "wardrobe",
+      "name": "儿童房封窗阳台低位书玩具收纳 · v4",
+      "type": "cabinet",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
-      "moduleType": "wardrobe",
+      "moduleType": "sideboard",
       "floorId": "2F",
       "roomId": "OD-2F-BALCONY-02",
       "dimensions": {
-        "width": 60,
+        "width": 70,
         "depth": 35,
-        "height": 220,
+        "height": 55,
         "unit": "cm"
       },
-      "material": "暖白通顶柜体 + 浅橡木收口 + 前后错轨移门",
-      "note": "衣柜放在卧室1左上角，避开右侧房门—阳台连续通道；移门不占用床侧空间。",
-      "constructionNote": "按 1200×600mm 完成面复尺，采用通顶移门并复核床头、墙角收口及柜内灯带。",
+      "material": "暖白低柜 + 浅暖木台面",
+      "note": "v4确认图：儿童房封窗阳台低位书玩具收纳，包络 x=4200..4900mm；不做通顶清洁柜，为阅读/游戏活动面让出连续边界。",
+      "constructionNote": "低柜台面可作为阅读/游戏临时置物，复核窗下高度、插座和阳台活动净宽。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -13945,9 +13210,9 @@
         "exhaust": false
       },
       "position": {
-        "x": 53.05833333333333,
-        "y": 93.88888888888889,
-        "rotation": 90
+        "x": 37.9166666667,
+        "y": 94.4444444444,
+        "rotation": 180
       },
       "color": "#c8a887",
       "wardrobeDesign": {
@@ -14118,16 +13383,16 @@
         "notes": "已按当前柜体尺寸生成推荐方案：顶部换季区、长衣区、短衣区、抽屉区、叠放区和鞋包区。可继续微调各模块位置和尺寸。"
       },
       "render3d": {
-        "assetType": "wardrobe",
+        "assetType": "sideboard",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "oatTaupeLacquer",
+        "primaryMaterial": "warmWhiteCeramic",
+        "secondaryMaterial": "warmOak",
         "accentMaterial": "brushedBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "slidingPanels",
+        "variantId": "lowStorage",
         "variationSeed": 67814486,
         "styleSource": "manual",
         "primaryMaterialResourceId": "showroomWarmOakVertical",
@@ -14156,7 +13421,7 @@
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "120x60x275cm",
+        "reserveSize": "70x35x55cm low storage",
         "wallDependency": "靠 W-2F-012 左端布置，安装前按墙面完成面复尺并复核房门洞口。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
@@ -14164,7 +13429,7 @@
         "inspectionAccessRequired": false,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "确认开门方向、床侧通道、柜内挂衣区和顶部换季收纳。"
+        "notes": "低位收纳，不做通顶柜；现场复核窗下完成面与活动净宽。"
       },
       "constructionAnchors": {
         "points": [
@@ -14197,7 +13462,13 @@
       "notes": "600×350mm防潮通顶浅柜，只收纳清洁工具和小件，不挤占约1.3m阳台进深。",
       "outdoorZoneId": "OD-2F-BALCONY-02",
       "category": "storage",
-      "outdoorId": "OD-2F-BALCONY-02"
+      "outdoorId": "OD-2F-BALCONY-02",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 100
+      }
     },
     {
       "id": "furn-1f-bedroom-headboard-ledge-001",
@@ -14406,225 +13677,388 @@
       }
     },
     {
-      "id": "module-2f-cloak-bridge-cabinet",
-      "code": "WD-2F-BRIDGE",
-      "name": "衣帽间升降桌上方450mm深桥柜候选",
-      "type": "cabinet",
-      "catalogId": "storage-cabinet",
-      "moduleCategory": "storage",
-      "moduleType": "wallCabinet",
+      "id": "furn-2f-parent-balcony-lounge-chair-001",
+      "code": "CH-2F-PB-01",
+      "name": "父母房封窗阳台休闲椅",
+      "type": "chair",
+      "moduleCategory": "outdoor",
+      "moduleType": "chair",
       "floorId": "2F",
-      "roomId": "ROOM-2F-002",
+      "roomId": "OD-2F-BALCONY-01",
       "dimensions": {
-        "width": 180,
-        "depth": 45,
-        "height": 125,
+        "width": 68,
+        "depth": 72,
+        "height": 82,
         "unit": "cm"
       },
-      "material": "暖橡木柜体 + 局部深茶玻璃 + 黑钛细框",
-      "note": "桥柜为候选情景，北窗升降桌1800×700mm必须保留；外廓、标高、端部收口和吊装条件待复尺。",
-      "constructionNote": "候选桥柜1800×450×1250mm，底标高暂按1500mm表达，不改变墙体；确认桌面升降最高位、窗扇开启、柜体承重与检修。",
+      "material": "暖灰米色织物 + 浅暖木扶手",
+      "note": "C2确认图：封窗阳台西侧休闲椅，面向室内与侧桌，保持约1100mm净深内的轻量落点。",
+      "constructionNote": "C2确认图：封窗阳台西侧休闲椅，面向室内与侧桌，保持约1100mm净深内的轻量落点。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
-        "power": true,
+        "power": false,
         "exhaust": false
       },
       "position": {
-        "x": 54.4333333333,
-        "y": 7.7777777778,
-        "rotation": 0
+        "x": 13.3333333333,
+        "y": 93.8888888889,
+        "rotation": 270
       },
-      "color": "#8e7155",
-      "cabinetInterior": {
-        "schemaVersion": 1,
-        "template": "storage",
-        "panelThicknessMm": 18,
-        "interiorWidthMm": 1764,
-        "interiorHeightMm": 1214,
-        "interiorDepthMm": 432,
-        "openingMode": "liftUp",
-        "doorCount": 3,
-        "doorStates": {},
-        "modules": [
-          {
-            "id": "module-2f-cloak-bridge-cabinet-top",
-            "kind": "shelf",
-            "label": "桥柜顶部收纳",
-            "x": 0,
-            "y": 1194,
-            "z": 0,
-            "width": 1764,
-            "height": 20,
-            "depth": 432,
-            "adjustable": false,
-            "fixed": true
-          },
-          {
-            "id": "module-2f-cloak-bridge-cabinet-display",
-            "kind": "open",
-            "label": "桌面上方展示/参考资料格",
-            "x": 590,
-            "y": 0,
-            "z": 0,
-            "width": 584,
-            "height": 760,
-            "depth": 432,
-            "adjustable": true,
-            "materialPart": "glass"
-          },
-          {
-            "id": "module-2f-cloak-bridge-cabinet-folded-left",
-            "kind": "shelf",
-            "label": "备用层板 A",
-            "x": 0,
-            "y": 520,
-            "z": 0,
-            "width": 560,
-            "height": 20,
-            "depth": 432,
-            "adjustable": true
-          },
-          {
-            "id": "module-2f-cloak-bridge-cabinet-folded-right",
-            "kind": "shelf",
-            "label": "备用层板 B",
-            "x": 1204,
-            "y": 520,
-            "z": 0,
-            "width": 560,
-            "height": 20,
-            "depth": 432,
-            "adjustable": true
-          }
-        ],
-        "notes": [
-          "450mm深为候选值；桥柜只作为桌上方收纳情景，不替代北窗桌位。",
-          "关闭态不生成内部模块；打开态才显示。"
-        ],
-        "createdFrom": "saved"
-      },
-      "cabinetDesign": {
-        "template": "cabinet",
-        "title": "升降桌上方桥柜候选",
-        "designThinking": "桥柜只补回北侧开间上方的收纳，不压缩1800×700mm办公桌；中段保留少量展示，左右用封闭门板收住视觉。",
-        "recommendedPlacement": "与北窗桌同中心线，底标高暂按1500mm，现场复核桌面最高位与窗扇。",
-        "layoutNotes": [
-          "编辑态保持简模；柜门打开或对象进入柜体设计态时才显示内部模块。",
-          "材质仅引用 modern-warm-natural canonical PBR，不新增同义材质。"
-        ],
-        "zones": [
-          {
-            "id": "closed",
-            "label": "封闭储物",
-            "role": "文件/换季",
-            "widthPercent": 67,
-            "heightPercent": 100,
-            "detail": "左右封闭门板"
-          },
-          {
-            "id": "display",
-            "label": "少量展示",
-            "role": "参考资料",
-            "widthPercent": 33,
-            "heightPercent": 62,
-            "detail": "中段局部茶玻/开放格"
-          }
-        ],
-        "cautionNotes": [
-          "桥柜为候选，不得在未复尺前进入施工下单；复核墙体承重和窗扇。"
-        ]
-      },
+      "color": "#cfc4b5",
       "render3d": {
-        "assetType": "cabinet",
+        "assetType": "chair",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "styleSource": "manual",
-        "styleLocked": true,
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "smokedGlass",
-        "accentMaterial": "blackTitanium",
+        "primaryMaterial": "beigeFabric",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "brushedBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "openClosedMix",
-        "variationSeed": 20812026,
-        "elevationMm": 1500,
-        "cabinetVisual": {
-          "frontStyle": "glass",
-          "handleStyle": "edgePull",
-          "glassTone": "smoked",
-          "allDoorPanels": false,
-          "displayContents": true,
-          "interiorLighting": true,
-          "bays": [
-            {
-              "widthRatio": 1,
-              "frontType": "solid"
-            },
-            {
-              "widthRatio": 1,
-              "frontType": "open"
-            },
-            {
-              "widthRatio": 1,
-              "frontType": "glass"
-            }
-          ]
-        },
-        "cabinetMaterialOverrides": {
-          "carcass": "warmOak",
-          "door": "warmOak",
-          "glass": "smokedGlass",
-          "hardware": "blackTitanium"
-        }
+        "variantId": "armchair",
+        "variationSeed": 220261012,
+        "styleSource": "manual",
+        "modelAssetId": "polyhavenModernArmChair01",
+        "assetUrl": "/assets/external/polyhaven/models/modern_arm_chair_01/2k/modern_arm_chair_01.gltf"
       },
       "mepMeta": {
-        "needsSocket": true,
-        "socketCount": 1,
-        "socketHeight": 1550,
-        "needsSwitch": true,
-        "switchControl": [
-          "柜内灯带门控/感应"
-        ],
-        "needsLighting": true,
-        "lightingType": "cabinetStrip",
-        "lightColorTemperature": "3000K",
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
         "needsWaterSupply": false,
         "waterSupplyType": "none",
         "needsDrainage": false,
         "drainageType": "none",
         "needsNetwork": false,
         "needsVentilation": false,
-        "needsSmartControl": true,
-        "notes": "桥柜灯带采用门控/感应，驱动留检修位；不新增实时投影灯。 桥柜灯带为候选，驱动和固定检修位不得在复尺前下单。 桥柜灯带为候选，驱动和固定检修位不得在复尺前下单。 桥柜灯带为候选，驱动和固定检修位不得在复尺前下单。",
-        "relatedCircuit": "柜体照明/常规插座回路"
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "C2确认图：封窗阳台西侧休闲椅，面向室内与侧桌，保持约1100mm净深内的轻量落点。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "68x72x82cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "C2确认图：封窗阳台西侧休闲椅，面向室内与侧桌，保持约1100mm净深内的轻量落点。"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 80
+      },
+      "outdoorId": "OD-2F-BALCONY-01",
+      "outdoorZoneId": "OD-2F-BALCONY-01"
+    },
+    {
+      "id": "furn-2f-parent-balcony-side-table-001",
+      "code": "TB-2F-PB-01",
+      "name": "父母房封窗阳台窄边几",
+      "type": "table",
+      "moduleCategory": "outdoor",
+      "moduleType": "sideTable",
+      "floorId": "2F",
+      "roomId": "OD-2F-BALCONY-01",
+      "dimensions": {
+        "width": 45,
+        "depth": 45,
+        "height": 52,
+        "unit": "cm"
+      },
+      "material": "浅暖木台面 + 深色细金属脚",
+      "note": "C2确认图：边几右移至 x=1980..2430mm，与休闲椅 x=1260..1940mm 留出约40mm间隙，不侵占阳台连续通道。",
+      "constructionNote": "C2确认图：休闲椅旁窄边几，作为阅读/茶水落点，不侵占阳台连续通道。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 18.375,
+        "y": 93.6111111111,
+        "rotation": 0
+      },
+      "color": "#cfc4b5",
+      "render3d": {
+        "assetType": "sideTable",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "blackTitanium",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "compact",
+        "variationSeed": 220261013,
+        "styleSource": "manual",
+        "modelAssetId": "polyhavenSideTable01",
+        "assetUrl": "/assets/external/polyhaven/models/side_table_01/2k/side_table_01.gltf"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "C2确认图：休闲椅旁窄边几，作为阅读/茶水落点，不侵占阳台连续通道。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "45x45x52cm",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "C2确认图：休闲椅旁窄边几，作为阅读/茶水落点，不侵占阳台连续通道。"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 80
+      },
+      "outdoorId": "OD-2F-BALCONY-01",
+      "outdoorZoneId": "OD-2F-BALCONY-01"
+    },
+    {
+      "id": "furn-2f-parent-balcony-drying-rack-001",
+      "code": "DR-2F-PB-01",
+      "name": "父母房封窗阳台电晾衣架（收起态）",
+      "type": "custom",
+      "moduleCategory": "utility",
+      "moduleType": "dryingRack",
+      "floorId": "2F",
+      "roomId": "OD-2F-BALCONY-01",
+      "dimensions": {
+        "width": 120,
+        "depth": 35,
+        "height": 8,
+        "unit": "cm"
+      },
+      "material": "哑光浅灰金属收起杆体",
+      "note": "C2确认图：电晾衣架按收起态表达，收起宽约1200mm，位于阳台东侧上方，包络 x=2500..3700mm；不作为常态晾晒占地。",
+      "constructionNote": "C2确认图：电晾衣架按收起态表达，位于阳台东侧上方；不作为常态晾晒占地。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 25.8333333333,
+        "y": 93.3333333333,
+        "rotation": 0
+      },
+      "color": "#cfc4b5",
+      "render3d": {
+        "assetType": "dryingRack",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "metal-frame",
+        "secondaryMaterial": "fabric",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "ceilingFolded",
+        "variationSeed": 220261014,
+        "styleSource": "manual"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "C2确认图：电晾衣架按收起态表达，位于阳台东侧上方；不作为常态晾晒占地。"
+      },
+      "constructionMeta": {
+        "customMade": false,
+        "installType": "finishedFurniture",
+        "reserveSize": "120x35x8cm folded",
+        "wallDependency": "",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "成品家具",
+        "supplierType": "成品家具供应商",
+        "notes": "C2确认图：电晾衣架按收起态表达，位于阳台东侧上方；不作为常态晾晒占地。"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 80
+      },
+      "outdoorId": "OD-2F-BALCONY-01",
+      "outdoorZoneId": "OD-2F-BALCONY-01"
+    },
+    {
+      "id": "furn-2f-bedroom1-headboard-shelf-001",
+      "code": "NS-2F-P-01",
+      "name": "父母房床头连续窄置物带（C2构造表达）",
+      "type": "nightstand",
+      "catalogId": "bedroom-nightstand",
+      "moduleCategory": "bedroom",
+      "moduleType": "nightstand",
+      "floorId": "2F",
+      "roomId": "ROOM-2F-004",
+      "dimensions": {
+        "width": 13,
+        "depth": 150,
+        "height": 64,
+        "unit": "cm"
+      },
+      "material": "浅暖木窄台 + 约30mm米灰薄软包背板",
+      "note": "C2构造表达：床头独立窄置物带/薄靠背整体包络 x=1060..1190mm，深度80–100mm窄台加约30mm软包背板；不与床芯藏墙重叠。",
+      "position": {
+        "x": 9.375,
+        "y": 76.9444444444,
+        "rotation": 0
+      },
+      "color": "#cfc4b5",
+      "render3d": {
+        "assetType": "nightstand",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "beigeFabric",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "floating",
+        "variationSeed": 220261015,
+        "styleSource": "manual",
+        "modelAssetId": "polyhavenSideTable01",
+        "assetUrl": "/assets/external/polyhaven/models/side_table_01/2k/side_table_01.gltf"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 2,
+        "socketHeight": 650,
+        "needsSwitch": true,
+        "switchControl": [
+          "床头阅读灯",
+          "卧室主灯双控"
+        ],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": true,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "床头回路",
+        "notes": "电源跟随床头窄置物带定位。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "wallMounted",
-        "reserveSize": "180x45x125cm (estimated)",
-        "wallDependency": "待复核 W-2F-002 / 北窗墙体承重与固定点。",
-        "floorDependency": "不落地；按完成面标高复核",
-        "ceilingDependency": "与吊顶、窗帘盒和检修口协调",
+        "reserveSize": "13x150x64cm",
+        "wallDependency": "贴西墙/床头完成面复尺",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
         "waterproofRequired": false,
-        "inspectionAccessRequired": true,
-        "purchaseCategory": "定制柜体/硬装",
-        "supplierType": "全屋定制/木作供应商",
-        "notes": "候选桥柜，未通过现场复尺前不得下单。 桥柜灯带为候选，驱动和固定检修位不得在复尺前下单。 桥柜灯带为候选，驱动和固定检修位不得在复尺前下单。 桥柜灯带为候选，驱动和固定检修位不得在复尺前下单。"
-      },
-      "hostWallId": "W-2F-002",
-      "clearanceMeta": {
-        "frontMm": 900,
-        "serviceMm": 300,
-        "status": "estimated"
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制木作/软包",
+        "supplierType": "全屋定制/软包供应商",
+        "notes": "与2000mm模型床芯作为连续床头构造表达。"
       },
       "verificationMeta": {
         "status": "estimated",
-        "source": "manual-input",
-        "sourceNote": "本轮为柜体功能候选深化；建筑边界、柜体外廓和完成面尺寸仍须现场复尺，未改变任何墙体或结构对象。",
-        "toleranceMm": 100
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 80
       }
+    },
+    {
+      "id": "furn-2f-child-balcony-reading-rug-001",
+      "code": "RG-2F-CB-01",
+      "name": "儿童房封窗阳台低绒阅读游戏地毯 · v4",
+      "type": "custom",
+      "catalogId": "decor-rug",
+      "moduleCategory": "decor",
+      "moduleType": "rug",
+      "floorId": "2F",
+      "roomId": "OD-2F-BALCONY-02",
+      "dimensions": {
+        "width": 150,
+        "depth": 80,
+        "height": 0.8,
+        "unit": "cm"
+      },
+      "material": "低绒米灰绿织物",
+      "note": "v4确认图：低绒阅读游戏地毯包络 x=4900..6400mm、y=8050..8850mm，位于封窗阳台完成面内；与低柜边界相接但不越界。",
+      "position": {
+        "x": 47.0833333333,
+        "y": 93.8888888889,
+        "rotation": 0
+      },
+      "color": "#c7cdbd",
+      "render3d": {
+        "assetType": "rug",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "beigeFabric",
+        "secondaryMaterial": "sageGreenLacquer",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "merged",
+        "variantId": "lowPile",
+        "variationSeed": 220261016,
+        "styleSource": "manual"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 100
+      },
+      "outdoorId": "OD-2F-BALCONY-02",
+      "outdoorZoneId": "OD-2F-BALCONY-02"
     }
   ],
   "drawingItems": [
@@ -16074,7 +15508,7 @@
       "category": "light",
       "type": "roundTablePendant",
       "positionMm": {
-        "x": 3900,
+        "x": 4560,
         "y": 6300
       },
       "hostObjectId": null,
@@ -16084,11 +15518,11 @@
       "circuitId": null,
       "materialId": null,
       "relatedFurniturePositionMm": {
-        "x": 3900,
+        "x": 4560,
         "y": 6300
       },
       "label": "L-B1-ACT-01 · 活动区中心柔光吊灯",
-      "notes": "以活动区地毯和茶几为中心的柔光吊灯；2700K、独立调光，灯体不得压低楼梯通行视线，吊顶基层和检修口施工前复核。",
+      "notes": "候选活动区茶几中心吊灯；茶几已向右侧微调以避开懒人沙发实体包络，吊顶基层、灯体边界和楼梯通行视线施工前复核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -16120,7 +15554,7 @@
       "generatedKey": null,
       "generatedFingerprint": null,
       "confidence": "schemePositioned",
-      "positioningBasis": "B1活动区氛围修复方案",
+      "positioningBasis": "candidateFurnitureAnchor",
       "serviceScenario": "阅读 / 休闲 / 家庭活动",
       "pendingConfirmations": [
         "吊顶完成面高度",
@@ -16188,21 +15622,21 @@
       "category": "light",
       "type": "adjustableSpotlight",
       "positionMm": {
-        "x": 4800,
-        "y": 7420
+        "x": 1176,
+        "y": 6134
       },
       "hostObjectId": null,
       "hostWallId": "W-B1-007",
       "relatedFurnitureId": "furn-b1-activity-bookshelf-001",
       "relatedFurniturePositionMm": {
-        "x": 4920,
-        "y": 7580
+        "x": 1176,
+        "y": 6354
       },
       "heightMm": 2800,
       "circuitId": null,
       "materialId": null,
       "label": "L-B1-ACT-02 · 休闲书架与深木背景重点照明",
-      "notes": "可调角射灯擦亮活动区深木背景和休闲书架，避免直射坐席与楼梯栏杆；2700K、高显色、蜂窝防眩，灯轴和检修口施工前复核。；宿主墙随办公综合收纳墙当前候选绑定为 W-B1-007，最终灯轴和墙体仍待复尺。",
+      "notes": "候选 2.8m 阅读休闲综合柜上方可调角射灯；随综合柜候选中心同步，灯轴、墙体基层、柜门和检修口施工前复核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -16234,7 +15668,7 @@
       "generatedKey": null,
       "generatedFingerprint": null,
       "confidence": "schemePositioned",
-      "positioningBasis": "B1活动区样板间表达修复方案",
+      "positioningBasis": "candidateFurnitureAnchor",
       "serviceScenario": "阅读 / 活动",
       "pendingConfirmations": [
         "吊顶完成面高度",
@@ -16600,8 +16034,8 @@
       "category": "light",
       "type": "bedsideReadingLight",
       "positionMm": {
-        "x": 6580,
-        "y": 1720
+        "x": 6250,
+        "y": 600
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -16610,7 +16044,7 @@
       "circuitId": null,
       "materialId": null,
       "label": "L-B1-V1-06 · 房间左床头氛围灯 / 阅读灯",
-      "notes": "左右独立控制并纳入睡前场景；最终位置随床宽、床头柜及软包完成面复核。",
+      "notes": "候选沙发床左侧墙面阅读灯位；不固定床头，按收起/展开状态、背部锚点和成品靠背复核。 本候选按200×170设计预留外廓同步，最终随成品背线、展开面和完成墙复核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -16630,8 +16064,8 @@
       "needsSmartControl": true,
       "dimming": true,
       "relatedFurniturePositionMm": {
-        "x": 7200,
-        "y": 1400
+        "x": 7150,
+        "y": 1075
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -16644,9 +16078,9 @@
         "trimColor": "米白亚麻 / 做旧黄铜"
       },
       "generatedKey": "lighting-design-v1:B1:CG-B1-B1-002-BEDSIDE:light:1",
-      "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"bedsideReadingLight\",\"positionMm\":{\"x\":6580,\"y\":1720},\"relatedFurnitureId\":\"furn-b1-guest-bed-001\",\"heightMm\":1150,\"circuitId\":null,\"label\":\"L-B1-V1-06 · 房间左床头氛围灯 / 阅读灯\",\"notes\":\"左右独立控制并纳入睡前场景；最终位置随床宽、床头柜及软包完成面复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"lightType\":\"bedsideReadingLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":36,\"mountingType\":\"wallMounted\",\"relatedSwitchId\":\"SW-B1-V1-06\",\"controlGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":6,\"luminousFluxLm\":420,\"cri\":90,\"glareRating\":\"独立调光\",\"fixtureFamily\":\"bed-reading\",\"trimColor\":\"米白亚麻 / 做旧黄铜\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
+      "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"bedsideReadingLight\",\"positionMm\":{\"x\":5825,\"y\":775},\"relatedFurnitureId\":\"furn-b1-guest-bed-001\",\"heightMm\":1150,\"circuitId\":null,\"label\":\"L-B1-V1-06 · 房间左床头氛围灯 / 阅读灯\",\"notes\":\"候选沙发床左侧墙面阅读灯位；不固定床头，按收起/展开状态、背部锚点和成品靠背复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"lightType\":\"bedsideReadingLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":36,\"mountingType\":\"wallMounted\",\"relatedSwitchId\":\"SW-B1-V1-06\",\"controlGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":6,\"luminousFluxLm\":420,\"cri\":90,\"glareRating\":\"独立调光\",\"fixtureFamily\":\"bed-reading\",\"trimColor\":\"米白亚麻 / 做旧黄铜\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
-      "positioningBasis": "currentFurnitureLayout",
+      "positioningBasis": "ILB400-150x200-discussion-candidate-anchor",
       "serviceScenario": "家具/设备关联需求",
       "pendingConfirmations": [
         "developerOriginalPoint",
@@ -16668,8 +16102,8 @@
       "category": "light",
       "type": "bedsideReadingLight",
       "positionMm": {
-        "x": 7820,
-        "y": 1720
+        "x": 8050,
+        "y": 600
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -16678,7 +16112,7 @@
       "circuitId": null,
       "materialId": null,
       "label": "L-B1-V1-07 · 房间右床头氛围灯 / 阅读灯",
-      "notes": "左右独立控制并纳入睡前场景；最终位置随床宽、床头柜及软包完成面复核。",
+      "notes": "候选沙发床右侧墙面阅读灯位；不固定床头，按收起/展开状态、背部锚点和成品靠背复核。 本候选按200×170设计预留外廓同步，最终随成品背线、展开面和完成墙复核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -16698,8 +16132,8 @@
       "needsSmartControl": true,
       "dimming": true,
       "relatedFurniturePositionMm": {
-        "x": 7200,
-        "y": 1400
+        "x": 7150,
+        "y": 1075
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -16712,9 +16146,9 @@
         "trimColor": "米白亚麻 / 做旧黄铜"
       },
       "generatedKey": "lighting-design-v1:B1:CG-B1-B1-002-BEDSIDE:light:2",
-      "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"bedsideReadingLight\",\"positionMm\":{\"x\":7820,\"y\":1720},\"relatedFurnitureId\":\"furn-b1-guest-bed-001\",\"heightMm\":1150,\"circuitId\":null,\"label\":\"L-B1-V1-07 · 房间右床头氛围灯 / 阅读灯\",\"notes\":\"左右独立控制并纳入睡前场景；最终位置随床宽、床头柜及软包完成面复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"lightType\":\"bedsideReadingLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":36,\"mountingType\":\"wallMounted\",\"relatedSwitchId\":\"SW-B1-V1-06\",\"controlGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":6,\"luminousFluxLm\":420,\"cri\":90,\"glareRating\":\"独立调光\",\"fixtureFamily\":\"bed-reading\",\"trimColor\":\"米白亚麻 / 做旧黄铜\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
+      "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"bedsideReadingLight\",\"positionMm\":{\"x\":7345,\"y\":775},\"relatedFurnitureId\":\"furn-b1-guest-bed-001\",\"heightMm\":1150,\"circuitId\":null,\"label\":\"L-B1-V1-07 · 房间右床头氛围灯 / 阅读灯\",\"notes\":\"候选沙发床右侧墙面阅读灯位；不固定床头，按收起/展开状态、背部锚点和成品靠背复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"lightType\":\"bedsideReadingLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":36,\"mountingType\":\"wallMounted\",\"relatedSwitchId\":\"SW-B1-V1-06\",\"controlGroupId\":\"CG-B1-B1-002-BEDSIDE\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":6,\"luminousFluxLm\":420,\"cri\":90,\"glareRating\":\"独立调光\",\"fixtureFamily\":\"bed-reading\",\"trimColor\":\"米白亚麻 / 做旧黄铜\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
-      "positioningBasis": "currentFurnitureLayout",
+      "positioningBasis": "ILB400-150x200-discussion-candidate-anchor",
       "serviceScenario": "家具/设备关联需求",
       "pendingConfirmations": [
         "developerOriginalPoint",
@@ -19930,8 +19364,8 @@
       "category": "light",
       "type": "wardrobeSensorStrip",
       "positionMm": {
-        "x": 5683,
-        "y": 1700
+        "x": 5683.2,
+        "y": 2050.000000002
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -19946,7 +19380,7 @@
       "quantity": 1,
       "relatedRoomId": "ROOM-2F-002",
       "createdAt": "2026-07-12T08:00:00.000Z",
-      "updatedAt": "2026-07-17T03:25:56.491Z",
+      "updatedAt": "2026-09-13T16:25:13.852Z",
       "lightType": "wardrobeSensorStrip",
       "lightingLayer": "cabinetStrip",
       "colorTemperature": "3000K",
@@ -19961,7 +19395,7 @@
       "dimming": false,
       "relatedFurniturePositionMm": {
         "x": 5683,
-        "y": 1700
+        "y": 2050
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -19974,7 +19408,7 @@
         "trimColor": "铝色型材"
       },
       "generatedKey": "lighting-design-v1:2F:CG-2F-2F-002-WARDROBE:light:1",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-002\",\"category\":\"light\",\"type\":\"wardrobeSensorStrip\",\"positionMm\":{\"x\":5683,\"y\":1700},\"relatedFurnitureId\":\"module-2f-cloak-left\",\"heightMm\":2100,\"circuitId\":null,\"label\":\"L-2F-V1-06 · 衣帽间柜内灯带\",\"notes\":\"门控/人体感应；高显色避免衣物颜色失真，驱动留可检修位置。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-002-WARDROBE\",\"lightType\":\"wardrobeSensorStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-2F-V1-06\",\"controlGroupId\":\"CG-2F-2F-002-WARDROBE\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-2F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
+      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-002\",\"category\":\"light\",\"type\":\"wardrobeSensorStrip\",\"positionMm\":{\"x\":5683.2,\"y\":2050.000000002},\"relatedFurnitureId\":\"module-2f-cloak-left\",\"heightMm\":2100,\"circuitId\":null,\"label\":\"L-2F-V1-06 · 衣帽间柜内灯带\",\"notes\":\"门控/人体感应；高显色避免衣物颜色失真，驱动留可检修位置。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-002-WARDROBE\",\"lightType\":\"wardrobeSensorStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-2F-V1-06\",\"controlGroupId\":\"CG-2F-2F-002-WARDROBE\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-2F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
       "positioningBasis": "currentFurnitureLayout",
       "serviceScenario": "家具/设备关联需求",
@@ -20019,13 +19453,11 @@
       "lightGroupId": "CG-2F-2F-002-WARDROBE",
       "controlledLightIds": [
         "L-2F-V1-06",
-        "L-2F-V1-32",
-        "L-2F-V1-33"
+        "L-2F-V1-32"
       ],
       "relatedLightIds": [
         "L-2F-V1-06",
-        "L-2F-V1-32",
-        "L-2F-V1-33"
+        "L-2F-V1-32"
       ],
       "switchControl": [
         "物理开关",
@@ -20036,125 +19468,6 @@
       "dimming": false,
       "generatedKey": "lighting-design-v1:2F:CG-2F-2F-002-WARDROBE:switch",
       "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-002\",\"category\":\"switch\",\"type\":\"switchAndSceneControl\",\"positionMm\":{\"x\":5263,\"y\":2120},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-2F-V1-06 · 柜内灯带控制\",\"notes\":\"控制组 CG-2F-2F-002-WARDROBE；控制 L-2F-V1-06。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":true,\"switchControl\":[\"物理开关\",\"智能场景\"],\"controlledLightIds\":[\"L-2F-V1-06\"],\"lightGroupId\":\"CG-2F-2F-002-WARDROBE\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-2F-2F-002-WARDROBE\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-2F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-2F-V1-06\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
-      "confidence": "schemePositioned",
-      "positioningBasis": "currentCabinetLayout",
-      "serviceScenario": "空间使用与控制需求",
-      "pendingConfirmations": [
-        "developerOriginalPoint",
-        "finishedWallDimension",
-        "existingCircuit",
-        "cabinetShopDrawing"
-      ],
-      "positionRule": null
-    },
-    {
-      "id": "L-2F-V1-07",
-      "floorId": "2F",
-      "roomId": "ROOM-2F-002",
-      "category": "light",
-      "type": "deskTaskLight",
-      "positionMm": {
-        "x": 6532,
-        "y": 700
-      },
-      "hostObjectId": null,
-      "hostWallId": null,
-      "relatedFurnitureId": "module-2f-window-desk",
-      "heightMm": 2100,
-      "circuitId": null,
-      "materialId": null,
-      "label": "L-2F-V1-07 · 衣帽间电脑桌功能灯",
-      "notes": "覆盖 1800×700mm 桌面并控制屏幕反光；与桌下插座、网络和理线位置同步复核。",
-      "source": "generated-from-furniture",
-      "status": "draft",
-      "quantity": 1,
-      "relatedRoomId": "ROOM-2F-002",
-      "createdAt": "2026-07-12T08:00:00.000Z",
-      "updatedAt": "2026-08-09T12:00:00.000Z",
-      "lightType": "deskTaskLight",
-      "lightingLayer": "task",
-      "colorTemperature": "3000K",
-      "lightColorTemperature": "3000K",
-      "beamAngle": 60,
-      "mountingType": "surfaceMounted",
-      "relatedSwitchId": "SW-2F-V1-07",
-      "controlGroupId": "CG-2F-2F-002-DESK",
-      "lightGroupId": "CG-2F-2F-002-DESK",
-      "smartControl": false,
-      "needsSmartControl": false,
-      "dimming": true,
-      "relatedFurniturePositionMm": {
-        "x": 6532,
-        "y": 700
-      },
-      "hostCeilingAreaId": null,
-      "directionDeg": null,
-      "lightSpec": {
-        "powerW": 28,
-        "luminousFluxLm": 2200,
-        "cri": 95,
-        "glareRating": "下照防眩",
-        "fixtureFamily": "linear-pendant",
-        "trimColor": "深棕古铜"
-      },
-      "generatedKey": "lighting-design-v1:2F:CG-2F-2F-002-DESK:light:1",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-002\",\"category\":\"light\",\"type\":\"deskTaskLight\",\"positionMm\":{\"x\":6532,\"y\":700},\"relatedFurnitureId\":\"module-2f-window-desk\",\"heightMm\":2100,\"circuitId\":null,\"label\":\"L-2F-V1-07 · 衣帽间电脑桌功能灯\",\"notes\":\"覆盖 1800×700mm 桌面并控制屏幕反光；与桌下插座、网络和理线位置同步复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":false,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-2F-2F-002-DESK\",\"lightType\":\"deskTaskLight\",\"lightingLayer\":\"task\",\"colorTemperature\":\"3000K\",\"beamAngle\":60,\"mountingType\":\"surfaceMounted\",\"relatedSwitchId\":\"SW-2F-V1-07\",\"controlGroupId\":\"CG-2F-2F-002-DESK\",\"smartControl\":false,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":28,\"luminousFluxLm\":2200,\"cri\":95,\"glareRating\":\"下照防眩\",\"fixtureFamily\":\"linear-pendant\",\"trimColor\":\"深棕古铜\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
-      "confidence": "schemePositioned",
-      "positioningBasis": "currentFurnitureLayout",
-      "serviceScenario": "家具/设备关联需求",
-      "pendingConfirmations": [
-        "developerOriginalPoint",
-        "finishedWallDimension",
-        "existingCircuit",
-        "cabinetShopDrawing"
-      ],
-      "positionRule": {
-        "type": "relativeToObject",
-        "anchor": "objectEdge",
-        "offsetMm": 150,
-        "side": "rear"
-      }
-    },
-    {
-      "id": "SW-2F-V1-07",
-      "floorId": "2F",
-      "roomId": "ROOM-2F-002",
-      "category": "switch",
-      "type": "switchControl",
-      "positionMm": {
-        "x": 6112,
-        "y": 1120
-      },
-      "hostObjectId": null,
-      "hostWallId": null,
-      "relatedFurnitureId": null,
-      "heightMm": null,
-      "circuitId": null,
-      "materialId": null,
-      "label": "SW-2F-V1-07 · 功能照明控制",
-      "notes": "控制组 CG-2F-2F-002-DESK；控制 L-2F-V1-07。同组灯具可由本开关或智能场景联动。",
-      "source": "generated-from-room",
-      "status": "draft",
-      "quantity": 1,
-      "relatedRoomId": "ROOM-2F-002",
-      "createdAt": "2026-07-12T08:00:00.000Z",
-      "updatedAt": "2026-08-09T12:00:00.000Z",
-      "controlGroupId": "CG-2F-2F-002-DESK",
-      "lightGroupId": "CG-2F-2F-002-DESK",
-      "controlledLightIds": [
-        "L-2F-V1-07"
-      ],
-      "relatedLightIds": [
-        "L-2F-V1-07"
-      ],
-      "switchControl": [
-        "单控"
-      ],
-      "smartControl": false,
-      "needsSmartControl": false,
-      "dimming": true,
-      "generatedKey": "lighting-design-v1:2F:CG-2F-2F-002-DESK:switch",
-      "generatedFingerprint": "{\"floorId\":\"2F\",\"roomId\":\"ROOM-2F-002\",\"category\":\"switch\",\"type\":\"switchControl\",\"positionMm\":{\"x\":6112,\"y\":1120},\"relatedFurnitureId\":null,\"heightMm\":null,\"circuitId\":null,\"label\":\"SW-2F-V1-07 · 功能照明控制\",\"notes\":\"控制组 CG-2F-2F-002-DESK；控制 L-2F-V1-07。同组灯具可由本开关或智能场景联动。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":null,\"needsSmartControl\":false,\"switchControl\":[\"单控\"],\"controlledLightIds\":[\"L-2F-V1-07\"],\"lightGroupId\":\"CG-2F-2F-002-DESK\",\"lightType\":null,\"lightingLayer\":null,\"colorTemperature\":null,\"beamAngle\":null,\"mountingType\":null,\"relatedSwitchId\":null,\"controlGroupId\":\"CG-2F-2F-002-DESK\",\"smartControl\":false,\"dimming\":true,\"relatedRoomId\":\"ROOM-2F-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":null,\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[\"L-2F-V1-07\"],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
       "positioningBasis": "currentCabinetLayout",
       "serviceScenario": "空间使用与控制需求",
@@ -23574,8 +22887,8 @@
       "category": "light",
       "type": "lowLevelNightLight",
       "positionMm": {
-        "x": 7200,
-        "y": 2160
+        "x": 8150,
+        "y": 1120
       },
       "hostObjectId": null,
       "hostWallId": null,
@@ -23584,7 +22897,7 @@
       "circuitId": null,
       "materialId": null,
       "label": "L-B1-V1-10 · 房间低位起夜灯",
-      "notes": "起夜模式只开低位暖光，不联动卧室基础灯。",
+      "notes": "候选沙发床侧边低位起夜灯；保持在展开睡眠面侧缘外，按成品边界和夜间通行复核。 本候选按200×170设计预留外廓同步，最终随成品背线、展开面和完成墙复核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -23604,8 +22917,8 @@
       "needsSmartControl": true,
       "dimming": true,
       "relatedFurniturePositionMm": {
-        "x": 7200,
-        "y": 1400
+        "x": 7150,
+        "y": 1075
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -23618,9 +22931,9 @@
         "trimColor": "哑白"
       },
       "generatedKey": "lighting-design-v1:B1:CG-B1-B1-002-NIGHT:light:1",
-      "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"lowLevelNightLight\",\"positionMm\":{\"x\":7200,\"y\":2160},\"relatedFurnitureId\":\"furn-b1-guest-bed-001\",\"heightMm\":300,\"circuitId\":null,\"label\":\"L-B1-V1-10 · 房间低位起夜灯\",\"notes\":\"起夜模式只开低位暖光，不联动卧室基础灯。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-NIGHT\",\"lightType\":\"lowLevelNightLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":90,\"mountingType\":\"wallMounted\",\"relatedSwitchId\":\"SW-B1-V1-09\",\"controlGroupId\":\"CG-B1-B1-002-NIGHT\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":2,\"luminousFluxLm\":120,\"cri\":90,\"glareRating\":\"遮光向下\",\"fixtureFamily\":\"night-light\",\"trimColor\":\"哑白\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
+      "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"lowLevelNightLight\",\"positionMm\":{\"x\":7635,\"y\":1400},\"relatedFurnitureId\":\"furn-b1-guest-bed-001\",\"heightMm\":300,\"circuitId\":null,\"label\":\"L-B1-V1-10 · 房间低位起夜灯\",\"notes\":\"候选沙发床侧边低位起夜灯；保持在展开睡眠面侧缘外，按成品边界和夜间通行复核。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"2700K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-NIGHT\",\"lightType\":\"lowLevelNightLight\",\"lightingLayer\":\"decorative\",\"colorTemperature\":\"2700K\",\"beamAngle\":90,\"mountingType\":\"wallMounted\",\"relatedSwitchId\":\"SW-B1-V1-09\",\"controlGroupId\":\"CG-B1-B1-002-NIGHT\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":null,\"lightSpec\":{\"powerW\":2,\"luminousFluxLm\":120,\"cri\":90,\"glareRating\":\"遮光向下\",\"fixtureFamily\":\"night-light\",\"trimColor\":\"哑白\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
-      "positioningBasis": "currentFurnitureLayout",
+      "positioningBasis": "ILB400-150x200-discussion-candidate-anchor",
       "serviceScenario": "家具/设备关联需求",
       "pendingConfirmations": [
         "developerOriginalPoint",
@@ -26765,7 +26078,7 @@
       "circuitId": null,
       "materialId": null,
       "label": "L-B1-V1-08 · 房间衣柜灯带",
-      "notes": "门控或人体感应；驱动电源留可检修位置，灯槽与柜体厂家同步深化。",
+      "notes": "门控或人体感应；驱动电源留可检修位置，灯槽与柜体厂家同步深化。 本候选按200×170设计预留外廓同步，最终随成品背线、展开面和完成墙复核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -26785,8 +26098,8 @@
       "needsSmartControl": true,
       "dimming": false,
       "relatedFurniturePositionMm": {
-        "x": 9190,
-        "y": 1735
+        "x": 9085,
+        "y": 1750
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -26801,7 +26114,7 @@
       "generatedKey": "lighting-design-v1:B1:CG-B1-B1-002-WARDROBE:light:1",
       "generatedFingerprint": "{\"floorId\":\"B1\",\"roomId\":\"ROOM-B1-002\",\"category\":\"light\",\"type\":\"wardrobeSensorStrip\",\"positionMm\":{\"x\":9190,\"y\":1735},\"relatedFurnitureId\":\"furn-b1-room-seasonal-wardrobe-001\",\"heightMm\":2100,\"circuitId\":null,\"label\":\"L-B1-V1-08 · 房间衣柜灯带\",\"notes\":\"门控或人体感应；驱动电源留可检修位置，灯槽与柜体厂家同步深化。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-B1-B1-002-WARDROBE\",\"lightType\":\"wardrobeSensorStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-B1-V1-07\",\"controlGroupId\":\"CG-B1-B1-002-WARDROBE\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-B1-002\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-B1-004\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
-      "positioningBasis": "currentFurnitureLayout",
+      "positioningBasis": "ILB400-150x200-discussion-candidate-anchor",
       "serviceScenario": "家具/设备关联需求",
       "pendingConfirmations": [
         "developerOriginalPoint",
@@ -33936,77 +33249,6 @@
       "updatedAt": "2026-08-12T16:00:00.000+08:00"
     },
     {
-      "id": "L-2F-V1-33",
-      "floorId": "2F",
-      "roomId": "ROOM-2F-002",
-      "category": "light",
-      "type": "wardrobeSensorStrip",
-      "positionMm": {
-        "x": 6532,
-        "y": 700
-      },
-      "hostObjectId": null,
-      "hostWallId": "W-2F-002",
-      "relatedFurnitureId": "module-2f-cloak-bridge-cabinet",
-      "heightMm": 1550,
-      "circuitId": null,
-      "materialId": null,
-      "label": "L-2F-V1-33 · 衣帽间桥柜候选灯带",
-      "notes": "仅作为450mm深桥柜候选的门控/感应灯带；桥柜未复尺前不进入下单。",
-      "source": "generated-from-furniture",
-      "status": "draft",
-      "quantity": 1,
-      "relatedRoomId": "ROOM-2F-002",
-      "lightType": "wardrobeSensorStrip",
-      "lightingLayer": "cabinetStrip",
-      "colorTemperature": "3000K",
-      "lightColorTemperature": "3000K",
-      "beamAngle": 110,
-      "mountingType": "cabinetIntegrated",
-      "relatedSwitchId": "SW-2F-V1-06",
-      "controlGroupId": "CG-2F-2F-002-WARDROBE",
-      "lightGroupId": "CG-2F-2F-002-WARDROBE",
-      "smartControl": true,
-      "needsSmartControl": true,
-      "dimming": false,
-      "relatedFurniturePositionMm": {
-        "x": 6532,
-        "y": 700
-      },
-      "hostCeilingAreaId": null,
-      "relatedLightIds": [],
-      "positioningBasis": "currentCabinetLayout",
-      "confidence": "schemePositioned",
-      "pendingConfirmations": [
-        "finishedWallDimension",
-        "existingCircuit",
-        "cabinetShopDrawing"
-      ],
-      "serviceScenario": "柜体灯带、电源与检修闭环",
-      "positionRule": {
-        "type": "relativeToObject",
-        "anchor": "objectEdge",
-        "offsetMm": 80,
-        "side": "rear"
-      },
-      "lightSpec": {
-        "powerW": 8,
-        "luminousFluxLm": 650,
-        "cri": 95,
-        "glareRating": "门控感应",
-        "fixtureFamily": "cabinet-strip",
-        "trimColor": "隐藏铝型材"
-      },
-      "verificationMeta": {
-        "status": "estimated",
-        "source": "manual-input",
-        "sourceNote": "柜体灯带位置随柜体深化，现场复尺后确认。",
-        "toleranceMm": 100
-      },
-      "createdAt": "2026-08-12T16:00:00.000+08:00",
-      "updatedAt": "2026-08-12T16:00:00.000+08:00"
-    },
-    {
       "id": "MEP-OUT-N-STORAGE-DRAIN",
       "floorId": "YARD",
       "roomId": "OD-YARD-NORTH-001",
@@ -34376,8 +33618,6 @@
       "SW-2F-V1-05",
       "L-2F-V1-06",
       "SW-2F-V1-06",
-      "L-2F-V1-07",
-      "SW-2F-V1-07",
       "L-2F-V1-08",
       "SW-2F-V1-08",
       "L-2F-V1-09",
@@ -34724,11 +33964,11 @@
     },
     {
       "id": "Z-2F-CLOAKROOM",
-      "name": "2F 衣帽间方案",
+      "name": "2F衣帽间确认候选 R01｜保留飘窗＋双侧可调金属架",
       "floorId": "2F",
       "category": "Zone",
       "type": "storage",
-      "notes": "左右墙做挂衣柜，中间靠窗放整理桌；挂衣、包包和被褥优先，叠放区压缩到最少。",
+      "notes": "LYHP-2F-CLO-001-R01确认候选：完成面工作基线2078×2480mm；两侧柜深600mm；候选柜长2240mm；中央完成面通道878mm。飘窗/台座保留，外凸深度、台高、侧垛、窗扇扫掠与帘轨待实测，不套用主卧550mm。内部为可调金属架、可调层板和挂杆；外部为深色可透视玻璃、精致细边框平开门。西侧L1包/浅抽、L2长挂、L3双短挂、L4叠放；东侧R4叠放、R3/R2双短挂、R1长挂。本人60–80件挂衣仍待容量复核，不写成容量通过。入口保留无门开间与帘子；穿衣镜与小收纳纳入确认候选。",
       "position": {
         "x": 58,
         "y": 38
@@ -34752,7 +33992,31 @@
             "x": 30,
             "y": 82
           }
-        ]
+        ],
+        "completedFaceMm": {
+          "width": 2078,
+          "depth": 2480
+        },
+        "wardrobeDepthMm": 600,
+        "wardrobeRunMm": 2240,
+        "clearPassageMm": 878,
+        "bayWindowId": "BW-2F-CLOAK-001",
+        "entranceCurtain": {
+          "status": "candidate",
+          "stackSide": "south-entry-side",
+          "depthMm": 150
+        },
+        "dressingMirror": {
+          "status": "candidate",
+          "widthMm": 500,
+          "heightMm": 1800,
+          "depthMm": 40
+        },
+        "smallStorage": {
+          "status": "candidate",
+          "notes": "包5–6、浅抽、内衣裤/袜子/首饰等小件收纳"
+        },
+        "capacityStatus": "pending-recheck"
       }
     },
     {
@@ -38887,9 +38151,10 @@
             "W-2F-010"
           ],
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
-            "toleranceMm": 80
+            "status": "estimated",
+            "source": "visual-estimate",
+            "toleranceMm": 80,
+            "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png"
           },
           "surfaceFinishes": {
             "floor": {
@@ -38908,12 +38173,12 @@
               "materialToken": "oakFloor"
             },
             "wall": {
-              "material": "mineralSilicatePaint",
-              "name": "暖象牙矿物墙面",
-              "baseColor": "#e8e0d2",
-              "textureAccent": "#cfc4b4",
-              "roughness": 0.9,
-              "textureScale": 2.2,
+              "material": "wovenWarmGreigeWall",
+              "name": "织纹米灰低对比墙面",
+              "baseColor": "#d8d0c5",
+              "textureAccent": "#b8aea1",
+              "roughness": 0.88,
+              "textureScale": 3.1,
               "materialRole": "wallBase",
               "materialToken": "warmWhiteMineral",
               "materialResourceId": "showroomLimePlaster"
@@ -38953,9 +38218,10 @@
             "W-2F-015"
           ],
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
-            "toleranceMm": 80
+            "status": "estimated",
+            "source": "visual-estimate",
+            "toleranceMm": 80,
+            "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png"
           },
           "surfaceFinishes": {
             "floor": {
@@ -38974,12 +38240,12 @@
               "materialToken": "oakFloor"
             },
             "wall": {
-              "material": "mineralSilicatePaint",
-              "name": "暖象牙矿物墙面",
-              "baseColor": "#e8e0d2",
-              "textureAccent": "#cfc4b4",
-              "roughness": 0.9,
-              "textureScale": 2.2,
+              "material": "sageGreyGreenFeatureWall",
+              "name": "灰绿低饱和重点墙面",
+              "baseColor": "#dfe4d8",
+              "textureAccent": "#b8c2b0",
+              "roughness": 0.86,
+              "textureScale": 2.8,
               "materialRole": "wallBase",
               "materialToken": "warmWhiteMineral",
               "materialResourceId": "showroomLimePlaster"
@@ -39485,13 +38751,14 @@
           "geometryType": "line",
           "hostId": "W-2F-012",
           "hostType": "wall",
-          "positionOnWall": 0.78,
+          "positionOnWall": 0.627302341364099,
           "width": 900,
           "height": 2100,
-          "openDirection": "leftIn",
+          "openDirection": "rightIn",
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
+            "status": "estimated",
+            "source": "visual-estimate",
+            "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
             "toleranceMm": 80
           },
           "operation": "swing",
@@ -39503,7 +38770,8 @@
             "glassColor": "#ddd1bd",
             "leafCount": 1
           },
-          "material": "solid"
+          "material": "solid",
+          "notes": "父母房北墙入口；洞口 x=2798.66..3698.66mm，右侧内开，C2确认图复核。"
         },
         {
           "id": "D-2F-004",
@@ -39794,6 +39062,24 @@
             "toleranceMm": 80
           },
           "notes": "坐榻嵌入外凸深度，不占用卧室室内净宽。"
+        },
+        {
+          "id": "BW-2F-CLOAK-001",
+          "floorId": "2F",
+          "name": "衣帽间北窗下保留飘窗/台座（深度待实测）",
+          "geometryType": "line",
+          "wallId": "W-2F-002",
+          "positionOnWall": 0.285,
+          "width": 1200,
+          "depth": 240,
+          "height": 850,
+          "verificationMeta": {
+            "status": "estimated",
+        "source": "manual-input",
+            "sourceNote": "用户确认衣帽间飘窗/台座保留；240mm仅为当前北端保护包络，不是现场实测深度。需复尺外凸、台高、侧垛、窗扇扫掠与帘轨。",
+            "toleranceMm": 160
+          },
+          "notes": "保留样板间窗下台座关系；不得套用主卧BW-2F-002的550mm外凸。"
         }
       ],
       "skylights": [],
@@ -42537,7 +41823,7 @@
       "id": "designer-camera-2f-v3-06-dressing",
       "floor": "2F",
       "order": 6,
-      "name": "06 无门衣帽间—双侧玻璃柜与窗前升降桌",
+      "name": "06 衣帽间确认候选 R01—保留飘窗与双侧金属架玻璃平开门",
       "cameraPosition": {
         "x": 0.5,
         "y": 1.6,
@@ -42553,7 +41839,7 @@
       "mode": "perspective",
       "scope": "floor",
       "targetArea": "ROOM-2F-002",
-      "description": "从走廊经1.5m无门开口看入衣帽间：两侧深烟玻璃衣柜，北窗前为1800×700mm木质电动升降桌；禁止门扇、把手和玻璃隔断。"
+      "description": "从南侧1.5m无门开放洞口看入衣帽间：两侧600mm深可调金属架、深色可透视玻璃细边框平开门，西L1-L4与东R4-R1分区清晰；北端保留飘窗/台座与待实测退让区；入口帘、穿衣镜和小收纳纳入候选；不出现固定桌、椅或显示器。"
     },
     {
       "id": "designer-camera-2f-v3-07-master-bath",
@@ -42581,7 +41867,7 @@
       "id": "designer-camera-2f-v3-08-parent",
       "floor": "2F",
       "order": 8,
-      "name": "08 父母房门口—1500床与浅深移门柜",
+      "name": "08 父母房门口—C2床位、西墙窄柜与封窗阳台",
       "cameraPosition": {
         "x": -2.4,
         "y": 1.55,
@@ -42597,13 +41883,19 @@
       "mode": "perspective",
       "scope": "floor",
       "targetArea": "ROOM-2F-004",
-      "description": "从父母房东北侧入口看向西南：1500mm床与1200×550mm浅深移门柜同时可读；按真实紧凑尺寸表达，不拉大房间。"
+      "description": "模型核对父母房C2：西墙窄柜、床头朝西、南侧封窗阳台休闲椅/边几/收起态电晾衣架；不改变窗与结构。",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 150
+      }
     },
     {
       "id": "designer-camera-2f-v3-09-child",
       "floor": "2F",
       "order": 9,
-      "name": "09 儿童房南侧回看—东床、西侧衣柜书桌",
+      "name": "09 儿童房南侧回看—v4东床、西墙衣柜无书桌",
       "cameraPosition": {
         "x": -0.8,
         "y": 1.55,
@@ -42619,13 +41911,19 @@
       "mode": "perspective",
       "scope": "floor",
       "targetArea": "ROOM-2F-005",
-      "description": "从儿童房南侧向北回看：1200mm成长床在东侧，西侧连续布置1200mm衣柜与1000mm学习桌；三件家具均需可读。"
+      "description": "模型核对儿童房v4：东侧单床床头朝南、西墙成长衣柜、南侧封窗阳台低位收纳；不配置书桌。",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 150
+      }
     },
     {
       "id": "designer-camera-2f-v3-10-balcony",
       "floor": "2F",
       "order": 10,
-      "name": "10 儿童房外独立封闭阳台—窄深与端柜",
+      "name": "10 儿童房封窗阳台—v4低位收纳与活动面",
       "cameraPosition": {
         "x": -1.7,
         "y": 1.48,
@@ -42641,7 +41939,13 @@
       "mode": "perspective",
       "scope": "floor",
       "targetArea": "OD-2F-BALCONY-02",
-      "description": "相机位于阳台2西端向东看：净深约1.3m，南侧封窗与东端350mm浅柜可见；当前3D模型在父母房阳台与儿童房阳台之间设置实体分隔。"
+      "description": "模型核对儿童房v4封窗阳台低位收纳与阅读/游戏活动面。",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 150
+      }
     },
     {
       "id": "designer-camera-1f-bedroom-small-wardrobe-doorway",
@@ -43620,11 +42924,6 @@
             "brightness": 100
           },
           {
-            "controlGroupId": "CG-2F-2F-002-DESK",
-            "on": true,
-            "brightness": 100
-          },
-          {
             "controlGroupId": "CG-2F-2F-003-AMBIENT",
             "on": true,
             "brightness": 100
@@ -44197,11 +43496,6 @@
             "controlGroupId": "CG-2F-2F-002-WARDROBE",
             "on": true,
             "brightness": 25
-          },
-          {
-            "controlGroupId": "CG-2F-2F-002-DESK",
-            "on": true,
-            "brightness": 80
           },
           {
             "controlGroupId": "CG-2F-2F-003-AMBIENT",
@@ -45430,11 +44724,6 @@
           },
           {
             "controlGroupId": "CG-2F-2F-002-WARDROBE",
-            "on": false,
-            "brightness": 0
-          },
-          {
-            "controlGroupId": "CG-2F-2F-002-DESK",
             "on": false,
             "brightness": 0
           },
@@ -47849,11 +47138,6 @@
             "brightness": 20
           },
           {
-            "controlGroupId": "CG-2F-2F-002-DESK",
-            "on": true,
-            "brightness": 25
-          },
-          {
             "controlGroupId": "CG-2F-2F-003-AMBIENT",
             "on": true,
             "brightness": 20
@@ -48027,11 +47311,6 @@
             "controlGroupId": "CG-2F-2F-002-WARDROBE",
             "on": true,
             "brightness": 55
-          },
-          {
-            "controlGroupId": "CG-2F-2F-002-DESK",
-            "on": true,
-            "brightness": 72
           },
           {
             "controlGroupId": "CG-2F-2F-003-AMBIENT",
@@ -48209,11 +47488,6 @@
             "brightness": 52
           },
           {
-            "controlGroupId": "CG-2F-2F-002-DESK",
-            "on": true,
-            "brightness": 45
-          },
-          {
             "controlGroupId": "CG-2F-2F-003-AMBIENT",
             "on": true,
             "brightness": 42
@@ -48389,11 +47663,6 @@
             "brightness": 8
           },
           {
-            "controlGroupId": "CG-2F-2F-002-DESK",
-            "on": false,
-            "brightness": 0
-          },
-          {
             "controlGroupId": "CG-2F-2F-003-AMBIENT",
             "on": false,
             "brightness": 0
@@ -48565,11 +47834,6 @@
           },
           {
             "controlGroupId": "CG-2F-2F-002-WARDROBE",
-            "on": true,
-            "brightness": 100
-          },
-          {
-            "controlGroupId": "CG-2F-2F-002-DESK",
             "on": true,
             "brightness": 100
           },
@@ -49691,5 +48955,5 @@
       }
     }
   },
-  "updatedAt": "2026-08-12T18:00:00.000+08:00"
+  "updatedAt": "2026-10-12T16:19:40.397Z"
 }

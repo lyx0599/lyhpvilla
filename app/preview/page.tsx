@@ -22,7 +22,7 @@ const floorCards: Array<{
     eyebrow: "地下二层",
     title: "聚会 · 影音 · 书房",
     summary: "现代悬浮双拼茶几、聚会大板桌与独立书房茶饮区，保留两根结构柱和完整动线。",
-    route: "/b2-preview",
+    route: "/model-preview?floor=B2",
     action: "进入 B2 实时预览",
     tone: "from-[#4d514c] to-[#272b28]",
     usesDedicatedPreview: true
@@ -32,7 +32,7 @@ const floorCards: Array<{
     eyebrow: "地下一层",
     title: "洗衣 · 临客 · 阅读",
     summary: "洗衣房、临时客房、开放收纳与休闲阅读区共存，开放洞口和楼梯结构按确认户型显示。",
-    route: "/b1-preview",
+    route: "/model-preview?floor=B1",
     action: "进入 B1 实时预览",
     tone: "from-[#8b7255] to-[#4d4033]",
     usesDedicatedPreview: true
@@ -41,18 +41,18 @@ const floorCards: Array<{
     floorId: "1F",
     eyebrow: "首层",
     title: "客厅 · 餐厨 · 日常",
-    summary: "客餐厨与首层卧室的完整编辑模型，使用全屋统一材质、灯具家族与五类场景。",
-    route: "/",
+    summary: "客餐厨与首层卧室的实时三维模型，可切换已保存机位、查看布局及家具细节。",
+    route: "/model-preview?floor=1F",
     action: "进入 1F 实时预览",
     tone: "from-[#bca884] to-[#7d6d52]",
-    usesDedicatedPreview: false
+    usesDedicatedPreview: true
   },
   {
     floorId: "2F",
     eyebrow: "二层",
     title: "主卧 · 家庭卧室 · 衣帽间",
     summary: "主卧、父母房、儿童房、双侧衣帽柜与两座独立封闭阳台，全部消费共享母体系。",
-    route: "/2f-preview",
+    route: "/model-preview?floor=2F",
     action: "进入 2F 实时预览",
     tone: "from-[#d0c1a7] to-[#8d7c63]",
     usesDedicatedPreview: true
@@ -60,8 +60,8 @@ const floorCards: Array<{
   {
     floorId: "YARD",
     eyebrow: "首层外部空间",
-    title: "南院生活 · 北院入户",
-    summary: "锁定南北院边界、铺装、花境、围栏/屏风与 1F 建筑关系，直接查看统一庭院 2D 总览和 3D 机位。",
+    title: "南院生活 · 北院烧烤",
+    summary: "查看庭院与房屋、户外家具的关系。北院从 1F 室内到达，南北院尺寸待图纸校核。",
     route: "/yard-preview",
     action: "进入院子实时预览",
     tone: "from-[#78846e] to-[#3e5145]",

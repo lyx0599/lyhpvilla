@@ -33,19 +33,19 @@ for (const roomId of ["ROOM-B1-002", "ROOM-B1-003", "ROOM-B1-004", "ROOM-B1-005"
 }
 
 const guestBed = furniture("furn-b1-guest-bed-001");
-assert.deepEqual(guestBed.dimensions, { width: 165, depth: 200, height: 95, unit: "cm" });
+assert.deepEqual(guestBed.dimensions, { width: 200, depth: 103, height: 85, unit: "cm" });
 const wardrobe = furniture("furn-b1-room-seasonal-wardrobe-001");
-assert.deepEqual(wardrobe.dimensions, { width: 270, depth: 60, height: 275, unit: "cm" });
-assert.equal(wardrobe.render3d.variantId, "fullHeightFlat");
+assert.deepEqual(wardrobe.dimensions, { width: 250, depth: 60, height: 275, unit: "cm" });
+assert.equal(wardrobe.render3d.variantId, "slidingPanels");
 
 const openShelf = furniture("furn-b1-activity-bookshelf-001");
-assert.equal(openShelf.name, "B1 办公综合收纳墙（开放书架 / 文件收纳）");
+assert.equal(openShelf.name, "B1 阅读与轻松休闲综合收纳柜（原 2.8m 综合柜）");
 assert.deepEqual(openShelf.dimensions, { width: 280, depth: 45, height: 240, unit: "cm" });
 assert.equal(openShelf.render3d.variantId, "openClosedMix");
 const smallShelf = furniture("furn-b1-activity-small-shelf-001");
 assert.equal(smallShelf.render3d.variantId, "openClosedMix");
 assert.equal(furniture("furn-b1-activity-beanbag-001").render3d.variantId, "beanBag");
-assert.equal(furniture("furn-b1-activity-instrument-rack-001").render3d.variantId, "wallMountedGuitarUkulele");
+assert.equal(furniture("furn-b1-activity-instrument-rack-001").render3d.variantId, "legacyHiddenInstrumentRack");
 assert.equal(workspace.furniture.some((item) => item.floorId === "B1" && item.render3d?.assetType === "piano"), false, "The approved activity zone uses an open shelf instead of a piano model.");
 
 const designerCameras = workspace.cameraViews.filter((view) => view.floor === "B1" && view.id.startsWith("designer-camera-b1-"));

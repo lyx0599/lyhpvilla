@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, type ReactNode } from "react";
 import * as THREE from "three";
-import { ProceduralPbrQualityProvider, useProceduralPbrMaps, useProceduralPbrQuality, type ProceduralPbrKind } from "./procedural-pbr";
+import { ProceduralPbrQualityProvider, useProceduralPbrMaps, useProceduralPbrQuality, type ProceduralPbrQualitySettings } from "./procedural-pbr";
+import { proceduralKindForFamily, resolveGlassPreviewOpacity } from "@/lib/render-material-calibration";
 import {
   getPbrMaterialDefinition,
   resolveMaterialUvTransform,
   type MaterialDeviceClass,
   type MaterialQualityTier,
-  type MaterialRole,
-  type PbrMaterialToken
+  type MaterialRole
 } from "@/lib/material-system";
 
 export type PbrMaterialProps = {
@@ -119,20 +119,8 @@ function applyMaterialUvTransform(material: THREE.Material, repeat: readonly [nu
   material.customProgramCacheKey = () => "villa-pbr-material-uv-v1";
 }
 
-export function PbrQualityProvider({ quality, device, children }: { quality: MaterialQualityTier; device: MaterialDeviceClass; children: ReactNode }) {
-  return <ProceduralPbrQualityProvider quality={quality} device={device}>{children}</ProceduralPbrQualityProvider>;
-}
-
-function kindForToken(token: PbrMaterialToken): ProceduralPbrKind {
-  const family = getPbrMaterialDefinition(token).definition.family;
-  if (family === "wood" || family === "woodFloor") return "wood";
-  if (family === "fabric") return "fabric";
-  if (family === "stone" || family === "tile") return "stone";
-  if (family === "microcement") return "microcement";
-  if (family === "metal") return "metal";
-  if (family === "glass") return "glass";
-  if (family === "ceramic") return "ceramic";
-  return "wall";
+export function PbrQualityProvider({ children, ...settings }: ProceduralPbrQualitySettings & { children: ReactNode }) {
+  return <ProceduralPbrQualityProvider {...settings}>{children}</ProceduralPbrQualityProvider>;
 }
 
 function planeKey(planes: THREE.Plane[] | null | undefined) {
@@ -182,7 +170,7 @@ export function PbrMaterial({
   const resolvedTransmission = transmission ?? definition.transmission ?? 0;
   const resolvedNormalStrength = normalStrength ?? definition.normalStrength;
   const maps = useProceduralPbrMaps({
-    kind: kindForToken(resolved.token),
+    kind: proceduralKindForFamily(definition.family),
     token: resolved.token,
     resourceId,
     baseColor: resolvedColor,
@@ -229,6 +217,8 @@ export function PbrMaterial({
       return cached.material;
     }
     materialKeysSeen.add(cacheKey);
+    const usePhysical = resolvedQuality === "presentation" && (resolvedTransmission > 0 || (clearcoat ?? definition.clearcoat ?? 0) > 0);
+    const renderedOpacity = resolveGlassPreviewOpacity(resolvedOpacity, resolvedTransmission, usePhysical, definition.fallback.opacity);
     const common: THREE.MeshPhysicalMaterialParameters = {
       color: maps ? resolvedColor : definition.fallback.color,
       map: maps?.map ?? null,
@@ -243,16 +233,15 @@ export function PbrMaterial({
       // suitable for production surfaces.
       roughness: roughness ?? definition.roughness,
       metalness: metalness ?? definition.metalness,
-      transparent: resolvedOpacity < 1 || resolvedTransmission > 0,
-      opacity: resolvedOpacity,
-      depthWrite: depthWrite ?? (resolvedOpacity >= 0.88 && resolvedTransmission <= 0),
+      transparent: renderedOpacity < 1 || resolvedTransmission > 0,
+      opacity: renderedOpacity,
+      depthWrite: depthWrite ?? (renderedOpacity >= 0.88 && resolvedTransmission <= 0),
       side: side ?? (definition.family === "glass" ? THREE.DoubleSide : THREE.FrontSide),
       emissive: emissive ?? definition.emissive ?? "#000000",
       emissiveIntensity: emissiveIntensity ?? definition.emissiveIntensity ?? 0,
       envMapIntensity: envMapIntensity ?? (definition.family === "glass" || definition.family === "metal" ? 1 : 0.72),
       ...(clippingPlanes?.length ? { clippingPlanes } : {})
     };
-    const usePhysical = resolvedQuality === "presentation" && (resolvedTransmission > 0 || (clearcoat ?? definition.clearcoat ?? 0) > 0);
     const created = usePhysical
       ? new THREE.MeshPhysicalMaterial({
         ...common,

@@ -2145,6 +2145,11 @@ export function PlanCanvas({
     }
 
     if ((houseStructure.columns ?? []).some((column) => column.id === selectedStructureId)) {
+      const selectedColumn = (houseStructure.columns ?? []).find((column) => column.id === selectedStructureId);
+      if (selectedColumn?.supportsFloorId) {
+        setStructureMessage("承重柱已锁定：支撑上层楼板的立柱不能删除。");
+        return;
+      }
       onHouseStructureChange({
         ...houseStructure,
         columns: (houseStructure.columns ?? []).filter((column) => column.id !== selectedStructureId)

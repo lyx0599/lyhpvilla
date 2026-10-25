@@ -138,7 +138,7 @@ export function ScenePerformanceMonitor({ mode, interactionActive = false }: { m
       }
       const objectMaterials = Array.isArray(object.material) ? object.material : [object.material];
       objectMaterials.forEach((material) => {
-        if (!material) return;
+        if (!material || materials.has(material)) return;
         materials.add(material);
         materialTextures(material).forEach((texture) => textures.add(texture));
       });
