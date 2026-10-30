@@ -9113,7 +9113,7 @@ function CameraRig({
   onInteractionChange?: (active: boolean) => void;
   onCameraPlanPoseChange: (pose: CameraPlanPose) => void;
 }) {
-  const { camera, gl } = useThree();
+  const { camera, gl, invalidate } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
   const walkInitializedRef = useRef(false);
   const freeBrowseInitializedRef = useRef(false);
@@ -9154,17 +9154,20 @@ function CameraRig({
     controls.update();
     const handleInteractionStart = () => onInteractionChange?.(true);
     const handleInteractionEnd = () => onInteractionChange?.(false);
+    const handleControlsChange = () => invalidate();
     controls.addEventListener("start", handleInteractionStart);
     controls.addEventListener("end", handleInteractionEnd);
+    controls.addEventListener("change", handleControlsChange);
     controlsRef.current = controls;
     gl.domElement.style.touchAction = "none";
     return () => {
       controls.removeEventListener("start", handleInteractionStart);
       controls.removeEventListener("end", handleInteractionEnd);
+      controls.removeEventListener("change", handleControlsChange);
       controls.dispose();
       controlsRef.current = null;
     };
-  }, [camera, gl.domElement, onInteractionChange]);
+  }, [camera, gl.domElement, invalidate, onInteractionChange]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -9193,9 +9196,10 @@ function CameraRig({
     // presets keep their position/target but not their large orthographic zoom value.
     if (controls) controls.enabled = false;
     walkInitializedRef.current = false;
+    invalidate();
     // requestVersion is the one-shot boundary. Keeping a selected view active in
     // the UI must never cause later renders to re-apply its position.
-  }, [camera, mobilePresentationMode, requestVersion, transitionDuration]);
+  }, [camera, invalidate, mobilePresentationMode, requestVersion, transitionDuration]);
 
   useEffect(() => {
     if (!freeBrowseInitializedRef.current) {
@@ -9355,6 +9359,7 @@ function CameraRig({
       if (!handledKeys.has(event.code)) return;
       event.preventDefault();
       pressedKeysRef.current.add(event.code);
+      invalidate();
     };
     const handleKeyUp = (event: KeyboardEvent) => {
       if (!handledKeys.has(event.code)) return;
@@ -9368,7 +9373,7 @@ function CameraRig({
       window.removeEventListener("keyup", handleKeyUp);
       pressedKeysRef.current.clear();
     };
-  }, [mode]);
+  }, [invalidate, mode]);
 
   useFrame((_, delta) => {
     const reportCameraPlanPose = () => {
@@ -9410,7 +9415,8 @@ function CameraRig({
     }
     const transition = transitionRef.current;
     if (transition && mode !== "walkthrough") {
-      transition.elapsed = Math.min(transition.duration, transition.elapsed + delta);
+      invalidate();
+      transition.elapsed = Math.min(transition.duration, transition.elapsed + Math.min(delta, 0.05));
       const rawProgress = transition.elapsed / transition.duration;
       const progress = rawProgress * rawProgress * (3 - 2 * rawProgress);
       camera.position.lerpVectors(transition.startPosition, transition.endPosition, progress);
@@ -9466,7 +9472,8 @@ function CameraRig({
       if (keys.has("KeyE")) move.y += 1;
       if (keys.has("KeyQ")) move.y -= 1;
       if (move.lengthSq() > 0.0001) {
-        move.normalize().multiplyScalar(delta * 2.4);
+        invalidate();
+        move.normalize().multiplyScalar(Math.min(delta, 0.05) * 2.4);
         const candidateX = movementBounds
           ? THREE.MathUtils.clamp(camera.position.x + move.x, movementBounds.minX, movementBounds.maxX)
           : camera.position.x + move.x;
@@ -13948,6 +13955,9 @@ export function Floor3DView({
         // The legacy mobile presentation changes creation-only antialias/power
         // options with quality, so that mode still needs a new context.
         key={`${presentationMode ? "presentation" : "edit"}-${mobilePresentationMode ? mobileQuality : "desktop"}`}
+        // Static phone views do not need to redraw continuously. Camera
+        // controls and transitions explicitly request their next frame.
+        frameloop={mobilePresentationMode ? "demand" : "always"}
         shadows={!mobilePresentationMode || mobileQuality === "high"}
         dpr={hidePresentationUi && externalPresentationMode ? [1, mobileQuality === "high" && !previewInteractionActive ? 1.5 : 1] : mobilePresentationMode || presentationMode ? [1, mobileQuality === "high" ? 1.75 : 1.25] : [1, 1.5]}
         camera={{ fov: mobilePresentationMode ? 48 : 42, near: 0.1, far: 80 }}

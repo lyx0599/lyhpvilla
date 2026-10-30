@@ -2510,6 +2510,7 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
   } | null>(null);
   const [accessMode, setAccessMode] = useState<AccessMode>(DEFAULT_MOBILE_ACCESS_MODE);
   const [isPhoneDevice, setIsPhoneDevice] = useState(false);
+  const [deviceModeReady, setDeviceModeReady] = useState(false);
   const [mobileDisplayLevel, setMobileDisplayLevel] = useState<MobileDisplayLevel>("simple");
   const [mobileQuality, setMobileQuality] = useState<MobileQuality>("balanced");
   const [mobileProfessionalSheetMode, setMobileProfessionalSheetMode] = useState<MobileProfessionalSheetMode>("socketPlan");
@@ -2673,6 +2674,7 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
   }, [data.workspace]);
 
   useEffect(() => {
+    let deviceModeInitialized = false;
     const syncAccessMode = () => {
       const nextAccessMode = getDefaultAccessModeForDevice({
         userAgent: navigator.userAgent,
@@ -2684,6 +2686,9 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
       const mobileDevice = nextAccessMode !== "full-edit";
       setIsPhoneDevice(mobileDevice);
       if (mobileDevice) {
+        // Initialize phones in 2D before mounting a WebGL scene. Later device
+        // checks (including rotation) must preserve the user's chosen view.
+        if (!deviceModeInitialized) setViewMode("2d");
         setAccessMode(DEFAULT_MOBILE_ACCESS_MODE);
         // The phone experience is a lightweight read-only presentation. Keep
         // it out of the pointer-lock exploration shell even when the viewport
@@ -2697,6 +2702,8 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
         setMobileMoreOpen(false);
         setMobileSheetTarget(null);
       }
+      deviceModeInitialized = true;
+      setDeviceModeReady(true);
     };
     syncAccessMode();
     const firstTimer = window.setTimeout(syncAccessMode, 0);
@@ -5733,6 +5740,12 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
     materialPlan: "材料",
     annotationPlan: "标注"
   };
+
+  // Resolve the device before mounting either scene. In particular, do not
+  // initialize the desktop's default 3D renderer before the phone shell exists.
+  if (!deviceModeReady) {
+    return <main aria-busy="true" className="grid h-[100dvh] place-items-center bg-[#f7f3ed] text-stone-600">正在准备项目视图…</main>;
+  }
 
   if (isExplorationMode) {
     return (
