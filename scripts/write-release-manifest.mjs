@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const bytes=fs.readFileSync(path.join(root,'data/default-workspace.json')),model=JSON.parse(bytes);
+const commit=process.env.GITHUB_SHA||execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+const workingTreeDirty=execFileSync('git',['status','--porcelain','--untracked-files=normal'],{cwd:root,encoding:'utf8'}).trim().length>0;
+const manifest={sourceCommit:commit,workingTreeDirty,modelRevision:model.defaultWorkspaceRevision,modelSha256:crypto.createHash('sha256').update(bytes).digest('hex'),generatedAt:new Date().toISOString(),floors:Object.fromEntries(['B2','B1','1F','2F','YARD'].map(id=>[id,{walls:model.houseStructuresByFloor[id].walls.length,furniture:model.furniture.filter(f=>f.floorId===id).length}])),scope:'Technical phone fix and reviewed provenance/naming corrections; not new geometry or layout acceptance.',openItems:['1F full human circulation HOLD','2F bath/adjacent boundary discussion; no room expansion adopted','Courtyard dual-source boundaries and skylight offsets unresolved','Building elevations are model constants, not field finished heights']};
+fs.mkdirSync(path.join(root,'public'),{recursive:true});
+fs.writeFileSync(path.join(root,'public/release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
+console.log(`Release identity: ${commit} / ${manifest.modelSha256}`);

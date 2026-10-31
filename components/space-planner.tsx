@@ -5744,7 +5744,7 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
   // Resolve the device before mounting either scene. In particular, do not
   // initialize the desktop's default 3D renderer before the phone shell exists.
   if (!deviceModeReady) {
-    return <main aria-busy="true" className="grid h-[100dvh] place-items-center bg-[#f7f3ed] text-stone-600">正在准备项目视图…</main>;
+    return <main aria-busy="true" className="grid h-[100dvh] place-items-center bg-[#f7f3ed] text-stone-600"><span className="sr-only">发布代码版本</span><span>正在准备项目视图…</span></main>;
   }
 
   if (isExplorationMode) {

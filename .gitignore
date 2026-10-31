@@ -44,3 +44,6 @@ __pycache__/
 /model-local-preview.png
 /yard-3d-in-app-*.png
 /renders/
+
+# Written at build time so the deployed artifact identifies its exact source.
+/public/release-manifest.json

@@ -1,5 +1,7 @@
 import { access, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 const OUT_DIR = path.resolve("out");
 const BASE_PATH = "/lyhpvilla";
@@ -48,6 +50,28 @@ await checkHtml("index.html");
 await checkHtml("404.html");
 await checkHtml(path.join("preview", "index.html"));
 await checkHtml(path.join("yard-preview", "index.html"));
+
+const releaseIdentityPath = path.join(OUT_DIR, "release-manifest.json");
+if (!(await fileExists(releaseIdentityPath))) {
+  errors.push("release-manifest.json is missing");
+} else {
+  try {
+    const identity = JSON.parse(await readFile(releaseIdentityPath, "utf8"));
+    const modelBytes = await readFile(path.resolve("data/default-workspace.json"));
+    const model = JSON.parse(modelBytes);
+    const expectedCommit = process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    if (identity.sourceCommit !== expectedCommit) errors.push("release-manifest.json source commit does not match this build");
+    if (typeof identity.workingTreeDirty !== "boolean") errors.push("release-manifest.json must declare its working tree state");
+    if (process.env.GITHUB_ACTIONS === "true" && identity.workingTreeDirty !== false) errors.push("published Pages artifact must be built from a clean source tree");
+    if (identity.modelSha256 !== createHash("sha256").update(modelBytes).digest("hex")) errors.push("release-manifest.json model hash does not match source data");
+    if (identity.modelRevision !== model.defaultWorkspaceRevision) errors.push("release-manifest.json model revision does not match source data");
+    for (const id of ["B2", "B1", "1F", "2F", "YARD"]) {
+      if (identity.floors?.[id]?.walls !== model.houseStructuresByFloor[id].walls.length || identity.floors?.[id]?.furniture !== model.furniture.filter(item => item.floorId === id).length) errors.push(`release-manifest.json ${id} inventory does not match source data`);
+    }
+  } catch (error) {
+    errors.push(`release-manifest.json cannot be verified: ${error.message}`);
+  }
+}
 
 const indexPath = path.join(OUT_DIR, "index.html");
 if (await fileExists(indexPath)) {

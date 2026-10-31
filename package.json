@@ -5,9 +5,9 @@
   "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_DIST_DIR=.next-build next build",
+    "build": "node scripts/write-release-manifest.mjs && NEXT_DIST_DIR=.next-build next build",
     "preview:local": "node scripts/serve-local-preview.mjs",
-    "build:pages": "rm -rf out .next-pages && NEXT_PUBLIC_BASE_PATH=/lyhpvilla NEXT_DIST_DIR=.next-pages next build && mv .next-pages out && touch out/.nojekyll && node scripts/prune-pages-renders.mjs && node scripts/check-pages-build.mjs",
+    "build:pages": "node scripts/write-release-manifest.mjs && rm -rf out .next-pages && NEXT_PUBLIC_BASE_PATH=/lyhpvilla NEXT_DIST_DIR=.next-pages next build && mv .next-pages out && touch out/.nojekyll && node scripts/prune-pages-renders.mjs && node scripts/check-pages-build.mjs",
     "check:pages": "node scripts/check-pages-build.mjs",
     "check:pages-build": "node scripts/check-pages-build.mjs",
     "typecheck": "tsc --noEmit",

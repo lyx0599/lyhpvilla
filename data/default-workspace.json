@@ -1,7 +1,7 @@
 {
   "schemaVersion": 19,
   "dataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "defaultWorkspaceRevision": "parent-child-c2-v4-confirmed-model-v7-closet-r01",
+  "defaultWorkspaceRevision": "main-model-source-corrections-20261031-r01",
   "savedAt": "2026-10-12T16:19:40.397Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -35071,7 +35071,7 @@
         {
           "id": "COL-B2-002",
           "floorId": "B2",
-          "name": "B2楼梯/吧台侧圆角承重柱 / 支撑B1（视频估算）",
+          "name": "B2楼梯/吧台侧圆角柱候选（样板间视频参考；本户结构待核）",
           "geometryType": "point",
           "columnType": "cylindrical",
           "center": {
@@ -35090,7 +35090,7 @@
           "verificationMeta": {
             "status": "estimated",
             "source": "visual-estimate",
-            "sourceNote": "依据样板间视频确认的楼梯/吧台侧第二根圆角柱；柱心与尺寸为视频估算，无现场实测或结构图纸",
+            "sourceNote": "历史模型将样板间视频中的楼梯/吧台侧圆角柱作为本户候选参考；手册第12项明确地下室样板间布局与配置非最终交付标准。该视频不能证明本户存在此柱；柱心、尺寸及支撑B1关系均无本户原始结构图或现场实测佐证，保持待核。",
             "toleranceMm": 500
           }
         }
@@ -37305,9 +37305,9 @@
           "width": 1200,
           "height": 1400,
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
-            "sourceNote": "开发商图纸确认：1F卫生间北墙保留1200mm窗，写实渲染不得省略。",
+            "status": "unverified",
+            "source": "other",
+            "sourceNote": "历史模型字段曾标为开发商图纸来源，但当前来源台账未找到可核对的对应原图。2026-10-30手册照片仅说明样板间非交付项及材料设备表，不证明本户窗洞；窗是否存在及尺寸待本户合同图纸或现场测量核实。",
             "toleranceMm": 80
           },
           "sillHeightMm": 1200,
@@ -37377,7 +37377,7 @@
         {
           "id": "OD-1F-NORTH-001",
           "floorId": "1F",
-          "name": "北院 / 入户庭院 · 2m",
+          "name": "北院 / 烧烤庭院 · 1F历史边界（待核）",
           "spaceType": "Outdoor",
           "geometryType": "polygon",
           "outdoorType": "patio",
@@ -39116,7 +39116,7 @@
             "glass": "low-e-double-glazing",
             "frameColor": "#796d61"
           },
-          "notes": "依据开发商2F图的阳台1复原；约3.8㎡、约1.3m进深，与阳台2之间为实体分隔。",
+          "notes": "历史模型备注称依据开发商2F图复原，但本包未包含可核对的原图；当前为用户确认方向下的模型候选。约3.8㎡、约1.3m进深及与阳台2实体分隔均待本户原图或现场核实，不作交付/实测结论。",
           "verificationMeta": {
             "status": "estimated",
             "source": "manual-input",
@@ -39156,7 +39156,7 @@
             "glass": "low-e-double-glazing",
             "frameColor": "#796d61"
           },
-          "notes": "依据开发商2F图的阳台2复原；模型受儿童房现有开间限制，保持约1.3m进深，不再做跨两房的长阳台。",
+          "notes": "历史模型备注称依据开发商2F图复原，但本包未包含可核对的原图；当前为用户确认方向下的模型候选。约1.3m进深及与阳台1实体分隔均待本户原图或现场核实，不作交付/实测结论。",
           "verificationMeta": {
             "status": "estimated",
             "source": "manual-input",
@@ -39777,7 +39777,7 @@
         {
           "id": "OD-YARD-NORTH-001",
           "floorId": "YARD",
-          "name": "北院 / 入户庭院 · 编辑底盘",
+          "name": "北院 / 烧烤庭院 · YARD编辑边界（待核）",
           "spaceType": "Outdoor",
           "geometryType": "polygon",
           "outdoorType": "frontYard",
