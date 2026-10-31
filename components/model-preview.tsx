@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Floor3DView } from "@/components/floor-3d-view";
 import { defaultSpaceData } from "@/data/mock-space";
+import defaultWorkspaceIdentity from "@/data/default-workspace.json";
 import { buildModelPreviewOverview, getModelPreviewCameras, getModelPreviewScene, modelPreviewCameraLabel, modelPreviewFloors, modelPreviewLabels, resolveModelPreviewFloor } from "@/lib/model-preview";
 import type { Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
 import type { MobileQuality } from "@/types/space";
@@ -57,7 +58,7 @@ export function ModelPreview() {
   };
 
   return (
-    <main className="flex min-h-dvh flex-col bg-[#f3efe7] text-[#32382f] lg:h-dvh lg:overflow-hidden" data-testid="model-preview" data-preview-floor={floorId}>
+    <main className="flex min-h-dvh flex-col bg-[#f3efe7] text-[#32382f] lg:h-dvh lg:overflow-hidden" data-testid="model-preview" data-preview-floor={floorId} data-model-revision={defaultWorkspaceIdentity.defaultWorkspaceRevision}>
       <header className="shrink-0 border-b border-[#d9d5ca] bg-[#faf8f2] px-4 py-3 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div>
