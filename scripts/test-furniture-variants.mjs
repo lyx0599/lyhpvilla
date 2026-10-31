@@ -116,7 +116,14 @@ assert.equal(waterBarUpper.render3d.cabinetVisual.gridColumns, 4);
 assert.equal(waterBar.dimensions.width, 240);
 assert.equal(waterBarUpper.dimensions.width, 240);
 const livingPulloutPantry = workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001");
-assert.equal(livingPulloutPantry.render3d.variantId, "mirroredReferenceBuffetTower");
+assert.equal(livingPulloutPantry.render3d.variantId, "fullHeightFlat", "Approved 1F r02 replaces the embedded-coffee tower target, without moving it.");
+assert.equal(livingPulloutPantry.render3d.primaryMaterial, "blackTitanium");
+assert.equal(livingPulloutPantry.render3d.secondaryMaterial, "smokedGlass");
+assert.equal(livingPulloutPantry.cabinetInterior, undefined, "Withdrawn embedded appliance modules must not be consumed as current joinery.");
+assert.equal(livingPulloutPantry.mepMeta.needsVentilation, false);
+assert.equal(waterBar.render3d.kitchenVisual.sinkBowls, 0);
+assert.equal(waterBar.cabinetInterior, undefined, "Pending new dry-bar interior must not reuse old appliance boxes.");
+assert.ok(waterBar.constructionAnchors.points.every(point => !["coldWater", "hotWater", "filteredWater", "drainage", "drain"].includes(point.type)), "A dry bar must not publish fixed wet-service anchors.");
 assert.equal(livingPulloutPantry.render3d.cabinetVisual.doorCount, 2);
 
 const showcaseIds = [

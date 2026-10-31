@@ -6,6 +6,12 @@ export const DEFAULT_STORY_HEIGHT_MM = 2800;
 export const DEFAULT_CABINET_TOP_CLOSURE_MM = 50;
 export const WALL_CUT_RATIO = 0.42;
 
+// B1's approved continuous design floor must not acquire steps from room-array
+// ordering. This is a render-surface offset only, not a structural slab datum.
+export function roomFloorPresentationElevationM(floorId: HouseStructure["floorId"], index: number) {
+  return floorId === "B1" ? 0.018 : 0.018 + index * 0.002;
+}
+
 export type SceneFurnitureContext = "workspace3d" | "overview3d" | "exploration";
 
 export type FurnitureBoundsMm = {

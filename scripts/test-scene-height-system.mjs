@@ -6,6 +6,7 @@ import {
   getWallRenderPolicy,
   inferCabinetHeightKind,
   resolveStructureStoryHeightMm,
+  roomFloorPresentationElevationM,
   synchronizeFurnitureHeight,
   validateSceneHeightSystem
 } from "../lib/scene-height-system.ts";
@@ -14,6 +15,11 @@ const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.j
 const rendererSource = await readFile(new URL("../components/floor-3d-view.tsx", import.meta.url), "utf8");
 const plannerSource = await readFile(new URL("../components/space-planner.tsx", import.meta.url), "utf8");
 const structure = workspace.houseStructuresByFloor["1F"];
+for (let index = 0; index < 8; index++) {
+  assert.equal(roomFloorPresentationElevationM("B1", index), 0.018, "Continuous B1 design surfaces must be coplanar, independent of room order.");
+  assert.equal(roomFloorPresentationElevationM("1F", index), 0.018 + index * 0.002, "B1 display fix must not silently change other floors.");
+}
+assert.ok(rendererSource.includes("elevation={floorSurfaceY}"), "Floor decoration must share the same elevation as its base surface.");
 assert.equal(resolveStructureStoryHeightMm(structure), 2800, "Dominant real wall height should resolve the legacy storey height.");
 
 const fullHeightCandidate = workspace.furniture.find((item) => inferCabinetHeightKind(item) === "fullHeight" && item.floorId === "1F");

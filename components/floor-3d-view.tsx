@@ -48,7 +48,7 @@ import {
   getDrawing3DPresentationProfile
 } from "@/lib/drawing-3d-profiles";
 import { normalizeObjectForSync, resolveVisibility, toSceneObject } from "@/lib/object-sync-adapter";
-import { getWallRenderPolicy, resolveStructureStoryHeightMm, WALL_CUT_RATIO } from "@/lib/scene-height-system";
+import { getWallRenderPolicy, resolveStructureStoryHeightMm, roomFloorPresentationElevationM, WALL_CUT_RATIO } from "@/lib/scene-height-system";
 import { getDoorOpeningRenderPolicy } from "@/lib/opening-render-policy";
 import {
   filterSceneDrawingItems,
@@ -2542,6 +2542,7 @@ function RoomFloorMesh({
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   const floorStyle = getRoomFloorStyle(room, structure, designStyle);
+  const floorSurfaceY = roomFloorPresentationElevationM(structure.floorId, index);
   const bounds = getSceneBounds(room.boundary, structure);
   const surfaceSizeM: readonly [number, number] = [
     Math.max(0.1, bounds.maxX - bounds.minX),
@@ -2549,7 +2550,7 @@ function RoomFloorMesh({
   ];
   return (
     <>
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.018 + index * 0.002, 0]}>
+      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, floorSurfaceY, 0]}>
         <primitive object={geometry} attach="geometry" />
         <PbrMaterial
           token={floorStyle.materialToken}
@@ -2566,7 +2567,7 @@ function RoomFloorMesh({
       {floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN && <ShowroomHerringboneOverlay
         geometry={geometry}
         bounds={bounds}
-        elevation={0.018 + index * 0.002}
+        elevation={floorSurfaceY}
         plankWidth={(floorStyle.tileWidthMm ?? 180) * MM_TO_M}
         plankLength={(floorStyle.tileLengthMm ?? 720) * MM_TO_M}
         seamWidth={(floorStyle.seamWidthMm ?? 2) * MM_TO_M}

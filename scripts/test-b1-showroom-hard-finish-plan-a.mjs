@@ -16,7 +16,27 @@ assert.deepEqual(room("ROOM-B1-002").boundary, [
   { x: 5281, y: 3117 }, { x: 3947, y: 3117 }, { x: 3947, y: 1800 }, { x: 6000, y: 1800 }
 ]);
 assert.equal(room("ROOM-B1-002").area, 12_374_466);
-assert.equal(room("ROOM-B1-004").area, 19_448_246);
+const polygonAreaMm2 = points => Math.abs(points.reduce((sum, point, index) => {
+  const next = points[(index + 1) % points.length];
+  return sum + point.x * next.y - next.x * point.y;
+}, 0) / 2);
+assert.equal(room("ROOM-B1-004").area, 20_567_105.5, "PMO-approved R03 design restores the full-width lower floor.");
+assert.ok(Math.abs(room("ROOM-B1-003").area - polygonAreaMm2(room("ROOM-B1-003").boundary)) < 0.001);
+assert.equal(room("ROOM-B1-004").area, polygonAreaMm2(room("ROOM-B1-004").boundary), "Derived design area must use its polygon, not the old inconsistent cache.");
+assert.equal(Math.max(...room("ROOM-B1-004").boundary.map(point => point.x)), 10000);
+assert.equal(Math.max(...room("ROOM-B1-004").boundary.map(point => point.y)), 7800);
+const originalArc = byId(structure.walls, "AW-B1-014", "original arc guard");
+assert.deepEqual([originalArc.center.x, originalArc.center.y, originalArc.radius, originalArc.startAngle, originalArc.endAngle], [4708, 4523, 1936, -47.18, 42.82]);
+const sampledArc = room("ROOM-B1-003").boundary.filter(point => Math.abs(Math.hypot(point.x - 4708, point.y - 4523) - 1936) < 0.001);
+assert.equal(sampledArc.length, 19, "Approved floor contour must retain the original natural arc samples.");
+const shortGuard = byId(structure.walls, "W-B1-012", "short guard");
+const movedGuard = byId(structure.walls, "W-B1-013", "outer upper-edge guard");
+assert.deepEqual(movedGuard.start, shortGuard.end);
+assert.deepEqual(movedGuard.end, { x: 10000, y: 5853 });
+assert.equal(movedGuard.length, 3350);
+assert.equal(movedGuard.height, 1100);
+assert.equal(movedGuard.thickness, 90);
+assert.ok(workspace.stairOpenings.some(opening => opening.id === "OPENING-B2-B1" && opening.floorId === "B1"), "Original stair void must remain a real opening, not a filled room floor.");
 
 assert.deepEqual(structure.stairs.map(({ id, start, end, width, stepCount, landingDepthMm, direction }) => ({ id, start, end, width, stepCount, landingDepthMm, direction })), [
   { id: "ST-B1-001", start: { x: 4123, y: 3500 }, end: { x: 950, y: 3500 }, width: 900, stepCount: 10, landingDepthMm: 900, direction: "up" },

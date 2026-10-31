@@ -1,7 +1,7 @@
 {
   "schemaVersion": 19,
   "dataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "defaultWorkspaceRevision": "main-model-approved-2f-inputs-20261031-r02",
+  "defaultWorkspaceRevision": "main-model-approved-regional-inputs-20261031-r05",
   "savedAt": "2026-10-12T16:19:40.397Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -1015,7 +1015,7 @@
         "unit": "cm"
       },
       "material": "暖橡木整面洞洞板 + 黑色金属挂钩 + 活动层板",
-      "note": "洞孔、挂钩和层板全部朝向 B2 室内，背板贴 W-B2-011。",
+      "note": "保留外部洞洞板与后方运动露营收纳目标；可调层板、挂杆、可移箱为主，不按当前清单固化满墙小格。挂件外伸、门扇与搬运通道待核。",
       "constructionNote": "背板分片上墙并校核基层承重，孔阵按 100mm 模数；重物挂件固定到结构基层。",
       "serviceRequirements": {
         "water": false,
@@ -1141,7 +1141,7 @@
         "unit": "cm"
       },
       "material": "深胡桃木五联内龛 + 浅白蜡木圆角竖框 + 超白玻璃门 + 古铜细框 + 3000K暖光层板灯 + 下部记忆抽屉",
-      "note": "沿西侧现状墙 W-B2-008 布置，南端做到墙角圆弧切点，形成2050mm五联圆角纪念品展示墙；大型乐高、旅行纪念品和纸质收藏分层陈列。",
+      "note": "用户已选B：独立长期防尘城堡展示，正面及至少一个侧面可看；套装版本、内净尺寸、柜位、玻璃和开启待核，不放在共享木桌上。旧五联柜数据仅是待替换历史对象。",
       "constructionNote": "柜深520mm、通高2400mm；南端在距墙角600mm处与对称圆弧酒柜相切，五联内龛、玻璃门、抽屉和灯带统一定制。",
       "serviceRequirements": {
         "water": false,
@@ -6748,7 +6748,7 @@
     {
       "id": "furn-living-waterbar-001",
       "code": "WB-1F-01",
-      "name": "W-1F-011 南段水吧台",
+      "name": "1F 2400干吧｜咖啡杯具与常用少量补给",
       "type": "sideboard",
       "catalogId": "storage-sideboard",
       "moduleCategory": "storage",
@@ -6761,9 +6761,9 @@
         "height": 90,
         "unit": "cm"
       },
-      "material": "石英石台面 + 防潮柜体 + 小水槽/净饮预留",
-      "note": "完整 2400mm 干吧造型保留，服务咖啡、泡茶、杯具和水箱式净饮；不承担 1F 固定给排水。",
-      "constructionNote": "2400mm 干吧下柜与吊柜同轴；下部封闭储物，中段预留咖啡机、水箱式净饮机、杯具和清洁位。固定给排水取消，仅复核 4 位电源、设备散热、理线、补水和可检修收口；外廓尺寸仍为 estimated。",
+      "material": "统一金属门、纯黑无白纹台面、深灰背板及烟熏玻璃为目标；样板/构造待核",
+      "note": "无固定上下水；正常储物底柜及柜下机器人清洁需求保留，具体离地净空/支撑未定；非基站。1F由2F机人工搬来。",
+      "constructionNote": "方向认可、尺寸位置未放行。咖啡与衣物分隔；保留少量1F常用补给/清洁用品；清扫开口/支撑/用电维护待核。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -6778,43 +6778,15 @@
       "color": "#d8ddd9",
       "cabinetDesign": {
         "template": "sideboard",
-        "title": "客厅水吧台设计",
+        "title": "1F干吧咖啡杯具与少量补给目标",
         "designThinking": "保留完整水吧造型，但按 1F 干吧使用：咖啡、泡茶、杯具和水箱式净饮集中在餐桌右侧，不依赖固定上下水。",
-        "recommendedPlacement": "原客厅右侧飘窗拆除后的墙面，靠近餐桌但不压餐椅后退区。",
+        "recommendedPlacement": "研究组沿现W-1F-011，2400保留；具体落位与座椅同态动作待核",
         "layoutNotes": [
-          "下部封闭储物：咖啡豆、茶叶、耗材、清洁用品和可拆水箱。",
-          "中段预留咖啡机、水箱式净饮机、杯具与连续洞石台面操作面。",
-          "补充 4 位电源、设备散热、理线和清洁检修；不生成固定给排水施工点。"
+          "正常储物底柜，柜下供机器人进入清洁，净空/支撑待定，不是基站",
+          "左挂衣中拉篮右咖啡为组合方向；1F留少量常用补给及清洁品，低频大宗按适用条件分地下",
+          "无固定上下水；设备/电源/散热/理线与检修待核，不生成固定给排水点"
         ],
-        "zones": [
-          {
-            "id": "counter",
-            "label": "饮品台面",
-            "role": "咖啡 / 泡茶",
-            "widthPercent": 48,
-            "heightPercent": 100,
-            "detail": "台面放咖啡机、烧水壶和茶盘，旁边留备杯位置。",
-            "serviceNote": "固定给排水取消；按水箱式设备、电源、散热、理线和清洁检修复核。"
-          },
-          {
-            "id": "cups",
-            "label": "杯具区",
-            "role": "杯子 / 茶具",
-            "widthPercent": 28,
-            "heightPercent": 100,
-            "detail": "常用杯具放在最顺手的位置，下方抽屉收滤纸、茶包和勺具。",
-            "serviceNote": "固定给排水取消；按水箱式设备、电源、散热、理线和清洁检修复核。"
-          },
-          {
-            "id": "stock",
-            "label": "囤货区",
-            "role": "咖啡豆 / 茶叶",
-            "widthPercent": 24,
-            "heightPercent": 100,
-            "detail": "封闭收纳减少包装外露，让客厅保持清爽。",
-            "serviceNote": "固定给排水取消；按水箱式设备、电源、散热、理线和清洁检修复核。"
-          }
-        ],
+        "zones": [],
         "cautionNotes": [
           "干吧不承担固定冷热水、固定排水或地面开槽。",
           "如最终设备要求固定进水/排水，必须作为新的用户裁决变更，不得沿用旧水吧排水字段。"
@@ -6842,7 +6814,7 @@
           "backsplashHeightMm": 110,
           "toeKickHeightMm": 90,
           "overhangMm": 30,
-          "sinkBowls": 1,
+          "sinkBowls": 0,
           "appliancePanel": "none",
           "frontStyle": "shaker",
           "handleStyle": "knob",
@@ -6896,39 +6868,6 @@
       "constructionAnchors": {
         "points": [
           {
-            "id": "waterbar-cold",
-            "type": "coldWater",
-            "label": "水吧冷水",
-            "positionMm": {
-              "x": 420,
-              "y": 520,
-              "z": -180
-            },
-            "installationHeightMm": 520
-          },
-          {
-            "id": "waterbar-filtered",
-            "type": "filteredWater",
-            "label": "水吧净水",
-            "positionMm": {
-              "x": 520,
-              "y": 520,
-              "z": -180
-            },
-            "installationHeightMm": 520
-          },
-          {
-            "id": "waterbar-drain",
-            "type": "drain",
-            "label": "水吧墙排",
-            "positionMm": {
-              "x": 470,
-              "y": 180,
-              "z": -220
-            },
-            "installationHeightMm": 180
-          },
-          {
             "id": "waterbar-power",
             "type": "power",
             "label": "咖啡机台面电源",
@@ -6945,7 +6884,7 @@
           "depth": 300
         },
         "installationHeightMm": 850,
-        "notes": "若现场排水条件不足，可保留净饮电源并取消湿式水吧。"
+        "notes": "干吧不设置固定给排水；现存电源点仅原模型参考，需设备与现场核定。"
       },
       "hostWallId": "W-1F-011",
       "clearanceMeta": {
@@ -6956,90 +6895,12 @@
         "kind": "halfHeight",
         "source": "inferred"
       },
-      "cabinetInterior": {
-        "schemaVersion": 1,
-        "template": "kitchenBase",
-        "panelThicknessMm": 22,
-        "interiorWidthMm": 2356,
-        "interiorHeightMm": 856,
-        "interiorDepthMm": 528,
-        "openingMode": "swing",
-        "doorCount": 3,
-        "doorStates": {},
-        "modules": [
-          {
-            "id": "drybar-stock-closed",
-            "kind": "closed",
-            "label": "咖啡豆/茶叶封闭储物（估算）",
-            "x": 0,
-            "y": 0,
-            "z": 0,
-            "width": 780,
-            "height": 200,
-            "depth": 480,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-coffee-appliance",
-            "kind": "appliance",
-            "label": "咖啡机预留（估算）",
-            "x": 0,
-            "y": 250,
-            "z": 0,
-            "width": 800,
-            "height": 500,
-            "depth": 450,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-water-dispenser",
-            "kind": "appliance",
-            "label": "水箱式饮水机预留（估算）",
-            "x": 820,
-            "y": 250,
-            "z": 0,
-            "width": 650,
-            "height": 500,
-            "depth": 450,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-cup-drawers",
-            "kind": "drawer",
-            "label": "杯具与滤纸抽屉（估算）",
-            "x": 1490,
-            "y": 0,
-            "z": 0,
-            "width": 866,
-            "height": 240,
-            "depth": 480,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-cleaning-access",
-            "kind": "clearance",
-            "label": "补水/清洁/理线检修位（估算）",
-            "x": 1490,
-            "y": 300,
-            "z": 0,
-            "width": 866,
-            "height": 450,
-            "depth": 450,
-            "adjustable": true
-          }
-        ],
-        "notes": [
-          "功能深化 v1：下部封闭储物，中段咖啡机/水箱式净饮/杯具和清洁检修；无固定水路模块。",
-          "现场待复尺：最终设备 SKU、插座和回路、散热、补水方式、理线和可拆检修件。"
-        ],
-        "createdFrom": "saved"
-      },
       "cabinetLightingContract": {
         "contractId": "drybar-2400",
-        "purposeCapacity": "咖啡豆、茶叶、杯具、咖啡机、水箱式净饮机、清洁和补水；完整干吧造型保留。",
-        "doorAppearance": "浅橡木/暖白矿物/洞石或暖灰石材/古铜；上部少量茶玻展示。",
-        "interiorLayoutSource": "cabinetInterior",
-        "materialHardware": "warmOak + warmWhiteMineral + travertine + brushedBronze + clearGlass。",
+        "purposeCapacity": "咖啡杯具及少量常用补给/清洁品；正常底柜与柜下清扫，非大宗囤货/基站",
+        "doorAppearance": "金属门/纯黑无白纹台面/深灰背板/烟熏玻璃目标；本数据修正不证明PBR已同步",
+        "interiorLayoutSource": "pending-approved-reference-and-use-check",
+        "materialHardware": "金属门、纯黑无白纹台面、深灰背板、烟熏玻璃目标；样板/构造待核",
         "services": {
           "lightingItemIds": [
             "L-1F-V1-34"
@@ -7312,7 +7173,7 @@
     {
       "id": "furn-living-snack-pullout-001",
       "code": "SC-1F-01",
-      "name": "W-1F-011 餐边柜左侧通顶电器高柜",
+      "name": "1F 干吧回家柜目标｜当天外套与常用包（原电器高柜待替代）",
       "type": "cabinet",
       "catalogId": "storage-snack-cabinet",
       "moduleCategory": "storage",
@@ -7325,9 +7186,9 @@
         "height": 275,
         "unit": "cm"
       },
-      "material": "暖白通顶门板 + 黑色嵌入式咖啡机",
-      "note": "干吧左侧通顶电器高柜：嵌入式咖啡机/小电器与上下封闭储物连续收口；不预设固定给排水。",
-      "constructionNote": "800mm 通顶电器高柜按干吧设备深化：中腰嵌入咖啡机/小电器，上下封闭储物，预留电源、散热、理线和检修；最终设备 SKU 未定，外廓保持 estimated。",
+      "material": "统一金属门/烟熏玻璃方向；非嵌咖啡机高柜，材质样板待核",
+      "note": "功能顺序目标：左挂衣中拉篮右咖啡。衣物与咖啡分隔；本组只修正语义，内构/原认可图/实际位置待PMO，不能沿旧嵌咖啡机字段加工。",
+      "constructionNote": "回家柜目标：当天外套/常用包，衣物与咖啡分隔；柜脚/衣杆/抽屉/内装尚未选定，禁止旧嵌机加工消费。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -7342,56 +7203,29 @@
       "color": "#d5b58d",
       "cabinetDesign": {
         "template": "tallCabinet",
-        "title": "餐边柜左侧通顶电器高柜",
-        "designThinking": "按参考图左右镜像：通顶暖白高柜置于组合左端，黑色咖啡机嵌入中腰，和右侧深木色餐边柜形成轻重对比。",
-        "recommendedPlacement": "贴 W-1F-011，紧接 2400mm 餐边柜南端，三段柜体连续收口。",
+        "title": "干吧回家柜功能目标，内装待核",
+        "designThinking": "收当天外套与常用包，与咖啡杯具分隔；中拉篮属组合功能，最终分格/数量未定。",
+        "recommendedPlacement": "研究组移至干吧北侧；本字段不表示位置批准。",
         "layoutNotes": [
-          "中腰预留咖啡机/小电器，设备上下保持封闭储物。",
-          "电源、散热、理线和检修口随设备 SKU 深化；默认不接固定上下水。",
-          "与 2400mm 干吧下柜和上柜使用同一浅橡木/暖白矿物/古铜体系。"
+          "不沿用旧咖啡机开孔/设备抽屉/设备散热内装",
+          "800x550外廓来源保持，内部净空/衣杆/拉篮待原图及复核"
         ],
-        "zones": [
-          {
-            "id": "snack-drawer",
-            "label": "通顶储物",
-            "role": "杯具 / 囤货",
-            "widthPercent": 40,
-            "heightPercent": 100,
-            "detail": "左列封闭收纳低频杯具、饮品和囤货，门板保持完整简洁。"
-          },
-          {
-            "id": "veg-basket",
-            "label": "嵌入式咖啡机",
-            "role": "咖啡 / 热饮",
-            "widthPercent": 30,
-            "heightPercent": 100,
-            "detail": "右列中腰设置黑色设备壁龛，咖啡机高度便于操作和清洁。"
-          },
-          {
-            "id": "stock-cabinet",
-            "label": "设备上下柜",
-            "role": "耗材 / 维护",
-            "widthPercent": 30,
-            "heightPercent": 100,
-            "detail": "咖啡机上下保持封闭储物，并预留散热、走线和检修空间。"
-          }
-        ],
+        "zones": [],
         "cautionNotes": [
-          "咖啡机型号确定后复核开孔、散热、电源和给水需求。",
-          "高柜固定、层板承重及设备检修口由定制厂家深化。"
+          "禁止按旧嵌机字段加工；衣咖隔离及柜下清洁待核"
         ]
       },
       "render3d": {
         "assetType": "cabinet",
         "detailLevel": "presentation",
         "stylePreset": "modernNatural",
-        "primaryMaterial": "warmOak",
-        "secondaryMaterial": "warmWhiteMineral",
+        "primaryMaterial": "blackTitanium",
+        "secondaryMaterial": "smokedGlass",
         "accentMaterial": "brushedBronze",
         "visibleIn3d": true,
         "selectableIn3d": true,
         "childrenMode": "grouped",
-        "variantId": "mirroredReferenceBuffetTower",
+        "variantId": "fullHeightFlat",
         "variationSeed": 1699219631,
         "styleSource": "manual",
         "cabinetVisual": {
@@ -7399,14 +7233,14 @@
           "handleStyle": "groove",
           "doorCount": 2
         },
-        "primaryMaterialResourceId": "showroomWarmOakVertical",
         "accentMaterialResourceId": "showroomDarkBronze",
-        "secondaryMaterialResourceId": "showroomLimePlaster",
         "cabinetMaterialOverrides": {
-          "carcass": "warmOak",
-          "door": "warmWhiteMineral",
-          "hardware": "brushedBronze"
-        }
+          "carcass": "blackTitanium",
+          "door": "blackTitanium",
+          "hardware": "blackTitanium",
+          "glass": "smokedGlass"
+        },
+        "geometryContractId": "home-return-target"
       },
       "mepMeta": {
         "needsSocket": true,
@@ -7421,14 +7255,14 @@
         "needsDrainage": false,
         "drainageType": "none",
         "needsNetwork": false,
-        "needsVentilation": true,
+        "needsVentilation": false,
         "needsSmartControl": false,
-        "notes": "干吧电器高柜：嵌入设备按 SKU 复核电源、散热、理线和检修；默认不接固定上下水。"
+        "notes": "不再以咖啡设备高柜申请接口；现有电源仅源记录，不新增设备/水路，实际需求待核。"
       },
       "constructionMeta": {
         "customMade": true,
         "installType": "customCabinet",
-        "reserveSize": "80x55x240cm",
+        "reserveSize": "80x55x275cm（源名义外廓，非加工批准）",
         "wallDependency": "绑定 W-1F-011，安装前按墙面完成面复尺并复核收口。",
         "floorDependency": "按完成面标高校核落地尺寸",
         "ceilingDependency": "",
@@ -7436,7 +7270,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "暖白电器高柜与 2400mm 深木色餐边柜连续收口；嵌入式咖啡机开孔、散热和检修由厂家深化。"
+        "notes": "保留源名义外廓，不扩大；衣物/包分隔及支撑、清扫、柜门待核，无嵌咖啡机开孔。"
       },
       "hostWallId": "W-1F-011",
       "clearanceMeta": {
@@ -7448,88 +7282,22 @@
         "topClosureMm": 50,
         "source": "storyHeight"
       },
-      "cabinetInterior": {
-        "schemaVersion": 1,
-        "template": "kitchenTall",
-        "panelThicknessMm": 18,
-        "interiorWidthMm": 764,
-        "interiorHeightMm": 2714,
-        "interiorDepthMm": 532,
-        "openingMode": "swing",
-        "doorCount": 2,
-        "doorStates": {},
-        "modules": [
-          {
-            "id": "drybar-tower-stock",
-            "kind": "closed",
-            "label": "低频杯具与囤货封闭区（估算）",
-            "x": 0,
-            "y": 0,
-            "z": 0,
-            "width": 756,
-            "height": 700,
-            "depth": 500,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-tower-coffee-machine",
-            "kind": "appliance",
-            "label": "嵌入式咖啡机/小电器预留（估算）",
-            "x": 0,
-            "y": 900,
-            "z": 0,
-            "width": 500,
-            "height": 700,
-            "depth": 500,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-tower-device-drawer",
-            "kind": "drawer",
-            "label": "设备耗材抽屉（估算）",
-            "x": 520,
-            "y": 900,
-            "z": 0,
-            "width": 236,
-            "height": 700,
-            "depth": 500,
-            "adjustable": true
-          },
-          {
-            "id": "drybar-tower-ventilation",
-            "kind": "clearance",
-            "label": "散热/理线/检修位（估算）",
-            "x": 0,
-            "y": 1700,
-            "z": 0,
-            "width": 756,
-            "height": 700,
-            "depth": 480,
-            "adjustable": true
-          }
-        ],
-        "notes": [
-          "功能深化 v1：中腰设备、上下封闭储物、设备耗材和散热检修；外廓不变。",
-          "设备 SKU、开孔、散热距离、电源和是否需要水箱由现场/供应商复核。"
-        ],
-        "createdFrom": "saved"
-      },
       "cabinetLightingContract": {
         "contractId": "drybar-appliance-tall",
-        "purposeCapacity": "中腰嵌入咖啡机/小电器，上下封闭囤货，设备耗材和检修。",
-        "doorAppearance": "与2400干吧连续收口，暖白矿物门板、浅橡木柜体、古铜五金。",
-        "interiorLayoutSource": "cabinetInterior",
-        "materialHardware": "复用 1F canonical PBR，不新增设备材质。",
+        "purposeCapacity": "当天外套/常用包，与咖啡杯具隔离；内装未定",
+        "doorAppearance": "金属门/烟熏玻璃目标，最终门数与样板待核",
+        "interiorLayoutSource": "pending-user-reference-and-measurement",
+        "materialHardware": "金属/烟熏玻璃为目标，不消费旧暖白嵌咖啡机内装",
         "services": {
           "lightingItemIds": [
             "L-1F-V1-35"
           ],
-          "power": "嵌入设备2位回路，按 SKU 复核",
+          "power": "源电源仅记录，回家柜实际用电待核",
           "waterSupply": "无固定进水，默认水箱",
           "drainage": "无固定排水",
-          "inspection": "设备前方开门、后部散热、理线和可拆检修口"
+          "inspection": "衣咖分隔、内装与支撑、清洁/检修待核"
         },
-        "constructionClosure": "新增灯带点位仅表达柜体集成需求；设备开孔、散热和固定由厂家深化。"
+        "constructionClosure": "原嵌咖啡设备内装已撤销；禁止旧开孔/散热构造消费，待目标内装核图。"
       }
     },
     {
@@ -8028,7 +7796,7 @@
         "unit": "cm"
       },
       "material": "暖白矿物柜门 + 浅橡木柜体 + 古铜细节",
-      "note": "保留600mm深度的家庭主要储备柜候选：床品、行李大件、少量换季挂衣、家庭囤货、客人临时包衣；沿东侧内完成面约2500×600×2750mm。相对旧2700mm墙向长度缩短200mm，按矩形外廓体积约减少7.4%，不接受用450深度替代。",
+      "note": "保留600mm深度的家庭主要储备柜候选：床品、行李大件、少量换季挂衣、家庭囤货、客人临时包衣；沿东侧内完成面约2500×600×2750mm。相对旧2700mm墙向长度缩短200mm，按矩形外廓体积约减少7.4%，不接受用450深度替代。 用户已选C011方案A：行李、床品、囤货分区与可调内部模块；不扩柜，不把模型尺寸或防潮条件视为实测/已验证。",
       "constructionNote": "沿W-B1-004内侧候选外廓约x=8785..9385mm、y=500..3000mm；与床展开设计预留端部约635mm名义间距。柜门开启、床品取用、楼梯栏杆边界和完成面须按最终木作复尺。",
       "serviceRequirements": {
         "water": false,
@@ -8050,7 +7818,8 @@
         "layoutNotes": [
           "两扇等宽暖白矿物移门，浅橡木内腔与古铜细节",
           "床品、行李、换季挂衣、囤货和客人临时物品分区；模块可调",
-          "清洁用品留在 B1 洗衣家政柜，不与床品衣物混放"
+          "清洁用品留在 B1 洗衣家政柜，不与床品衣物混放",
+          "C011方案A已选：按行李/床品/囤货组织可调层板；保留原固定竖隔板，箱体实物、防潮与取用包络待核。"
         ],
         "zones": [
           {
@@ -8353,7 +8122,8 @@
           "柜门关闭时保持简模；打开或选中对象时表达内部模块。",
           "清洁剂和清洁工具不放入此柜，另由 furn-b1-laundry-cleaning-cabinet-001 承担。",
           "柜体仍为候选外廓，防潮、背通风、门扇和检修待复尺。",
-          "外柜保留600mm；扣除18mm背板、24mm门板、45mm双轨中心距和3mm容差后，显式内部模块有效深度统一按510mm，层板、竖隔板、挂杆和底部行李空腔用于家庭讨论版，未替代木作深化。"
+          "外柜保留600mm；扣除18mm背板、24mm门板、45mm双轨中心距和3mm容差后，显式内部模块有效深度统一按510mm，层板、竖隔板、挂杆和底部行李空腔用于家庭讨论版，未替代木作深化。",
+          "用户选方案A可调分区。可调层板与固定竖隔板的结构身份维持现源，未改变任何模块尺寸或固定方式。"
         ],
         "createdFrom": "b1-storage-candidate-20260909",
         "accessPlanId": "b1-reserve-two-sliding-equal-bays",
@@ -8371,7 +8141,8 @@
         "layoutNotes": [
           "两扇等宽暖白矿物移门，浅橡木内腔与古铜细节",
           "床品、行李、换季挂衣、囤货和客人临时物品分区；模块可调",
-          "清洁用品留在 B1 洗衣家政柜，不与床品衣物混放"
+          "清洁用品留在 B1 洗衣家政柜，不与床品衣物混放",
+          "C011方案A已选：按行李/床品/囤货组织可调层板；保留原固定竖隔板，箱体实物、防潮与取用包络待核。"
         ],
         "zones": [
           {
@@ -9178,7 +8949,7 @@
         "unit": "cm"
       },
       "material": "暖白矿物柜门 + 浅橡木内腔 + 古铜细节",
-      "note": "家政柜先做模块化功能验证：吸尘器、拖把、清洁剂、工具、扫地机/除湿设备、脏衣、叠衣、洗烘邻接管线和检修占位。当前 380×350×2100mm 外廓只是估算，不足以替代洗衣房复尺。",
+      "note": "洗衣家政柜承担清洁、脏衣、叠衣及洗烘邻接检修。机器人常驻分工已选：B1洗衣房附近兼顾B2，2F供排水合适处常驻后人工搬至1F；全屋最多2台，先盘自有。F06不是已定基站位置，380×350×2100mm外廓仍为估算。",
       "constructionNote": "与洗烘叠放机组邻接的家政柜候选；实际宽度、深度、门扇、通风、管线、地漏、检修和设备型号待复尺，不能按当前占位下单。",
       "serviceRequirements": {
         "water": false,
@@ -9237,7 +9008,7 @@
         "needsVentilation": true,
         "needsSmartControl": false,
         "relatedCircuit": "B1 洗衣机独立回路",
-        "notes": "吸尘器/扫地机/除湿设备电源和柜内通风预留；洗烘进排水、地漏、管线和检修只做占位，不替代 MEP 深化。"
+        "notes": "保留清洁设备电源与柜内通风需求；洗烘进排水、地漏和检修仍待专业复尺。B1/2F常驻分工已选，精确位置、供排水/电源接口及最终机型能力待核；接受自动上下水不代表接口可接。"
       },
       "constructionMeta": {
         "customMade": true,
@@ -9368,14 +9139,15 @@
         "notes": [
           "当前窄柜外廓不足以证明完整洗衣柜容量；模块是复尺前的功能程序。",
           "洗烘机组仍是独立设备对象，柜内只显示邻接管线和检修占位。",
-          "关闭状态不生成内部层板、挂杆或设备盒。"
+          "关闭状态不生成内部层板、挂杆或设备盒。",
+          "housework-robot-dehumidifier的140×260×300mm功能占位不代表基站适配。基站外廓、洗烘门扇、柜门、检修及搬出包络另核；不新增1F/B2专用基站。"
         ],
         "createdFrom": "saved"
       },
       "cabinetDesign": {
         "template": "tallCabinet",
         "title": "B1 洗衣家政柜",
-        "designThinking": "B1 D01 办公主场 + 可变睡眠平台；仅做模块化收纳功能验证，不锁建筑墙体或最终加工尺寸。",
+        "designThinking": "B1洗衣家政与清洁后勤；家庭储藏/可变睡眠和活动阅读分工保留。机器人基站仅以洗衣房附近为候选区，不固定在当前窄柜内。",
         "recommendedPlacement": "洗衣/盥洗候选区设备侧；不锁当前窄柜占位",
         "layoutNotes": [
           "暖白矿物柜门降低地下层压迫感",
@@ -9415,7 +9187,7 @@
         "schemaVersion": 1,
         "revision": "b1-lighting-cabinet-contract-v1-20260812",
         "category": "综合储物",
-        "purposeCapacity": "吸尘器、拖把、长柄工具、扫地机/除湿设备、清洁剂、脏衣、叠衣、工具和洗烘管线检修占位；不是已确认的设备柜加工尺寸。",
+        "purposeCapacity": "吸尘器、拖把、长柄工具、清洁剂、脏衣、叠衣与洗烘邻接检修的功能程序。机器人基站在洗衣房附近另核；现窄柜及柜内设备位不代表已适配基站。",
         "doorAppearance": "一扇暖白矿物平板门，浅橡木内腔，古铜 edge-pull；门扇通风、散热和设备检修需与洗烘设备型号联动。",
         "interiorLayout": {
           "source": "cabinetInterior",
@@ -10284,7 +10056,7 @@
         "unit": "cm"
       },
       "material": "暖石灰漆斜顶围护 + 700×1250mm同墙色隐形矮门 + 内嵌古铜拉手",
-      "note": "楼梯下储物完整封闭；公共空间只见顺楼梯斜度收口的墙面和一扇与墙同色的隐形矮门，门洞与外壳准确对齐。",
+      "note": "用户已选B：以外侧开门取物为主，不默认内部走入通道。高相对区放高大件、中区可调架/箱、低区低箱篮；真实斜底、支撑、净高和分缝待核，不默认重型拉出。",
       "constructionNote": "外壳按楼梯斜底分段收口；700×1250mm矮门设置在净高较高一端，右侧外开，采用极窄暗缝和内嵌拉手；门内布置300-350mm深可调货架、吸尘器位和感应灯。",
       "serviceRequirements": {
         "water": false,
@@ -11418,7 +11190,7 @@
         "unit": "cm"
       },
       "material": "600x600mm墙角内凹深胡桃木底座 + 90°连续凹弧烟灰玻璃 + 香槟古铜径向细框 + 三层凹弧暖光展示层",
-      "note": "沿西墙和南墙各占600mm，柜面以45°角平分线为对称轴向墙角内收，在纪念品墙与水吧之间形成柔和的凹弧转角。",
+      "note": "用户已选A：常温酒水、饮料、杯具和开瓶器储藏；不是恒温酒柜，不新增制冷设备或专用散热。小片玻璃/其余不透为研究，不是立面定案。",
       "constructionNote": "凹弧圆心落在房间侧600x600mm方形范围的对角点，600mm半径柜面向墙角回弯；两端分别与520mm深纪念品柜、550mm深水吧切线收口，底座防倾倒固定并预留通风。",
       "serviceRequirements": {
         "water": false,
@@ -11544,8 +11316,8 @@
         "unit": "cm"
       },
       "material": "圆角悬浮胡桃木无拉手柜体 + 30mm奶油洞石薄台面与低挡水 + 台下浅盆 + 古铜龙头 + 单层烟玻置物板",
-      "note": "1650mm水吧从墙角对称圆弧柜的南墙切点连续展开，与酒柜和纪念品墙形成连续L型；保留咖啡、直饮、洗杯和热饮操作面。",
-      "constructionNote": "1650mm悬浮水吧，水槽离转角约500-600mm；台下保留净水主机、即热设备和检修位，右侧留约700mm完整操作台，镜柜灯与整墙柜灯光统一。",
+      "note": "用户已选B：冷热洗手/洗杯。热水来源、管路和等待时间待现场核；未选净水、即热或新增热水设备，不因冷热需求增加采购或回路。",
+      "constructionNote": "用户已选B：冷热洗手/洗杯。热水来源、管路和等待时间待现场核；未选净水、即热或新增热水设备，不因冷热需求增加采购或回路。 排水/检修接口与防溅分区待核。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -11610,7 +11382,7 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "水吧小家电/防溅回路",
-        "notes": "按样板间洗手池表达镜柜暖光与面部柔光；集成洗手、洗杯与直饮功能，台下净水主机和即热设备必须保留可拆检修口。；B2 lighting-cabinet contract v1 绑定对象：L-B2-V1-16、L-B2-CAB-WETBAR-001、MEP-B2-WETBAR-POWER-001、MEP-B2-WETBAR-WATER-001、MEP-B2-WETBAR-DRAIN-001、MEP-B2-WETBAR-INSPECTION-001。"
+        "notes": "用户已选B：冷热洗手/洗杯。热水来源、管路和等待时间待现场核；未选净水、即热或新增热水设备，不因冷热需求增加采购或回路。 既有一般电源和照明仍保留待复核，不认定任何新增设备功率。"
       },
       "constructionAnchors": {
         "points": [
@@ -11861,7 +11633,7 @@
       },
       "material": "耐候铝板柜体 + 岩板台面",
       "color": "#766654",
-      "note": "厨房岛台：柜体、台面、水槽、给排水、电源与燃气设备备注一体化；避开地下室天窗检修净空。",
+      "note": "R3.1北院讨论目标为一字操作台/洗手池，并与炭炉、收纳和檐下薄柜协同。当前岛台对象保留稳定ID；现外廓、位置、内装及材质只作为现源候选，目标平面重排见独立研究几何补丁。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -11886,7 +11658,7 @@
         "needsVentilation": true,
         "needsSmartControl": true,
         "relatedCircuit": "北院厨房专用回路",
-        "notes": "含柜体、岩板台面、水槽与柜下灯；燃气/设备接口由现场深化。"
+        "notes": "一字操作台/洗手池目标保留；水、电、排水及检修由现场条件和设备深化核定。既有回路/点位字段仅为源候选，不由本次文字同步确认燃气设备或新管路。"
       },
       "constructionMeta": {
         "customMade": true,
@@ -12023,7 +11795,7 @@
       },
       "material": "耐候不锈钢 + 黑钛炉面",
       "color": "#766654",
-      "note": "",
+      "note": "R3.1北院目标保留炭炉功能；当前嵌入式BBQ对象只是现源占位，不证明产品形式、燃料接口或安全距离已定。研究图按既有目标平面摆出，不作设备采购尺寸。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -12046,7 +11818,7 @@
         "needsVentilation": true,
         "needsSmartControl": false,
         "relatedCircuit": "北院厨房专用回路",
-        "notes": "与可燃材料和窗洞保持现场复核距离；燃气或电器型号待确认。"
+        "notes": "按炭炉目标核对最终机型、排烟/热影响及与可燃物和窗的关系；现源电源字段不升级为已选需求，不预设燃气或电热型号。"
       },
       "constructionMeta": {
         "customMade": false,
@@ -12100,7 +11872,7 @@
       },
       "material": "304 不锈钢防冻龙头",
       "color": "#766654",
-      "note": "",
+      "note": "北院洗手池/操作台功能目标的一部分；当前龙头对象及其外廓不等于盆体。研究图水池功能点用于同坐标关系核对，实际盆体、阀位、防冻及接入待深化。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -12123,7 +11895,7 @@
         "needsVentilation": false,
         "needsSmartControl": false,
         "relatedCircuit": "庭院独立漏保回路",
-        "notes": "靠近岛台与工具区，设防冻阀和排水。"
+        "notes": "与一字操作台/洗手池目标协同，防冻阀、排水和检修按实际接点核对；当前点位不视为现场确认。"
       },
       "constructionMeta": {
         "customMade": false,
@@ -12256,7 +12028,7 @@
       },
       "material": "耐候铝板柜 + 防水台面",
       "color": "#766654",
-      "note": "",
+      "note": "北院收纳与檐下薄柜的功能目标保留。当前园艺储物柜为既有对象，不等于两个目标已完成一一落模；薄柜与收纳的二维目标见独立场景，不擅增购买数量。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -12495,7 +12267,7 @@
       },
       "material": "户外铝材 + 防水织物 + 岩板",
       "color": "#766654",
-      "note": "从室内客厅连续延伸至庭院会客区。 庭院写实化布局：按真实使用尺度布置，并避开天窗、活动区及相邻模块。",
+      "note": "南院休闲氛围方向保留；R3.1沙发、单椅、小桌为独立平面目标，当前组合桌椅对象尚未替换成该目标。现源尺寸不称真实使用实测；伞、狗窝、宠物洗脚和菜园均只是旧源对象，不构成新认可采购。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -12655,7 +12427,7 @@
       },
       "material": "防水柜体 + 石英石台面",
       "color": "#766654",
-      "note": "",
+      "note": "南院已确认池旁连续台面、台面下相邻位置放洗衣机，仅冷水、无烘干机；洗衣机不放在池盆正下方。当前外廓和位置仍为候选，目标关系按R3.1同坐标研究图核对。",
       "serviceRequirements": {
         "water": true,
         "drainage": true,
@@ -12680,7 +12452,7 @@
         "needsVentilation": false,
         "needsSmartControl": true,
         "relatedCircuit": "南院洗衣专用回路",
-        "notes": "含洗衣机、水槽、龙头、操作台与储物；顶部遮棚接入雨水排水，并避开地下室天窗检修净空。"
+        "notes": "保留洗衣机、冷水水槽/龙头、连续台面和储物；无烘干机，不新增热水设备。遮雨、排水、防水电源及天窗检修按现场和设备核对。"
       },
       "constructionMeta": {
         "customMade": true,
@@ -12788,7 +12560,8 @@
         ],
         "notes": [
           "冬季维护：关闭户外给水、排空设备/水槽存水并保持柜内通风。",
-          "洗衣设备最终尺寸、排水高程和遮棚雨水路径须现场复核。"
+          "洗衣设备最终尺寸、排水高程和遮棚雨水路径须现场复核。",
+          "已确认仅洗衣机+冷水池旁连续台面，无烘干机；设备位与盆下管线分开，现模块尺寸与外廓仍待实物深化。"
         ],
         "createdFrom": "saved"
       }
@@ -32734,7 +32507,7 @@
       "heightMm": 1100,
       "circuitId": "水吧小家电/防溅回路",
       "materialId": null,
-      "notes": "绑定净水/即热/小家电设备位；数量沿用现有 MEP 意图，功率、漏保、防溅等级和完成面位置待机电深化。",
+      "notes": "保留既有一般水吧电源意图，设备/数量/功率待复核；冷热洗手需求不等于选择净水、即热或专用热水器，禁止据此新增采购/回路。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 2,
@@ -32878,7 +32651,7 @@
       "heightMm": null,
       "circuitId": null,
       "materialId": null,
-      "notes": "绑定水吧柜内检修净空模块：净水、即热、排水和驱动均需可拆出；最终检修口尺寸与桌椅/主通道净距待实测。",
+      "notes": "排水、冷热水接口及既有驱动检修待核；净水/即热设备未选择，不作为必须保留的设备。检修口与桌椅通道待现场核。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -35422,7 +35195,7 @@
         {
           "id": "W-B1-013",
           "floorId": "B1",
-          "name": "Wall 013 · 木扶手透明玻璃护栏",
+          "name": "R03研究 · 右下区临空上缘护栏（W-B1-013迁移候选）",
           "kind": "straight",
           "geometryType": "line",
           "start": {
@@ -35430,18 +35203,19 @@
             "y": 5853
           },
           "end": {
-            "x": 6650,
-            "y": 7800
+            "x": 10000,
+            "y": 5853
           },
           "thickness": 90,
           "height": 1100,
-          "length": 1947,
+          "length": 3350,
           "barrierType": "railing",
           "material": "glass",
           "openness": 0.88,
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
+            "status": "estimated",
+            "source": "manual-input",
+            "sourceNote": "R03共享边改为内部连续面，旧W-B1-013拟移至候选上外缘；1100高/90厚沿用模型，仅为护栏研究，实际临空、构造和端部另核。",
             "toleranceMm": 80
           }
         },
@@ -35703,23 +35477,83 @@
               "y": 3117
             },
             {
-              "x": 5281,
+              "x": 6038.887,
               "y": 3117
             },
             {
-              "x": 5670,
-              "y": 3600
+              "x": 6155.606,
+              "y": 3237.491
             },
             {
-              "x": 5901,
-              "y": 4537
+              "x": 6261.456,
+              "y": 3367.634
             },
             {
-              "x": 5680,
-              "y": 5450
+              "x": 6355.643,
+              "y": 3506.452
             },
             {
-              "x": 5385,
+              "x": 6437.458,
+              "y": 3652.902
+            },
+            {
+              "x": 6506.289,
+              "y": 3805.885
+            },
+            {
+              "x": 6561.617,
+              "y": 3964.252
+            },
+            {
+              "x": 6603.029,
+              "y": 4126.815
+            },
+            {
+              "x": 6630.212,
+              "y": 4292.352
+            },
+            {
+              "x": 6642.962,
+              "y": 4459.621
+            },
+            {
+              "x": 6641.185,
+              "y": 4627.366
+            },
+            {
+              "x": 6624.893,
+              "y": 4794.327
+            },
+            {
+              "x": 6594.208,
+              "y": 4959.251
+            },
+            {
+              "x": 6549.362,
+              "y": 5120.899
+            },
+            {
+              "x": 6490.69,
+              "y": 5278.059
+            },
+            {
+              "x": 6418.633,
+              "y": 5429.549
+            },
+            {
+              "x": 6333.733,
+              "y": 5574.232
+            },
+            {
+              "x": 6236.626,
+              "y": 5711.023
+            },
+            {
+              "x": 6128.042,
+              "y": 5838.894
+            },
+            {
+              "x": 6650,
               "y": 5853
             },
             {
@@ -35731,15 +35565,16 @@
               "y": 5000
             }
           ],
-          "area": 4632458,
+          "area": 6745383.67803,
           "sourceWallIds": [
             "W-B1-014",
             "AW-B1-014",
             "W-B1-012"
           ],
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
+            "status": "estimated",
+            "source": "manual-input",
+            "sourceNote": "R03已认可讨论目标的模型候选；原弧参数保留，边界与面积是设计推导，非现场实测，结构/高程/局部闭合另核。",
             "toleranceMm": 80
           },
           "surfaceFinishes": {
@@ -35797,11 +35632,11 @@
               "y": 5853
             },
             {
-              "x": 6650,
+              "x": 10000,
               "y": 5853
             },
             {
-              "x": 6650,
+              "x": 10000,
               "y": 7800
             },
             {
@@ -35809,7 +35644,7 @@
               "y": 7800
             }
           ],
-          "area": 19448246,
+          "area": 20567105.5,
           "sourceWallIds": [
             "W-B1-005",
             "W-B1-007",
@@ -35819,8 +35654,9 @@
             "W-B1-013"
           ],
           "verificationMeta": {
-            "status": "drawing-derived",
-            "source": "developer-plan",
+            "status": "estimated",
+            "source": "manual-input",
+            "sourceNote": "R03已认可讨论目标的模型候选；原弧参数保留，边界与面积是设计推导，非现场实测，结构/高程/局部闭合另核。",
             "toleranceMm": 80
           },
           "surfaceFinishes": {
