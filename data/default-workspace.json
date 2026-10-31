@@ -1,7 +1,7 @@
 {
   "schemaVersion": 19,
   "dataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "defaultWorkspaceRevision": "main-model-source-corrections-20261031-r01",
+  "defaultWorkspaceRevision": "main-model-approved-2f-inputs-20261031-r02",
   "savedAt": "2026-10-12T16:19:40.397Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -3873,7 +3873,7 @@
         "unit": "cm"
       },
       "material": "浅暖木圆角单床 + 米灰软包床头",
-      "note": "v4确认图：东侧单床纵向布置，床头朝南（renderer rotation=180）；无抽拉副床、无书桌，床侧保持门—阳台连续通道。",
+      "note": "FIX1既有单床仅作模型上下文；儿童房A不预设新购床型号/尺寸或固定学习位。保留活动空间、未来学习及门—阳台通道目标；本轮不移动或删除此床。",
       "constructionNote": "复核抽拉方向、右墙踢脚线和阳台入口；床侧预留五孔、USB-C与夜灯。",
       "serviceRequirements": {
         "water": false,
@@ -4703,7 +4703,7 @@
     {
       "id": "module-2f-wardrobe-002",
       "code": "WD-002",
-      "name": "儿童房西墙1200mm成长衣柜 · v4",
+      "name": "儿童房固定衣柜候选｜按需求和校正底图深化；现外廓仅占位",
       "type": "wardrobe",
       "catalogId": "storage-wardrobe",
       "moduleCategory": "storage",
@@ -5001,7 +5001,7 @@
         "source": "storyHeight"
       },
       "doorType": "sliding",
-      "notes": "与书桌形成连续功能带；床与柜之间约895mm净距。",
+      "notes": "用户已选固定衣柜、其余灵活安排；不沿用“与固定书桌连续功能带”或旧895mm作为本轮通过结论。现位置/1200mm外廓及内构未改，实际需求、柜宽和通道随统一底图核。",
       "cabinetInterior": {
         "schemaVersion": 1,
         "template": "wardrobe",
@@ -13422,9 +13422,9 @@
         "customMade": true,
         "installType": "customCabinet",
         "reserveSize": "70x35x55cm low storage",
-        "wallDependency": "靠 W-2F-012 左端布置，安装前按墙面完成面复尺并复核房门洞口。",
+        "wallDependency": "现阳台低柜仅占位，不作固定满墙木作定位；可移动/可调方向须避开阳台连接门、通道及原分界遮光帘。",
         "floorDependency": "按完成面标高校核落地尺寸",
-        "ceilingDependency": "柜体到顶时与吊顶、灯带电源和检修空间协同",
+        "ceilingDependency": "低位收纳不依赖吊顶；不新增上部固定柜，实际可移动/可调方案待选。",
         "waterproofRequired": false,
         "inspectionAccessRequired": false,
         "purchaseCategory": "定制柜体/硬装",
@@ -13459,7 +13459,7 @@
         "frontMm": 500,
         "status": "compact-but-usable"
       },
-      "notes": "600×350mm防潮通顶浅柜，只收纳清洁工具和小件，不挤占约1.3m阳台进深。",
+      "notes": "低位书籍/玩具收纳以可移动低柜或可调模块深化；现700×350×550mm只是FIX1占位，不是采购尺寸。撤回旧“600×350通顶清洁柜”文字；不当机器人基站，不占阳台连接通道。",
       "outdoorZoneId": "OD-2F-BALCONY-02",
       "category": "storage",
       "outdoorId": "OD-2F-BALCONY-02",
@@ -38619,7 +38619,8 @@
         {
           "id": "FN-2F-BALCONY-DIVIDER",
           "floorId": "2F",
-          "name": "阳台1与阳台2实体分隔墙",
+          "name": "阳台原分界｜目标互通厚玻璃推拉门＋遮光帘；现几何待深化",
+          "notes": "FIX1目前仍以material=wall画原分界，仅是当前模型状态，不是恢复实体分隔的设计授权。目标为父母/儿童阳台互通厚玻璃推拉门、保留连接通道和原分界遮光帘；洞宽、轨道、帘盒、挡水与结构条件待方案。此补丁不改墙线/厚度/材质几何。",
           "geometryType": "line",
           "start": {
             "x": 3897,
@@ -38954,7 +38955,7 @@
             "toleranceMm": 100
           },
           "outdoorZoneId": "OD-2F-BALCONY-01",
-          "notes": "父母房只通阳台1；两阳台之间有实体分隔。"
+          "notes": "保留本房通阳台门/通道目标；阳台间互通厚玻璃推拉门和原分界遮光帘关系已确认。旧“各自独立且实体分隔”不当目标方案；本门现洞宽/位置/18mm门槛仅FIX1模型声明，未改几何，待同源方案核。"
         },
         {
           "id": "D-2F-010",
@@ -38985,7 +38986,7 @@
             "sourceNote": "2026-08-10 用户确认的2F设计调整；阳台及定制柜施工前仍需按开发商图纸和现场完成面复尺",
             "toleranceMm": 100
           },
-          "notes": "儿童房只通阳台2；两阳台之间有实体分隔。",
+          "notes": "保留本房通阳台门/通道目标；阳台间互通厚玻璃推拉门和原分界遮光帘关系已确认。旧“各自独立且实体分隔”不当目标方案；本门现洞宽/位置/18mm门槛仅FIX1模型声明，未改几何，待同源方案核。",
           "outdoorZoneId": "OD-2F-BALCONY-02"
         }
       ],
