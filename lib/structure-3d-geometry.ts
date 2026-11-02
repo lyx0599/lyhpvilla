@@ -77,7 +77,7 @@ export function getHostedOpeningCuts(
     ? structure.bayWindows
         .filter((bayWindow) => bayWindow.wallId === hostId)
         .map((bayWindow) => {
-          const sillHeight = getOpeningSillHeight(hostHeightMm, bayWindow.height);
+          const sillHeight = (bayWindow.sillHeightMm ?? getOpeningSillHeight(hostHeightMm, bayWindow.height)) + (bayWindow.renderBaseElevationMm ?? 0);
           return toCut(
             bayWindow.id,
             "bayWindow",

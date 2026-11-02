@@ -15,6 +15,14 @@ for (const item of wetItems) {
   assert.equal(item.render3d?.childrenMode, "grouped", `${item.id} should remain editable as a grouped visual family`);
   assert.equal(item.render3d?.wetAreaVisual?.fixtureKind, type, `${item.id} should declare its reusable wet-area family`);
   const anchorTypes = new Set((item.constructionAnchors?.points ?? []).map((point) => point.type));
+  // Adopted B2 relocation deliberately retires old furniture-relative anchors:
+  // claiming them bound at the new cabinet would invent relocated plumbing.
+  // Check the retained absolute, explicitly unverified source points instead.
+  if(item.id==='furn-b2-study-handwash-001'&&workspace.furniture.some(f=>f.id==='furn-b2-sofa-residence-four-reference-20261031-r7')){
+    assert.equal(anchorTypes.size,0);
+    for(const category of['waterSupply','drainage']){const point=workspace.drawingItems.find(d=>d.relatedFurnitureId===item.id&&d.category===category);assert.ok(point);assert.equal(point.status,'todo');assert.deepEqual(point.positionMm,{x:2375,y:7525});assert.match(point.notes,/历史坐标/);}
+    continue;
+  }
   assert.ok(anchorTypes.has("drain"), `${item.id} should have a bound drain point`);
   assert.ok(anchorTypes.has("coldWater"), `${item.id} should have a bound cold-water point`);
   if (type !== "toilet") assert.ok(anchorTypes.has("hotWater"), `${item.id} should have a bound hot-water point`);
@@ -23,7 +31,7 @@ for (const item of wetItems) {
 
 const storageItems = workspace.furniture.filter((item) => storageTypes.has(item.moduleType ?? item.type));
 assert.ok(storageItems.length >= 10, "storage-family sample should cover multiple rooms and floors");
-assert.ok(storageItems.every((item) => ["standard", "presentation"].includes(item.render3d?.detailLevel)), "storage families should keep a non-draft presentation detail level");
+assert.ok(storageItems.every((item) => ["standard", "presentation"].includes(item.render3d?.detailLevel)||(item.id==='furn-b2-study-souvenir-cabinet-001'&&item.render3d?.variantId==='b2TwoGlassCastleDesign'&&item.dimensions.height===140)), "legacy storage families retain presentation detail; adopted two-glass reference uses its explicit role adapter, not legacy selected cabinetry");
 
 const kitchenSamples = [
   "furn-kitchen-run-001",

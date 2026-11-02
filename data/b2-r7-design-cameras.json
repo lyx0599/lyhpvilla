@@ -1,0 +1,157 @@
+{
+  "sceneTransform": "x=(X-6000)/1000; z=(Y-4500)/1000; native furniture35mm visual lift retained",
+  "cameras": [
+    {
+      "id": "B2-R7-overall",
+      "name": "整体空间",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 5.2,
+        "y": 9.7,
+        "z": 5.9
+      },
+      "target": {
+        "x": -0.6,
+        "y": 0.6,
+        "z": 0
+      },
+      "fov": 54,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-eye-1",
+      "name": "左侧座位视角",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -0.6,
+        "y": 1.15,
+        "z": -1
+      },
+      "target": {
+        "x": 0.1,
+        "y": 1.4225,
+        "z": -3.565
+      },
+      "fov": 50,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-eye-2",
+      "name": "中央偏左座位视角",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -0.1,
+        "y": 1.15,
+        "z": -1
+      },
+      "target": {
+        "x": 0.1,
+        "y": 1.4225,
+        "z": -3.565
+      },
+      "fov": 50,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-eye-3",
+      "name": "中央偏右座位视角",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 0.4,
+        "y": 1.15,
+        "z": -1
+      },
+      "target": {
+        "x": 0.1,
+        "y": 1.4225,
+        "z": -3.565
+      },
+      "fov": 50,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-eye-4",
+      "name": "右侧座位视角",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 0.9,
+        "y": 1.15,
+        "z": -1
+      },
+      "target": {
+        "x": 0.1,
+        "y": 1.4225,
+        "z": -3.565
+      },
+      "fov": 50,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-role-inspection",
+      "name": "收纳与骑行区",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 0.1,
+        "y": 4.6,
+        "z": 3.6
+      },
+      "target": {
+        "x": 2,
+        "y": 0.7,
+        "z": 1.45
+      },
+      "fov": 65,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-sofa-inspection",
+      "name": "沙发与茶几",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 2.3,
+        "y": 2.4,
+        "z": -2.8
+      },
+      "target": {
+        "x": 0.15,
+        "y": 0.4,
+        "z": -1
+      },
+      "fov": 60,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    },
+    {
+      "id": "B2-R7-chair-inspection",
+      "name": "餐桌与座椅",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 2.5,
+        "z": 2.6
+      },
+      "target": {
+        "x": -3.5,
+        "y": 0.2,
+        "z": 1.15
+      },
+      "fov": 62,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor"
+    }
+  ]
+}

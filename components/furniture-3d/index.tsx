@@ -1,6 +1,12 @@
 "use client";
 
 import { resolveFurnitureVariant } from "@/lib/furniture-variants";
+import { Research1FContract, hasResearch1FContract } from "./research-1f-contract";
+import { approvedR14Role, R14ApprovedSubset } from './r14-approved-subset';
+import { isR09ThreeDoorCloset } from "@/lib/r09-closet-mapping";
+import { R09ThreeDoorCloset } from "./r09-three-door-closet";
+import {hasR11BathFixture,R11BathFixture} from './r11-bath-fixtures';
+import {isR12GuestShower,R12GuestShower} from './r12-guest-shower';
 import { BedFamily3D } from "./bed-family-3d";
 import { CabinetFamily3D } from "./cabinet-family-3d";
 import { ChairFamily3D } from "./chair-family-3d";
@@ -13,6 +19,11 @@ import type { FurnitureFamily3DProps } from "./types";
 import { WetAreaFamily3D } from "./wet-area-family-3d";
 
 export function FurnitureFamily3D(props: FurnitureFamily3DProps) {
+  if (approvedR14Role(props.item)) return <R14ApprovedSubset {...props} />;
+  if (hasR11BathFixture(props)) return <R11BathFixture {...props}/>;
+  if (isR12GuestShower(props)) return <R12GuestShower {...props}/>;
+  if (isR09ThreeDoorCloset(props.item)) return <R09ThreeDoorCloset {...props} />;
+  if (hasResearch1FContract(props.item.id)) return <Research1FContract {...props} />;
   if (props.asset.assetType === "fireplace") return <MediaWall3D {...props} />;
   if (props.asset.assetType === "desk") return <SitStandDesk3D {...props} />;
   if (["archedBuffetUpper", "mirroredReferenceBuffetUpper", "mirroredReferenceBuffetTower"].includes(props.item.render3d?.variantId ?? "")) return <CabinetFamily3D {...props} />;

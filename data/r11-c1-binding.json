@@ -1,0 +1,76 @@
+{
+  "parentProgramSha256": "bf93d857af177fe1ebb906b7514b32835645f0d3a27fcf53fd8f20d31a91317c",
+  "cycleSha256": "ad722f4317ea481a4987951b3171f4b5565e0eea2f17f92329c5cbfb2b34875d",
+  "sourceModelSha256": "79c7f0d1ecf846c5a48e7fecc0455f126fc57a91cb4366295899c980eb04ceaf",
+  "closet": {
+    "originGlobalMm": [
+      4766,
+      460
+    ],
+    "innerSizeMm": [
+      2380,
+      2760
+    ],
+    "cabinetMm": [
+      2240,
+      600,
+      2470
+    ],
+    "localCenters": {
+      "left": [
+        300,
+        1360
+      ],
+      "right": [
+        2080,
+        1360
+      ]
+    },
+    "globalCenters": {
+      "left": [
+        5066,
+        1820
+      ],
+      "right": [
+        6846,
+        1820
+      ]
+    },
+    "rotationDegrees": {
+      "left": 270,
+      "right": 90
+    },
+    "cabinetYExtent": [
+      240,
+      2480
+    ],
+    "northWindowReserve": 240,
+    "southApron": 280,
+    "physicalClosedAisle": 1180,
+    "planningAisleAfter30Each": 1120,
+    "preserve": "3 ordinary smoked-glass thin-frame doors each; 24 function IDs; approved93 fields;930/1750 clear and1000/2000 rods; hollow650 drawers; no180 outboard pivot",
+    "ordinaryOpeningStudyDegrees": 100,
+    "openingIsNotSimultaneousBothSides": true,
+    "passage": {
+      "globalCenter": [
+          5956,
+        3300
+      ],
+      "width": 1500,
+      "operation": "open passage no new leaf"
+    },
+    "lightRule": "derive existing generated strip from final cabinet transform and nominal height2415; never paste old coordinates"
+  },
+  "leafIndexConvention": "0-based source index2 means third physical leaf; never subtract1",
+  "approvalScope": "Local separate-side cycle only; actual common-floor binding needs verification",
+  "r12Rebase": {
+    "fromOriginX": 5463,
+    "toOriginX": 4766,
+    "translationMm": [
+      -697,
+      0
+    ],
+    "local1192StatesUnchanged": true,
+    "sourceRatioRevision": "R12-SOURCE-PROPORTION-DERIVATION-20261102"
+  }
+}

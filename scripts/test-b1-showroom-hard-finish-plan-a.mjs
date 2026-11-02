@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 
 const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
 const structure = workspace.houseStructuresByFloor.B1;
+const selected2250 = /b1-selected2250-staged|source-ratio-A-integrated/.test(workspace.defaultWorkspaceRevision);
 const byId = (items, id, label) => {
   const item = items.find((candidate) => candidate.id === id);
   assert.ok(item, `Missing ${label}: ${id}`);
@@ -20,10 +21,10 @@ const polygonAreaMm2 = points => Math.abs(points.reduce((sum, point, index) => {
   const next = points[(index + 1) % points.length];
   return sum + point.x * next.y - next.x * point.y;
 }, 0) / 2);
-assert.equal(room("ROOM-B1-004").area, 20_567_105.5, "PMO-approved R03 design restores the full-width lower floor.");
+assert.equal(room("ROOM-B1-004").area, selected2250 ? 18_425_405.5 : 20_567_105.5, "Use the adopted contour revision, retaining the original arc and body.");
 assert.ok(Math.abs(room("ROOM-B1-003").area - polygonAreaMm2(room("ROOM-B1-003").boundary)) < 0.001);
 assert.equal(room("ROOM-B1-004").area, polygonAreaMm2(room("ROOM-B1-004").boundary), "Derived design area must use its polygon, not the old inconsistent cache.");
-assert.equal(Math.max(...room("ROOM-B1-004").boundary.map(point => point.x)), 10000);
+assert.equal(Math.max(...room("ROOM-B1-004").boundary.map(point => point.x)), selected2250 ? 8900 : 10000);
 assert.equal(Math.max(...room("ROOM-B1-004").boundary.map(point => point.y)), 7800);
 const originalArc = byId(structure.walls, "AW-B1-014", "original arc guard");
 assert.deepEqual([originalArc.center.x, originalArc.center.y, originalArc.radius, originalArc.startAngle, originalArc.endAngle], [4708, 4523, 1936, -47.18, 42.82]);
@@ -32,8 +33,8 @@ assert.equal(sampledArc.length, 19, "Approved floor contour must retain the orig
 const shortGuard = byId(structure.walls, "W-B1-012", "short guard");
 const movedGuard = byId(structure.walls, "W-B1-013", "outer upper-edge guard");
 assert.deepEqual(movedGuard.start, shortGuard.end);
-assert.deepEqual(movedGuard.end, { x: 10000, y: 5853 });
-assert.equal(movedGuard.length, 3350);
+assert.deepEqual(movedGuard.end, { x: selected2250 ? 8900 : 10000, y: 5853 });
+assert.equal(movedGuard.length, selected2250 ? 2250 : 3350);
 assert.equal(movedGuard.height, 1100);
 assert.equal(movedGuard.thickness, 90);
 assert.ok(workspace.stairOpenings.some(opening => opening.id === "OPENING-B2-B1" && opening.floorId === "B1"), "Original stair void must remain a real opening, not a filled room floor.");

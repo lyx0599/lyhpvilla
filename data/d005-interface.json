@@ -1,0 +1,8 @@
+{
+  "revision": "candidate-1f-r08-d005-room-out-arc-relief-L34-20261101",
+  "doorId": "D-1F-005",
+  "enableSourceNotePrefix": "R08-D005-room-aware-outward",
+  "targetRoomId": "ROOM-1F-003",
+  "hostId": "W-1F-009",
+  "fullOpenDeg": 72
+}

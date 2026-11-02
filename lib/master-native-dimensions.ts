@@ -1,0 +1,12 @@
+type Point=number[];type Box={min:Point;max:Point};
+type NativeMesh={physical:boolean;entityId:string|null;kind:string|null;lineage:string[];worldBoundingBox:Box};
+type Structure={coordinateSystem:{origin:{x:number;y:number};width:number;height:number};walls:Array<{id:string;start?:{x:number;y:number};thickness:number}>;doors:Array<{id:string;width:number}>};
+export function buildMasterNativeDimensions(meshes:NativeMesh[],structure:Structure){
+ const box=(id:string):Box|null=>{const p=meshes.filter(x=>x.physical&&(x.entityId===id||x.lineage.some(n=>n.includes(id))));return p.length?{min:[0,1,2].map(i=>Math.min(...p.map(x=>x.worldBoundingBox.min[i]))),max:[0,1,2].map(i=>Math.max(...p.map(x=>x.worldBoundingBox.max[i])))}:null;};
+ const bed=box('furn-2f-master-bedroom-bed-001'),north=box('furn-2f-master-nightstand-north-001'),south=box('furn-2f-master-nightstand-south-001'),wardrobe=box('furn-2f-master-bedroom-large-wardrobe-001');if(!bed||!north||!south||!wardrobe)return null;
+ const wall=(id:string)=>structure.walls.find(w=>w.id===id),h=wall('W-2F-016'),n=wall('W-2F-014'),s=wall('W-2F-020');if(!h?.start||!n?.start||!s?.start)return null;
+ const c=structure.coordinateSystem,west=(h.start.x+h.thickness/2-c.origin.x-c.width/2)/1000,nf=(n.start.y+n.thickness/2-c.origin.y-c.height/2)/1000,sf=(s.start.y-s.thickness/2-c.origin.y-c.height/2)/1000;
+ const mid=(b:Box,i:number)=>(b.min[i]+b.max[i])/2,y=1.05,metric=(id:string,label:string,a:Point,b:Point,mm:number)=>({id,label,a,b,mm});
+ const metrics=[metric('A','床头至西实墙',[west,y,mid(bed,2)],[bed.min[0],y,mid(bed,2)],(bed.min[0]-west)*1000),metric('B','北柜至北墙',[mid(north,0),y,nf],[mid(north,0),y,north.min[2]],(north.min[2]-nf)*1000),metric('C','南柜至南墙',[mid(south,0),y,south.max[2]],[mid(south,0),y,sf],(sf-south.max[2])*1000),metric('D','床头段北侧净带',[mid(bed,0)-.4,y,nf],[mid(bed,0)-.4,y,bed.min[2]],(bed.min[2]-nf)*1000),metric('E','床南侧净带',[mid(bed,0)+.4,y,bed.max[2]],[mid(bed,0)+.4,y,sf],(sf-bed.max[2])*1000),metric('F','床尾至真实薄柜',[bed.max[0],y,mid(bed,2)],[wardrobe.min[0],y,mid(bed,2)],(wardrobe.min[0]-bed.max[0])*1000)];
+ return {metrics,bedEnvelopeMm:[(bed.max[0]-bed.min[0])*1000,(bed.max[2]-bed.min[2])*1000],groupLengthMm:(south.max[2]-north.min[2])*1000,availableWallLengthMm:(sf-nf)*1000,northBedGapMm:(bed.min[2]-north.max[2])*1000,southBedGapMm:(south.min[2]-bed.max[2])*1000,minimumAdditionalLengthForThisGroupMm:Math.max(0,(south.max[2]-north.min[2]-(sf-nf))*1000),entranceWidthMm:structure.doors.find(d=>d.id==='D-2F-008')?.width,boxes:{bed,north,south,wardrobe}};
+}

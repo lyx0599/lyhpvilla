@@ -782,6 +782,16 @@ export function applyWorkspaceMigrations(
   const workspace = cloneJson(input) as Partial<WorkspaceDocument>;
   const canMigrate = (input.schemaVersion ?? 0) < CURRENT_WORKSPACE_SCHEMA_VERSION
     || input.dataRevision !== CURRENT_WORKSPACE_DATA_REVISION;
+  // A post-legacy north layout has its own thin-cabinet stable ID. Preserve its
+  // input geometry (including deliberate later user edits) across old-version
+  // migrations; do not let legacy default coordinates reset the adopted design.
+  // Only poses/dimensions and five companion polygons are protected, so missing
+  // metadata/outdoor bindings can still migrate and south-yard behavior is kept.
+  const preserveNorth = workspace.furniture?.some(item => item.id === "PLAN-YARD-R31-N-THIN-CABINET-001");
+  const northIds = new Set(["OUT-N-KITCHEN-ISLAND", "OUT-N-STORAGE", "OUT-N-BBQ", "OUT-N-TAP", "OUT-N-PLANTER", "PLAN-YARD-R31-N-THIN-CABINET-001"]);
+  const northFurniture = preserveNorth ? workspace.furniture?.filter(item => northIds.has(item.id)).map(item => ({id:item.id,position:cloneJson(item.position),dimensions:cloneJson(item.dimensions)})) ?? [] : [];
+  const northShapeIds = new Set(["OS-YARD-NORTH-PLANT", "OS-YARD-NORTH-KITCHEN-DECK", "OZ-NORTH-PLANT-001", "OZ-NORTH-KITCHEN-001", "OZ-NORTH-STORAGE-001"]);
+  const northShapes = preserveNorth ? [...workspace.houseStructuresByFloor?.YARD?.outdoorSurfaces ?? [], ...workspace.houseStructuresByFloor?.YARD?.outdoorZones ?? []].filter(item => northShapeIds.has(item.id)).map(item => ({id:item.id,polygon:cloneJson(item.polygon),area:item.area})) : [];
   const needsModernWarmLighting = (input.schemaVersion ?? 0) < 14
     || !hasOwn(original, "lightingDesign")
     || !input.lightingDesign?.fixtureFamilies?.length
@@ -932,6 +942,14 @@ export function applyWorkspaceMigrations(
   workspace.wallSyncOverrides = workspace.wallSyncOverrides ?? {};
   workspace.schemaVersion = CURRENT_WORKSPACE_SCHEMA_VERSION;
   workspace.dataRevision = CURRENT_WORKSPACE_DATA_REVISION;
+  for (const saved of northFurniture) {
+    const item=workspace.furniture?.find(item=>item.id===saved.id);
+    if(item){item.position=saved.position;item.dimensions=saved.dimensions;}
+  }
+  for (const saved of northShapes) {
+    const item=[...workspace.houseStructuresByFloor?.YARD?.outdoorSurfaces ?? [],...workspace.houseStructuresByFloor?.YARD?.outdoorZones ?? []].find(item=>item.id===saved.id);
+    if(item){item.polygon=saved.polygon;item.area=saved.area;}
+  }
 
   return { workspace: workspace as WorkspaceDocument, sources };
 }

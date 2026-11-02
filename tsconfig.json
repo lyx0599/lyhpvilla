@@ -37,7 +37,10 @@
     ".next-playwright/types/**/*.ts",
     ".next-stage3/types/**/*.ts",
     ".next-local-preview/types/**/*.ts",
-    ".next-2f-audit/types/**/*.ts"
+    ".next-2f-audit/types/**/*.ts",
+    ".next-r14m2/types/**/*.ts",
+    ".next-m3-dev/types/**/*.ts",
+    ".next-r12-dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

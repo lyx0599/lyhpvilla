@@ -32,7 +32,9 @@ assert.ok(secondFloorNames.some((name) => /衣帽/.test(name)), "2F should expos
 assert.ok(secondFloorNames.some((name) => /主卫/.test(name)), "2F should expose the main bathroom");
 assert.equal(secondFloorNames.some((name) => /厨房|壁炉/.test(name)), false, "2F must not inherit 1F views");
 
-assert.ok(names("B1").some((name) => /客房|房间/.test(name)), "B1 should expose its actual guest/room space");
+const b1FunctionalRoom = workspace.houseStructuresByFloor.B1.rooms.find((room) => room.id === "ROOM-B1-002");
+assert.ok(b1FunctionalRoom, "B1 retains its actual stable functional room");
+assert.ok(viewsFor("B1").some((view) => view.roomId === b1FunctionalRoom.id && view.name.includes(b1FunctionalRoom.name)), "B1 view must bind the current accepted room name, including its adopted 家政房 name, not require a retired guest-room label");
 assert.ok(names("B2").some((name) => /书房/.test(name)), "B2 should expose its study");
 assert.ok(names("B2").some((name) => /活动/.test(name)), "B2 should expose its activity zone");
 assert.ok(names("YARD", "sitePlan").some((name) => /北院/.test(name)), "YARD should expose north-yard views");

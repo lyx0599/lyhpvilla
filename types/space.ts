@@ -887,6 +887,8 @@ export type StraightHouseWall = SyncObjectState & VerificationState & {
   surfaceFinish?: WallSurfaceFinish;
   /** Optional room-face finishes for shared walls whose two sides use different treatments. */
   surfaceFinishByRoomId?: Record<string, WallSurfaceFinish>;
+  /** Local finish relief only; offsets measured from this wall's start. */
+  finishTrimFlushRanges?: import("@/lib/wall-finish-trim").FinishTrimFlushRange[];
   openness?: number;
 };
 
@@ -1028,6 +1030,12 @@ export type HouseBayWindow = SyncObjectState & VerificationState & {
   width: number;
   depth: number;
   height: number;
+  /** Explicit model sill, independent of glazing height; not a survey value. */
+  sillHeightMm?: number;
+  renderBaseElevationMm?: number;
+  projectionDirection?: "exterior";
+  glazingModel?: "threePaneBay";
+  integratedBenchId?: string;
   operation?: "fixed" | "casement";
   openDirection?: "inward" | "outward";
 };

@@ -224,7 +224,7 @@ assert.deepEqual(
 );
 for (const [id, position] of Object.entries({
   "ph-1f-north-outdoor-socket": { x: 32, y: -13 },
-  "OUT-N-STORAGE": { x: 36.9, y: -9.1 },
+  "OUT-N-STORAGE": canonical.furniture.find((item) => item.id === "OUT-N-STORAGE").position,
   "OUT-S-LAUNDRY": { x: 20, y: 103.2, rotation: 180 },
   "OUT-S-PET-WASH": { x: 65.7, y: 116 }
 })) {

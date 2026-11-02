@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {d006RoomInwardYaw} from './d006-room-side.ts';
+const args={id:'D-2F-006',hostStart:{x:2705,y:3050},hostEnd:{x:4686,y:3050},positionOnWall:(4046-2705)/(4686-2705),roomBoundary:[{x:2705,y:810},{x:4686,y:810},{x:4686,y:3050},{x:2705,y:3050}],leafDirection:-1 as const};
+assert.equal(d006RoomInwardYaw({...args,angleDeg:90}),-Math.PI/2);
+assert.equal(Math.abs(d006RoomInwardYaw({...args,angleDeg:0})!),0);
+assert.equal(d006RoomInwardYaw({...args,id:'D-1F-005',angleDeg:90}),undefined);
+assert.equal(d006RoomInwardYaw({...args,id:'D-2F-007',angleDeg:90}),undefined);
+const yaw=d006RoomInwardYaw({...args,angleDeg:90})!;
+const freeEdge={x:4496+Math.cos(yaw)*-900,y:3050-Math.sin(yaw)*-900};
+assert(freeEdge.y<3050);assert.equal(Math.round(freeEdge.y),2150);
+console.log('D006-only: full900 leaf physically opens north; unrelated doors untouched');

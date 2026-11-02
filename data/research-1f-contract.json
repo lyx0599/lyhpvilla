@@ -1,0 +1,327 @@
+{
+  "revision": "published-daily-eight-work07",
+  "publicationScope": "adopted-daily-only",
+  "states": {
+    "daily": [
+      {
+        "id": "R1",
+        "kind": "chair",
+        "parent": "round-table",
+        "centerMm": [
+          7110,
+          5072
+        ],
+        "angleDeg": 270,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            6840,
+            5292
+          ],
+          [
+            6840,
+            4797
+          ],
+          [
+            7380,
+            4797
+          ],
+          [
+            7380,
+            5292
+          ]
+        ]
+      },
+      {
+        "id": "R2",
+        "kind": "chair",
+        "parent": "round-table",
+        "centerMm": [
+          7824.470958122161,
+          5514.5
+        ],
+        "angleDeg": 330,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            7498.945369289585,
+            5390.673140978201
+          ],
+          [
+            7927.627944162882,
+            5143.173140978201
+          ],
+          [
+            8197.627944162883,
+            5610.826859021799
+          ],
+          [
+            7768.945369289585,
+            5858.326859021799
+          ]
+        ]
+      },
+      {
+        "id": "R3",
+        "kind": "chair",
+        "parent": "round-table",
+        "centerMm": [
+          7824.470958122162,
+          6234.5
+        ],
+        "angleDeg": 30,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            7768.945369289586,
+            5890.673140978201
+          ],
+          [
+            8197.627944162883,
+            6138.173140978201
+          ],
+          [
+            7927.627944162883,
+            6605.826859021799
+          ],
+          [
+            7498.945369289586,
+            6358.326859021799
+          ]
+        ]
+      },
+      {
+        "id": "R4",
+        "kind": "chair",
+        "parent": "round-table",
+        "centerMm": [
+          7110,
+          6572
+        ],
+        "angleDeg": 90,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            7380,
+            6352
+          ],
+          [
+            7380,
+            6847
+          ],
+          [
+            6840,
+            6847
+          ],
+          [
+            6840,
+            6352
+          ]
+        ]
+      },
+      {
+        "id": "R5",
+        "kind": "chair",
+        "parent": "round-table",
+        "centerMm": [
+          6395.529041877838,
+          6234.5
+        ],
+        "angleDeg": 150,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            6721.054630710414,
+            6358.326859021799
+          ],
+          [
+            6292.372055837117,
+            6605.826859021799
+          ],
+          [
+            6022.372055837117,
+            6138.173140978201
+          ],
+          [
+            6451.054630710414,
+            5890.673140978201
+          ]
+        ]
+      },
+      {
+        "id": "R6",
+        "kind": "chair",
+        "parent": "round-table",
+        "centerMm": [
+          6395.529041877839,
+          5464.5
+        ],
+        "angleDeg": 210,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            6451.054630710415,
+            5808.326859021799
+          ],
+          [
+            6022.372055837118,
+            5560.826859021799
+          ],
+          [
+            6292.372055837118,
+            5093.173140978201
+          ],
+          [
+            6721.054630710415,
+            5340.673140978201
+          ]
+        ]
+      },
+      {
+        "id": "L1",
+        "kind": "chair",
+        "parent": "long-table",
+        "centerMm": [
+          5151,
+          4104
+        ],
+        "angleDeg": 180,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            5371,
+            4374
+          ],
+          [
+            4876,
+            4374
+          ],
+          [
+            4876,
+            3834
+          ],
+          [
+            5371,
+            3834
+          ]
+        ]
+      },
+      {
+        "id": "L2",
+        "kind": "chair",
+        "parent": "long-table",
+        "centerMm": [
+          7949,
+          4226
+        ],
+        "angleDeg": 0,
+        "dimensionsMm": [
+          495,
+          540
+        ],
+        "heightMm": 820,
+        "polygonMm": [
+          [
+            7729,
+            3956
+          ],
+          [
+            8224,
+            3956
+          ],
+          [
+            8224,
+            4496
+          ],
+          [
+            7729,
+            4496
+          ]
+        ]
+      }
+    ],
+    "party": []
+  },
+  "geometryConstraints": {
+    "dailyCircleMm": 1350,
+    "partyCircleMm": 1750,
+    "dailyRoundSeats": 6,
+    "partyRoundSeats": 10,
+    "longSeats": 2,
+    "longTableMm": [
+      2298,
+      550,
+      750
+    ],
+    "chairMm": [
+      495,
+      540
+    ],
+    "bodyDiameterMm": 600,
+    "researchEdgeReserveMm": 50,
+    "chairMotionPaths": "dailyActions; other individual chairs outward400, one at a time",
+    "chairPlanAnchor": "Actual native six-box chair bounds localX -220..275, localZ -270..270; pivot is not the envelope center. Not articulated human."
+  },
+  "dailyActions": {
+    "L1": [
+      [
+        0,
+        0
+      ],
+      [
+        -400,
+        0
+      ]
+    ],
+    "R1": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        -280
+      ]
+    ]
+  },
+  "partyGoal": {
+    "roundSeats": 10,
+    "longSeats": 2,
+    "expandedDiameterMm": 1750,
+    "status": "保留用户拓展与十席目标，该状态未复验；不显示未采用座位布局。"
+  },
+  "wholeFloorPass": false,
+  "limits": [
+    "仅当前固定八席与声明分次动作；5mm附加边余是紧凑模型条件，不是舒适或现场误差余量。",
+    "桌端板腿、人体膝腿与成品久坐需深化；不等于全屋任意同时使用、承载或施工批准。",
+    "1750拓展与聚餐十席目标保留，公开模型不提供未复验椅位操作。"
+  ]
+}

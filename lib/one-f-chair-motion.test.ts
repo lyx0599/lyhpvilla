@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {oneFChairMotionOffset} from './one-f-chair-motion.ts';
+assert.deepEqual(oneFChairMotionOffset([[0,0],[0,-280]],0),[0,0]);
+assert.deepEqual(oneFChairMotionOffset([[0,0],[0,-280]],.5),[0,-140]);
+assert.deepEqual(oneFChairMotionOffset([[0,0],[0,-280]],1),[0,-280]);
+assert.deepEqual(oneFChairMotionOffset([[0,0],[-400,0]],1),[-400,0]);
+assert.deepEqual(oneFChairMotionOffset([[0,0],[100,0],[100,100]],.75),[100,50]);
+assert.deepEqual(oneFChairMotionOffset([[0,0],[0,0]],1),[0,0]);
+assert.deepEqual(oneFChairMotionOffset([[0,0],[0,-280]],NaN),[0,0]);
+assert.throws(()=>oneFChairMotionOffset([[0,Infinity]],1));
+console.log('PASS declared chair trajectories/endpoints/arc-length progress/invalid input; not body, floor or comfort acceptance.');

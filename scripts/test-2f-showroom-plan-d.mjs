@@ -8,6 +8,7 @@ import {
 
 const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
 const structure = workspace.houseStructuresByFloor["2F"];
+const sourceRatioR12 = workspace.defaultWorkspaceRevision.includes('source-ratio-A-integrated');
 const byId = (items, id, label) => {
   const item = items.find((candidate) => candidate.id === id);
   assert.ok(item, `Missing ${label}: ${id}`);
@@ -19,7 +20,7 @@ const door = (id) => byId(structure.doors, id, "door");
 
 assert.deepEqual(room("ROOM-2F-004").boundary, [{ x: 950, y: 5150 }, { x: 3897, y: 5150 }, { x: 3897, y: 7800 }, { x: 950, y: 7800 }]);
 assert.deepEqual(room("ROOM-2F-005").boundary, [{ x: 3897, y: 5150 }, { x: 6542, y: 5150 }, { x: 6542, y: 7800 }, { x: 3897, y: 7800 }]);
-assert.deepEqual(room("ROOM-2F-006").boundary, [{ x: 7681, y: 3050 }, { x: 9495, y: 3050 }, { x: 9495, y: 7800 }, { x: 6542, y: 7800 }, { x: 6542, y: 5150 }, { x: 7681, y: 5150 }]);
+assert.deepEqual(room("ROOM-2F-006").boundary, sourceRatioR12 ? [{ x: 7226, y: 3300 }, { x: 9870, y: 3300 }, { x: 9870, y: 7800 }, { x: 6542, y: 7800 }, { x: 6542, y: 4930 }, { x: 7226, y: 4930 }] : [{ x: 7681, y: 3050 }, { x: 9495, y: 3050 }, { x: 9495, y: 7800 }, { x: 6542, y: 7800 }, { x: 6542, y: 5150 }, { x: 7681, y: 5150 }]);
 
 assert.deepEqual(structure.stairs.map(({ id, start, end, width, landingDepthMm, direction }) => ({ id, start, end, width, landingDepthMm, direction })), [
   { id: "ST-2F-001", start: { x: 4123, y: 4470 }, end: { x: 950, y: 4470 }, width: 900, landingDepthMm: 900, direction: "down" }
@@ -54,7 +55,7 @@ assert.equal(wardrobe.render3d.cabinetVisual.doorCount, 4);
 assert.equal(workspace.furniture.some((item) => item.id === "module-2f-window-desk"), false, "The cancelled cloakroom desk must not return to the candidate model.");
 
 assert.deepEqual(furniture("furn-2f-master-bathtub-001").dimensions, { width: 170, depth: 70, height: 60, unit: "cm" });
-assert.deepEqual(furniture("furn-2f-master-toilet-001").dimensions, { width: 60, depth: 70, height: 78, unit: "cm" });
+assert.deepEqual(furniture("furn-2f-master-toilet-001").dimensions, { width: 60, depth: 70, height: sourceRatioR12 ? 90 : 78, unit: "cm" });
 assert.equal(furniture("furn-2f-master-vanity-001").render3d.wetAreaVisual.basinCount, 2);
 
 for (const roomId of ["ROOM-2F-002", "ROOM-2F-004", "ROOM-2F-005", "ROOM-2F-006", "ROOM-2F-007", "ROOM-2F-008"]) {

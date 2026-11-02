@@ -15,6 +15,9 @@ const expectedHeightRangesCm = {
 };
 
 function expectedHeightRange(item) {
+  // R08 replaces this former story-height asset with an independently reviewed
+  // 2200mm real cabinet. Its inherited visual preset is not its height contract.
+  if (item.id === 'furn-living-snack-pullout-001' && item.render3d?.geometryContractId === 'R08-R14-native-tall-D005-clear') return [220, 220];
   const kind = item.moduleType ?? item.type;
   if (kind === "tallCabinet" && /tower|fullHeight/i.test(item.render3d?.variantId ?? "")) return [240, 275];
   if (kind !== "wardrobe") return expectedHeightRangesCm[kind];

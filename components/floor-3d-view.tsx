@@ -1,7 +1,18 @@
 "use client";
+import {useSearchParams} from 'next/navigation';
+import d005Contract from '@/data/d005-interface.json';
+import {d006RoomInwardYaw} from '@/lib/d006-room-side';
+import {YardC03AStudy,hasC03AStudy} from "@/components/yard-c03a-study";
+import {B2LowdoorStudy} from "@/components/b2-lowdoor-study";
+import {B2R7RoleParts,B2R7EvidenceOverlay,R7ChairStudyOutline} from "@/components/b2-r7-design";
+import {DesignEvidenceAudit} from "@/components/design-evidence-audit";
+import {OneFOperationActor} from '@/components/one-f-operation-actor';
+import {R11BathEntry} from '@/components/furniture-3d/r11-bath-fixtures';
+import {R11BayBench} from '@/components/furniture-3d/r11-bay-bench';
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
+import { buildWallFinishTrim } from '@/lib/wall-finish-trim';
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 // Keep the candidate's fine furniture path local. The main-app alias can point
 // at the shared renderer when this isolated preview is built from the root.
@@ -2504,7 +2515,11 @@ function getFurnitureServiceMarkers(item: Furniture) {
   return serviceMarkerOptions.filter((service) => requirements[service.key]);
 }
 
-function RoomFloorMesh({
+function RoomFloorMesh(props: Parameters<typeof RoomFloorMeshContents>[0]) {
+  return <group name={`${props.room.id}-actual-native-floor`} userData={{auditEntityId:props.room.id,auditKind:'room-floor'}}><RoomFloorMeshContents {...props}/></group>;
+}
+
+function RoomFloorMeshContents({
   room,
   index,
   structure,
@@ -2634,7 +2649,13 @@ function ShowroomHerringboneOverlay({
   );
 }
 
-function RoomFloorFinishOverlay({
+function RoomFloorFinishOverlay(props: Parameters<typeof RoomFloorFinishOverlayContents>[0]) {
+  return <group name={`${props.room.id}-walking-finish-seam-overlay`} userData={{auditEntityId:props.room.id,auditKind:'floor-finish',walkingSurface:true}}>
+    <RoomFloorFinishOverlayContents {...props}/>
+  </group>;
+}
+
+function RoomFloorFinishOverlayContents({
   room,
   structure,
   designStyle,
@@ -2746,7 +2767,7 @@ function RoomAmbientOcclusion({ room, structure }: { room: HouseStructure["rooms
   const band = Math.min(0.22, Math.max(0.12, Math.min(width, depth) * 0.08));
   const color = "#4b4035";
   return (
-    <group position={[0, 0.065, 0]}>
+    <group name={`${room.id}-ambient-occlusion-shadow-only`} userData={{auditKind:'room-shadow',auditEntityId:room.id,auditNonPhysical:true}} position={[0, 0.065, 0]}>
       <mesh position={[centerX, 0, bounds.minZ + band / 2]}>
         <boxGeometry args={[width, 0.005, band]} />
         <meshBasicMaterial color={color} transparent opacity={0.12} depthWrite={false} />
@@ -2776,7 +2797,7 @@ function FurnitureContactShadow({ item, structure }: { item: Furniture; structur
   const area = width * depth;
   const opacity = Math.min(0.18, Math.max(0.07, area * 0.028));
   return (
-    <group position={[position.x, 0.071, position.z]} rotation={[0, rotation, 0]}>
+    <group name={`${item.id}-contact-shadow-only`} userData={{auditKind:'contact-shadow',auditEntityId:item.id,auditNonPhysical:true}} position={[position.x, 0.071, position.z]} rotation={[0, rotation, 0]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} scale={[width * 0.5, depth * 0.38, 1]}>
         <circleGeometry args={[1, 48]} />
         <meshBasicMaterial color="#211b17" transparent opacity={opacity * 0.66} depthWrite={false} />
@@ -3881,6 +3902,20 @@ function RailingSegment({
   );
 }
 
+function WallFinishTrim(props: ComponentProps<typeof LineBox>) {
+  const host=props.structure.walls.find(w=>w.id===props.id);
+  if(!host||host.kind!=='straight'||!host.finishTrimFlushRanges?.length) return <LineBox {...props}/>;
+  const segments=buildWallFinishTrim(host.start,host.end,props.start,props.end,
+    host.thickness,(props.widthMm-host.thickness)/2,host.finishTrimFlushRanges);
+  return <group name={`${host.id}-localized-finish-trim`}>
+    {segments.map((part,index)=><group key={index} name={`${host.id}-finish-${index}`}
+      userData={{auditPart:'localized-finish-trim',leftProjectionMm:part.leftProjectionMm,
+        rightProjectionMm:part.rightProjectionMm,sourceObjectIds:part.sourceObjectIds}}>
+      <LineBox {...props} start={part.start} end={part.end} widthMm={part.widthMm}/>
+    </group>)}
+  </group>;
+}
+
 function SolidWallSegment({
   id,
   start,
@@ -3957,7 +3992,7 @@ function SolidWallSegment({
         onHover={onHover}
         onClearHover={onClearHover}
       />
-      <LineBox
+<WallFinishTrim
         id={id}
         start={start}
         end={end}
@@ -3996,7 +4031,7 @@ function SolidWallSegment({
         onClearHover={onClearHover}
       />
       {!selected && (
-        <LineBox
+<WallFinishTrim
           id={id}
           start={start}
           end={end}
@@ -4126,7 +4161,7 @@ function CutWallPanel({
       )}
       {startsAtFloor && heightMm > 120 && (
         <>
-          <LineBox
+<WallFinishTrim
             id={id}
             start={start}
             end={end}
@@ -4147,7 +4182,7 @@ function CutWallPanel({
             onClearHover={onClearHover}
           />
           {!selected && (
-            <LineBox
+<WallFinishTrim
               id={id}
               start={start}
               end={end}
@@ -4234,7 +4269,11 @@ function StraightWallWithOpenings({
   );
 }
 
-function WallMesh({
+function WallMesh(props: Parameters<typeof WallMeshContents>[0]) {
+  return <group name={`${props.wall.id}-actual-native-wall`} userData={{auditEntityId:props.wall.id,auditKind:'wall'}}><WallMeshContents {...props}/></group>;
+}
+
+function WallMeshContents({
   wall,
   structure,
   wallColor,
@@ -4367,6 +4406,7 @@ function WallMesh({
     />
   );
 }
+
 
 function PartitionMesh({
   partition,
@@ -4575,7 +4615,13 @@ function StyledDoorLeaf({
   );
 }
 
-function OpeningMesh({
+function OpeningMesh(props: Parameters<typeof OpeningMeshContents>[0]) {
+  return <group name={`${props.opening.id}-actual-hosted-opening`} userData={{auditEntityId:props.opening.id,auditKind:props.opening.id.startsWith('D-')?'door':'window',hostId:props.opening.hostId}}>
+    <OpeningMeshContents {...props}/>
+  </group>;
+}
+
+function OpeningMeshContents({
   opening,
   structure,
   selected,
@@ -4593,6 +4639,7 @@ function OpeningMesh({
   onClearHover: (id: string) => void;
 }) {
   const host = getHostSegment(structure, opening.hostId);
+  const operationQuery=useSearchParams();
   if (!host) return null;
   const metrics = lineMetrics(host.start, host.end, structure);
   const t = Math.min(1, Math.max(0, opening.positionOnWall));
@@ -4601,6 +4648,7 @@ function OpeningMesh({
     z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t
   };
   const isDoor = "openDirection" in opening;
+  const r08Door=isDoor&&opening.id===d005Contract.doorId&&(opening.verificationMeta?.sourceNote??'').startsWith(d005Contract.enableSourceNotePrefix);
   const width = Math.max(0.2, opening.width * MM_TO_M);
   const windowDisplayMetrics = isDoor ? null : getWindow3DDisplayMetrics(host.height, opening.height, opening.sillHeightMm);
   const displayHeightMm = isDoor ? getDoor3DDisplayHeight(opening.height) : windowDisplayMetrics!.heightMm;
@@ -4725,8 +4773,25 @@ function OpeningMesh({
             const opensFromStart = opening.openDirection === "leftIn" || opening.openDirection === "leftOut";
             const opensInside = opening.openDirection === "leftIn" || opening.openDirection === "rightIn";
             const leafDirection = opensFromStart ? 1 : -1;
-            const designSwingAngle = (opensFromStart ? -1 : 1) * (opensInside ? 1 : -1) * Math.PI * 0.4;
-            const swingAngle = explorationDoorState
+            let designSwingAngle = (opensFromStart ? -1 : 1) * (opensInside ? 1 : -1) * Math.PI * 0.4;
+            if(r08Door){
+              const dx=host.end.x-host.start.x,dy=host.end.y-host.start.y,len=Math.hypot(dx,dy),doorPoint={x:host.start.x+dx*t,y:host.start.y+dy*t};
+              const room=structure.rooms.find(room=>room.id===d005Contract.targetRoomId);
+              let n={x:-dy/len,y:dx/len};
+              if(room&&!pointInPolygon({x:doorPoint.x+n.x*100,y:doorPoint.y+n.y*100},room.boundary))n={x:-n.x,y:-n.y};
+              const insideLocalZ=n.x*(-dy/len)+n.y*(dx/len),desiredLocalZ=insideLocalZ*(opensInside?1:-1);
+              designSwingAngle=-Math.sign(desiredLocalZ)*leafDirection*d005Contract.fullOpenDeg*Math.PI/180;
+            }
+            const r12GuestDoor=opening.id==='D-2F-006'&&(opening.verificationMeta?.sourceNote??'').includes('R12-D006-room-side');
+            if(r12GuestDoor){
+              const room=structure.rooms.find(r=>r.id==='ROOM-2F-001');
+              if(room)designSwingAngle=d006RoomInwardYaw({id:opening.id,hostStart:host.start,hostEnd:host.end,positionOnWall:t,roomBoundary:room.boundary,leafDirection,angleDeg:90})??designSwingAngle;
+            }
+            const swingAngle = r08Door&&operationQuery.has('d005')
+              ? designSwingAngle*Math.max(0,Math.min(d005Contract.fullOpenDeg,Number(operationQuery.get('d005'))))/d005Contract.fullOpenDeg
+              : r12GuestDoor&&operationQuery.has('d006')
+              ? designSwingAngle*Math.max(0,Math.min(90,Number(operationQuery.get('d006'))))/90
+              : explorationDoorState
               ? designSwingAngle * explorationDoorState.currentAngle
               : designSwingAngle * ((opening as HouseDoor).defaultOpenAmount ?? 0);
             if (doorStyle === "doubleLeafWood" || doorVisual?.leafCount === 2) {
@@ -4743,8 +4808,11 @@ function OpeningMesh({
               );
             }
             return (
-              <group position={[opensFromStart ? -width / 2 : width / 2, 0, 0]} rotation={[0, swingAngle, 0]}>
-                {isGlassDoor && doorStyle === "standard" ? <mesh castShadow receiveShadow position={[leafDirection * width / 2, height / 2, 0]}><boxGeometry args={[width, height * 0.985, 0.055]} /><PbrMaterial token="clearGlass" fallbackRole="glassMain" color={color} transmission={0.68} opacity={0.56} roughness={0.08} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh> : <StyledDoorLeaf style={doorStyle} width={width} height={height} color={doorWoodColor} glassColor={doorGlassColor} hardwareColor={doorHardwareColor} leafDirection={leafDirection} woodTexture={woodTexture} />}
+              <group name={r08Door?'D005-R08-real-moving-leaf':r12GuestDoor?'D006-R12-real-inward-leaf':undefined} userData={r08Door?{auditEntityId:'D-1F-005',auditKind:'d005-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:d005Contract.targetRoomId}:r12GuestDoor?{auditEntityId:opening.id,auditKind:'d006-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:'ROOM-2F-001'}:undefined} position={[opensFromStart ? -width / 2 : width / 2, 0, 0]} rotation={[0, swingAngle, 0]}>
+                {r12GuestDoor?<group name="D006-R12-full900x55-two-normal-knobs" position={[leafDirection*width/2,height/2,0]}>
+                  <mesh name="D006-R12-full-leaf" castShadow receiveShadow><boxGeometry args={[width,height,.055]}/><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={doorWoodColor} roughness={.7} surfaceSizeM={[width,height]}/></mesh>
+                  {[-1,1].map(side=><mesh key={side} name={`D006-R12-normal-knob-${side}`} position={[leafDirection*width*.39,0,side*.0506]}><sphereGeometry args={[.036,20,16]}/><PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={doorHardwareColor} metalness={.6} roughness={.3} surfaceSizeM={[.072,.072]}/></mesh>)}
+                </group>:isGlassDoor && doorStyle === "standard" ? <mesh castShadow receiveShadow position={[leafDirection * width / 2, height / 2, 0]}><boxGeometry args={[width, height * 0.985, 0.055]} /><PbrMaterial token="clearGlass" fallbackRole="glassMain" color={color} transmission={0.68} opacity={0.56} roughness={0.08} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh> : <StyledDoorLeaf style={doorStyle} width={width} height={height} color={doorWoodColor} glassColor={doorGlassColor} hardwareColor={doorHardwareColor} leafDirection={leafDirection} woodTexture={woodTexture} />}
               </group>
             );
           })()}
@@ -4857,12 +4925,15 @@ function BayWindowMesh({
   if (!host) return null;
   const metrics = lineMetrics(host.start, host.end, structure);
   const t = Math.min(1, Math.max(0, bayWindow.positionOnWall));
+  const axisPoint={x:host.start.x+(host.end.x-host.start.x)*t,y:host.start.y+(host.end.y-host.start.y)*t};
+  const pointsInside=structure.rooms.some(room=>pointInPolygon({x:axisPoint.x+metrics.normal.x*100,y:axisPoint.y+metrics.normal.z*100},room.boundary));
+  const exteriorSign=bayWindow.projectionDirection==='exterior'&&pointsInside?-1:1;
   const center = {
-    x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t + metrics.normal.x * ((host.thickness / 2 + bayWindow.depth / 2) * MM_TO_M),
-    z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t + metrics.normal.z * ((host.thickness / 2 + bayWindow.depth / 2) * MM_TO_M)
+    x: metrics.startPoint.x + (metrics.endPoint.x - metrics.startPoint.x) * t + exteriorSign*metrics.normal.x * ((host.thickness / 2 + bayWindow.depth / 2) * MM_TO_M),
+    z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t + exteriorSign*metrics.normal.z * ((host.thickness / 2 + bayWindow.depth / 2) * MM_TO_M)
   };
   const height = Math.max(0.4, bayWindow.height * MM_TO_M);
-  const sillHeight = getOpeningSillHeight(host.height, bayWindow.height) * MM_TO_M;
+  const sillHeight = ((bayWindow.sillHeightMm ?? getOpeningSillHeight(host.height, bayWindow.height))+(bayWindow.renderBaseElevationMm??0)) * MM_TO_M;
   const width = bayWindow.width * MM_TO_M;
   const depth = bayWindow.depth * MM_TO_M;
   const inwardOpening = bayWindow.openDirection === "inward" || /内开/.test(bayWindow.name);
@@ -4875,8 +4946,26 @@ function BayWindowMesh({
   const frameRoughness = structure.floorId === "2F" ? 0.62 : 0.56;
   const frameMetalness = structure.floorId === "2F" ? 0.18 : 0.36;
   const glassColor = "#cbd5cf";
+  if(bayWindow.glazingModel==='threePaneBay'){
+    const f=frameWidth,front=exteriorSign*depth/2;
+    const frame=(name:string,size:[number,number,number],position:[number,number,number])=><mesh key={name} name={`${bayWindow.id}-${name}`} position={position} castShadow><boxGeometry args={size}/><meshStandardMaterial color={frameColor} roughness={frameRoughness} metalness={frameMetalness}/></mesh>;
+    const glass=(name:string,size:[number,number,number],position:[number,number,number])=><mesh key={name} name={`${bayWindow.id}-${name}`} position={position}><boxGeometry args={size}/><PbrMaterial token="clearGlass" fallbackRole="glassMain" color={glassColor} transmission={.76} opacity={.25} roughness={.11} thicknessMm={12} side={THREE.DoubleSide} surfaceSizeM={[width,height]}/></mesh>;
+    return <group name={`${bayWindow.id}-actual-three-pane-bay`} userData={{auditEntityId:bayWindow.id,auditKind:'window',projectionDirection:'exterior',sillHeightMm:bayWindow.sillHeightMm??null}} position={[center.x,sillHeight+height/2,center.z]} rotation={[0,metrics.rotationY,0]}>
+      {glass('outer-pane',[width-2*f,height-2*f,.012],[0,0,front-exteriorSign*.006])}
+      {[-1,1].map(side=>glass('side-pane-'+side,[.012,height-2*f,depth-2*f],[side*(width/2-.006),0,0]))}
+      {[-1,1].flatMap(side=>[
+        frame('outer-post-'+side,[f,height,f],[side*(width/2-f/2),0,front-exteriorSign*f/2]),
+        frame('inner-post-'+side,[f,height,f],[side*(width/2-f/2),0,-front+exteriorSign*f/2]),
+        frame('front-cap-'+side,[width,f,f],[0,side*(height/2-f/2),front-exteriorSign*f/2]),
+        ...[-1,1].map(edge=>frame('side-cap-'+side+'-'+edge,[f,f,depth],[edge*(width/2-f/2),side*(height/2-f/2),0]))
+      ])}
+      {!bayWindow.integratedBenchId&&frame('retained-window-platform',[width+.05,.022,depth+.04],[0,-height/2-.012,0])}
+    </group>;
+  }
   return (
     <group
+      name={`${bayWindow.id}-actual-bay`}
+      userData={{auditEntityId:bayWindow.id,auditKind:'window'}}
       position={[center.x, sillHeight + height / 2, center.z]}
       rotation={[0, metrics.rotationY, 0]}
       onClick={(event) => {
@@ -5523,6 +5612,7 @@ function StairDebugGeometryLayer({
 }
 
 type FurnitureAssetGroupProps = {
+  b2ExplicitChairs?: boolean;
   item: Furniture;
   structure: HouseStructure;
   heightMode: "actual" | "cutaway";
@@ -7187,7 +7277,9 @@ function FineVariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
   );
   return (
     <SelectableFurnitureGroup props={props} position={metrics.position} groupY={metrics.groupY} rotation={metrics.rotation}>
-      {isCabinetLike(props.item) ? <CabinetMaterialRuntimeProbe item={props.item}>{content}</CabinetMaterialRuntimeProbe> : content}
+      {props.item.id==='furn-2f-master-bay-bench-001'&&/G02-bay-seat450/.test(props.item.note??'')?
+        <R11BayBench width={metrics.width} depth={metrics.depth} height={metrics.height} openAmount={props.cabinetOpenAmount??persistedOpenAmount}/>:
+        isCabinetLike(props.item)?<CabinetMaterialRuntimeProbe item={props.item}>{content}</CabinetMaterialRuntimeProbe>:content}
     </SelectableFurnitureGroup>
   );
 }
@@ -7731,7 +7823,7 @@ function DiningTable3DGroup(props: FurnitureAssetGroupProps) {
             <RoundedBoxMesh args={[0.28, 0.055, depth * 0.82]} position={[0, -height * 0.37, 0]} radius={0.018} color="#252627" materialToken="blackTitanium" materialResourceId="showroomDarkBronze" fallbackRole="trimMetal" roughness={0.3} metalness={0.58} />
           </group>
         ))}
-        {chairPositions.map(([xRatio, zRatio, chairRotation], index) => (
+        {(props.b2ExplicitChairs ? [] : chairPositions).map(([xRatio, zRatio, chairRotation], index) => (
           <group key={`b2-slab-chair-${index}`} position={[xRatio * width, floorY + 0.43, zRatio * depth]} rotation={[0, chairRotation, 0]}>
             <RoundedBoxMesh args={[0.46, 0.065, 0.45]} radius={0.07} color="#9a6b45" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.58} />
             {[-1, 1].map((side) => <RoundedBoxMesh key={`chair-back-post-${side}`} args={[0.038, 0.55, 0.045]} position={[side * 0.18, 0.25, -0.19]} radius={0.015} color="#765038" materialToken="darkWalnut" fallbackRole="joineryMain" roughness={0.56} />)}
@@ -8291,6 +8383,10 @@ function OutdoorLiving3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function YardModule3DGroup(props: FurnitureAssetGroupProps) {
+  if(hasC03AStudy(props.item.id)){
+    const m=useFineAssetMetrics(props);
+    return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><YardC03AStudy item={props.item} height={m.height}/></SelectableFurnitureGroup>;
+  }
   return <OutdoorLiving3DGroup {...props} />;
 }
 
@@ -8350,41 +8446,7 @@ function Pegboard3DGroup(props: FurnitureAssetGroupProps) {
 function Bookshelf3DGroup(props: FurnitureAssetGroupProps) {
   if (props.item.render3d?.variantId === "b2UnderStairRoomShell") {
     const metrics = useFineAssetMetrics(props);
-    const { position, width, depth, height, rotation, groupY } = metrics;
-    const floorY = -height / 2;
-    const frontZ = depth / 2 + 0.018;
-    const segmentCount = 7;
-    const segmentWidth = width / segmentCount;
-    const doorWidth = Math.min(0.7, width * 0.5);
-    const doorHeight = Math.min(1.25, height * 0.6);
-    const doorCenterX = -width * 0.25;
-    return (
-      <SelectableFurnitureGroup props={props} position={position} groupY={groupY} rotation={rotation}>
-        {Array.from({ length: segmentCount }, (_, index) => {
-          const x = -width / 2 + segmentWidth * (index + 0.5);
-          const segmentHeight = height * (0.98 - index * 0.065);
-          const inDoorOpening = Math.abs(x - doorCenterX) <= doorWidth / 2;
-          if (inDoorOpening) {
-            const transomHeight = Math.max(0.12, segmentHeight - doorHeight);
-            return <RoundedBoxMesh key={`under-stair-transom-${index}`} args={[segmentWidth + 0.012, transomHeight, 0.09]} position={[x, floorY + doorHeight + transomHeight / 2, frontZ]} radius={0.008} color="#ded4c6" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.88} />;
-          }
-          return <RoundedBoxMesh key={`under-stair-wall-${index}`} args={[segmentWidth + 0.012, segmentHeight, 0.09]} position={[x, floorY + segmentHeight / 2, frontZ]} radius={0.008} color="#ded4c6" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.88} />;
-        })}
-        <RoundedBoxMesh args={[doorWidth + 0.04, 0.018, 0.045]} position={[doorCenterX, floorY + doorHeight + 0.018, frontZ + 0.04]} radius={0.005} color="#9f9485" roughness={0.76} />
-        <group position={[doorCenterX, floorY + 0.5, depth * 0.08]}>
-          {[-1, 1].map((side) => <RoundedBoxMesh key={`under-stair-inner-post-${side}`} args={[0.035, 1.1, 0.035]} position={[side * doorWidth * 0.36, 0, 0]} radius={0.008} color="#59534c" materialToken="blackTitanium" materialResourceId="showroomDarkBronze" fallbackRole="trimMetal" roughness={0.58} metalness={0.3} />)}
-          {[-0.45, -0.08, 0.29].map((y, index) => (
-            <group key={`under-stair-inner-shelf-${index}`} position={[0, y, 0]}>
-              <RoundedBoxMesh args={[doorWidth * 0.76, 0.035, depth * 0.58]} radius={0.008} color="#b99b78" materialToken="warmOak" materialResourceId="showroomWarmOakVertical" fallbackRole="joineryMain" roughness={0.64} />
-              {[-0.22, 0.22].map((x, box) => <RoundedBoxMesh key={`under-stair-bin-${box}`} args={[doorWidth * 0.28, 0.18, depth * 0.34]} position={[x, 0.12, 0]} radius={0.025} color={box ? "#b8ae9e" : "#8e765e"} roughness={0.82} />)}
-            </group>
-          ))}
-          <RoundedBoxMesh args={[doorWidth * 0.7, 0.018, 0.018]} position={[0, 0.48, depth * 0.22]} radius={0.004} color="#ffe1a3" emissive="#ffc873" emissiveIntensity={0.72} roughness={0.2} />
-        </group>
-        <RoundedBoxMesh args={[0.08, height * 0.86, depth]} position={[width / 2 - 0.04, floorY + height * 0.43, 0]} radius={0.012} color="#ded4c6" materialToken="warmWhiteMineral" materialResourceId="showroomLimePlaster" fallbackRole="wallBase" roughness={0.88} />
-        <RoundedBoxMesh args={[width * 0.95, 0.025, 0.025]} position={[0, floorY + 0.06, frontZ + 0.105]} radius={0.006} color="#8a765f" roughness={0.52} />
-      </SelectableFurnitureGroup>
-    );
+    return <SelectableFurnitureGroup props={props} position={metrics.position} groupY={metrics.groupY} rotation={metrics.rotation}><B2LowdoorStudy item={props.item} structure={props.structure} width={metrics.width} depth={metrics.depth} height={metrics.height} groupY={metrics.groupY}/></SelectableFurnitureGroup>;
   }
   if (props.item.render3d?.variantId === "1fIntegratedSpiceRack") {
     const metrics = useFineAssetMetrics(props);
@@ -8924,6 +8986,16 @@ const furnitureAssetComponentMap = {
   generic: Generic3DGroup
 } satisfies Record<Render3DAssetType, typeof Generic3DGroup>;
 
+function B2UnselectedIntentEnvelope(props: FurnitureAssetGroupProps) {
+  const m=useFineAssetMetrics(props);
+  return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><mesh name="B2-unselected-600x600x1000-intent-envelope" castShadow receiveShadow><boxGeometry args={[m.width,m.height,m.depth]}/><meshStandardMaterial color="#8b9186" roughness={.92}/></mesh></SelectableFurnitureGroup>;
+}
+function B2R7RoleGroup(props:FurnitureAssetGroupProps&{role:'castle'|'sports'|'bike'|'sofa'}){
+ const m=useFineAssetMetrics(props);return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><B2R7RoleParts role={props.role} width={m.width} depth={m.depth} height={m.height}/></SelectableFurnitureGroup>;
+}
+function B2R7ChairOutline(props:FurnitureAssetGroupProps){
+ const m=useFineAssetMetrics(props);return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><R7ChairStudyOutline id={props.item.id} width={m.width} depth={m.depth} height={m.height}/></SelectableFurnitureGroup>;
+}
 function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
   const sourceAsset = resolve3DAsset(props.item);
   const resolvedAsset: Resolved3DAsset = {
@@ -8931,10 +9003,15 @@ function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
     detailLevel: resolveUnifiedSceneDetailLevel(sourceAsset.detailLevel, props.sceneLod)
   };
   if (!resolveVisibility(props.item).visible3d || !resolvedAsset.visibleIn3d) return null;
+  if (props.item.id === "furn-b2-fireplace-east-candidate-20261030") return <B2UnselectedIntentEnvelope {...props} resolvedAsset={resolvedAsset} />;
+  const role=props.item.id==='furn-b2-sofa-residence-four-reference-20261031-r7'?'sofa':props.item.id==='furn-b2-study-souvenir-cabinet-001'?'castle':props.item.id==='furn-b2-sports-camping-storage-candidate-20261030'?'sports':props.item.id==='furn-b2-bike-trainer-candidate-20261030'?'bike':null;
+  if(role)return <B2R7RoleGroup {...props} resolvedAsset={resolvedAsset} role={role}/>;
   if (resolvedAsset.assetUrl) {
     return <ExternalGltfFurniture3DGroup {...props} resolvedAsset={resolvedAsset} />;
   }
   const Component = furnitureAssetComponentMap[resolvedAsset.componentKey] ?? Generic3DGroup;
+  if(props.item.id==='furn-b2-living-large-tv-001')return <Generic3DGroup {...props} resolvedAsset={resolvedAsset}/>;
+  if(/^furn-b2-chair-(west|east)-[123]-candidate-/.test(props.item.id))return <><Component {...props} resolvedAsset={resolvedAsset}/><B2R7ChairOutline {...props} resolvedAsset={resolvedAsset}/></>;
   return <Component {...props} resolvedAsset={resolvedAsset} />;
 }
 
@@ -11297,6 +11374,9 @@ function Floor3DScene({
   return (
     <PbrQualityProvider quality={pbrQuality} device={pbrDevice} maxTextureSize={staticPreview ? (balancedQuality ? 512 : 1024) : undefined} includeHeightMap={staticPreview ? false : undefined}>
       <ScenePerformanceMonitor mode={presentationMode ? "presentation" : "edit"} interactionActive={cameraInteractionActive} />
+      <DesignEvidenceAudit/>
+      {houseStructure.floorId==='1F'&&<OneFOperationActor/>}
+      {houseStructure.floorId==='B2'&&<B2R7EvidenceOverlay/>}
       <LocalClippingController />
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} staticPreview={staticPreview} />
       <SceneReflectionEnvironment presentationMode={presentationMode} intensity={reflectionEnvironmentIntensity} />
@@ -11527,7 +11607,7 @@ function Floor3DScene({
       ))}
 
       {houseStructure.doors.filter((door) => resolveVisibility(door).visible3d && (!currentRoomActive || currentRoomWallIds.has(door.hostId))).map((door) => (
-        <OpeningMesh
+        door.id==='D-2F-007'&&door.name.includes('G02/R11')?<R11BathEntry key={door.id} structure={houseStructure} door={door}/>:<OpeningMesh
           key={door.id}
           opening={storageDoorPreviewOpen && door.id === "D-B2-STORAGE-001"
             ? { ...door, defaultOpenAmount: 0.76, openDirection: "rightOut" }
@@ -11640,9 +11720,9 @@ function Floor3DScene({
       ))}
 
       {visibleFurniture.map((item) => (
-        <ResolvedFurnitureAsset
-          key={item.id}
+        <group key={item.id} name={`${item.id}-design-root`} userData={{auditEntityId:item.id,auditKind:'furniture'}}><ResolvedFurnitureAsset
           item={item}
+          b2ExplicitChairs={visibleFurniture.some(f=>/^furn-b2-chair-/.test(f.id))}
           structure={houseStructure}
           heightMode={furnitureHeightMode}
           sceneLod={presentationMode ? sceneVisibility.lod : "balanced"}
@@ -11653,7 +11733,7 @@ function Floor3DScene({
           onSelect={onSelectFurniture}
           onHover={onHoverObject}
           onClearHover={onClearHoverObject}
-        />
+        /></group>
       ))}
 
       {!villaExperienceEnabled && (showServicePoints || sceneVisibility.showConstructionAnchors) && visibleFurniture.filter((item) => resolve3DAsset(item).visibleIn3d).map((item) => (

@@ -33,6 +33,20 @@ function furnitureFootprint(item: Furniture, structure: HouseStructure) {
   }));
 }
 
+/** Closed-set membership only; 1e-6mm is numeric epsilon, not field tolerance
+ * or installation clearance. Exact modeled boundary contact remains a warning. */
+export function pointOnOutdoorBoundary(point: {x:number;y:number}, polygon: Array<{x:number;y:number}>) {
+  return polygon.some((a,index)=>{
+    const b=polygon[(index+1)%polygon.length],dx=b.x-a.x,dy=b.y-a.y;
+    const t=Math.max(0,Math.min(1,((point.x-a.x)*dx+(point.y-a.y)*dy)/(dx*dx+dy*dy||1)));
+    return Math.hypot(point.x-a.x-t*dx,point.y-a.y-t*dy)<=1e-6;
+  });
+}
+
+export function pointInClosedOutdoorBoundary(point: {x:number;y:number}, polygon: Array<{x:number;y:number}>) {
+  return pointOnOutdoorBoundary(point,polygon)||pointInPolygon(point,polygon);
+}
+
 function zoneItems(zone: OutdoorZone, furniture: Furniture[]) {
   return furniture.filter((item) => item.outdoorZoneId === zone.id);
 }
@@ -87,7 +101,9 @@ export function validateOutdoorLivingSystem({ structure, furniture, drawingItems
     const outdoorObjectType = item.outdoorObjectType;
     const outdoor = structure.outdoors.find((candidate) => candidate.id === (item.outdoorId ?? item.roomId));
     if (outdoorObjectType && (!item.outdoorZoneId || !zones.some((zone) => zone.id === item.outdoorZoneId))) add("OUTDOOR_OBJECT_ZONE", "error", "relation", item.id, "庭院设备未归属分区", `${item.name} 未绑定有效 Outdoor Zone。`, "在检查器或对象属性中指定所属区域。");
-    if (!outdoor || furnitureFootprint(item, structure).some((corner) => !pointInPolygon(corner, outdoor.polygon))) add("OUTDOOR_OBJECT_OUTSIDE_BOUNDARY", "error", "geometry", item.id, "庭院设备越出院界", `${item.name} 的占地轮廓越出所属庭院边界。`, "移动、缩小或旋转对象，使完整占地范围落入院界内。", outdoor ? [outdoor.id] : undefined);
+    const footprint=furnitureFootprint(item,structure);
+    if (!outdoor || footprint.some((corner) => !pointInClosedOutdoorBoundary(corner, outdoor.polygon))) add("OUTDOOR_OBJECT_OUTSIDE_BOUNDARY", "error", "geometry", item.id, "庭院设备越出院界", `${item.name} 的占地轮廓越出所属庭院边界。`, "移动、缩小或旋转对象，使完整占地范围落入院界内。", outdoor ? [outdoor.id] : undefined);
+    else if(footprint.some(corner=>pointOnOutdoorBoundary(corner,outdoor.polygon))) add("OUTDOOR_OBJECT_BOUNDARY_CONTACT","warning","geometry",item.id,"模型外廓接触院界",`${item.name} 名义外廓接触模型院界；不是现场余量或安装净距通过。`,"按真实完成面、边界误差与维护净距深化，不以浮点或微移量冒充现场消差。",[outdoor.id]);
     if (outdoorObjectType && ["outdoorCabinet", "outdoorIsland", "outdoorLaundry"].includes(outdoorObjectType) && !item.constructionMeta?.waterproofRequired) add("OUTDOOR_CABINET_WATERPROOF", "warning", "metadata", item.id, "户外柜未声明防水要求", `${item.name} 作为户外柜体必须有防水、防晒和检修要求。`, "标记防水要求，并补充柜体材质、地面排水和检修说明。");
   });
   // Yard-level skylights are the shared vertical projection of basement light

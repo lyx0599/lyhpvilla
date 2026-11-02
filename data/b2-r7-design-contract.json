@@ -1,0 +1,816 @@
+{
+  "contract": {
+    "revision": "B2-NORTH-TV-RESIDENCE4-REFERENCE-20261031-r7",
+    "productReference": {
+      "manufacturer": "Roche Bobois",
+      "model": "RESIDENCE",
+      "configuration": "4-seat sofa / code3, not large3-seat code1",
+      "productURL": "https://www.roche-bobois.com/en/product/residence-4-seat-sofa/A166400810.html",
+      "technicalURL": "https://technicals.roche-bobois.com/M161298215/TSv_RESIDENCE_2024.pdf",
+      "technicalLocalFile": "sources/RESIDENCE-official-2024.pdf",
+      "verifiedTechnicalPage": 6,
+      "officialMm": {
+        "width": 2600,
+        "depth": 1080,
+        "height": 850,
+        "seatDepth": 620,
+        "seatHeight": 410,
+        "armWidthEach": 300,
+        "armHeight": 650
+      },
+      "cover": "Official product full-grain Globe leather; technical sheet says leather only, no fabric.",
+      "designerInference": {
+        "usableWidthApproxMm": 2000,
+        "fourAdultAllocationEachApproxMm": 500,
+        "seatCountOfficial": 4,
+        "twoWideCushionsDoNotMeanTwoSeats": true
+      },
+      "notApproved": [
+        "purchase/model/price/local stock",
+        "actual comfort for4 adults",
+        "exact head/eye position",
+        "cushion compression/production tolerance"
+      ],
+      "old3050x1120NotUserLockedProduct": "No verifiable user quote in this local task locks it. It was an audit research envelope; explicit new design permission used."
+    },
+    "newSofaId": "furn-b2-sofa-residence-four-reference-20261031-r7",
+    "retiredSofaId": "furn-b2-living-long-sofa-001",
+    "newDesignNotEast400": true,
+    "northTV": {
+      "consoleId": "furn-b2-living-tv-console-001",
+      "screenId": "furn-b2-living-large-tv-001",
+      "single100Inch2214x1245": true,
+      "preserveBottomElevationMm": 800,
+      "newConsoleBoundsMm": [
+        4760,
+        460,
+        7440,
+        880
+      ],
+      "newScreenBoundsMm": [
+        4993,
+        875,
+        7207,
+        935
+      ]
+    },
+    "sofa": {
+      "boundsMm": [
+        4850,
+        2960,
+        7450,
+        4040
+      ],
+      "capacity": 4,
+      "officialCushions": 2,
+      "show4Adult500MmAllocationMarkers": true,
+      "noOldAssetIdentityOrOldScaledSofa": true
+    },
+    "bike": {
+      "sameExistingBicycleAndIndependentTrainer": true,
+      "productUnknown": true,
+      "noNewBicycleOrIntegratedBikePurchase": true,
+      "U": {
+        "combinedEnvelopeMm": [
+          6600,
+          6100,
+          8100,
+          6900
+        ],
+        "bicycleStudyEnvelopeMm": [
+          6600,
+          6200,
+          8100,
+          6800
+        ],
+        "trainerStudyEnvelopeMm": [
+          7300,
+          6100,
+          7900,
+          6900
+        ]
+      },
+      "S": {
+        "bicycleStudyEnvelopeMm": [
+          7200,
+          6000,
+          7800,
+          7500
+        ],
+        "trainerStudyEnvelopeMm": [
+          6400,
+          6800,
+          7000,
+          7600
+        ]
+      },
+      "assumptions": "Only study assumed components1500x600 bike and600x800 trainer. S bike turns90 in plan; trainer separate/rotated, never scaled or claimed foldable. Actual ownership, detachability and stability pending.",
+      "movementCenterlinesMm": {
+        "bicycle": [
+          [
+            7350,
+            6500
+          ],
+          [
+            7500,
+            6750
+          ]
+        ],
+        "trainer": [
+          [
+            7600,
+            6500
+          ],
+          [
+            6700,
+            7200
+          ]
+        ]
+      },
+      "movementStatus": "New S static arrangement only; actual detach, lift/rotate sweep, operator and cables not approved."
+    },
+    "castle": {
+      "id": "furn-b2-study-souvenir-cabinet-001",
+      "boundsMm": [
+        7050,
+        4420,
+        8150,
+        5170
+      ],
+      "sizeMm": [
+        1100,
+        750,
+        1400
+      ],
+      "glassFaces": [
+        "south/front y5170",
+        "east/right x8150"
+      ],
+      "renderInstruction": "Two translucent cyan planes only on these faces, other faces neutral; visible simple CASTLE/防尘双面 label, not an opaque unidentifiable box. No chosen set, hinges or manufacturing claim."
+    },
+    "sports": {
+      "id": "furn-b2-sports-camping-storage-candidate-20261030",
+      "sizeMm": [
+        1200,
+        500,
+        2200
+      ],
+      "boundsMm": [
+        8885,
+        4350,
+        9385,
+        5550
+      ],
+      "role": "运动/露营收纳：可调层板、挂杆、可移箱；不固化小格。",
+      "renderInstruction": "Original envelope with a few line shelves/rail/bin marks and readable role; keep external pegboard separate and visible."
+    },
+    "chairs": {
+      "ids": [
+        "furn-b2-chair-west-1-candidate-20261030",
+        "furn-b2-chair-west-2-candidate-20261030",
+        "furn-b2-chair-west-3-candidate-20261030",
+        "furn-b2-chair-east-1-candidate-20261030",
+        "furn-b2-chair-east-2-candidate-20261030",
+        "furn-b2-chair-east-3-candidate-20261030"
+      ],
+      "sourceLocalWidthDepthMm": [
+        550,
+        400
+      ],
+      "physicalModel": "source rotated rectangle, not451x322.5 fine mesh",
+      "renderInstruction": "Restore actual source box or add explicit full550x400 world outline per source rotation. Visible counts daily4/party6; fine mesh inset must not create visual route proof. Keep0/75/150/225/300 and continuous envelope distinct."
+    },
+    "fireplace": "Reviewed45ab intent display unchanged; no selected heating form or new thermal review.",
+    "oldFootprintAuditRule": "3050×1120 was a research audit envelope, not verified user-chosen product. Explicit new-design permission used; replace old ID to avoid covert shrink.",
+    "allFunctions": [
+      "100inch TV",
+      "official4-seat leather sofa reference",
+      "2400x900 table daily4/party6",
+      "original coffee table",
+      "hot+cold waterbar",
+      "full600x600x2400 ambient wine",
+      "two-sided castle",
+      "sports/camping cabinet and full3000 pegboard",
+      "same bicycle+independent trainer U/S",
+      "external under-stair storage target"
+    ],
+    "nextRendererOwner": "1bb7",
+    "viewingContractFile": "viewing-camera-contract.json"
+  },
+  "viewing": {
+    "viewport": [
+      1600,
+      1000
+    ],
+    "verticalFovDeg": 50,
+    "horizontalFovDeg": 73.45266864074328,
+    "eyes": [
+      {
+        "seat": 1,
+        "assumedEyeMm": [
+          5400,
+          3500,
+          1150
+        ],
+        "screenFrontTargetMm": [
+          6100,
+          935,
+          1422.5
+        ],
+        "planDistanceMm": 2658.801421693617,
+        "screenAngularWidthDeg": 44.180270861417945,
+        "verticalEyeAssumedNotProductFact": true,
+        "camera": {
+          "id": "B2-R7-eye-1",
+          "name": "新方案四席1假设坐眼",
+          "floor": "B2",
+          "cameraPosition": {
+            "x": -0.6,
+            "y": 1.15,
+            "z": -1
+          },
+          "target": {
+            "x": 0.1,
+            "y": 1.4225,
+            "z": -3.565
+          },
+          "fov": 50,
+          "zoom": 1,
+          "mode": "perspective",
+          "scope": "floor"
+        }
+      },
+      {
+        "seat": 2,
+        "assumedEyeMm": [
+          5900,
+          3500,
+          1150
+        ],
+        "screenFrontTargetMm": [
+          6100,
+          935,
+          1422.5
+        ],
+        "planDistanceMm": 2572.7854554937144,
+        "screenAngularWidthDeg": 46.475104153368164,
+        "verticalEyeAssumedNotProductFact": true,
+        "camera": {
+          "id": "B2-R7-eye-2",
+          "name": "新方案四席2假设坐眼",
+          "floor": "B2",
+          "cameraPosition": {
+            "x": -0.1,
+            "y": 1.15,
+            "z": -1
+          },
+          "target": {
+            "x": 0.1,
+            "y": 1.4225,
+            "z": -3.565
+          },
+          "fov": 50,
+          "zoom": 1,
+          "mode": "perspective",
+          "scope": "floor"
+        }
+      },
+      {
+        "seat": 3,
+        "assumedEyeMm": [
+          6400,
+          3500,
+          1150
+        ],
+        "screenFrontTargetMm": [
+          6100,
+          935,
+          1422.5
+        ],
+        "planDistanceMm": 2582.4842690711594,
+        "screenAngularWidthDeg": 46.211054546180605,
+        "verticalEyeAssumedNotProductFact": true,
+        "camera": {
+          "id": "B2-R7-eye-3",
+          "name": "新方案四席3假设坐眼",
+          "floor": "B2",
+          "cameraPosition": {
+            "x": 0.4,
+            "y": 1.15,
+            "z": -1
+          },
+          "target": {
+            "x": 0.1,
+            "y": 1.4225,
+            "z": -3.565
+          },
+          "fov": 50,
+          "zoom": 1,
+          "mode": "perspective",
+          "scope": "floor"
+        }
+      },
+      {
+        "seat": 4,
+        "assumedEyeMm": [
+          6900,
+          3500,
+          1150
+        ],
+        "screenFrontTargetMm": [
+          6100,
+          935,
+          1422.5
+        ],
+        "planDistanceMm": 2686.861552071487,
+        "screenAngularWidthDeg": 43.45484413553919,
+        "verticalEyeAssumedNotProductFact": true,
+        "camera": {
+          "id": "B2-R7-eye-4",
+          "name": "新方案四席4假设坐眼",
+          "floor": "B2",
+          "cameraPosition": {
+            "x": 0.9,
+            "y": 1.15,
+            "z": -1
+          },
+          "target": {
+            "x": 0.1,
+            "y": 1.4225,
+            "z": -3.565
+          },
+          "fov": 50,
+          "zoom": 1,
+          "mode": "perspective",
+          "scope": "floor"
+        }
+      }
+    ],
+    "eyeDerivation": "Official seat frontY2960, seat depth620→rearY3580; eyeY3500 is an80mm forward-of-seat-rear design assumption, NOT manufacturer anatomy or moved rearwards to inflate view. Seat410 + assumed eye rise740→1150. All4 eyes shown, not one central perfect view.",
+    "sofaCentreToScreenCentreForwardMm": 2595,
+    "actualAssumedEyeForwardToScreenFrontMm": 2565,
+    "notComfortApproval": true,
+    "request": "1bb7 uses same main renderer whole+centre/edge eye; no transparent walls in eye view; actual pixel framing/occlusion reviewed before preference decision."
+  },
+  "routesByState": {
+    "daily4-U": {
+      "entry_to_lounge": {
+        "minimumNetMm": 24,
+        "limiter": "ROOM-UNION-BOUNDARY",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            4000,
+            1750
+          ],
+          [
+            4200,
+            1750
+          ],
+          [
+            4200,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_stair_front": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            3500
+          ]
+        ]
+      },
+      "public_to_lounge": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_waterbar": {
+        "minimumNetMm": 30,
+        "limiter": "furn-b2-study-souvenir-cabinet-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            6600,
+            5500
+          ],
+          [
+            8500,
+            5500
+          ],
+          [
+            8500,
+            6500
+          ]
+        ]
+      },
+      "waterbar_to_wine_front": {
+        "minimumNetMm": 35,
+        "limiter": "furn-b2-study-handwash-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            8500,
+            6500
+          ],
+          [
+            8500,
+            6700
+          ]
+        ]
+      }
+    },
+    "daily4-S": {
+      "entry_to_lounge": {
+        "minimumNetMm": 24,
+        "limiter": "ROOM-UNION-BOUNDARY",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            4000,
+            1750
+          ],
+          [
+            4200,
+            1750
+          ],
+          [
+            4200,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_stair_front": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            3500
+          ]
+        ]
+      },
+      "public_to_lounge": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_waterbar": {
+        "minimumNetMm": 30,
+        "limiter": "furn-b2-study-souvenir-cabinet-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            6600,
+            5500
+          ],
+          [
+            8500,
+            5500
+          ],
+          [
+            8500,
+            6500
+          ]
+        ]
+      },
+      "waterbar_to_wine_front": {
+        "minimumNetMm": 35,
+        "limiter": "furn-b2-study-handwash-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            8500,
+            6500
+          ],
+          [
+            8500,
+            6700
+          ]
+        ]
+      }
+    },
+    "party6-U": {
+      "entry_to_lounge": {
+        "minimumNetMm": 24,
+        "limiter": "ROOM-UNION-BOUNDARY",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            4000,
+            1750
+          ],
+          [
+            4200,
+            1750
+          ],
+          [
+            4200,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_stair_front": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            3500
+          ]
+        ]
+      },
+      "public_to_lounge": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_waterbar": {
+        "minimumNetMm": 30,
+        "limiter": "furn-b2-study-souvenir-cabinet-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            6600,
+            5500
+          ],
+          [
+            8500,
+            5500
+          ],
+          [
+            8500,
+            6500
+          ]
+        ]
+      },
+      "waterbar_to_wine_front": {
+        "minimumNetMm": 35,
+        "limiter": "furn-b2-study-handwash-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            8500,
+            6500
+          ],
+          [
+            8500,
+            6700
+          ]
+        ]
+      }
+    },
+    "party6-S": {
+      "entry_to_lounge": {
+        "minimumNetMm": 24,
+        "limiter": "ROOM-UNION-BOUNDARY",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            4000,
+            1750
+          ],
+          [
+            4200,
+            1750
+          ],
+          [
+            4200,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_stair_front": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            3500
+          ]
+        ]
+      },
+      "public_to_lounge": {
+        "minimumNetMm": 27.9772219810593,
+        "limiter": "ST-B2-001-RENDER-GUARD-CONSERVATIVE-BOUND",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            5600,
+            4380
+          ],
+          [
+            4520,
+            4380
+          ],
+          [
+            4520,
+            2630
+          ],
+          [
+            5200,
+            2630
+          ]
+        ]
+      },
+      "public_to_waterbar": {
+        "minimumNetMm": 30,
+        "limiter": "furn-b2-study-souvenir-cabinet-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            6200,
+            5000
+          ],
+          [
+            6600,
+            5500
+          ],
+          [
+            8500,
+            5500
+          ],
+          [
+            8500,
+            6500
+          ]
+        ]
+      },
+      "waterbar_to_wine_front": {
+        "minimumNetMm": 35,
+        "limiter": "furn-b2-study-handwash-001",
+        "passInSource": true,
+        "polylineMm": [
+          [
+            8500,
+            6500
+          ],
+          [
+            8500,
+            6700
+          ]
+        ]
+      }
+    }
+  },
+  "adoption": {
+    "pmoDesignApproved": true,
+    "sourceDisplayFormal": "8672da2129ae2b5496524846",
+    "sourceModelFormal": "6b4e774ff8e922940b1adb9b",
+    "notProductPurchase": true,
+    "notConstructionOrComfortApproval": true
+  }
+}

@@ -1,0 +1,1175 @@
+{
+  "revision": "R14-BASE-UPPER-APPROVED-SUBSET-20261101",
+  "sourceRevision": "1F-R07-R14-NATIVE-20261101",
+  "sourceSha256": "6c7a3d57e849152741c1abe6817ecd259398a472fea0b1d7f1105a52ed5a32ff",
+  "ownerIds": {
+    "base": "furn-living-waterbar-001",
+    "upper": "furn-living-waterbar-upper-001"
+  },
+  "anchors": {
+    "base": {
+      "centerMm": [
+        9110,
+        6490
+      ],
+      "rotationDeg": 90
+    },
+    "upper": {
+      "centerMm": [
+        9225,
+        6490
+      ],
+      "rotationDeg": 90
+    }
+  },
+  "materials": {
+    "metal": {
+      "color": "#49362b",
+      "metalness": 0.72,
+      "roughness": 0.43
+    },
+    "coffeeMetal": {
+      "color": "#65503d",
+      "metalness": 0.68,
+      "roughness": 0.46
+    },
+    "bronze": {
+      "color": "#59422d",
+      "metalness": 0.76,
+      "roughness": 0.35
+    },
+    "black": {
+      "color": "#111313",
+      "metalness": 0.08,
+      "roughness": 0.32
+    },
+    "gray": {
+      "color": "#444745",
+      "metalness": 0.01,
+      "roughness": 0.93
+    },
+    "glass": {
+      "color": "#45433a",
+      "metalness": 0.1,
+      "roughness": 0.21,
+      "opacity": 0.38
+    },
+    "wood": {
+      "color": "#b4a087",
+      "metalness": 0.03,
+      "roughness": 0.7
+    },
+    "steel": {
+      "color": "#4c504e",
+      "metalness": 0.8,
+      "roughness": 0.36
+    },
+    "warm": {
+      "color": "#d6b17d",
+      "metalness": 0.15,
+      "roughness": 0.6,
+      "emissive": "#dfb47b",
+      "emissiveIntensity": 0.42
+    },
+    "appliance": {
+      "color": "#292d2b",
+      "metalness": 0.45,
+      "roughness": 0.4
+    },
+    "recess": {
+      "color": "#201d19",
+      "metalness": 0.1,
+      "roughness": 0.7
+    },
+    "robot": {
+      "color": "#a6bfc4",
+      "metalness": 0.12,
+      "roughness": 0.5
+    }
+  },
+  "parts": [
+    {
+      "id": "R14-coffee-black-top",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9110,
+        6490,
+        881
+      ],
+      "sizeMm": [
+        550,
+        2400,
+        38
+      ],
+      "angleDeg": 0,
+      "material": "black"
+    },
+    {
+      "id": "R14-coffee-bottom",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9110,
+        6490,
+        177
+      ],
+      "sizeMm": [
+        550,
+        2400,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-coffee-back",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9376,
+        6490,
+        524
+      ],
+      "sizeMm": [
+        18,
+        2400,
+        676
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-coffee-north",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9101,
+        5299,
+        524
+      ],
+      "sizeMm": [
+        532,
+        18,
+        676
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-coffee-south",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9101,
+        7681,
+        524
+      ],
+      "sizeMm": [
+        532,
+        18,
+        676
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-coffee-divider1",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9101,
+        5890,
+        524
+      ],
+      "sizeMm": [
+        532,
+        18,
+        676
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-coffee-divider2",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9101,
+        6490,
+        524
+      ],
+      "sizeMm": [
+        532,
+        18,
+        676
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-coffee-divider3",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9101,
+        7090,
+        524
+      ],
+      "sizeMm": [
+        532,
+        18,
+        676
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal"
+    },
+    {
+      "id": "R14-wall-bracket-0",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9372.5,
+        5490,
+        473
+      ],
+      "sizeMm": [
+        25,
+        50,
+        574
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-bracket-arm-0",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9122.5,
+        5490,
+        159
+      ],
+      "sizeMm": [
+        475,
+        40,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-wall-bracket-1",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9372.5,
+        6150,
+        473
+      ],
+      "sizeMm": [
+        25,
+        50,
+        574
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-bracket-arm-1",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9122.5,
+        6150,
+        159
+      ],
+      "sizeMm": [
+        475,
+        40,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-wall-bracket-2",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9372.5,
+        6810,
+        473
+      ],
+      "sizeMm": [
+        25,
+        50,
+        574
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-bracket-arm-2",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9122.5,
+        6810,
+        159
+      ],
+      "sizeMm": [
+        475,
+        40,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-wall-bracket-3",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9372.5,
+        7470,
+        473
+      ],
+      "sizeMm": [
+        25,
+        50,
+        574
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-bracket-arm-3",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9122.5,
+        7470,
+        159
+      ],
+      "sizeMm": [
+        475,
+        40,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "base-door-1-leaf",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8825,
+        5590,
+        515
+      ],
+      "sizeMm": [
+        18,
+        560,
+        654
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal",
+      "movingGroup": "base-door-1"
+    },
+    {
+      "id": "base-door-1-recessed-pull",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8815,
+        5850,
+        585
+      ],
+      "sizeMm": [
+        2,
+        8,
+        350
+      ],
+      "angleDeg": 0,
+      "material": "recess",
+      "movingGroup": "base-door-1"
+    },
+    {
+      "id": "base-door-2-leaf",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8825,
+        6190,
+        515
+      ],
+      "sizeMm": [
+        18,
+        560,
+        654
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal",
+      "movingGroup": "base-door-2"
+    },
+    {
+      "id": "base-door-2-recessed-pull",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8815,
+        6450,
+        585
+      ],
+      "sizeMm": [
+        2,
+        8,
+        350
+      ],
+      "angleDeg": 0,
+      "material": "recess",
+      "movingGroup": "base-door-2"
+    },
+    {
+      "id": "base-door-3-leaf",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8825,
+        6790,
+        515
+      ],
+      "sizeMm": [
+        18,
+        560,
+        654
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal",
+      "movingGroup": "base-door-3"
+    },
+    {
+      "id": "base-door-3-recessed-pull",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8815,
+        7050,
+        585
+      ],
+      "sizeMm": [
+        2,
+        8,
+        350
+      ],
+      "angleDeg": 0,
+      "material": "recess",
+      "movingGroup": "base-door-3"
+    },
+    {
+      "id": "base-door-4-leaf",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8825,
+        7390,
+        515
+      ],
+      "sizeMm": [
+        18,
+        560,
+        654
+      ],
+      "angleDeg": 0,
+      "material": "coffeeMetal",
+      "movingGroup": "base-door-4"
+    },
+    {
+      "id": "base-door-4-recessed-pull",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8815,
+        7650,
+        585
+      ],
+      "sizeMm": [
+        2,
+        8,
+        350
+      ],
+      "angleDeg": 0,
+      "material": "recess",
+      "movingGroup": "base-door-4"
+    },
+    {
+      "id": "R14-gray-backsplash",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9376,
+        6490,
+        1150
+      ],
+      "sizeMm": [
+        18,
+        2400,
+        500
+      ],
+      "angleDeg": 0,
+      "material": "gray"
+    },
+    {
+      "id": "R14-coffee-machine",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        9075,
+        7200,
+        1060
+      ],
+      "sizeMm": [
+        380,
+        350,
+        320
+      ],
+      "angleDeg": 0,
+      "material": "appliance"
+    },
+    {
+      "id": "R14-machine-brew-window",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8880,
+        7200,
+        1065
+      ],
+      "sizeMm": [
+        10,
+        240,
+        190
+      ],
+      "angleDeg": 0,
+      "material": "black"
+    },
+    {
+      "id": "R14-machine-drip-tray",
+      "owner": "base",
+      "shape": "box",
+      "centerMm": [
+        8862.5,
+        7202.5,
+        932.5
+      ],
+      "sizeMm": [
+        45,
+        275,
+        15
+      ],
+      "angleDeg": 0,
+      "material": "steel"
+    },
+    {
+      "id": "R14-grinder",
+      "owner": "base",
+      "shape": "cylinder",
+      "centerMm": [
+        9100,
+        6820,
+        1050
+      ],
+      "radiusBottomMm": 80,
+      "radiusTopMm": 60,
+      "heightMm": 300,
+      "material": "appliance"
+    },
+    {
+      "id": "R14-cup",
+      "owner": "base",
+      "shape": "cylinder",
+      "centerMm": [
+        8860,
+        7200,
+        972.5
+      ],
+      "radiusBottomMm": 35,
+      "radiusTopMm": 38,
+      "heightMm": 65,
+      "material": "wood"
+    },
+    {
+      "id": "R14-upper-back",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9376,
+        6490,
+        1800
+      ],
+      "sizeMm": [
+        18,
+        2400,
+        764
+      ],
+      "angleDeg": 0,
+      "material": "bronze"
+    },
+    {
+      "id": "R14-upper-north",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9216,
+        5299,
+        1800
+      ],
+      "sizeMm": [
+        302,
+        18,
+        764
+      ],
+      "angleDeg": 0,
+      "material": "bronze"
+    },
+    {
+      "id": "R14-upper-south",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9216,
+        7681,
+        1800
+      ],
+      "sizeMm": [
+        302,
+        18,
+        764
+      ],
+      "angleDeg": 0,
+      "material": "bronze"
+    },
+    {
+      "id": "R14-upper-bottom",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9225,
+        6490,
+        1409
+      ],
+      "sizeMm": [
+        320,
+        2400,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "bronze"
+    },
+    {
+      "id": "R14-upper-top",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9225,
+        6490,
+        2191
+      ],
+      "sizeMm": [
+        320,
+        2400,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "bronze"
+    },
+    {
+      "id": "R14-upper-shelf",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9225,
+        6490,
+        1789
+      ],
+      "sizeMm": [
+        284,
+        2364,
+        18
+      ],
+      "angleDeg": 0,
+      "material": "bronze"
+    },
+    {
+      "id": "upper-door-1-frame-north",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        5316,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-1"
+    },
+    {
+      "id": "upper-door-1-frame-south",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        5864,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-1"
+    },
+    {
+      "id": "upper-door-1-frame-bottom",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        5590,
+        1426
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-1"
+    },
+    {
+      "id": "upper-door-1-frame-top",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        5590,
+        2174
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-1"
+    },
+    {
+      "id": "upper-door-1-smoke-glass",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        5590,
+        1800
+      ],
+      "sizeMm": [
+        6,
+        536,
+        736
+      ],
+      "angleDeg": 0,
+      "material": "glass",
+      "movingGroup": "upper-door-1"
+    },
+    {
+      "id": "upper-door-2-frame-north",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        5916,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-2"
+    },
+    {
+      "id": "upper-door-2-frame-south",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6464,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-2"
+    },
+    {
+      "id": "upper-door-2-frame-bottom",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6190,
+        1426
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-2"
+    },
+    {
+      "id": "upper-door-2-frame-top",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6190,
+        2174
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-2"
+    },
+    {
+      "id": "upper-door-2-smoke-glass",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6190,
+        1800
+      ],
+      "sizeMm": [
+        6,
+        536,
+        736
+      ],
+      "angleDeg": 0,
+      "material": "glass",
+      "movingGroup": "upper-door-2"
+    },
+    {
+      "id": "upper-door-3-frame-north",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6516,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-3"
+    },
+    {
+      "id": "upper-door-3-frame-south",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        7064,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-3"
+    },
+    {
+      "id": "upper-door-3-frame-bottom",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6790,
+        1426
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-3"
+    },
+    {
+      "id": "upper-door-3-frame-top",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6790,
+        2174
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-3"
+    },
+    {
+      "id": "upper-door-3-smoke-glass",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        6790,
+        1800
+      ],
+      "sizeMm": [
+        6,
+        536,
+        736
+      ],
+      "angleDeg": 0,
+      "material": "glass",
+      "movingGroup": "upper-door-3"
+    },
+    {
+      "id": "upper-door-4-frame-north",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        7116,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-4"
+    },
+    {
+      "id": "upper-door-4-frame-south",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        7664,
+        1800
+      ],
+      "sizeMm": [
+        12,
+        12,
+        760
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-4"
+    },
+    {
+      "id": "upper-door-4-frame-bottom",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        7390,
+        1426
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-4"
+    },
+    {
+      "id": "upper-door-4-frame-top",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        7390,
+        2174
+      ],
+      "sizeMm": [
+        12,
+        536,
+        12
+      ],
+      "angleDeg": 0,
+      "material": "bronze",
+      "movingGroup": "upper-door-4"
+    },
+    {
+      "id": "upper-door-4-smoke-glass",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9055,
+        7390,
+        1800
+      ],
+      "sizeMm": [
+        6,
+        536,
+        736
+      ],
+      "angleDeg": 0,
+      "material": "glass",
+      "movingGroup": "upper-door-4"
+    },
+    {
+      "id": "R14-under-upper-warm",
+      "owner": "upper",
+      "shape": "box",
+      "centerMm": [
+        9086,
+        6490,
+        1395
+      ],
+      "sizeMm": [
+        12,
+        2320,
+        10
+      ],
+      "angleDeg": 0,
+      "material": "warm"
+    }
+  ],
+  "operations": {
+    "base-door-1": {
+      "kind": "rotate",
+      "pivotMm": [
+        8825,
+        5310
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "jambGapMm": 1
+    },
+    "base-door-2": {
+      "kind": "rotate",
+      "pivotMm": [
+        8825,
+        5910
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "jambGapMm": 1
+    },
+    "base-door-3": {
+      "kind": "rotate",
+      "pivotMm": [
+        8825,
+        6510
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "jambGapMm": 1
+    },
+    "base-door-4": {
+      "kind": "rotate",
+      "pivotMm": [
+        8825,
+        7110
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "jambGapMm": 1
+    },
+    "upper-door-1": {
+      "kind": "rotate",
+      "pivotMm": [
+        9055,
+        5310
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "ordinaryDoor": true
+    },
+    "upper-door-2": {
+      "kind": "rotate",
+      "pivotMm": [
+        9055,
+        5910
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "ordinaryDoor": true
+    },
+    "upper-door-3": {
+      "kind": "rotate",
+      "pivotMm": [
+        9055,
+        6510
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "ordinaryDoor": true
+    },
+    "upper-door-4": {
+      "kind": "rotate",
+      "pivotMm": [
+        9055,
+        7110
+      ],
+      "openDeg": 90,
+      "widthMm": 560,
+      "ordinaryDoor": true
+    }
+  },
+  "states": {
+    "closed": {},
+    "base-open": {
+      "base-door-3": 1
+    },
+    "upper-open": {
+      "upper-door-3": 1
+    }
+  },
+  "scope": "Only reviewed base/upper. Tall/arc/public-WC interface excluded. Dimensions and materials are design working geometry, not surveyed/SKU/construction approval."
+}
