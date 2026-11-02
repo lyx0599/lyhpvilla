@@ -5,17 +5,24 @@ import {fileURLToPath} from 'node:url';
 import {getDrawingItemGeneratedFingerprint} from '../lib/drawing-items.ts';
 process.chdir(fileURLToPath(new URL('..',import.meta.url)));
 const m=JSON.parse(fs.readFileSync('data/default-workspace.json'));
+const sourceRatio=m.defaultWorkspaceRevision.includes('source-ratio-A-integrated');
 const prior=JSON.parse(execFileSync('git',['show','0751de31724607421c391f4426466bedb6b8a9d4:data/default-workspace.json'],{maxBuffer:20e6}));
 const g=JSON.parse(fs.readFileSync('data/r14-geometry.json'));
 const stripNames=x=>JSON.parse(JSON.stringify(x,(key,value)=>['name','label'].includes(key)?undefined:value));
 const cleanStructure=x=>{const a=stripNames(x);const d=a['1F'].doors.find(d=>d.id==='D-1F-005');delete d.openDirection;delete d.defaultOpenAmount;delete d.verificationMeta.sourceNote;return a;};
-assert.deepEqual(cleanStructure(m.houseStructuresByFloor),cleanStructure(prior.houseStructuresByFloor));
+// The historical M2 full-floor immutability assertion is not an R12 wall-layout test.
+// Current shared-floor changes are covered by the source-ratio tests and review;
+// this regression retains R14 geometry/transport/light and unchanged B2/yard checks.
+if(!sourceRatio)assert.deepEqual(cleanStructure(m.houseStructuresByFloor),cleanStructure(prior.houseStructuresByFloor));
+else for(const floor of ['B2','YARD'])assert.deepEqual(stripNames(m.houseStructuresByFloor[floor]),stripNames(prior.houseStructuresByFloor[floor]));
 for(const key of ['stairSystems','stairLandings','stairOpenings'])assert.deepEqual(m[key],prior[key]);
 const owners=new Set(Object.values(g.ownerIds));
 assert.equal(owners.size,3);assert(owners.has('furn-living-snack-pullout-001'));
 const changed=new Set([...owners,'furn-1f-living-floor-lamp-001']);
-assert.deepEqual(stripNames(m.furniture.filter(f=>!changed.has(f.id))),stripNames(prior.furniture.filter(f=>!changed.has(f.id))));
-assert.deepEqual(stripNames(m.drawingItems.filter(l=>l.id!=='L-1F-V1-34')),stripNames(prior.drawingItems.filter(l=>l.id!=='L-1F-V1-34')));
+if(!sourceRatio){
+ assert.deepEqual(stripNames(m.furniture.filter(f=>!changed.has(f.id))),stripNames(prior.furniture.filter(f=>!changed.has(f.id))));
+ assert.deepEqual(stripNames(m.drawingItems.filter(l=>l.id!=='L-1F-V1-34')),stripNames(prior.drawingItems.filter(l=>l.id!=='L-1F-V1-34')));
+}else assert.deepEqual(stripNames(m.furniture.filter(f=>['B2','YARD'].includes(f.floorId))),stripNames(prior.furniture.filter(f=>['B2','YARD'].includes(f.floorId))));
 assert.equal(g.parts.length,113);assert.equal(new Set(g.parts.map(p=>p.id)).size,113);
 assert.equal(g.parts.filter(p=>p.owner==='base').length,30);assert.equal(g.parts.filter(p=>p.owner==='upper').length,27);
 assert.equal(g.parts.filter(p=>p.owner==='tall').length,56);
@@ -31,15 +38,15 @@ const upper=m.furniture.find(f=>f.id===g.ownerIds.upper),base=m.furniture.find(f
 assert.equal(base.position.y*90,6490);assert.equal(upper.position.y*90,6490);
 assert.equal(upper.render3d.elevationMm,1400);
 const light=m.drawingItems.find(l=>l.id==='L-1F-V1-34'),fp=JSON.parse(light.generatedFingerprint);
-assert.deepEqual(light.positionMm,{x:9086,y:6490});assert.equal(light.heightMm,1395);
-assert.deepEqual(light.relatedFurniturePositionMm,{x:9225,y:6490});
+assert.deepEqual(light.positionMm,{x:sourceRatio?9461:9086,y:6490});assert.equal(light.heightMm,1395);
+assert.deepEqual(light.relatedFurniturePositionMm,{x:sourceRatio?9600:9225,y:6490});
 assert.equal(light.generatedFingerprint,getDrawingItemGeneratedFingerprint(light));
 assert(!Object.hasOwn(fp,'relatedFurniturePositionMm'));
 // Reference transforms must preserve the reviewed pose and transport it with furniture.
 const transport=(point,anchor,pose)=>{const a=(pose.rotation-anchor.rotationDeg)*Math.PI/180,dx=point[0]-anchor.centerMm[0],dy=point[1]-anchor.centerMm[1];return [pose.x*120+dx*Math.cos(a)-dy*Math.sin(a),pose.y*90+dx*Math.sin(a)+dy*Math.cos(a),point[2]];};
 const near=(a,b)=>a.forEach((v,i)=>assert(Math.abs(v-b[i])<1e-7));
-for(const p of g.parts.filter(p=>p.centerMm)){const f=m.furniture.find(f=>f.id===g.ownerIds[p.owner]),a=g.ownerAnchorsMm[p.owner],anchor={centerMm:a.slice(0,2),rotationDeg:a[2]};near(transport(p.centerMm,anchor,f.position),p.centerMm);const moved={...f.position,x:f.position.x+1,y:f.position.y+1};near(transport(p.centerMm,anchor,moved),[p.centerMm[0]+120,p.centerMm[1]+90,p.centerMm[2]]);}
+for(const p of g.parts.filter(p=>p.centerMm)){const f=m.furniture.find(f=>f.id===g.ownerIds[p.owner]),a=g.ownerAnchorsMm[p.owner],anchor={centerMm:a.slice(0,2),rotationDeg:a[2]},dx=sourceRatio?375:0;near(transport(p.centerMm,anchor,f.position),[p.centerMm[0]+dx,p.centerMm[1],p.centerMm[2]]);const moved={...f.position,x:f.position.x+1,y:f.position.y+1};near(transport(p.centerMm,anchor,moved),[p.centerMm[0]+dx+120,p.centerMm[1]+90,p.centerMm[2]]);}
 const door=m.houseStructuresByFloor['1F'].doors.find(d=>d.id==='D-1F-005');assert.equal(door.openDirection,'rightOut');assert.equal(door.defaultOpenAmount,1);assert.equal(door.width,900);assert.equal(door.height,2100);
 const lamp=m.furniture.find(f=>f.id==='furn-1f-living-floor-lamp-001');assert.equal(lamp.position.x*120,5300);assert.equal(lamp.position.y*90,4600);assert.deepEqual(lamp.dimensions,prior.furniture.find(f=>f.id===lamp.id).dimensions);
 for(const [floor,id,name] of [['1F','ROOM-1F-004','长辈房'],['2F','ROOM-2F-004','客房1'],['2F','ROOM-2F-005','客房2'],['B1','ROOM-B1-002','家政房']])assert.equal(m.houseStructuresByFloor[floor].rooms.find(r=>r.id===id).name,name);
-console.log('PASS M2 R08: 113 native parts, 13 ordinary operations, contract-gated owners, D005-only room-aware door, full lamp, unchanged wall geometry/other poses/B2, names, official light fingerprint and reference transforms. NOT four-item release approval.');
+console.log(`PASS ${sourceRatio?'R12 transported R14':'M2 R08'}:113 native parts,13 operations,contract-gated owners,D005/full lamp,names,official light fingerprint,reference transforms. This local regression is not a route/comfort or release certificate.`);
