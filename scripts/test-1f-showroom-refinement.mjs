@@ -64,7 +64,7 @@ if(contract.dailyActions){
  assert.deepEqual(contract.dailyActions.L1.at(-1),[-400,0]);
  assert.deepEqual(oneFChairMotionOffset(contract.dailyActions.R1,.5),[0,-140]);
  assert.deepEqual(oneFChairMotionOffset(contract.dailyActions.L1,1),[-400,0]);
- assert.deepEqual(contract.states.daily.find(p=>p.id==='L1').centerMm,workspace.defaultWorkspaceRevision.endsWith('work07')?[5151,4104]:[5151,4111]);
+ assert.deepEqual(contract.states.daily.find(p=>p.id==='L1').centerMm,(publicDailyOnly||workspace.defaultWorkspaceRevision.endsWith('work07'))?[5151,4104]:[5151,4111]);
  assert.match(designRenderer,/oneFChairMotionOffset/);
 }else{
  assert.deepEqual(contract.middleBasketOperation.openPolygonMm,[[8835,6400],[8835,7000],[8435,7000],[8435,6400]]);

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 19,
   "dataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "defaultWorkspaceRevision": "main-model-source-ratio-A-integrated-20261103-r12-published-work07",
+  "defaultWorkspaceRevision": "main-model-source-ratio-A-integrated-20261108-r15-r16-candidate-r02",
   "savedAt": "2026-10-12T16:19:40.397Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -1172,7 +1172,7 @@
         "cabinetVisual": {
           "frontStyle": "slimGlassFrame",
           "handleStyle": "slimEdgePull",
-          "glassTone": "smoked",
+          "glassTone": "gray-tea-half-reflective",
           "allDoorPanels": true,
           "displayContents": true,
           "interiorLighting": true,
@@ -1191,13 +1191,18 @@
               "widthRatio": 1,
               "frontType": "glass",
               "interiorLighting": true
+            },
+            {
+              "widthRatio": 1,
+              "frontType": "glass",
+              "interiorLighting": true
             }
           ],
           "openingMode": "swing",
-          "doorCount": 3,
-          "accessPlanId": "module-2f-cloak-left-swing-glass-r01",
+          "doorCount": 4,
+          "accessPlanId": "module-2f-cloak-left-four-native-r02",
           "panelThicknessMm": 18,
-          "leafCount": 3
+          "leafCount": 4
         },
         "cabinetMaterialOverrides": {
           "carcass": "adjustableMetal",
@@ -1288,8 +1293,13 @@
         "interiorHeightMm": 2434,
         "interiorDepthMm": 510,
         "openingMode": "swing",
-        "doorCount": 3,
-        "doorStates": {},
+        "doorCount": 4,
+        "doorStates": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
         "modules": [
           {
             "id": "module-2f-cloak-left-top-seasonal",
@@ -1397,7 +1407,7 @@
             "kind": "drawer",
             "label": "必要小件抽屉",
             "x": 1517.6666666666665,
-            "y": 0,
+            "y": 14,
             "z": 0,
             "width": 650,
             "height": 360,
@@ -1465,12 +1475,97 @@
           }
         ],
         "notes": [
-          "外2240x600x2470、内2204x510x2434，保三门与24模块ID用途。",
-          "挂衣包络显式930/1750；杆中心在包络顶端，名义柜基面1000/2000；不以834替代短衣。",
-          "顶季节板与短挂顶板角色共享一个实体physicalPartRef。抽屉650宽两侧36.333留缝，为空腔常规抽屉。",
-          "普通细框平开，不含外置支架/180枢轴。新的共享坐标及主要开门取用仍需联动布局检查，非容量/产品施工通过。"
+          "R02实体候选：外2240x600x2470、内2204x510x2434及12原模块ID/功能尺寸不变；只底抽屉上抬14以避当前模型走面。",
+          "四门540研究宽/2420高、门中心上移7；门底研究留32，0/1/2左铰3右铰，650抽屉需2+3双开90后拉350。",
+          "前框含两端及正立面572/1128两中柱；12x18研究截面待型材/受力深化，抽屉中缝1676不得加固定梃。"
         ],
-        "createdFrom": "saved"
+        "createdFrom": "saved",
+        "frontAccessByModule": {
+          "module-2f-cloak-left-top-seasonal": {
+            "leafIndices": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-short-lower": {
+            "leafIndices": [
+              0,
+              1
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-short-upper": {
+            "leafIndices": [
+              0,
+              1
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-short-top-shelf": {
+            "leafIndices": [
+              0,
+              1
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-long": {
+            "leafIndices": [
+              1,
+              2
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-bay-divider-short-long": {
+            "leafIndices": [
+              1
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-bay-divider-long-small": {
+            "leafIndices": [
+              2
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-drawers": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "leaves2and3both90-before650drawer"
+          },
+          "module-2f-cloak-left-bags-shelf-1": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-bags-shelf-2": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-bags-shelf-3": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-left-bags-shelf-4": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          }
+        }
       },
       "cabinetDesign": {
         "template": "cabinet",
@@ -1478,9 +1573,9 @@
         "designThinking": "以双层短挂承接日常上衣和裤装悬挂，保留少量长衣、抽屉与整宽包袋层板；不把叠放区当主功能。",
         "recommendedPlacement": "沿现有两侧墙南段布置，北侧保留窗前1800×700mm升降桌；外廓和通道均为候选，待现场复尺。",
         "layoutNotes": [
-          "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选，不沿用旧两扇移门、双轨或错轨操作映射。",
-          "柜内立面由 cabinetInterior.modules 表达；模块有效深度510mm，挂杆长度和衣架厚度仍需现场样本复核。",
-          "窗前1800×700mm升降桌保持独立；桌面、窗扇、椅子和入口通道另行复核。"
+          "两侧同款灰茶低透半反射玻璃＋深古铜细框＋胡桃木内饰；关灯偏镜/开灯微透仅近似表达。",
+          "原12模块及三分区不缩；门面四分缝与内部三分区分开关联，抽屉区双门开启。",
+          "房间、柜体位置/尺寸、保留飘窗850/240不变；非厂家/SKU/承重/舒适或施工通过。"
         ],
         "zones": [
           {
@@ -1509,25 +1604,23 @@
           }
         ],
         "cautionNotes": [
-          "1950×600×2750mm 为模型候选，不是现场实测；墙体垂直度、踢脚、完成面和顶封板须复尺。",
-          "桌北缘至柜体北端模型间隙约25mm；平开方向的实际门叶宽、铰链、开启半径、桌端/窗扇端外摆和各格可取性须在门数与分格确认后，以现场及厂家图纸复核。",
-          "当前只确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜前约1050mm通道须结合桌椅历史条件、窗扇和入口转身复核，不宣称平开已施工通过。",
-          "D-2F-002 为无门扇开放洞口；当前 BLOCKS_DOOR 约195mm 为两侧柜角靠近洞口的既有保守提醒，不等于新增平开门冲突，需按现场门洞净宽和转身动作复核。",
-          "挂衣净空按当前候选模块高度表达，衣长、衣架厚度、裤架和灯带检修方式由柜体厂家深化。"
+          "独立R02实体候选，非已发布主模型。",
+          "540门宽、16缝、90铰链/前框及玻璃光学为研究，待实测及厂家深化，不用旧3门脚本否决四门。",
+          "不把R01 10.54或本轮代理净距当舒适/工程认证；单侧/分区用，不任意同时开两侧。"
         ]
       },
       "verificationMeta": {
         "status": "estimated",
         "source": "manual-input",
-        "sourceNote": "功能和柜内分区为本轮候选深化；1950×600×2750mm外廓、墙体完成面、门轨、挂衣净空和桌椅/窗扇关系仍须现场复尺。 用户已确认金属架、玻璃细框平开、L3挂衣/L4叠放方向；用户已确认R16正面图质感。每侧四门叶尚待确认，几何/五金/现场尺寸待核；仅设计讨论，不作施工放行。",
+        "sourceNote": "2026-11-06最新同材质八门方向的独立实体候选；柜体2240x600x2470、原模块不缩，原位置/飘窗850保持。待本轮增量验收，不作现场或施工确认。",
         "toleranceMm": 100
       },
       "clearanceMeta": {
-        "frontMm": 878,
+        "frontMm": 1180,
         "serviceMm": 300,
-        "doorSwingMm": 400,
+        "doorSwingMm": 540,
         "status": "estimated",
-        "notes": "完成面中央通道工作值878mm；平开门按单侧/分区开启，不承诺两侧最大扇同时全开。飘窗台座、帘束、抽屉拉出和人体站位待现场复核。"
+        "notes": "闭门名义1180；单侧90剩679研究值，双侧相向全开约178不供通行。独立候选非舒适/施工通过。"
       }
     },
     {
@@ -1577,7 +1670,7 @@
         "cabinetVisual": {
           "frontStyle": "slimGlassFrame",
           "handleStyle": "slimEdgePull",
-          "glassTone": "smoked",
+          "glassTone": "gray-tea-half-reflective",
           "allDoorPanels": true,
           "displayContents": true,
           "interiorLighting": true,
@@ -1596,13 +1689,18 @@
               "widthRatio": 1,
               "frontType": "glass",
               "interiorLighting": true
+            },
+            {
+              "widthRatio": 1,
+              "frontType": "glass",
+              "interiorLighting": true
             }
           ],
           "openingMode": "swing",
-          "doorCount": 3,
-          "accessPlanId": "module-2f-cloak-right-swing-glass-r01",
+          "doorCount": 4,
+          "accessPlanId": "module-2f-cloak-right-four-native-r02",
           "panelThicknessMm": 18,
-          "leafCount": 3
+          "leafCount": 4
         },
         "cabinetMaterialOverrides": {
           "carcass": "adjustableMetal",
@@ -1693,8 +1791,13 @@
         "interiorHeightMm": 2434,
         "interiorDepthMm": 510,
         "openingMode": "swing",
-        "doorCount": 3,
-        "doorStates": {},
+        "doorCount": 4,
+        "doorStates": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
         "modules": [
           {
             "id": "module-2f-cloak-right-top-seasonal",
@@ -1802,7 +1905,7 @@
             "kind": "drawer",
             "label": "必要小件抽屉",
             "x": 1517.6666666666665,
-            "y": 0,
+            "y": 14,
             "z": 0,
             "width": 650,
             "height": 360,
@@ -1870,12 +1973,97 @@
           }
         ],
         "notes": [
-          "外2240x600x2470、内2204x510x2434，保三门与24模块ID用途。",
-          "挂衣包络显式930/1750；杆中心在包络顶端，名义柜基面1000/2000；不以834替代短衣。",
-          "顶季节板与短挂顶板角色共享一个实体physicalPartRef。抽屉650宽两侧36.333留缝，为空腔常规抽屉。",
-          "普通细框平开，不含外置支架/180枢轴。新的共享坐标及主要开门取用仍需联动布局检查，非容量/产品施工通过。"
+          "R02实体候选：外2240x600x2470、内2204x510x2434及12原模块ID/功能尺寸不变；只底抽屉上抬14以避当前模型走面。",
+          "四门540研究宽/2420高、门中心上移7；门底研究留32，0/1/2左铰3右铰，650抽屉需2+3双开90后拉350。",
+          "前框含两端及正立面572/1128两中柱；12x18研究截面待型材/受力深化，抽屉中缝1676不得加固定梃。"
         ],
-        "createdFrom": "saved"
+        "createdFrom": "saved",
+        "frontAccessByModule": {
+          "module-2f-cloak-right-top-seasonal": {
+            "leafIndices": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-long": {
+            "leafIndices": [
+              0,
+              1
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-rewear-lower": {
+            "leafIndices": [
+              1,
+              2
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-short-upper": {
+            "leafIndices": [
+              1,
+              2
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-short-top-shelf": {
+            "leafIndices": [
+              1,
+              2
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-bay-divider-long-short": {
+            "leafIndices": [
+              1
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-bay-divider-short-small": {
+            "leafIndices": [
+              2
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-drawers": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "leaves2and3both90-before650drawer"
+          },
+          "module-2f-cloak-right-bags-shelf-1": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-bags-shelf-2": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-bags-shelf-3": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          },
+          "module-2f-cloak-right-bags-shelf-4": {
+            "leafIndices": [
+              2,
+              3
+            ],
+            "requirement": "facade-coverage-only-not-full-garment-reach-certification"
+          }
+        }
       },
       "cabinetDesign": {
         "template": "cabinet",
@@ -1883,9 +2071,9 @@
         "designThinking": "以长衣与短衣悬挂为主，入口端设置少量再穿衣物挂位，保留必要抽屉和整宽包袋层板。",
         "recommendedPlacement": "沿现有两侧墙南段布置，北侧保留窗前1800×700mm升降桌；外廓和通道均为候选，待现场复尺。",
         "layoutNotes": [
-          "已确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选，不沿用旧两扇移门、双轨或错轨操作映射。",
-          "柜内立面由 cabinetInterior.modules 表达；模块有效深度510mm，挂杆长度和衣架厚度仍需现场样本复核。",
-          "窗前1800×700mm升降桌保持独立；桌面、窗扇、椅子和入口通道另行复核。"
+          "两侧同款灰茶低透半反射玻璃＋深古铜细框＋胡桃木内饰；关灯偏镜/开灯微透仅近似表达。",
+          "原12模块及三分区不缩；门面四分缝与内部三分区分开关联，抽屉区双门开启。",
+          "房间、柜体位置/尺寸、保留飘窗850/240不变；非厂家/SKU/承重/舒适或施工通过。"
         ],
         "zones": [
           {
@@ -1914,25 +2102,23 @@
           }
         ],
         "cautionNotes": [
-          "1950×600×2750mm 为模型候选，不是现场实测；墙体垂直度、踢脚、完成面和顶封板须复尺。",
-          "桌北缘至柜体北端模型间隙约25mm；平开方向的实际门叶宽、铰链、开启半径、桌端/窗扇端外摆和各格可取性须在门数与分格确认后，以现场及厂家图纸复核。",
-          "当前只确认金属架、可透视玻璃细框平开方向；门数、分格、五金与现场尺寸仍为候选。柜前约1050mm通道须结合桌椅历史条件、窗扇和入口转身复核，不宣称平开已施工通过。",
-          "D-2F-002 为无门扇开放洞口；当前 BLOCKS_DOOR 约195mm 为两侧柜角靠近洞口的既有保守提醒，不等于新增平开门冲突，需按现场门洞净宽和转身动作复核。",
-          "挂衣净空按当前候选模块高度表达，衣长、衣架厚度、裤架和灯带检修方式由柜体厂家深化。"
+          "独立R02实体候选，非已发布主模型。",
+          "540门宽、16缝、90铰链/前框及玻璃光学为研究，待实测及厂家深化，不用旧3门脚本否决四门。",
+          "不把R01 10.54或本轮代理净距当舒适/工程认证；单侧/分区用，不任意同时开两侧。"
         ]
       },
       "verificationMeta": {
         "status": "estimated",
         "source": "manual-input",
-        "sourceNote": "功能和柜内分区为本轮候选深化；1950×600×2750mm外廓、墙体完成面、门轨、挂衣净空和桌椅/窗扇关系仍须现场复尺。 用户已确认金属架、玻璃细框平开、L3挂衣/L4叠放方向；用户已确认R16正面图质感。每侧四门叶尚待确认，几何/五金/现场尺寸待核；仅设计讨论，不作施工放行。",
+        "sourceNote": "2026-11-06最新同材质八门方向的独立实体候选；柜体2240x600x2470、原模块不缩，原位置/飘窗850保持。待本轮增量验收，不作现场或施工确认。",
         "toleranceMm": 100
       },
       "clearanceMeta": {
-        "frontMm": 878,
+        "frontMm": 1180,
         "serviceMm": 300,
-        "doorSwingMm": 400,
+        "doorSwingMm": 540,
         "status": "estimated",
-        "notes": "完成面中央通道工作值878mm；平开门按单侧/分区开启，不承诺两侧最大扇同时全开。飘窗台座、帘束、抽屉拉出和人体站位待现场复核。"
+        "notes": "闭门名义1180；单侧90剩679研究值，双侧相向全开约178不供通行。独立候选非舒适/施工通过。"
       }
     },
     {
@@ -6290,7 +6476,7 @@
     {
       "id": "furn-living-waterbar-001",
       "code": "WB-1F-01",
-      "name": "餐边柜｜R14咖啡2400底柜｜整段柜下150清扫净空",
+      "name": "R15｜2000咖啡干吧｜净190研究",
       "type": "sideboard",
       "catalogId": "storage-sideboard",
       "moduleCategory": "storage",
@@ -6298,14 +6484,14 @@
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 240,
+        "width": 200,
         "depth": 55,
         "height": 90,
         "unit": "cm"
       },
       "material": "深胡桃棕哑光金属/暖古铜棕；纯黑无白纹台面；深灰背板；古铜细框烟熏玻璃",
-      "note": "R14实际新实体，工作比例3950=600弧+450衣+500篮+2400咖啡，不是历史3200定尺。普通门/单篮操作，未选特殊五金。无固定上下水，非机器人基站。",
-      "constructionNote": "非施工级工作几何：整体咖啡柜下150清扫空间，实际背挂支撑均高于150、不设落地横断脚。承重/墙锚/选定机器人及具体五金后续深化。R14实际操作与日常摆位同态复核。",
+      "note": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "constructionNote": "R15非施工级工作几何：咖啡底柜最低硬件距实际地面190mm，不设落地横断脚；不整柜上抬，台高约900、总高约2200。墙锚、承载、实机机器人及五金待深化；操作按声明分次条件，不继承旧R14证书。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -6314,18 +6500,18 @@
       },
       "position": {
         "x": 79.04166666666667,
-        "y": 72.11111111111111,
+        "y": 74.33333333333333,
         "rotation": 90
       },
       "color": "#d8ddd9",
       "cabinetDesign": {
         "template": "sideboard",
-        "title": "R14咖啡2400底柜｜整段柜下150清扫净空",
-        "designThinking": "R14实际新实体，工作比例3950=600弧+450衣+500篮+2400咖啡，不是历史3200定尺。普通门/单篮操作，未选特殊五金。无固定上下水，非机器人基站。",
+        "title": "R15咖啡2000底柜｜最低硬件至地面190清扫净空",
+        "designThinking": "R15实际新实体，工作比例3950=600弧端+650双门挂衣+200缓冲+500食品拉篮+2000咖啡干吧。普通门及单篮分次操作，未选特殊五金；无固定上下水，非机器人基站。",
         "recommendedPlacement": "沿W-1F-011；北向公卫墙仍平齐、不动原墙；外凸展示不是独立圆柱。",
         "layoutNotes": [
           "高柜门主视全关，普通门内三层单篮分别抽出400",
-          "咖啡正常储物底柜下整段150净空，非停靠洞/非基站",
+          "咖啡正常储物底柜最低硬件至实际地面190净空，非停靠洞/非基站",
           "右侧不增加额外高柜",
           "工作尺寸和推定标注保留，不视为实测或SKU批准"
         ],
@@ -6377,7 +6563,8 @@
           "hardware": "brushedBronze"
         },
         "geometryContractId": "R14-native-base",
-        "r14Role": "base"
+        "r14Role": "base",
+        "r15CandidateRevision": "candidate-1f-r15-entities-20261106-r01"
       },
       "mepMeta": {
         "needsSocket": true,
@@ -6408,7 +6595,7 @@
         "inspectionAccessRequired": true,
         "purchaseCategory": "定制柜体/硬装",
         "supplierType": "全屋定制/木作供应商",
-        "notes": "2400mm 干吧与吊柜同轴；仅复核电源、设备散热、理线、补水方式和可检修收口，不设置固定给水、固定排水或地面开槽。"
+        "notes": "2000mm干吧与吊柜同轴；仅复核电源、设备散热、理线、补水方式和可检修收口，不设置固定给水、固定排水或地面开槽。"
       },
       "constructionAnchors": {
         "points": [
@@ -6461,7 +6648,7 @@
     {
       "id": "furn-living-waterbar-upper-001",
       "code": "WBC-1F-01",
-      "name": "餐边柜｜R14古铜细框烟熏玻璃吊柜",
+      "name": "R15｜2000烟灰细框吊柜",
       "type": "cabinet",
       "catalogId": "storage-sideboard",
       "moduleCategory": "storage",
@@ -6469,7 +6656,7 @@
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 240,
+        "width": 200,
         "depth": 32,
         "height": 80,
         "unit": "cm"
@@ -6479,8 +6666,8 @@
         "source": "explicit"
       },
       "material": "深胡桃棕哑光金属/暖古铜棕；纯黑无白纹台面；深灰背板；古铜细框烟熏玻璃",
-      "note": "R14实际新实体，工作比例3950=600弧+450衣+500篮+2400咖啡，不是历史3200定尺。普通门/单篮操作，未选特殊五金。无固定上下水，非机器人基站。",
-      "constructionNote": "非施工级工作几何：整体咖啡柜下150清扫空间，实际背挂支撑均高于150、不设落地横断脚。承重/墙锚/选定机器人及具体五金后续深化。R14实际操作与日常摆位同态复核。",
+      "note": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "constructionNote": "R15非施工级工作几何：咖啡底柜最低硬件距实际地面190mm，不设落地横断脚；不整柜上抬，台高约900、总高约2200。墙锚、承载、实机机器人及五金待深化；操作按声明分次条件，不继承旧R14证书。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -6489,18 +6676,18 @@
       },
       "position": {
         "x": 80,
-        "y": 72.11111111111111,
+        "y": 74.33333333333333,
         "rotation": 90
       },
       "color": "#f0e7d8",
       "cabinetDesign": {
         "template": "cabinet",
-        "title": "R14古铜细框烟熏玻璃吊柜",
-        "designThinking": "R14实际新实体，工作比例3950=600弧+450衣+500篮+2400咖啡，不是历史3200定尺。普通门/单篮操作，未选特殊五金。无固定上下水，非机器人基站。",
+        "title": "R15古铜细框烟熏玻璃吊柜｜与2000咖啡段同轴",
+        "designThinking": "R15实际新实体，工作比例3950=600弧端+650双门挂衣+200缓冲+500食品拉篮+2000咖啡干吧。普通门及单篮分次操作，未选特殊五金；无固定上下水，非机器人基站。",
         "recommendedPlacement": "沿W-1F-011；北向公卫墙仍平齐、不动原墙；外凸展示不是独立圆柱。",
         "layoutNotes": [
           "高柜门主视全关，普通门内三层单篮分别抽出400",
-          "咖啡正常储物底柜下整段150净空，非停靠洞/非基站",
+          "咖啡正常储物底柜最低硬件至实际地面190净空，非停靠洞/非基站",
           "右侧不增加额外高柜",
           "工作尺寸和推定标注保留，不视为实测或SKU批准"
         ],
@@ -6550,7 +6737,8 @@
           "hardware": "brushedBronze"
         },
         "geometryContractId": "R14-native-upper",
-        "r14Role": "upper"
+        "r14Role": "upper",
+        "r15CandidateRevision": "candidate-1f-r15-entities-20261106-r01"
       },
       "mepMeta": {
         "needsSocket": true,
@@ -6695,7 +6883,7 @@
     {
       "id": "furn-living-snack-pullout-001",
       "code": "SC-1F-01",
-      "name": "餐边柜｜R14外凸双大格＋少量挂衣＋封闭拉篮高柜",
+      "name": "R15｜600弧/650分门衣/200缓冲/500篮",
       "type": "cabinet",
       "catalogId": "storage-snack-cabinet",
       "moduleCategory": "storage",
@@ -6703,14 +6891,14 @@
       "floorId": "1F",
       "roomId": "ROOM-1F-005",
       "dimensions": {
-        "width": 155,
+        "width": 195,
         "depth": 90,
         "height": 220,
         "unit": "cm"
       },
       "material": "深胡桃棕哑光金属/暖古铜棕；纯黑无白纹台面；深灰背板；古铜细框烟熏玻璃",
-      "note": "R14实际新实体，工作比例3950=600弧+450衣+500篮+2400咖啡，不是历史3200定尺。普通门/单篮操作，未选特殊五金。无固定上下水，非机器人基站。 R08北端三块实体层板用同一连续退让弧线重做、北侧回板及两花器联动；双大格/挂衣/三篮均保留，展示平面面积保留88.95%，不宣称容量不变。",
-      "constructionNote": "非施工级工作几何：整体咖啡柜下150清扫空间，实际背挂支撑均高于150、不设落地横断脚。承重/墙锚/选定机器人及具体五金后续深化。R14实际操作与日常摆位同态复核。",
+      "note": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "constructionNote": "R15非施工级工作几何：咖啡底柜最低硬件距实际地面190mm，不设落地横断脚；不整柜上抬，台高约900、总高约2200。墙锚、承载、实机机器人及五金待深化；操作按声明分次条件，不继承旧R14证书。",
       "serviceRequirements": {
         "water": false,
         "drainage": false,
@@ -6719,18 +6907,18 @@
       },
       "position": {
         "x": 77.58333333333333,
-        "y": 50.166666666666664,
+        "y": 52.388888888888886,
         "rotation": 90
       },
       "color": "#d5b58d",
       "cabinetDesign": {
         "template": "cabinet",
-        "title": "R14外凸双大格＋少量挂衣＋封闭拉篮高柜",
-        "designThinking": "R14实际新实体，工作比例3950=600弧+450衣+500篮+2400咖啡，不是历史3200定尺。普通门/单篮操作，未选特殊五金。无固定上下水，非机器人基站。",
+        "title": "R15弧端600＋双门挂衣650＋缓冲200＋食品拉篮500高柜",
+        "designThinking": "R15实际新实体，工作比例3950=600弧端+650双门挂衣+200缓冲+500食品拉篮+2000咖啡干吧。普通门及单篮分次操作，未选特殊五金；无固定上下水，非机器人基站。",
         "recommendedPlacement": "沿W-1F-011；北向公卫墙仍平齐、不动原墙；外凸展示不是独立圆柱。",
         "layoutNotes": [
           "高柜门主视全关，普通门内三层单篮分别抽出400",
-          "咖啡正常储物底柜下整段150净空，非停靠洞/非基站",
+          "咖啡正常储物底柜最低硬件至实际地面190净空，非停靠洞/非基站",
           "右侧不增加额外高柜",
           "工作尺寸和推定标注保留，不视为实测或SKU批准"
         ],
@@ -6767,7 +6955,8 @@
         },
         "geometryContractId": "R08-R14-native-tall-D005-clear",
         "elevationMm": 0,
-        "r14Role": "tall"
+        "r14Role": "tall",
+        "r15CandidateRevision": "candidate-1f-r15-entities-20261106-r01"
       },
       "mepMeta": {
         "needsSocket": true,
@@ -18317,16 +18506,16 @@
       "type": "sideboardStrip",
       "positionMm": {
         "x": 9461,
-        "y": 6490
+        "y": 6690
       },
       "hostObjectId": null,
       "hostWallId": "W-1F-011",
       "relatedFurnitureId": "furn-living-waterbar-upper-001",
-      "heightMm": 1395,
+      "heightMm": 1389,
       "circuitId": null,
       "materialId": null,
       "label": "L-1F-V1-34 · 餐边柜灯带",
-      "notes": "R10-M2餐边柜方案灯带：取实际R14-under-upper-warm源点并随当前吊柜变换，局部前沿内21；Z1395。缓存/关联/指纹同步；非现场电路或采购批准。",
+      "notes": "R15独立候选：绑定2000吊柜实际R15-under-upper-warm，完成面高度1389；方案灯带/owner缓存及官方指纹，非现场回路/采购批准。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -18347,7 +18536,7 @@
       "dimming": false,
       "relatedFurniturePositionMm": {
         "x": 9600,
-        "y": 6490
+        "y": 6690
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -18360,7 +18549,7 @@
         "trimColor": "铝色型材"
       },
       "generatedKey": "lighting-design-v1:1F:CG-1F-1F-005-SIDEBOARD:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"sideboardStrip\",\"positionMm\":{\"x\":9461,\"y\":6490},\"relatedFurnitureId\":\"furn-living-waterbar-upper-001\",\"heightMm\":1395,\"circuitId\":null,\"label\":\"L-1F-V1-34 · 餐边柜灯带\",\"notes\":\"R10-M2餐边柜方案灯带：取实际R14-under-upper-warm源点并随当前吊柜变换，局部前沿内21；Z1395。缓存/关联/指纹同步；非现场电路或采购批准。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"lightType\":\"sideboardStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-29\",\"controlGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-011\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"sideboardStrip\",\"positionMm\":{\"x\":9461,\"y\":6690},\"relatedFurnitureId\":\"furn-living-waterbar-upper-001\",\"heightMm\":1389,\"circuitId\":null,\"label\":\"L-1F-V1-34 · 餐边柜灯带\",\"notes\":\"R15独立候选：绑定2000吊柜实际R15-under-upper-warm，完成面高度1389；方案灯带/owner缓存及官方指纹，非现场回路/采购批准。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"lightType\":\"sideboardStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-29\",\"controlGroupId\":\"CG-1F-1F-005-SIDEBOARD\",\"smartControl\":true,\"dimming\":false,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-011\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
       "positioningBasis": "currentFurnitureLayout",
       "serviceScenario": "家具/设备关联需求",
@@ -32706,17 +32895,17 @@
       "category": "light",
       "type": "sideboardStrip",
       "positionMm": {
-        "x": 9700,
-        "y": 7400
+        "x": 9720,
+        "y": 5090
       },
       "hostObjectId": null,
       "hostWallId": "W-1F-011",
       "relatedFurnitureId": "furn-living-snack-pullout-001",
-      "heightMm": 1850,
+      "heightMm": 1500,
       "circuitId": null,
       "materialId": null,
       "label": "L-1F-V1-35 · 干吧电器高柜门控灯带",
-      "notes": "柜门打开或对象选中时显示内部功能光；3000K高显色、隐藏铝槽、优先emissive，不新增实时投影灯。驱动、理线、散热与检修随设备 SKU 深化。",
+      "notes": "R15独立候选：高柜200缓冲区实际R15-buffer-warm；仅方案内部暖光，型号/驱动/检修待深化，非已迁现场机电。",
       "source": "generated-from-furniture",
       "status": "draft",
       "quantity": 1,
@@ -32737,7 +32926,7 @@
       "dimming": true,
       "relatedFurniturePositionMm": {
         "x": 9310,
-        "y": 4515
+        "y": 4715
       },
       "hostCeilingAreaId": null,
       "directionDeg": null,
@@ -32750,7 +32939,7 @@
         "trimColor": "铝色型材"
       },
       "generatedKey": "lighting-cabinet-contract-v1:1F:CG-1F-1F-005-APPLIANCE-CABINET:light:1",
-      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"sideboardStrip\",\"positionMm\":{\"x\":9700,\"y\":7400},\"relatedFurnitureId\":\"furn-living-snack-pullout-001\",\"heightMm\":1850,\"circuitId\":null,\"label\":\"L-1F-V1-35 · 干吧电器高柜门控灯带\",\"notes\":\"柜门打开或对象选中时显示内部功能光；3000K高显色、隐藏铝槽、优先emissive，不新增实时投影灯。驱动、理线、散热与检修随设备 SKU 深化。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-APPLIANCE-CABINET\",\"lightType\":\"cabinetSensorStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-30\",\"controlGroupId\":\"CG-1F-1F-005-APPLIANCE-CABINET\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-011\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
+      "generatedFingerprint": "{\"floorId\":\"1F\",\"roomId\":\"ROOM-1F-005\",\"category\":\"light\",\"type\":\"sideboardStrip\",\"positionMm\":{\"x\":9720,\"y\":5090},\"relatedFurnitureId\":\"furn-living-snack-pullout-001\",\"heightMm\":1500,\"circuitId\":null,\"label\":\"L-1F-V1-35 · 干吧电器高柜门控灯带\",\"notes\":\"R15独立候选：高柜200缓冲区实际R15-buffer-warm；仅方案内部暖光，型号/驱动/检修待深化，非已迁现场机电。\",\"status\":\"draft\",\"quantity\":1,\"lightColorTemperature\":\"3000K\",\"needsSmartControl\":true,\"switchControl\":[],\"controlledLightIds\":[],\"lightGroupId\":\"CG-1F-1F-005-APPLIANCE-CABINET\",\"lightType\":\"cabinetSensorStrip\",\"lightingLayer\":\"cabinetStrip\",\"colorTemperature\":\"3000K\",\"beamAngle\":110,\"mountingType\":\"cabinetIntegrated\",\"relatedSwitchId\":\"SW-1F-V1-30\",\"controlGroupId\":\"CG-1F-1F-005-APPLIANCE-CABINET\",\"smartControl\":true,\"dimming\":true,\"relatedRoomId\":\"ROOM-1F-005\",\"hostCeilingAreaId\":null,\"hostWallId\":\"W-1F-011\",\"lightSpec\":{\"powerW\":8,\"luminousFluxLm\":650,\"cri\":95,\"glareRating\":\"门控感应\",\"fixtureFamily\":\"cabinet-strip\",\"trimColor\":\"铝色型材\"},\"polygon\":[],\"ceilingHeightMm\":null,\"relatedLightIds\":[],\"inspectionAccess\":false,\"airVent\":false,\"returnAir\":false,\"maintenanceOpening\":false,\"material\":null,\"pattern\":null,\"directionDeg\":null,\"startPoint\":null,\"seamWidthMm\":null,\"threshold\":null,\"transition\":null,\"wallId\":null,\"heightRange\":null,\"area\":null,\"waterproofHeightMm\":null,\"specialTreatment\":null}",
       "confidence": "schemePositioned",
       "positioningBasis": "currentFurnitureLayout",
       "serviceScenario": "柜体集成照明与设备检修",
@@ -32826,7 +33015,7 @@
       "updatedAt": "2026-08-12T18:00:00.000+08:00",
       "relatedFurniturePositionMm": {
         "x": 9310,
-        "y": 4515
+        "y": 4715
       },
       "controlledLightIds": [
         "L-1F-V1-35"

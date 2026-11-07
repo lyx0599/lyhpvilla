@@ -96,7 +96,7 @@ legacyLivingWindow.width = 1200;
 legacyLivingWindow.height = 1400;
 legacyLivingWindow.sillHeightMm = 900;
 const migratedLivingJoinery = applyWorkspaceMigrations(legacyLivingJoinery, { canonicalWorkspace: canonical });
-assert.equal(migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-waterbar-001").dimensions.width, 240);
+assert.equal(migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-waterbar-001").dimensions.width, canonical.furniture.find((item) => item.id === "furn-living-waterbar-001").dimensions.width, "Legacy migration restores the current canonical dry-bar width, not an older release's width.");
 assert.equal(
   migratedLivingJoinery.workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId,
   canonical.furniture.find((item) => item.id === "furn-living-snack-pullout-001").render3d.variantId

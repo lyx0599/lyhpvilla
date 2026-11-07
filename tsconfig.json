@@ -40,7 +40,9 @@
     ".next-2f-audit/types/**/*.ts",
     ".next-r14m2/types/**/*.ts",
     ".next-m3-dev/types/**/*.ts",
-    ".next-r12-dev/types/**/*.ts"
+    ".next-r12-dev/types/**/*.ts",
+    ".next-r15-integrated/types/**/*.ts",
+    ".next-r15-poll/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -7,6 +7,8 @@ import {buildMasterNativeDimensions} from '@/lib/master-native-dimensions';
 import {r11CycleState,r11CycleSource} from '@/lib/r11-cycle-binding';
 import defaultSourceModel from '@/data/default-workspace.json';
 import daily1FContract from '@/data/research-1f-contract.json';
+import r15Geometry from '@/data/r14-geometry.json';
+import {isR16Cloak,r16State,r16Contract} from '@/lib/r16-cloak-binding';
 
 // Read-only evidence hook in the isolated review viewer. No replacement meshes,
 // visibility overrides, or material changes are made to the rendered scene.
@@ -41,9 +43,17 @@ export function DesignEvidenceAudit(){
    });
    const c=camera as THREE.PerspectiveCamera;
    const diagnosticObjects:unknown[]=[];scene.traverse(object=>{if(object instanceof THREE.Sprite||object instanceof THREE.LineSegments){const lineage=[];let p:THREE.Object3D|null=object;while(p){lineage.push(p.name||p.type);p=p.parent;}if(lineage.some(n=>n.startsWith('R7-')))diagnosticObjects.push({name:object.name,type:object.type,lineage});}});
+   // Additional read-only live diagnostics; no proxy or rendered material is changed.
+   const r16GlassMaterials:unknown[]=[],r16Groups:unknown[]=[],r16Lights:unknown[]=[];
+   scene.traverse(object=>{
+    if(object instanceof THREE.Mesh&&object.name.includes('-r16-glass-')){const m=object.material as THREE.MeshPhysicalMaterial;r16GlassMaterials.push({name:object.name,type:m.type,color:m.color.getHexString(),roughness:m.roughness,metalness:m.metalness,transmission:m.transmission,ior:m.ior,thickness:m.thickness,clearcoat:m.clearcoat,opacity:m.opacity});}
+    if(object.name.includes('-r16-leaf-')||object.name.endsWith('-drawers')){const box=new THREE.Box3().setFromObject(object);r16Groups.push({name:object.name,rotation:object.rotation.toArray(),position:object.position.toArray(),matrixWorld:object.matrixWorld.toArray(),min:box.min.toArray(),max:box.max.toArray()});}
+    if(object instanceof THREE.PointLight&&object.name.includes('-r16-interior-light-'))r16Lights.push({name:object.name,intensity:object.intensity});
+   });
    const masterDimensions=buildMasterNativeDimensions(meshes as Parameters<typeof buildMasterNativeDimensions>[0],loadedSourceModel.houseStructuresByFloor['2F']);
-   const activeClosetCycle=r11CycleState(query.get('closetCycle'),Number(query.get('cycleFrame')??0));
-   return {loadedSourceModel,loaded1FDailyContract:daily1FContract,active1FState:{seat:query.get('seat'),phase:query.get('phase')??'closed',t:Number(query.get('t')??1),r14:query.get('r14')??'closed',r14Op:query.get('r14Op'),r14t:Number(query.get('r14t')??1),d005:Number(query.get('d005')??0)},masterDimensions,activeClosetCycle,cycleSourceSha256:r11CycleSource.cycleSha256,camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),matrixWorld:camera.matrixWorld.toArray(),projectionMatrix:camera.projectionMatrix.toArray(),fov:c.fov,verticalFovDeg:c.getEffectiveFOV(),horizontalFovDeg:2*Math.atan(Math.tan(c.getEffectiveFOV()*Math.PI/360)*c.aspect)*180/Math.PI,zoom:c.zoom,aspect:c.aspect,near:c.near,far:c.far},canvas:{width:gl.domElement.clientWidth,height:gl.domElement.clientHeight},meshes,diagnosticObjects};
+   const newClosets=loadedSourceModel.furniture.some(item=>isR16Cloak(item as Parameters<typeof isR16Cloak>[0]));
+   const activeClosetCycle=newClosets?null:r11CycleState(query.get('closetCycle'),Number(query.get('cycleFrame')??0));
+   return {r16GlassMaterials,r16Groups,r16Lights,loadedSourceModel,loadedCabinetGeometry:r15Geometry,loadedCloakContract:newClosets?r16Contract:null,activeR16State:newClosets?r16State(query):null,loaded1FDailyContract:daily1FContract,active1FState:{seat:query.get('seat'),phase:query.get('phase')??'closed',t:Number(query.get('t')??1),r14:query.get('r14')??'closed',r14Op:query.get('r14Op'),r14t:Number(query.get('r14t')??1),d005:Number(query.get('d005')??0)},masterDimensions,activeClosetCycle,cycleSourceSha256:newClosets?null:r11CycleSource.cycleSha256,camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),matrixWorld:camera.matrixWorld.toArray(),projectionMatrix:camera.projectionMatrix.toArray(),fov:c.fov,verticalFovDeg:c.getEffectiveFOV(),horizontalFovDeg:2*Math.atan(Math.tan(c.getEffectiveFOV()*Math.PI/360)*c.aspect)*180/Math.PI,zoom:c.zoom,aspect:c.aspect,near:c.near,far:c.far},canvas:{width:gl.domElement.clientWidth,height:gl.domElement.clientHeight},meshes,diagnosticObjects};
   };
   const host=window as unknown as Record<string,unknown>;host.__ModelEvidenceCapture=capture;
   return()=>{delete host.__ModelEvidenceCapture;};

@@ -1,0 +1,90 @@
+{
+  "revision": "PMO-2F-CLOSET-EIGHT-LEAF-NATIVE-20261106-R02",
+  "sourceModelSha256": "873d481224419e325704e6620fcac0d6993021a6eceff095052f07b6e380d657",
+  "sourceCommit": "4efc7f61440e6bc573e205f5aacc892a74cb7520",
+  "roomOriginGlobalMm": [
+    4766,
+    460
+  ],
+  "roomNetMm": [
+    2380,
+    2760
+  ],
+  "cabinetEachMm": [
+    2240,
+    600,
+    2470
+  ],
+  "leafMm": [
+    540,
+    2420,
+    24
+  ],
+  "leafGlassMm": 8,
+  "gapMm": 16,
+  "hinges": [
+    -1,
+    -1,
+    -1,
+    1
+  ],
+  "frontPlaneMm": 261,
+  "frontPostsLocalUmm": [
+    -1104,
+    -548,
+    8,
+    1104
+  ],
+  "frontPostSizeMm": [
+    12,
+    2434,
+    18
+  ],
+  "frontPostVmm": [
+    228,
+    246
+  ],
+  "drawerMm": [
+    650,
+    360,
+    510
+  ],
+  "drawerTravelMm": 350,
+  "drawerRequiresLeaves": [
+    2,
+    3
+  ],
+  "backPanels": "Three18mm walnut panels between retained rear uprights, within same600 depth; front at old interior back plane−282mm; do not narrow original2204x510 cavity",
+  "hingeResearch": "4 visible pins/stubs per leaf at actual declared pivot; ordinary90 only, no180 outboard. Product/load not approved. Own pin/leaf bearing contact intentional.",
+  "glassVisual": {
+    "sameBothSides": true,
+    "sameMaterialLightsOnOff": true,
+    "color": "#62564c",
+    "roughness": 0.11,
+    "metalness": 0.3,
+    "transmission": 0.4,
+    "opacity": 1,
+    "transparent": false,
+    "thickness": 0.008,
+    "ior": 1.5,
+    "clearcoat": 1,
+    "notMeasuredOptics": true
+  },
+  "preserveBay": {
+    "heightMm": 850,
+    "depthMm": 240,
+    "no420SeatSubstitution": true
+  },
+  "previousResearchBodyLowerMm": 10.542692128791893,
+  "previousResearchNotComfortOrEngineeringPass": true,
+  "wholeFloorOrConstructionApproved": false,
+  "publicMainModified": false,
+  "published": false,
+  "doorYoffsetMm": 7,
+  "doorBottomRevealMm": 32,
+  "doorBottomDisplayMm": 67,
+  "drawerBottomLiftMm": 14,
+  "walkingFinishDisplayMm": 62.5,
+  "doorFloorDisplayGapMm": 4.5,
+  "notAsBuiltDoorBottomSpecification": true
+}

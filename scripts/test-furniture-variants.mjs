@@ -116,8 +116,9 @@ const waterBarUpper = workspace.furniture.find((item) => item.id === "furn-livin
 assert.equal(waterBar.render3d.variantId, "mirroredReferenceBuffetBase");
 assert.equal(waterBarUpper.render3d.variantId, "mirroredReferenceBuffetUpper");
 assert.equal(waterBarUpper.render3d.cabinetVisual.gridColumns, 4);
-assert.equal(waterBar.dimensions.width, 240);
-assert.equal(waterBarUpper.dimensions.width, 240);
+const r15Cabinet=Boolean(waterBar.render3d.r15CandidateRevision);
+assert.equal(waterBar.dimensions.width, r15Cabinet?200:240);
+assert.equal(waterBarUpper.dimensions.width, r15Cabinet?200:240);
 const livingPulloutPantry = workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001");
 assert.equal(livingPulloutPantry.render3d.variantId, "fullHeightFlat", "Approved 1F r02 replaces the embedded-coffee tower target, without moving it.");
 assert.equal(livingPulloutPantry.render3d.primaryMaterial, "blackTitanium");
@@ -171,7 +172,7 @@ assert.match(floor3dSource, /lightingActive && showFixtureModels && !selected/);
 assert.match(floor3dSource, /physical-fixture-closeup-/);
 
 assert.equal(workspace.furniture.find((item) => item.id === "furn-fridge-001")?.position.rotation, 90);
-assert.equal(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.dimensions.width, 240);
+assert.equal(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.dimensions.width, r15Cabinet?200:240);
 assert.ok(Number.isFinite(workspace.furniture.find((item) => item.id === "furn-living-waterbar-001")?.position.y));
 assert.ok(Number.isFinite(workspace.furniture.find((item) => item.id === "furn-living-snack-pullout-001")?.position.y));
 assert.equal(workspace.furniture.find((item) => item.id === "furn-2f-master-bedroom-large-wardrobe-001")?.dimensions.width, 300);

@@ -5,6 +5,8 @@ import { Research1FContract, hasResearch1FContract } from "./research-1f-contrac
 import { approvedR14Role, R14ApprovedSubset } from './r14-approved-subset';
 import { isR09ThreeDoorCloset } from "@/lib/r09-closet-mapping";
 import { R09ThreeDoorCloset } from "./r09-three-door-closet";
+import {isR16Cloak} from '@/lib/r16-cloak-binding';
+import {R16FourDoorCloset} from './r16-four-door-closet';
 import {hasR11BathFixture,R11BathFixture} from './r11-bath-fixtures';
 import {isR12GuestShower,R12GuestShower} from './r12-guest-shower';
 import { BedFamily3D } from "./bed-family-3d";
@@ -19,6 +21,7 @@ import type { FurnitureFamily3DProps } from "./types";
 import { WetAreaFamily3D } from "./wet-area-family-3d";
 
 export function FurnitureFamily3D(props: FurnitureFamily3DProps) {
+  if (isR16Cloak(props.item)) return <R16FourDoorCloset {...props}/>;
   if (approvedR14Role(props.item)) return <R14ApprovedSubset {...props} />;
   if (hasR11BathFixture(props)) return <R11BathFixture {...props}/>;
   if (isR12GuestShower(props)) return <R12GuestShower {...props}/>;

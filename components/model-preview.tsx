@@ -7,6 +7,8 @@ import { Floor3DView } from "@/components/floor-3d-view";
 import { defaultSpaceData } from "@/data/mock-space";
 import defaultWorkspaceIdentity from "@/data/default-workspace.json";
 import b2DesignCameras from "@/data/b2-r7-design-cameras.json";
+import cabinetGeometry from '@/data/r14-geometry.json';
+import {isR16Cloak} from '@/lib/r16-cloak-binding';
 import { R11CycleControls } from '@/components/r11-cycle-controls';
 import { buildModelPreviewOverview, getModelPreviewCameras, getModelPreviewScene, modelPreviewCameraLabel, modelPreviewFloors, modelPreviewLabels, resolveModelPreviewFloor } from "@/lib/model-preview";
 import type { Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
@@ -21,10 +23,12 @@ export function ModelPreview() {
   const r14SubsetStage=defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('r14-r08-integrated');
   const m3B1Stage=defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('b1-selected2250-staged');
   const unifiedR12Stage=defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('source-ratio-A-integrated');
+  const r15Stage=Object.hasOwn(cabinetGeometry.operations,'coat-north');
   const [actualEvidence,setActualEvidence]=useState('');
   const floorId = resolveModelPreviewFloor(searchParams.get("floor"));
   const b1Review=floorId==='B1'&&searchParams.get('review')==='1';
   const workspace = defaultSpaceData.workspace;
+  const r16Stage=workspace.furniture.some(isR16Cloak);
   const floor = defaultSpaceData.floors.find((item) => item.id === floorId)!;
   const [selection, setSelection] = useState({ floorId, id: searchParams.get("camera") ?? "overview", nonce: 0 });
   const [wallOverride, setWallOverride] = useState<Drawing3DWallMode | null>(null);
@@ -42,7 +46,7 @@ export function ModelPreview() {
     {id:"review-entry-B",name:"入口B单抽动作·五金待核",floor:"1F",cameraPosition:{x:-1.85,y:1.6,z:-2.7},target:{x:-1.25,y:.5,z:-3.1},fov:52},
     {id:"review-entry-B-wide",name:"入口B五抽屉完整柜体",floor:"1F",cameraPosition:{x:-1.9,y:1.4,z:-1.8},target:{x:-1.05,y:.5,z:-3.1},fov:52},
     {id:'review-r10-tables',name:'固定八席与长桌｜板腿待深化',floor:'1F',cameraPosition:{x:.5,y:4.6,z:-.35},target:{x:.5,y:0,z:-.35},fov:42},
-    {id:'review-r10-r14',name:'餐边柜与分次取物',floor:'1F',cameraPosition:{x:0,y:1.7,z:1.4},target:{x:3.1,y:1.1,z:1.4},fov:52},
+    {id:'review-r10-r14',name:'R15餐边柜与分次取物',floor:'1F',cameraPosition:{x:0,y:1.7,z:1.4},target:{x:3.1,y:1.1,z:1.4},fov:52},
     {id:'review-r10-d005',name:'公卫门与餐边柜新弧端接口',floor:'1F',cameraPosition:{x:2.4,y:6.8,z:1.2},target:{x:2.8,y:.4,z:-.4},fov:45}
   ] as FixedCameraView[] : []), ...(floorId === "YARD" ? [
     {id:"review-c03a-overall",name:"C03A已采纳冷态布局·界线待核",floor:"YARD",cameraPosition:{x:7.8,y:6.8,z:-10},target:{x:.6,y:.6,z:-4.7},fov:53},
@@ -51,7 +55,7 @@ export function ModelPreview() {
   ] as FixedCameraView[] : []),...(floorId==='2F'?[
     ...(unifiedR12Stage?[
      {id:'review-r12-master',name:'主卧布局与南飘窗｜按图比例推定',floor:'2F',cameraPosition:{x:2.5,y:7,z:1.7},target:{x:2.5,y:0,z:1.5},fov:44},
-     {id:'review-g02-north',name:'双侧衣帽及普通三门完整循环',floor:'2F',cameraPosition:{x:.3,y:7,z:-.2},target:{x:.3,y:.6,z:-2.4},fov:48},
+     {id:'review-g02-north',name:'双侧衣帽四门与分侧新循环',floor:'2F',cameraPosition:{x:.3,y:7,z:-.2},target:{x:.3,y:.6,z:-2.4},fov:48},
      {id:'review-r12-mainbath',name:'主卫四件与实际入口',floor:'2F',cameraPosition:{x:2.5,y:6,z:-2.5},target:{x:2.5,y:0,z:-2.5},fov:42},
      {id:'review-r12-guest',name:'客卫普通900转角双移门',floor:'2F',cameraPosition:{x:-2.3,y:5,z:-2.4},target:{x:-2.3,y:0,z:-2.4},fov:42}
     ]:[
@@ -103,11 +107,12 @@ export function ModelPreview() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7c816e]">LIN YU LAKESIDE / LIVE MODEL</p>
             <h1 className="mt-1 text-xl font-medium tracking-tight">{modelPreviewLabels[floorId].title}</h1>
             <p className="mt-2 text-xs text-[#7c816e]" data-testid="model-design-note">方案设计中，尺寸待核</p>
+            {r15Stage&&<p data-testid="r15-integration-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">实体本地分项集成候选，待原审和PMO复核、未发布：1F餐边柜{cabinetGeometry.parts.length}构件／{Object.keys(cabinetGeometry.operations).length}操作；{r16Stage?'2F衣帽间每侧四门、原24模块保留；':''}其余模型几何保持。不是旧柜证书继承或工程认证。<Link className="ml-2 underline" href="/r15/?audit=1">1F开关门／低视角</Link>{r16Stage&&<Link className="ml-2 underline" href="/closet-candidate/?audit=1">2F新八门／新分侧循环</Link>}</p>}
             {mechanicalStage&&!m3B1Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">{r14SubsetStage?'R10-M2 独立增量，未发布：M1基础上已接餐边柜R08全部113真实零件、退让弧端／普通柜门、D005房界门向、全尺寸灯与L34关联。原审已关闭门弧柜冲突，实际合入本版本继续复核。':'R10-M1 分部集成，尚未发布：已合1350圆桌／2298长桌实体、衣帽每侧三门及功能高度。'} 桌椅最终布局及两层共同墙轴仍待统一整合；不代表四项完成，B2、墙轴、楼梯和沙发不改。</p>}
             {m3B1Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">M3a 独立暂存，未发布：已验M2桌体／衣帽／原生餐边柜113件、D005、L34全部保持，仅加已选B1右尾2250与对应地坪/研究护栏。原弧主体、其他家具与楼梯不改；不是四项完成，最终1F八席及共同1F2F/R11方案尚待整合、验收和采用。</p>}
-            {unifiedR12Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">本次整合：B1已选2250尾长、1350圆桌／2298长桌与固定八席、餐边柜、每侧三门衣帽及两层按图比例协调。主卧内部A北220／入口1400已采用。尺寸为方案推定，待复尺；不代表结构、成品安装、舒适或全屋任意同时使用确认。<Link className="ml-2 underline" href={`/unified-r12/?floor=${floorId}&camera=review-r12-plan&audit=1`}>整层与局部实景</Link></p>}
-            {(r14SubsetStage||unifiedR12Stage)&&floorId==='1F'&&<nav aria-label="餐边柜获准实体分态" className="mt-2 flex flex-wrap gap-2 text-xs">{[['closed','柜门关闭'],['base-open','底柜单门'],['upper-open','吊柜单门'],['coat-open','挂衣单门'],['basket-open','单篮全开']].map(([state,label])=>{const q=new URLSearchParams(searchParams.toString());q.set('r14',state);q.delete('r14Op');q.delete('r14Actor');q.set('phase','closed');q.set('t','0');q.set('d005','0');q.set('camera','review-r10-r14');return <a key={state} className={controlClass+' bg-white'} href={'?'+q.toString()}>{label}</a>;})}</nav>}
-            {unifiedR12Stage&&floorId==='2F'&&<R11CycleControls/>}
+            {unifiedR12Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">本次整合：B1已选2250尾长、1350圆桌／2298长桌与固定八席、餐边柜、每侧{r16Stage?'四':'三'}门衣帽及两层按图比例协调。主卧内部A北220／入口1400已采用。尺寸为方案推定，待复尺；不代表结构、成品安装、舒适或全屋任意同时使用确认。<Link className="ml-2 underline" href={`/unified-r12/?floor=${floorId}&camera=review-r12-plan&audit=1`}>整层与局部实景</Link></p>}
+            {(r14SubsetStage||unifiedR12Stage)&&floorId==='1F'&&<nav aria-label="餐边柜实体分态" className="mt-2 flex flex-wrap gap-2 text-xs">{[['closed','柜门关闭'],['base-open','底柜单门'],['upper-open','吊柜单门'],['coat-open',r15Stage?'挂衣双门':'挂衣单门'],['basket-open','单篮全开']].map(([state,label])=>{const q=new URLSearchParams(searchParams.toString());q.set('r14',state);q.delete('r14Op');q.delete('r14Actor');q.set('phase','closed');q.set('t','0');q.set('d005','0');q.set('camera','review-r10-r14');return <a key={state} className={controlClass+' bg-white'} href={'?'+q.toString()}>{label}</a>;})}</nav>}
+            {unifiedR12Stage&&floorId==='2F'&&!r16Stage&&<R11CycleControls/>}{r16Stage&&floorId==='2F'&&<p className="mt-2 text-xs text-amber-900">新八门按另一侧关闭、2+3双开后抽屉350的分次条件校核；600×1700有限代理，最薄2.5mm保守余量，不是舒适或完整换握认证。</p>}
             {floorId==='B2'&&<nav className="mt-2 flex flex-wrap gap-2 text-xs" aria-label="地下二层使用方式">
               <a className={controlClass+' bg-white'} href={b2Link('state','daily4')} aria-current={!b2Party?'page':undefined}>日常四椅</a><a className={controlClass+' bg-white'} href={b2Link('state','party6')} aria-current={b2Party?'page':undefined}>聚餐六椅</a>
               <a className={controlClass+' bg-white'} href={b2Link('bike','U')} aria-current={b2Bike==='U'?'page':undefined}>骑行使用</a><a className={controlClass+' bg-white'} href={b2Link('bike','S')} aria-current={b2Bike==='S'?'page':undefined}>分件收存</a>

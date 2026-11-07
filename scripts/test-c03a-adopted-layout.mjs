@@ -32,7 +32,7 @@ assert.equal(hasC03ADesignContract('OUT-N-TAP'),false,'hidden research tap not a
 assert.equal(hasC03ADesignContract('OUT-S-LAUNDRY'),false,'south yard outside adoption');
 const cold=model.furniture.find(f=>f.id==='OUT-N-BBQ');near(cold.position.x*120,5601);near(cold.position.y*90,-1325);
 const plumbing=model.drawingItems.find(d=>d.id==='MEP-OUT-N-KITCHEN-WATER');assert.deepEqual(plumbing.positionMm,{x:4250,y:-850});assert.deepEqual(plumbing.relatedFurniturePositionMm,{x:6480,y:-1224},'do not mark unverified old interface as reviewed');
-assert.match(model.defaultWorkspaceRevision,/^main-model-(?:four-items-mechanical-20261101-r10-m1|source-ratio-A-integrated-\d{8}-r12-[\w-]+)$/);
+assert.match(model.defaultWorkspaceRevision,/^main-model-(?:four-items-mechanical-20261101-r10-m1|source-ratio-A-integrated-\d{8}-(?:r12|r15(?:-r16)?)-[\w-]+)$/);
 assert.ok(model.furniture.some(f=>f.id==='furn-b2-sofa-residence-four-reference-20261031-r7'),'subsequent approved B2 adoption must not remove C03A');
 for(const collection of ['outdoorSurfaces','outdoorZones'])for(const old of model.houseStructuresByFloor.YARD[collection].filter(o=>['OS-YARD-NORTH-PLANT','OS-YARD-NORTH-KITCHEN-DECK','OZ-NORTH-PLANT-001','OZ-NORTH-KITCHEN-001','OZ-NORTH-STORAGE-001'].includes(o.id)))assert.deepEqual(migratedOld.houseStructuresByFloor.YARD[collection].find(o=>o.id===old.id).polygon,old.polygon,'legacy migration must preserve the companion design polygon');
 console.log('C03A adopted cold layout retained across B2 R7 adoption: four assets/native transforms/migrations, stale interiors removed, unchanged source MEP and no C03B.');

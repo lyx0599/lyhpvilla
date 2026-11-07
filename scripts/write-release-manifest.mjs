@@ -71,5 +71,17 @@ if(model.defaultWorkspaceRevision.endsWith('r12-published-work07')){
   'Existing B2 R7 and yard C03A are prior adopted design only. No new B2 research; product procurement, load-bearing, heat, utilities, field dimensions and multi-person comfort remain unconfirmed.'
  ];
 }
+if(/r15-r16-candidate-r0[12]$/.test(model.defaultWorkspaceRevision)){
+ manifest.integrationStatus='local-candidate-awaiting-original-increment-review-and-pmo-second-look';
+ manifest.scope='Unpublished guarded R15/R16 cabinet integration on published R12 W07 /873d: three1F furniture owners and three draft drawing items; two2F closet owners, exact126-part/14-operation R15 geometry and R16 eight-leaf renderer/contract/new cycles. Walls, apertures, tables/chairs, retained24 wardrobe modules and all unrelated model fields are unchanged. Local evidence is integration binding, not a new inherited collision certificate or publication approval.';
+ manifest.openItems=[
+  'Original affected-increment review and PMO second look of this exact combined model are pending. Do not publish or claim integration accepted merely because independent source candidates passed.',
+  'R15 normal use is phased with D005 closed: approach opening station, open, fetch/return, return station, close, depart. Source conservative D005 lower10.0315mm, fixed assembly contacts and decorative coffee-machine/cup simplifications retained; no finished appliance, robot, load or construction certification.',
+  'R16 eight leaves and drawers use new ten600x1700 rigid-body cycles; opposite side closed; drawer forces leaves2+3 open90 and single-door mode resets travel. Independent conservative minimum2.5mm; four release/regrasp boundaries are not full articulated-arm trajectories or comfort/site approval.',
+  'Door and drawer research bottoms raised14mm with actual floor retained; cabinet outer dimensions,24 modules and850high pedestal retained. Half-mirror optics, hinges, frame engineering and field tolerances remain unresolved.',
+  'R02 applies separately guarded annotation-only alignment to190mm/2000mm/new3950 split; all geometry, lights, contracts and cycles are unchanged. Legacy R14/drybar-2400 stable compatibility identifiers are not old physical dimensions or inherited certificates.',
+  'Existing inferred walls/rooms, fixed daily8 tight routes, table knee space, bath, B1 rail/elevations and historical E2/privacy/six-point/533/775 limitations remain. No new B2 or staircase storage candidate is included.'
+ ];
+}
 fs.writeFileSync(path.join(root,'public/release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(`Release identity: ${commit} / ${manifest.modelSha256}`);

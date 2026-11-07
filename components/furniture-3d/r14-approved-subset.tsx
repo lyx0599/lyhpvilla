@@ -31,6 +31,5 @@ export function R14ApprovedSubset(props:FurnitureFamily3DProps){
  const values:Record<string,number>=singleOp?{...(singleOp.startsWith('basket-')?{'pantry-door':1}:{}),[singleOp]:1}:(source.states as Record<string,Record<string,number>>)[state]??{},baseX=anchor[0],baseY=anchor[1];
  return <group name={'R14-native-'+role} rotation={[0,anchor[2]*Math.PI/180,0]}>
   {(source.parts as P[]).filter(p=>p.owner===role).map(p=><R14Mesh key={p.id} part={p} baseX={baseX} baseY={baseY} floorY={floorY} op={p.movingGroup?(source.operations as Record<string,Op>)[p.movingGroup]:undefined} value={(p.movingGroup?values[p.movingGroup]??0:0)*fraction}/>)}
-  {state==='robot'&&role==='base'&&<mesh name="R14-cleaning-robot" userData={{auditEntityId:'R14-robot',auditKind:'r14-robot'}} position={[(9100-baseX)/1000,floorY+.05,(Number(q.get('robotY')??7200)-baseY)/1000]}><cylinderGeometry args={[.175,.175,.1,64]}/><meshStandardMaterial color="#a6bfc4" roughness={.5}/></mesh>}
  </group>;
 }

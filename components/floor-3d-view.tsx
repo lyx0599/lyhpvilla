@@ -6,7 +6,7 @@ import {YardC03AStudy,hasC03AStudy} from "@/components/yard-c03a-study";
 import {B2LowdoorStudy} from "@/components/b2-lowdoor-study";
 import {B2R7RoleParts,B2R7EvidenceOverlay,R7ChairStudyOutline} from "@/components/b2-r7-design";
 import {DesignEvidenceAudit} from "@/components/design-evidence-audit";
-import {OneFOperationActor} from '@/components/one-f-operation-actor';
+import {R15Proxies} from '@/components/r15-proxies';
 import {R11BathEntry} from '@/components/furniture-3d/r11-bath-fixtures';
 import {R11BayBench} from '@/components/furniture-3d/r11-bay-bench';
 
@@ -316,7 +316,7 @@ function cameraConstraintsForView(view: FixedCameraView): CameraOrbitConstraints
   return {
     minDistance: Math.max(0.38, distance * 0.28),
     maxDistance: Math.max(2.4, distance * 2.35),
-    minPolarAngle: Math.PI * 0.14,
+    minPolarAngle: view.id==='r15-plan'?Math.PI*0.015:Math.PI * 0.14,
     maxPolarAngle: Math.PI * 0.74,
     maxTargetOffset: Math.max(0.45, distance * 0.18),
     collisionPadding: 0.16
@@ -11375,7 +11375,7 @@ function Floor3DScene({
     <PbrQualityProvider quality={pbrQuality} device={pbrDevice} maxTextureSize={staticPreview ? (balancedQuality ? 512 : 1024) : undefined} includeHeightMap={staticPreview ? false : undefined}>
       <ScenePerformanceMonitor mode={presentationMode ? "presentation" : "edit"} interactionActive={cameraInteractionActive} />
       <DesignEvidenceAudit/>
-      {houseStructure.floorId==='1F'&&<OneFOperationActor/>}
+      {houseStructure.floorId==='1F'&&<R15Proxies/>}
       {houseStructure.floorId==='B2'&&<B2R7EvidenceOverlay/>}
       <LocalClippingController />
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} staticPreview={staticPreview} />

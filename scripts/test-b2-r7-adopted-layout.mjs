@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {applyWorkspaceMigrations} from '../lib/workspace-migrations.ts';
 const model=JSON.parse(await readFile(new URL('../data/default-workspace.json',import.meta.url),'utf8'));
 const byId=id=>{const f=model.furniture.find(f=>f.id===id);assert.ok(f,id);return f;};
-assert.match(model.defaultWorkspaceRevision,/^main-model-(?:four-items-mechanical-20261101-r10-m1|source-ratio-A-integrated-\d{8}-r12-[\w-]+)$/);
+assert.match(model.defaultWorkspaceRevision,/^main-model-(?:four-items-mechanical-20261101-r10-m1|source-ratio-A-integrated-\d{8}-(?:r12|r15(?:-r16)?)-[\w-]+)$/);
 const b2=model.furniture.filter(f=>f.floorId==='B2');assert.equal(b2.length,24);assert.equal(new Set(b2.map(f=>f.id)).size,24);
 assert.ok(!b2.some(f=>f.id==='furn-b2-living-long-sofa-001'));
 const sofa=byId('furn-b2-sofa-residence-four-reference-20261031-r7');assert.deepEqual(sofa.dimensions,{width:260,depth:108,height:85,unit:'cm'});assert.equal(sofa.position.rotation,180);assert.equal(sofa.render3d.variantId,'b2ResidenceFourReferenceR7');assert.match(sofa.material,/皮/);assert.match(sofa.note,/未|参考|推算/);
