@@ -1,0 +1,52 @@
+{
+  "reviewedModelRevision": "main-model-source-ratio-A-integrated-20261108-r15-r16-candidate-r02",
+  "reviewedModelSha256": "f8f9c87538c5e9974e77b3825313c8c8eba353945143dd29a029719ccb8a9578",
+  "publishedModelRevision": "main-model-source-ratio-A-integrated-20261108-r15-r16-published-r01",
+  "publishedModelSha256": "5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a",
+  "independentCombinedReportSha256": "6d7d5c55c111c556e98d3516396297ea1e80f0d6cdb3ea24ed43cc9a82830eab",
+  "pmoAcceptedScope": "five furniture owners + three draft drawingItems and necessary reviewed dependencies; no new B2 or stair storage",
+  "edits": [
+    {
+      "collection": "furniture",
+      "id": "furn-living-waterbar-001",
+      "path": [
+        "note"
+      ],
+      "oldValueGuard": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "newValue": "R15/R16已采用设计实体增量；保留旧稳定ID及必要兼容合同ID。组合受影响增量条件通过并经PMO接收，限声明分次使用；非舒适、实机、承重或施工认证。"
+    },
+    {
+      "collection": "furniture",
+      "id": "furn-living-waterbar-upper-001",
+      "path": [
+        "note"
+      ],
+      "oldValueGuard": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "newValue": "R15/R16已采用设计实体增量；保留旧稳定ID及必要兼容合同ID。组合受影响增量条件通过并经PMO接收，限声明分次使用；非舒适、实机、承重或施工认证。"
+    },
+    {
+      "collection": "furniture",
+      "id": "furn-living-snack-pullout-001",
+      "path": [
+        "note"
+      ],
+      "oldValueGuard": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "newValue": "R15/R16已采用设计实体增量；保留旧稳定ID及必要兼容合同ID。组合受影响增量条件通过并经PMO接收，限声明分次使用；非舒适、实机、承重或施工认证。"
+    }
+  ],
+  "revisionEdit": {
+    "oldValueGuard": "main-model-source-ratio-A-integrated-20261108-r15-r16-candidate-r02",
+    "newValue": "main-model-source-ratio-A-integrated-20261108-r15-r16-published-r01"
+  },
+  "allOtherModelFieldsExactlyReviewed": true,
+  "geometryContractsCyclesAndLightingUnchanged": true,
+  "displayComparisonScopes": {
+    "sourcePlanComparison": "two source plan captures differ only in W-2F-008 cap material/clipping; geometry unchanged",
+    "mainVersusLocalCutaway": {
+      "wallMeshesWithDisplayDifferences": 188,
+      "capMaterialNamesDiffer": 44,
+      "geometryMatricesBoundingBoxesAndCabinetGlassEqual": true,
+      "notACollisionProofByHiding": true
+    }
+  }
+}

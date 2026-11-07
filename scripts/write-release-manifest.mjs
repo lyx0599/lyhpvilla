@@ -83,5 +83,26 @@ if(/r15-r16-candidate-r0[12]$/.test(model.defaultWorkspaceRevision)){
   'Existing inferred walls/rooms, fixed daily8 tight routes, table knee space, bath, B1 rail/elevations and historical E2/privacy/six-point/533/775 limitations remain. No new B2 or staircase storage candidate is included.'
  ];
 }
+if(model.defaultWorkspaceRevision.endsWith('r15-r16-published-r01')){
+ manifest.scope='PMO-adopted R15/R16 cabinet entity design increment on published R12 W07: three1F furniture owners and three draft items, two2F closet owners with necessary native renderer/proxy/geometry/contract/new-cycle dependencies. R15 is126 parts/14 operations,3950 split600+650+200+500+2000 and190mm bottom clearance. R16 is eight real leaves with24 retained modules and850 pedestal. All unrelated model fields and geometry are unchanged. Not comfort, product procurement, full articulated-human use or construction certification.';
+ manifest.integrationStatus='reviewed-and-pmo-adopted-design-release';
+ manifest.reviewedModelSha256='f8f9c87538c5e9974e77b3825313c8c8eba353945143dd29a029719ccb8a9578';
+ manifest.independentCombinedReportSha256='6d7d5c55c111c556e98d3516396297ea1e80f0d6cdb3ea24ed43cc9a82830eab';
+ manifest.publicProjection='model-releases/2026-11-08-r15-r16.json';
+ manifest.wallDisplayComparison={scope:'2F full-wall main entry versus local cutaway, not the same comparison as source-plan captures',wallMeshesWithDisplayDifferences:188,capMaterialNamesDiffer:44,geometryMatricesBoundingBoxesAndCabinetGlassEqual:true};
+ manifest.openItems=[
+  'R15 normal phased use only: approach opening station, open, fetch/return while open, return opening station, close, depart. D005 closed during cabinet use; source conservative lower10.0315mm and narrow5mm body edge reserves retained, not old40mm or comfortable simultaneous use.',
+  'R15 seven fixed assembly contacts and two decorative coffee-machine/cup simplification overlaps retained; no all-self-zero or detailed appliance/cup operation approval. Robot350 diameter100/180 high is a rigid proxy;180 high has about10mm vertical reserve under lowest hardware. No real robot, recharge, anchors or bearing certification.',
+  'R16 separate-side600x1700 rigid-body cycles with opposite side closed; drawer350 forces leaves2+3 open90; selecting single door resets drawer. Independent conservative minimum2.5mm, not author10.54mm independently reproduced or comfort/site tolerance approval. Four release/regrasp boundaries lack complete articulated-arm trajectories.',
+  'R16 door/drawer research bottoms raised14 with actual floor retained; outer2240x600x2470 dimensions,24 modules and850-high pedestal unchanged. Tall doors,12x18 front frame, hinges/anchors, half-mirror optics, real door gaps and field tolerances remain unresolved.',
+  '188 wall meshes have display-field differences between main full-wall and local cutaway views, including44 cap material names. Geometry/matrices/bounds and cabinet glass match. Two source plan references instead have only W-2F-008 cap display difference. Clipping is not deletion or collision proof.',
+  'Source-ratio walls/rooms/apertures and east9870 remain design inference pending field measurement; internal A north220/entry1400 retained, not structural expansion permission.',
+  'Fixed daily6+2 full-size chairs and1350/2298 tables retained. About612mm nominal bottleneck with5mm extra edge reserve is tight; solid panel leg knee/thigh and long sitting comfort unresolved.1750 extension/party10 target remains unreviewed and unrendered.',
+  'Existing guest-bath/main-bath affected conditional acceptance retained at unchanged geometry; not a new whole-bath, field-floor, fixture product or comfortable installation certificate. Draft lamp/control links are not field MEP relocation.',
+  'B1 original arc and2250 tail retained; native1070 versus nominal1100 rail expression, outer edge offsets, slab/bearing and field elevations remain unresolved.',
+  'Historical E2/privacy/six-point/533/775 source calculations are preserved, not recertified for new geometry; virtual diagnostic cameras are not proof of physically accessible observation points.',
+  'Existing B2 R7 and yard C03A prior adopted design retained. No new B2 south-cabinet/island or stair-storage research is included. Product/load/heat/utilities/field dimensions and multi-person comfort remain unconfirmed.'
+ ];
+}
 fs.writeFileSync(path.join(root,'public/release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(`Release identity: ${commit} / ${manifest.modelSha256}`);

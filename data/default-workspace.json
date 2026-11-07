@@ -1,7 +1,7 @@
 {
   "schemaVersion": 19,
   "dataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "defaultWorkspaceRevision": "main-model-source-ratio-A-integrated-20261108-r15-r16-candidate-r02",
+  "defaultWorkspaceRevision": "main-model-source-ratio-A-integrated-20261108-r15-r16-published-r01",
   "savedAt": "2026-10-12T16:19:40.397Z",
   "saveMode": "manual",
   "selectedFloorId": "1F",
@@ -6490,7 +6490,7 @@
         "unit": "cm"
       },
       "material": "深胡桃棕哑光金属/暖古铜棕；纯黑无白纹台面；深灰背板；古铜细框烟熏玻璃",
-      "note": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "note": "R15/R16已采用设计实体增量；保留旧稳定ID及必要兼容合同ID。组合受影响增量条件通过并经PMO接收，限声明分次使用；非舒适、实机、承重或施工认证。",
       "constructionNote": "R15非施工级工作几何：咖啡底柜最低硬件距实际地面190mm，不设落地横断脚；不整柜上抬，台高约900、总高约2200。墙锚、承载、实机机器人及五金待深化；操作按声明分次条件，不继承旧R14证书。",
       "serviceRequirements": {
         "water": false,
@@ -6666,7 +6666,7 @@
         "source": "explicit"
       },
       "material": "深胡桃棕哑光金属/暖古铜棕；纯黑无白纹台面；深灰背板；古铜细框烟熏玻璃",
-      "note": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "note": "R15/R16已采用设计实体增量；保留旧稳定ID及必要兼容合同ID。组合受影响增量条件通过并经PMO接收，限声明分次使用；非舒适、实机、承重或施工认证。",
       "constructionNote": "R15非施工级工作几何：咖啡底柜最低硬件距实际地面190mm，不设落地横断脚；不整柜上抬，台高约900、总高约2200。墙锚、承载、实机机器人及五金待深化；操作按声明分次条件，不继承旧R14证书。",
       "serviceRequirements": {
         "water": false,
@@ -6897,7 +6897,7 @@
         "unit": "cm"
       },
       "material": "深胡桃棕哑光金属/暖古铜棕；纯黑无白纹台面；深灰背板；古铜细框烟熏玻璃",
-      "note": "R15/R16本地分项集成候选；保留旧稳定ID及必要兼容合同ID。组合受影响增量待原审与PMO二看，未公开发布。",
+      "note": "R15/R16已采用设计实体增量；保留旧稳定ID及必要兼容合同ID。组合受影响增量条件通过并经PMO接收，限声明分次使用；非舒适、实机、承重或施工认证。",
       "constructionNote": "R15非施工级工作几何：咖啡底柜最低硬件距实际地面190mm，不设落地横断脚；不整柜上抬，台高约900、总高约2200。墙锚、承载、实机机器人及五金待深化；操作按声明分次条件，不继承旧R14证书。",
       "serviceRequirements": {
         "water": false,

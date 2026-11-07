@@ -30,7 +30,7 @@ export function UnifiedR12Review(){
   {id:'review-r12-plan',name:`${floorId} 同一实际俯视机位`,floor:floorId,cameraPosition:{x:0,y:14,z:.1},target:{x:0,y:0,z:0},fov:42},
   {id:'review-r12-north',name:`${floorId} 北部房间实际模型`,floor:floorId,cameraPosition:{x:.3,y:7,z:-.2},target:{x:.3,y:.6,z:-2.4},fov:48},
   {id:'review-r12-master',name:'主卧已选内部A与床尾真实薄柜',floor:floorId,cameraPosition:{x:2.5,y:7,z:1.7},target:{x:2.5,y:0,z:1.5},fov:44},
-  {id:'review-r12-r14',name:'R15实际柜体和D005｜本地候选',floor:floorId,cameraPosition:{x:0,y:1.7,z:1.4},target:{x:3.3,y:1.1,z:1.4},fov:52}
+  {id:'review-r12-r14',name:'R15实际柜体和D005｜分次使用',floor:floorId,cameraPosition:{x:0,y:1.7,z:1.4},target:{x:3.3,y:1.1,z:1.4},fov:52}
   ,{id:'review-r12-guest',name:'客卫新900转角双移门｜实际统一场景',floor:floorId,cameraPosition:{x:-2.3,y:5,z:-2.4},target:{x:-2.3,y:0,z:-2.4},fov:42}
   ,{id:'review-r12-mainbath',name:'主卫完整原尺寸设施｜实际统一场景',floor:floorId,cameraPosition:{x:2.5,y:6,z:-2.5},target:{x:2.5,y:0,z:-2.5},fov:42}
   ,{id:'review-r12-tables',name:'固定八席｜桌椅原尺寸，板腿待深化',floor:floorId,cameraPosition:{x:.5,y:4.6,z:-.35},target:{x:.5,y:0,z:-.35},fov:42}
@@ -46,11 +46,11 @@ export function UnifiedR12Review(){
  return <main className="min-h-screen bg-[#f4f1e9] text-[#343c34]">
   <header className="border-b bg-[#faf8f2] px-4 py-2 text-xs leading-5">
    <h1 className="text-base font-semibold">{floorId}｜整合方案模型：按图比例推定，待复尺</h1>
-   <p className="text-amber-900">R15本地分项集成候选：126构件／14操作，待原审及PMO二看、未发布。<Link className="ml-2 underline" href="/r15/?audit=1">柜体与低视角实景</Link></p>
+   <p className="text-amber-900">R15已采用设计实体：126构件／14操作；组合受影响增量条件通过，限声明分次使用。<Link className="ml-2 underline" href="/r15/?audit=1">柜体与低视角实景</Link></p>
    <p>内部A北220／门1400已采用；保西实墙、原床两400柜、南沿7800、B1原弧2250及楼梯。东9870为工作择值，非唯一实测。固定八席按600代理、分次动作校核，通路很紧；长桌板腿与腿膝空间待深化，不代表舒适或施工确认。</p>
    <nav className="flex flex-wrap gap-x-4"><a href={link({floor:'1F',camera:'review-r12-plan',closetCycle:null,cycleFrame:null})}>1F整层</a><a href={link({floor:'2F',camera:'review-r12-plan',closetCycle:null,cycleFrame:null})}>2F整层</a><a href={link({floor:'B1',camera:'review-r12-plan',closetCycle:null,cycleFrame:null})}>B1整层</a><button onClick={()=>setView('review-r12-north')}>北部局部</button>{floorId==='2F'&&<button onClick={()=>setView('review-r12-master')}>主卧局部</button>}{floorId==='1F'&&<button onClick={()=>setView('review-r12-r14')}>餐边柜实景</button>}</nav>
    {floorId==='2F'&&!before&&!r16Stage&&<R11CycleControls/>}
-   {floorId==='2F'&&r16Stage&&<p className="text-amber-900">衣帽间新八门本地集成，旧三门循环禁用；600×1700有限代理、最薄2.5mm保守余量，四处松手再握不等于完整上肢动作。<Link className="ml-2 underline" href="/closet-candidate/?audit=1">新四门与分侧动作</Link></p>}
+   {floorId==='2F'&&r16Stage&&<p className="text-amber-900">衣帽间新八门设计实体已采用，旧三门循环禁用；600×1700有限代理、最薄2.5mm保守余量，四处松手再握不等于完整上肢动作。<Link className="ml-2 underline" href="/closet-candidate/?audit=1">新四门与分侧动作</Link></p>}
    {floorId==='2F'&&!before&&<nav aria-label="本轮卫浴实际分态" className="flex flex-wrap gap-x-4"><a href={link({camera:'review-r12-guest',d006:'0',guestEastSlide:'0',guestSouthSlide:'0',closetCycle:null,cycleFrame:null})}>客卫闭门</a><a href={link({camera:'review-r12-guest',d006:'90',closetCycle:null,cycleFrame:null})}>客卫向北开90°</a><a href={link({camera:'review-r12-guest',d006:'0',guestEastSlide:'440',guestSouthSlide:'440',closetCycle:null,cycleFrame:null})}>新900淋浴双移门</a><a href={link({camera:'review-r12-mainbath',entryOpen:'1',bathAction:'windowDrawer',closetCycle:null,cycleFrame:null})}>主卫靠窗抽屉</a><a href={link({camera:'review-r12-mainbath',entryOpen:'1',bathAction:'doorDrawer',closetCycle:null,cycleFrame:null})}>主卫靠门抽屉</a></nav>}
    {floorId==='1F'&&!before&&<nav aria-label="R15餐边柜和公卫门分态" className="flex flex-wrap gap-x-4">{[['closed','关闭柜'],['base-open','底柜单门'],['upper-open','上柜单门'],['coat-open','挂衣门'],['basket-open','单篮400']].map(([state,label])=><a key={state} href={link({camera:'review-r12-r14',r14:state,r14Op:null,r14Actor:null,d005:'0',phase:'closed',t:'0'})}>{label}</a>)}<a href={link({camera:'review-r12-north',d005:'0'})}>公卫门关闭</a><a href={link({camera:'review-r12-north',d005:'72'})}>公卫门全开72°</a></nav>}
    {floorId==='1F'&&!before&&<nav className="flex flex-wrap gap-x-4"><button onClick={()=>setView('review-r12-tables')}>八席与长桌局部</button><button onClick={()=>setView('review-r12-l1-eye')}>L1桌端支腿实景</button><button onClick={()=>{const d=capture();if(d)setDining(oneFDiningEvidence(d as Parameters<typeof oneFDiningEvidence>[0]));}}>量取当前L1桌位</button></nav>}
