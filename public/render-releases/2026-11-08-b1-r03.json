@@ -1,6 +1,6 @@
 {
-  "revision": "B1-BOUNDARY-THICKNESS-R03-INTEGRATED-20261108-r01",
-  "phase": "local-integrated-awaiting-actual-binding-and-affected-review",
+  "revision": "B1-BOUNDARY-THICKNESS-R03-PUBLISHED-20261108-r01",
+  "phase": "reviewed-and-pmo-adopted-render-release",
   "sourceAuthorRevision": "B1-BOUNDARY-THICKNESS-R03-20261108",
   "sourcePublicCommit": "075e458ef0674ccdadf8b3827a2f6150b349a8bc",
   "sourceModelSha256": "5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a",
@@ -33,6 +33,10 @@
     }
   ],
   "independentSourceReportSha256": "d88e7ec6887cbcd21e650d1d0ccc51dcf1bdd52248491c25d9495b54899e9fe4",
+  "reviewedIntegrationCommit": "a36497288ddb381eabc8e03f9ea351178a2a4ea1",
+  "independentIntegrationBindingReportSha256": "e286b7d6f258151471f5c5d4d69b7995a2f19d7a48a84613f2371d968e896ded",
+  "independentLocalMainEntryReportSha256": "7b98892da1630d56a6c272e851efb68fe1df6aacf8eb963e31b12b1cea55bcf4",
+  "onlineVerification": "Separate post-deployment evidence is required; the local reports do not certify remote CI, Pages or the public main entry.",
   "pmoAdoptedScope": "B1 source220 wall profile flush; existing rail section continuous miters and remove5duplicate endpoint posts only; preserve original arc/2250/Y7800/sourceJSON/furniture/floor/doors; no new B2/whole-plan/material adoption",
   "retainedLimits": [
     "nominal rail1100 versus actual1070 remains",

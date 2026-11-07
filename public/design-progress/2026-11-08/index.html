@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>柜体实体增量 · 2026-11-08 · 林屿湖畔</title>
+  <title>柜体及B1墙栏局部增量 · 2026-11-08 · 林屿湖畔</title>
   <style>
     :root{color-scheme:light;font-family:system-ui,-apple-system,"PingFang SC",sans-serif;color:#303a31;background:#f4f1e9}*{box-sizing:border-box}body{margin:0}main{max-width:1040px;margin:auto;padding:44px 24px 64px}header{padding-bottom:30px;border-bottom:1px solid #d8d7cc}h1{font-size:clamp(30px,5vw,48px);line-height:1.2;font-weight:600;margin:12px 0 18px}h2{font-size:25px;margin:0 0 14px}h3{margin:0 0 8px;font-size:20px}p,li{line-height:1.8}a{color:#35583b}nav{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.button{display:inline-block;padding:11px 17px;border:1px solid #7c8d72;border-radius:8px;background:#fff;text-decoration:none}.primary{background:#40583e;color:white}.eyebrow,.small{font-size:13px;color:#64705f}.notice{padding:16px 20px;background:#e5ecdf;border-left:4px solid #6d875e;border-radius:5px;margin-top:20px}.notice p{margin:0}section{padding:30px 0;border-bottom:1px solid #d8d7cc}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.item{padding:22px;background:#faf9f4;border:1px solid #dedfd5;border-radius:10px}.badge{font-size:12px;display:inline-block;background:#dfe9d8;padding:3px 8px;border-radius:4px;margin-bottom:12px}.limits{background:#efe7d9;padding:16px 20px;border-radius:6px}.limits p{margin:6px 0}.identity{overflow-wrap:anywhere;font-size:13px}footer{padding-top:22px;font-size:13px;color:#64705f}@media(max-width:650px){main{padding:28px 16px 44px}.grid{grid-template-columns:1fr;gap:16px}section{padding:24px 0}.button{flex:1;text-align:center;padding:11px 10px}}
   </style>
@@ -11,21 +11,22 @@
 <body><main>
   <header>
     <div class="eyebrow">LIN YU LAKESIDE · 2026 年 11 月 8 日</div>
-    <h1>两处柜体实体<br>进入本次发布</h1>
+    <h1>柜体实体保留<br>另接B1墙栏局部修正</h1>
     <p>1F R15餐边柜与2F八门衣帽间，已完成组合受影响增量独立条件通过，并经PMO实际看图、操作二看接收。本次更新真实模型，不是只更换说明或研究图。</p>
-    <div class="notice"><p><strong>只合本次柜体与必要依赖。</strong><br>原桌椅、墙门、其他楼层保持；新B2南柜／岛桌及梯下柜不随本次合入。尺寸与材质仍属设计表达，不是施工或采购定稿。</p></div>
+    <div class="notice"><p><strong>075e柜体版本保留，B1墙栏R03另立渲染身份。</strong><br>B1只齐原220墙轴的墙帽／影／踢脚、连续原截面栏杆及去重复柱；原弧、2250尾长、家具、门窗、地坪与模型JSON不变。新B2南柜／岛桌、梯下柜和全案材料灯光不合入，不是施工或采购定稿。</p></div>
     <nav aria-label="实际模型入口"><a class="button primary" href="/lyhpvilla/model-preview/?floor=1F">看1F实际模型</a><a class="button primary" href="/lyhpvilla/model-preview/?floor=2F">看2F实际模型</a><a class="button" href="/lyhpvilla/release-manifest.json">核对发布身份</a></nav>
   </header>
   <section><h2>已合入哪些实体</h2><div class="grid">
     <article class="item"><span class="badge">组合增量条件通过 · 已采用</span><h3>1F 餐边柜 R15</h3><p>126个实际构件、14项门抽操作。3950＝600弧端＋650双门挂衣＋200缓冲＋500食品拉篮＋2000咖啡干吧。</p><p>最低硬件距实际地面净190，台高约900、总高约2200；没有整柜上抬。1350圆桌、2298长桌与原8把椅不动。</p><a href="/lyhpvilla/r15/?audit=1">打开门抽与柜底实景 ↗</a></article>
     <article class="item"><span class="badge">组合增量条件通过 · 已采用</span><h3>2F 每侧四门衣帽柜</h3><p>两侧共8扇真实玻璃门，新门、前框、把手与分侧动作一同绑定。保留原24模块、650抽屉、850高台座和实际地面。</p><p>单柜2240×600×2470；门底与底抽研究上抬14，外形不变。柜灯亮灭时不更换玻璃参数，旧三门循环禁用。</p><a href="/lyhpvilla/closet-candidate/?audit=1">打开八门、亮灭与新循环 ↗</a></article>
   </div></section>
+  <section><h2>B1墙栏R03：局部实景修正，不是整装全案</h2><p>源截面／接头、集成绑定及实际本地主入口已分别独立有限核验，PMO采用范围仅四个渲染文件及必要身份说明。实墙各层齐原220墙轴；护栏沿原截面连续斜接，去5个重复端柱，保留21个原独立支撑位置。原弧、2250、Y7800与其余源模型数据不改。</p><p>实际B1导出526个网格／483个physical，与已审作者源相同；B2仍原已发布基线，不是新南转方案。实际栏高约1070而非名义1100、结构板侧厚度、锚固承载、现场实测及完整人体使用继续待核。</p><nav><a class="button" href="/lyhpvilla/model-preview/?floor=B1&amp;review=1&amp;camera=review-b1-2250-whole&amp;audit=1">看B1整层真实模型</a><a class="button" href="/lyhpvilla/model-preview/?floor=B1&amp;review=1&amp;camera=review-b1-2250-local&amp;audit=1">看2250尾段</a><a class="button" href="/lyhpvilla/render-releases/2026-11-08-b1-r03.json">独立渲染身份与保留项</a></nav></section>
   <section><h2>可使用，不等于宽裕或施工放行</h2><div class="limits">
     <p><strong>1F分次使用：</strong>开门站开门→开态取回→回站关门→离开；柜体操作时D005关闭。约10.0315保守门隙和约5身体边余仍很薄。7组固定装配接触、2组机器／杯装饰简模例外保留。</p>
     <p><strong>2F分侧使用：</strong>另一侧保持关闭；抽屉350会强制2、3号门双开90，切单门会归抽。600×1700有限刚性代理的独立保守下界为2.5；四处松手再握未建完整上肢轨迹，不是舒适或现场容差认证。</p>
     <p><strong>仍待深化：</strong>实机机器人、回充、五金与墙锚承载、半镜实物样板、现场完成面与门缝。350径／180高机器人只是研究代理，柜底竖向余量约10。</p>
   </div><p class="small">以上长度均为mm。原八席通路偏紧、长桌腿膝舒适、建筑来源推定及B1现场／结构未定边界继续保留。</p></section>
   <section><h2>完整墙与局部剖切，显示不强求相同</h2><p>2F主入口完整墙与局部cutaway之间，原审记录了188个墙体网格显示字段差异，其中44个墙顶帽材质名称不同；每件几何、矩阵、包围盒及柜玻璃参数相同。两张源平面参考的同机位比对才是仅一块W-2F-008墙顶帽差异，不能外推成“所有入口只有一处差异”。</p><p class="small">剖切帮助查看内构件，不是删除墙体，也不以隐藏证明物理无碰撞。历史E2／隐私／六点／533／775计算保留，不对本次几何重新签认。</p></section>
-  <section><h2>版本与继续讨论</h2><p class="identity">实体版：main-model-source-ratio-A-integrated-20261108-r15-r16-published-r01<br>模型SHA-256：5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a</p><p>公开版相对已审R02，仅另改3个柜体说明的采用状态与revision；几何、照明、合同和动作不变。<a href="/lyhpvilla/model-releases/2026-11-08-r15-r16.json">查看逐值身份投影</a>；实际源码提交与部署身份以<a href="/lyhpvilla/release-manifest.json">发布记录</a>为准。</p><p>B2南柜／岛桌和梯下储物继续独立讨论，未随本版采用。<a href="/lyhpvilla/design-progress/2026-11-06/">11月6日历史诊断与阶段记录</a>保留，不作为本次新柜实体证据。</p></section>
+  <section><h2>版本与继续讨论</h2><p class="identity">模型JSON：main-model-source-ratio-A-integrated-20261108-r15-r16-published-r01<br>模型SHA-256：5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a<br>独立B1渲染版：B1-BOUNDARY-THICKNESS-R03-PUBLISHED-20261108-r01<br>四代码组合SHA-256：87844b596bcdd2e0661b159b850b51e4a8eba810f8cbc4f36d64d80c7a954b20</p><p>075e柜体公开JSON相对已审R02仅改3个说明及revision；<a href="/lyhpvilla/model-releases/2026-11-08-r15-r16.json">历史柜体逐值身份投影</a>保持。后续B1原生边界网格确有局部修正，不能用相同JSON hash宣称渲染几何未变；须同时核对<a href="/lyhpvilla/release-manifest.json">实际源码及渲染发布身份</a>。本地审不冒公网通过，线上结果另核。</p><p>B2南柜／岛桌和梯下储物继续独立讨论，未随本版采用。<a href="/lyhpvilla/design-progress/2026-11-06/">11月6日历史诊断与阶段记录</a>保留，不作为本次新柜实体证据。</p></section>
   <footer>林屿湖畔 · 设计实体增量 · 非施工、采购、舒适或完整人体动作认证</footer>
 </main></body></html>

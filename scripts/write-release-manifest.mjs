@@ -109,7 +109,8 @@ if(fs.existsSync(b1RenderRecord)){
  const binding=JSON.parse(fs.readFileSync(b1RenderRecord,'utf8'));
  if(binding.sourceModelSha256!==manifest.modelSha256)throw new Error('B1 renderer is not bound to the declared unchanged model');
  for(const file of binding.files){const actual=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file.path))).digest('hex');if(actual!==file.afterSha256)throw new Error('B1 renderer file hash mismatch: '+file.path);}
- manifest.renderRevision=binding.revision;manifest.renderIdentitySha256=binding.renderIdentitySha256;manifest.b1BoundaryIncrement={phase:binding.phase,sourceModelJSONUnchanged:true,sourcePublicCommit:binding.sourcePublicCommit,sourceReportSha256:binding.independentSourceReportSha256,scope:binding.pmoAdoptedScope};
+ manifest.renderRevision=binding.revision;manifest.renderIdentitySha256=binding.renderIdentitySha256;manifest.b1BoundaryIncrement={phase:binding.phase,sourceModelJSONUnchanged:true,sourcePublicCommit:binding.sourcePublicCommit,reviewedIntegrationCommit:binding.reviewedIntegrationCommit,sourceReportSha256:binding.independentSourceReportSha256,integrationBindingReportSha256:binding.independentIntegrationBindingReportSha256,localMainEntryReportSha256:binding.independentLocalMainEntryReportSha256,scope:binding.pmoAdoptedScope};
+ manifest.scope=manifest.scope.replace('All unrelated model fields and geometry are unchanged.','The prior R15/R16 model JSON projection remains unchanged; the separately identified B1 renderer increment below changes native boundary meshes.');
  manifest.scope+=' B1 render-only boundary increment: source220 wall caps/shadows/baseboards flush to source axes; original-section continuous rail miters and5duplicate endpoint posts removed. Original arc/2250/Y7800, all source model data and existing materials/lighting retained. This is separate from the unadopted basement whole-plan.';
  manifest.openItems.push(...binding.retainedLimits);
 }
