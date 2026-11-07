@@ -1,0 +1,43 @@
+{
+  "revision": "B1-BOUNDARY-THICKNESS-R03-INTEGRATED-20261108-r01",
+  "phase": "local-integrated-awaiting-actual-binding-and-affected-review",
+  "sourceAuthorRevision": "B1-BOUNDARY-THICKNESS-R03-20261108",
+  "sourcePublicCommit": "075e458ef0674ccdadf8b3827a2f6150b349a8bc",
+  "sourceModelSha256": "5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a",
+  "modelJSONUnchanged": true,
+  "renderIdentitySha256": "87844b596bcdd2e0661b159b850b51e4a8eba810f8cbc4f36d64d80c7a954b20",
+  "files": [
+    {
+      "path": "components/floor-3d-view.tsx",
+      "beforeExists": true,
+      "beforeSha256": "28dbb6abe83043e2fefa1b0c3960540dfdb5088db24bac1505b86524b54c4112",
+      "afterSha256": "2930645357e7ec93c15e2296fe158bec86f46df5c48730bace6070cdddd7853f"
+    },
+    {
+      "path": "components/design-evidence-audit.tsx",
+      "beforeExists": true,
+      "beforeSha256": "86373bf9c789675d877ca6979a7a5e5af9fd1a7c7b36582d2dfe6dd725d3a71b",
+      "afterSha256": "cc56729cd698ad5a1f968882291ed3fd9f9294ab5898a6bef6be88f8bcb74797"
+    },
+    {
+      "path": "components/b1-joined-railing.tsx",
+      "beforeExists": false,
+      "beforeSha256": null,
+      "afterSha256": "847d2e884398beb2e13c949526b7d1947cf12b48c4d8829e6040b7c9b1dea09d"
+    },
+    {
+      "path": "lib/b1-boundary-profile.ts",
+      "beforeExists": false,
+      "beforeSha256": null,
+      "afterSha256": "f6e0a83352e21287f007d6945e8ecb3e9c0b0194f5a55fec25e2adbd94c285ce"
+    }
+  ],
+  "independentSourceReportSha256": "d88e7ec6887cbcd21e650d1d0ccc51dcf1bdd52248491c25d9495b54899e9fe4",
+  "pmoAdoptedScope": "B1 source220 wall profile flush; existing rail section continuous miters and remove5duplicate endpoint posts only; preserve original arc/2250/Y7800/sourceJSON/furniture/floor/doors; no new B2/whole-plan/material adoption",
+  "retainedLimits": [
+    "nominal rail1100 versus actual1070 remains",
+    "no verified structural slab side volume/thickness",
+    "anchors/load/field/complete human use not accepted",
+    "B2 source120 walls unchanged;90 railing envelope is not glass thickness or solid wall220"
+  ]
+}

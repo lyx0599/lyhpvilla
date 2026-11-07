@@ -13,6 +13,8 @@ import {R11BayBench} from '@/components/furniture-3d/r11-bay-bench';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import { buildWallFinishTrim } from '@/lib/wall-finish-trim';
+import { b1WallDisplayProfile } from '@/lib/b1-boundary-profile';
+import { B1JoinedRailing } from '@/components/b1-joined-railing';
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 // Keep the candidate's fine furniture path local. The main-app alias can point
 // at the shared renderer when this isolated preview is built from the root.
@@ -3824,6 +3826,8 @@ function RailingSegment({
   const metalColor = selected ? RAILING_SELECTED_COLOR : "#6f675e";
   const glassColor = selected ? "#93c5fd" : "#c4e2e3";
 
+  if (structure.floorId === 'B1') return <B1JoinedRailing {...{id,start,end,structure,widthMm,heightMm,selected,onSelect,onHover,onClearHover}}/>;
+
   return (
     <group
       onClick={(event) => {
@@ -3955,6 +3959,7 @@ function SolidWallSegment({
     : isBasementWall ? "microcement" : "wall";
   const wallTextureAccent = wallFinish?.textureAccent ?? (isBasementWall ? "#e0d8ce" : effectMaterialCatalog.wallPaint.color);
   const wallSurfaceColor = !selected && isBasementWall && !wallFinish ? "#c6beb3" : color;
+  const displayProfile = b1WallDisplayProfile(structure.floorId, widthMm);
   const capHeightMm = Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18));
   const bodyHeightMm = Math.max(42, heightMm - capHeightMm);
   const technicalCap = wallMode === "cutaway";
@@ -3996,7 +4001,7 @@ function SolidWallSegment({
         id={id}
         start={start}
         end={end}
-        widthMm={widthMm + 28}
+        widthMm={displayProfile.shadowMm}
         heightMm={42}
         structure={structure}
         color={selected ? "#bfdbfe" : "#6f6257"}
@@ -4016,7 +4021,7 @@ function SolidWallSegment({
         id={id}
         start={start}
         end={end}
-        widthMm={widthMm + 64}
+        widthMm={displayProfile.capMm}
         heightMm={capHeightMm}
         structure={structure}
         color={selected ? WALL_CAP_SELECTED_COLOR : technicalCap ? WALL_CAP_COLOR : wallSurfaceColor}
@@ -4035,7 +4040,7 @@ function SolidWallSegment({
           id={id}
           start={start}
           end={end}
-          widthMm={widthMm + 36}
+          widthMm={displayProfile.baseboardMm}
           heightMm={72}
           structure={structure}
           color={effectMaterialCatalog.baseboard.color}
@@ -4101,6 +4106,7 @@ function CutWallPanel({
     : isBasementWall ? "microcement" : "wall";
   const wallTextureAccent = wallFinish?.textureAccent ?? (isBasementWall ? "#e0d8ce" : effectMaterialCatalog.wallPaint.color);
   const wallSurfaceColor = !selected && isBasementWall && !wallFinish ? "#c6beb3" : color;
+  const displayProfile = b1WallDisplayProfile(structure.floorId, widthMm);
   const capHeightMm = reachesTop ? Math.min(WALL_CAP_HEIGHT_MM, Math.max(24, heightMm * 0.18)) : 0;
   const bodyHeightMm = Math.max(1, heightMm - capHeightMm);
   const technicalCap = wallMode === "cutaway";
@@ -4144,7 +4150,7 @@ function CutWallPanel({
           id={id}
           start={start}
           end={end}
-          widthMm={widthMm + 64}
+          widthMm={displayProfile.capMm}
           heightMm={capHeightMm}
           structure={structure}
           color={selected ? WALL_CAP_SELECTED_COLOR : technicalCap ? WALL_CAP_COLOR : wallSurfaceColor}
@@ -4165,7 +4171,7 @@ function CutWallPanel({
             id={id}
             start={start}
             end={end}
-            widthMm={widthMm + 28}
+            widthMm={displayProfile.shadowMm}
             heightMm={42}
             structure={structure}
             color={selected ? "#bfdbfe" : "#6f6257"}
@@ -4186,7 +4192,7 @@ function CutWallPanel({
               id={id}
               start={start}
               end={end}
-              widthMm={widthMm + 36}
+              widthMm={displayProfile.baseboardMm}
               heightMm={72}
               structure={structure}
               color={effectMaterialCatalog.baseboard.color}
