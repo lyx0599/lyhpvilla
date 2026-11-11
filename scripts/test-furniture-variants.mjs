@@ -1,3 +1,4 @@
+import { readHistoricalWorkspace } from "./read-historical-workspace.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
@@ -76,7 +77,9 @@ const rendererSources = Object.fromEntries(await Promise.all([
   "bed-family-3d.tsx", "sofa-family-3d.tsx", "table-family-3d.tsx", "chair-family-3d.tsx", "cabinet-family-3d.tsx", "media-wall-3d.tsx", "wet-area-family-3d.tsx"
 ].map(async (file) => [file, await readFile(new URL(`../components/furniture-3d/${file}`, import.meta.url), "utf8")])));
 const floor3dSource = await readFile(new URL("../components/floor-3d-view.tsx", import.meta.url), "utf8");
-const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
+// Historical release scope: old adopted coordinates/roles are immutable fixtures.
+// Current model is checked by test-four-floor-calibration.mjs and native review.
+const workspace = readHistoricalWorkspace();
 assert.match(
   rendererSources["table-family-3d.tsx"],
   /rotation=\{\[0, -angle - Math\.PI \/ 2 \+ offset \* 0\.2, 0\]\}/,

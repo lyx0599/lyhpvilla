@@ -1,0 +1,1865 @@
+{
+  "sourcePublicCommit": "377892e72044f2efc8ba56b68fd47dd81705a8b4",
+  "sourcePublicModelSha256": "5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a",
+  "scope": "Preserved former74 authored camera values/12 room-tour poses. Historical533/775/privacy/six-point source calculations stay at their original version scope and are not recertified by this current geometry or virtual inspection cameras.",
+  "legacyConstraintInputs": {
+    "bedFootClearMm": 533,
+    "suspensionClearMm": 775,
+    "privacyAndSixPoint": "Original confirmed calculation records retained; this file is not a replacement calculation."
+  },
+  "cameraViews": [
+    {
+      "id": "designer-camera-b2-01-stair-arrival",
+      "name": "B2 室内斜看入户门与开放玄关",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -4.35,
+        "y": 1.62,
+        "z": -2.5
+      },
+      "target": {
+        "x": -1.15,
+        "y": 1.06,
+        "z": -3.55
+      },
+      "fov": 72,
+      "zoom": 0.95,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-001",
+      "description": "镜头位于西侧车库入户门内侧并朝东：左侧近景必须出现紧贴北墙的930mm开放玄关，中央是正对门的轻薄屏风；两者在画面左前角连续成L，右侧向观影区开放。正面屏风西侧距门墙约930mm，严禁把贴墙柜拉成长墙、移到右侧或悬空离墙。"
+    },
+    {
+      "id": "designer-camera-b2-02-stair-living",
+      "name": "B2 入户门内侧看玄关与观影区",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 2.4,
+        "y": 1.55,
+        "z": -1
+      },
+      "target": {
+        "x": -1.13,
+        "y": 1.08,
+        "z": -2.6
+      },
+      "fov": 58,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-001",
+      "description": "站在观影区东侧回看车库入户门、左转L形玄关和沙发边界，核对门与楼梯同侧、左段紧贴北墙、正面屏风对准门洞且不挡观影视线。"
+    },
+    {
+      "id": "designer-camera-b2-03-living-entry",
+      "name": "B2 观影区含玄关全景",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 1.35,
+        "y": 1.6,
+        "z": -0.1
+      },
+      "target": {
+        "x": 0,
+        "y": 1.15,
+        "z": -2.35
+      },
+      "fov": 58,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-001",
+      "description": "从观影区东侧斜看电视墙、真皮沙发、异形茶几与开放玄关，核对整体中心线和通道。"
+    },
+    {
+      "id": "designer-camera-b2-04-living-main",
+      "name": "B2 电视墙反看真皮沙发",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 0.04,
+        "y": 1.6,
+        "z": -3.2
+      },
+      "target": {
+        "x": 0.1,
+        "y": 1.1,
+        "z": -0.7
+      },
+      "fov": 58,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-001",
+      "description": "从北侧电视墙朝南反看四人位高靠背真皮沙发：远处柱2位于画面中心偏左、活动区一侧且视觉更小；近处柱1位于画面中心偏右、大板桌一侧且视觉更大；两柱必须横向分开，严禁同时挤在画面右侧。"
+    },
+    {
+      "id": "designer-camera-b2-05-living-daylight",
+      "name": "B2 L型纪念品墙正面",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -1.4,
+        "y": 1.6,
+        "z": 2
+      },
+      "target": {
+        "x": -4.6,
+        "y": 1.2,
+        "z": 2
+      },
+      "fov": 66,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-005",
+      "description": "正面展示西侧纪念品墙、圆弧转角酒柜和北侧水吧的连续L型关系。"
+    },
+    {
+      "id": "designer-camera-b2-06-study-entry",
+      "name": "B2 大板桌南端看L型柜",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -2,
+        "y": 1.55,
+        "z": -0.1
+      },
+      "target": {
+        "x": -3.7,
+        "y": 1.1,
+        "z": 2.5
+      },
+      "fov": 64,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-005",
+      "description": "从大板桌南端沿固定南北长轴纵向观看，核对六人位桌向、纪念品墙、圆弧转角酒柜和水吧。"
+    },
+    {
+      "id": "designer-camera-b2-07-study-reading",
+      "name": "B2 大板桌与L型柜斜角",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -1.3,
+        "y": 1.6,
+        "z": 2.5
+      },
+      "target": {
+        "x": -4.2,
+        "y": 1.15,
+        "z": 2.8
+      },
+      "fov": 66,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-005",
+      "description": "从书房东南侧斜看同一张南北向2.4米大板桌及连续纪念品墙、圆弧转角酒柜和水吧，桌向不得改变。"
+    },
+    {
+      "id": "designer-camera-b2-08-activity-overview",
+      "name": "B2 活动区看大板桌",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 3,
+        "y": 1.6,
+        "z": 1.5
+      },
+      "target": {
+        "x": -2.4,
+        "y": 1.15,
+        "z": 1.4
+      },
+      "fov": 70,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-005",
+      "description": "从活动区东侧看向大板桌和连续L型柜，保留两根柱子的真实遮挡关系，检查多人聚餐和活动动线。"
+    },
+    {
+      "id": "designer-camera-b2-09-activity-piano",
+      "name": "B2 活动区与大板桌全景",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 3,
+        "y": 1.6,
+        "z": 2.8
+      },
+      "target": {
+        "x": 0.8,
+        "y": 1.15,
+        "z": 1.7
+      },
+      "fov": 60,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-003",
+      "description": "从活动区东侧回看两根柱子、大板桌、L型柜和楼梯，确认儿童活动及多人使用净空。"
+    },
+    {
+      "id": "designer-camera-b2-10-under-stair-storage",
+      "name": "B2 楼梯间与储藏室隐形矮门",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -0.6,
+        "y": 1.55,
+        "z": -0.15
+      },
+      "target": {
+        "x": -4.1,
+        "y": 0.9,
+        "z": -0.85
+      },
+      "fov": 65,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-004",
+      "description": "展示完整楼梯间、顺斜底封闭外壳和位于净高较高一端的700×1250mm同墙色隐形矮门；门洞与外壳准确对齐。"
+    },
+    {
+      "id": "designer-camera-b2-11-under-stair-open",
+      "name": "B2 储藏室开门看内部货架",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -0.7,
+        "y": 1.55,
+        "z": 0.55
+      },
+      "target": {
+        "x": -4.2,
+        "y": 0.85,
+        "z": -0.8
+      },
+      "fov": 70,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B2-004",
+      "description": "同墙色隐形矮门向外开启，从700×1250mm门洞看到楼梯下多层货架、行李箱与家庭囤货，门前通道保持畅通。"
+    },
+    {
+      "id": "designer-camera-b1-01-stair-rail",
+      "name": "B1 双向楼梯全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -0.6,
+        "y": 4.2,
+        "z": 1.6
+      },
+      "target": {
+        "x": -3.3,
+        "y": -0.15,
+        "z": -0.5
+      },
+      "fov": 42,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-005",
+      "description": "从楼梯东南侧高位斜看900mm共享半层平台；同时核对右侧上1F梯、左侧洞口内下B2梯及两者并列关系。"
+    },
+    {
+      "id": "designer-camera-b1-02-stair-void",
+      "name": "B1 家政房侧反看活动区与楼梯",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": 1.8,
+        "y": 1.6,
+        "z": -1.4
+      },
+      "target": {
+        "x": -2.5,
+        "y": 1,
+        "z": 1.4
+      },
+      "fov": 38,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-004",
+      "description": "站在客房外侧靠弧形栏杆的安全平台向西南反看；前景为弧形挑空栏杆，中景完整读到活动区休闲座位、乐器墙和整墙收纳，右侧保留上行楼梯，作为公共区反向全景。"
+    },
+    {
+      "id": "designer-camera-b1-03-public-overview",
+      "name": "B1 公共区反向全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -1.5,
+        "y": 1.55,
+        "z": 1.6
+      },
+      "target": {
+        "x": 1.2,
+        "y": 1,
+        "z": -2.7
+      },
+      "fov": 38,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-004",
+      "description": "站在活动区弧形栏杆内侧跨挑空看客房床尾；左侧必须保留连续通道和洗衣房体块，不得补成实体墙。"
+    },
+    {
+      "id": "designer-camera-b1-04-activity-overview",
+      "name": "B1 活动区整体",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": 0.2,
+        "y": 2.2,
+        "z": 3.05
+      },
+      "target": {
+        "x": -3.2,
+        "y": 0.8,
+        "z": 1.9
+      },
+      "fov": 45,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-004",
+      "description": "站在活动区东南角略高位置看西北；完整检查整墙大收纳柜、懒人沙发、落地灯、矮凳以及右侧楼梯边界。"
+    },
+    {
+      "id": "designer-camera-b1-05-activity-to-void",
+      "name": "B1 活动区朝栏杆反向全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -1.25,
+        "y": 1.55,
+        "z": 2.75
+      },
+      "target": {
+        "x": 0.7,
+        "y": 1,
+        "z": -2.3
+      },
+      "fov": 40,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-004",
+      "description": "站在南侧乐器墙附近，沿弧形栏杆跨挑空看客房床尾、右墙衣柜和左侧洗衣房入口。"
+    },
+    {
+      "id": "designer-camera-b1-06-guest-entry",
+      "name": "B1 家政房入口",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -1,
+        "y": 1.5,
+        "z": -2.15
+      },
+      "target": {
+        "x": 1.2,
+        "y": 0.9,
+        "z": -2.5
+      },
+      "fov": 48,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-002",
+      "description": "站在客房L形通道内、洗衣房门东侧，横向看床尾和右墙衣柜；镜头不得穿过洗衣房墙。"
+    },
+    {
+      "id": "designer-camera-b1-07-guest-bed",
+      "name": "B1 家政房床位与换季柜",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": 2.65,
+        "y": 1.5,
+        "z": -3.65
+      },
+      "target": {
+        "x": 1.15,
+        "y": 0.9,
+        "z": -1.65
+      },
+      "fov": 42,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-002",
+      "description": "站在客房东北角朝西南看床尾；直线栏杆、弧形栏杆、活动区和楼梯依次位于床尾之外，证明床尾正对挑空。"
+    },
+    {
+      "id": "designer-camera-b1-08-guest-storage",
+      "name": "B1 床尾反看床头与右侧收纳",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -0.9,
+        "y": 1.58,
+        "z": -1.2
+      },
+      "target": {
+        "x": 1.45,
+        "y": 0.9,
+        "z": -3.25
+      },
+      "fov": 38,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-002",
+      "description": "站在客房床尾外侧通道反看东北；完整核对双人床、床头墙和床右侧整墙换季柜，保留床尾通道尺度，不再重复表现洗衣房。"
+    },
+    {
+      "id": "designer-camera-b1-09-laundry-entry",
+      "name": "B1 洗衣房入口全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": 0.15,
+        "y": 1.58,
+        "z": -2.55
+      },
+      "target": {
+        "x": -1.05,
+        "y": 0.85,
+        "z": -3.75
+      },
+      "fov": 54,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-001",
+      "description": "从客房进入洗衣房后站在门内东南侧斜看西北；不移动洁具，在约2.05×1.45米空间内显示左侧马桶、中部洗烘和右侧台盆，避免门扇或隔墙遮挡镜头。"
+    },
+    {
+      "id": "designer-camera-b1-10-public-depth",
+      "name": "B1 公共区端景大全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.2,
+        "y": 1.6,
+        "z": 2.8
+      },
+      "target": {
+        "x": -1.3,
+        "y": 1,
+        "z": 0
+      },
+      "fov": 44,
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-B1-003",
+      "description": "站在活动区西南侧跨空间看东北；前景保留休闲家具，中景为双向楼梯和弧形栏杆，远景为客房与洗衣房体块。"
+    },
+    {
+      "id": "designer-camera-1f-01-foyer-entry",
+      "name": "1F 入户三向关系",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.95,
+        "y": 1.58,
+        "z": -2.12
+      },
+      "target": {
+        "x": -0.62,
+        "y": 1.12,
+        "z": -2.12
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-001",
+      "description": "从西侧主入户门内侧净区朝东看：画面左侧明确出现通往北院的900mm窄框玻璃门，正面是玄关超薄挂衣墙，右侧是进入客厅的开放方向。三者必须同时成立，主入户门扇不得遮挡镜头，禁止镜像、禁止出现楼梯。",
+      "fov": 60
+    },
+    {
+      "id": "designer-camera-1f-02-foyer-living",
+      "name": "1F 玄关朝东南看客厅",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.95,
+        "y": 1.58,
+        "z": -2.05
+      },
+      "target": {
+        "x": 0.25,
+        "y": 1.02,
+        "z": 0.75
+      },
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-001",
+      "description": "镜头位于西侧主入户门内的玄关净区，朝东南穿过玄关开口看客厅。入户正对的挂衣墙只作为画面左侧近景墙边，不再正面特写；北院玻璃门位于镜头左后方。客厅中央为面向西侧电视壁炉墙的低靠背浅弧沙发，电视墙在画面右侧，餐桌在更远的东侧。禁止出现楼梯、镜像玄关或水吧特写。",
+      "fov": 48
+    },
+    {
+      "id": "designer-camera-1f-03-living-overview",
+      "name": "1F 客餐厅整体与电动圆桌",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 0.15,
+        "y": 1.64,
+        "z": -0.62
+      },
+      "target": {
+        "x": 1.75,
+        "y": 1.08,
+        "z": 1.42
+      },
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-005",
+      "description": "客餐厅整体正确关系：西侧电视壁炉墙、中央低靠背浅弧沙发、东侧电动圆桌与水吧、南侧固定窗和900mm玻璃门均按模型位置；中央无茶几，禁止镜像。",
+      "fov": 48
+    },
+    {
+      "id": "designer-camera-1f-04-living-sofa",
+      "name": "1F 沙发正对电视壁炉",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 1.15,
+        "y": 1.56,
+        "z": 2.05
+      },
+      "target": {
+        "x": -1.75,
+        "y": 1.04,
+        "z": 2.05
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-005",
+      "description": "从沙发后方略偏东朝西拍电视壁炉墙，低靠背浅弧沙发位于前景并正对电视；水吧在镜头背后，不得在画面右侧露出；无茶几、无休闲椅、无边几。",
+      "fov": 43
+    },
+    {
+      "id": "designer-camera-1f-05-living-daylight",
+      "name": "1F 餐边柜正立面",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 1.45,
+        "y": 1.55,
+        "z": 1.3
+      },
+      "target": {
+        "x": 3.25,
+        "y": 1.18,
+        "z": 1.3
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-005",
+      "description": "正面展示 W-1F-011 南段2400mm水吧：下柜、小水槽、净饮与咖啡操作台、同轴吊柜完整入镜；近似正立面，不带沙发、电视墙或大面积餐桌。严禁镜像或改成厨房。",
+      "fov": 42
+    },
+    {
+      "id": "designer-camera-1f-06-kitchen-entry",
+      "name": "1F 厨房入口与净通道",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 0.5,
+        "y": 1.55,
+        "z": -1.1
+      },
+      "target": {
+        "x": 0.5,
+        "y": 1.02,
+        "z": -3.25
+      },
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-002",
+      "description": "从厨房推拉门外朝北看U形厨房；画面右侧空间关系对应客卫而不是沙发。冰箱侧保留操作台与同宽吊柜且无额外高柜；门外左侧保持空墙。",
+      "fov": 48
+    },
+    {
+      "id": "designer-camera-1f-07-kitchen-worktop",
+      "name": "1F 客卫正面",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 2.62,
+        "y": 1.52,
+        "z": -1.55
+      },
+      "target": {
+        "x": 2.62,
+        "y": 1.08,
+        "z": -3.42
+      },
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-003",
+      "description": "从客卫门口以正常人眼高度向内拍，表现上方通长玻璃淋浴区、右侧马桶与右下悬浮台盆；墙体垂直、门洞矩形，不使用俯拍或超广角。",
+      "fov": 48
+    },
+    {
+      "id": "designer-camera-1f-08-kitchen-living-link",
+      "name": "1F 厨房朝南看客餐厅",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 0.2,
+        "y": 1.56,
+        "z": -2.15
+      },
+      "target": {
+        "x": 0.9,
+        "y": 1.05,
+        "z": 0.9
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-005",
+      "description": "从厨房内部朝南看客餐厅：面对南方时，东侧电动圆桌和水吧在画面左侧，西侧电视壁炉墙在右侧；餐桌不得堵住厨房入口，禁止镜像。",
+      "fov": 50
+    },
+    {
+      "id": "designer-camera-1f-09-bedroom",
+      "name": "1F长辈房1.5米床与半开放衣帽架",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -3.02,
+        "y": 1.43,
+        "z": 0.92
+      },
+      "target": {
+        "x": -3.72,
+        "y": 1,
+        "z": 2.92
+      },
+      "zoom": 1.02,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-004",
+      "description": "从北墙东端卧室门内侧朝西南看：南墙中央1200mm飘窗必须位于画面远端；1500×2000mm床靠西、床头朝北，东墙700×450×1750mm半开放衣帽架与床平行。北墙东端900mm门洞，门扇内开贴东墙。禁止在西墙新增窗户、禁止镜像、斜放、广角拉伸和床上方吊柜。",
+      "fov": 42
+    },
+    {
+      "id": "designer-camera-1f-10-stair-public-route",
+      "name": "1F 左下B1右上2F楼梯系统",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.55,
+        "y": 1.56,
+        "z": 0.15
+      },
+      "target": {
+        "x": -3.55,
+        "y": 0.86,
+        "z": -0.45
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-006",
+      "description": "低畸变读取楼梯：左侧完整下行B1，右侧完整上行2F。1F小卧室位于客厅背后，不在本机位可视范围内；楼梯右侧必须为连续实体墙，禁止出现卧室门、其他房间、走廊、门洞或开放空间。",
+      "fov": 44
+    },
+    {
+      "id": "stair-view-b1-panorama",
+      "name": "B1 正面对楼梯全景",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -5.8,
+        "y": 8.2,
+        "z": 4.8
+      },
+      "target": {
+        "x": -3.05,
+        "y": 0.15,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-panorama",
+      "description": "同时读取左侧下行 B2 与右侧上行 1F 的两套连续折返路径。"
+    },
+    {
+      "id": "stair-view-b1-down-b2",
+      "name": "B1 左侧下行至 B2",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": 4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": -1.2,
+        "z": 0.28
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-down",
+      "description": "沿 B1 左侧入口看向 B2 中间平台和下一跑。"
+    },
+    {
+      "id": "stair-view-b1-up-1f",
+      "name": "B1 右侧上行至 1F",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": -4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": 1.2,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-up",
+      "description": "沿 B1 右侧入口看向 1F 中间平台和上一跑。"
+    },
+    {
+      "id": "stair-view-b1-landing",
+      "name": "B1 中间平台",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -0.9,
+        "y": 6.5,
+        "z": 4.8
+      },
+      "target": {
+        "x": -2.72,
+        "y": 0,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-landing",
+      "description": "检查两个半层平台、扶手连续性与转身尺寸。"
+    },
+    {
+      "id": "stair-view-b1-opening-edge",
+      "name": "B1 挑空边缘俯视",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -2.15,
+        "y": 7.6,
+        "z": 3.75
+      },
+      "target": {
+        "x": -3.1,
+        "y": -1.05,
+        "z": 0.1
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-opening",
+      "description": "从洞口危险边俯视 B2 下行路径与栏杆收口。"
+    },
+    {
+      "id": "stair-view-1f-living-front",
+      "name": "1F 客厅正面对楼梯",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -0.72,
+        "y": 1.65,
+        "z": 0.72
+      },
+      "target": {
+        "x": -3.55,
+        "y": 0.25,
+        "z": -0.48
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-panorama",
+      "description": "从客厅正面检查 1F 左下右上与家具前后遮挡关系。",
+      "fov": 36,
+      "zoom": 1.08
+    },
+    {
+      "id": "stair-view-1f-down-entry",
+      "name": "1F 左侧下行入口",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.2,
+        "y": 1.58,
+        "z": 0.12
+      },
+      "target": {
+        "x": -3.75,
+        "y": -0.65,
+        "z": -0.03
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-down",
+      "description": "检查 1F 下行 B1 入口、洞口和下行第一跑。",
+      "fov": 40,
+      "zoom": 1.05
+    },
+    {
+      "id": "stair-view-1f-up-entry",
+      "name": "1F 右侧上行入口",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.2,
+        "y": 1.58,
+        "z": -1.08
+      },
+      "target": {
+        "x": -3.75,
+        "y": 1.2,
+        "z": -1
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-up",
+      "description": "检查 1F 上行 2F 入口、踏步高程和右侧扶手。",
+      "fov": 40,
+      "zoom": 1.05
+    },
+    {
+      "id": "stair-view-1f-landing",
+      "name": "1F 中间平台",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.05,
+        "y": 2.35,
+        "z": 0.35
+      },
+      "target": {
+        "x": -4.15,
+        "y": 0,
+        "z": -0.5
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-landing",
+      "description": "以轻微俯视角检查上下两个真实半层平台、900mm转身深度及扶手连续性；不使用超高鸟瞰。",
+      "fov": 42,
+      "zoom": 1.02
+    },
+    {
+      "id": "stair-view-b2-bottom-up",
+      "name": "B2 楼梯底部上行",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 6.4,
+        "z": -4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": 1.2,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-up",
+      "description": "从 B2 完成面清楚看向上行 B1 的第一跑。"
+    },
+    {
+      "id": "stair-view-b2-bottom-back",
+      "name": "B2 楼梯底部回看",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -2.8,
+        "y": 1.75,
+        "z": 1.75
+      },
+      "target": {
+        "x": -5.15,
+        "y": 0.25,
+        "z": -0.82
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-back",
+      "description": "从 B2 底部回看两跑、中间平台与净空。"
+    },
+    {
+      "id": "stair-view-b2-opening-up",
+      "name": "B2 挑空仰视",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -3.7,
+        "y": 0.9,
+        "z": 3.25
+      },
+      "target": {
+        "x": -2.55,
+        "y": 2.35,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-opening",
+      "description": "从 B2 仰视 B1 洞口、平台底部与扶手连续性。"
+    },
+    {
+      "id": "view-1f-living-dining-overview",
+      "name": "1F 客餐厨总览 · 弧形沙发无茶几",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 7.8,
+        "y": 7.2,
+        "z": 8.6
+      },
+      "target": {
+        "x": 0.2,
+        "y": 0.45,
+        "z": 0.2
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "description": "检查低靠背浅弧沙发、无茶几净空、电动转盘餐桌、厨房与南院玻璃门的同步关系。"
+    },
+    {
+      "id": "view-1f-island-dining",
+      "name": "1F 高级电动转盘圆桌",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 2.7,
+        "y": 1.85,
+        "z": 3.45
+      },
+      "target": {
+        "x": 1.95,
+        "y": 0.58,
+        "z": 1.72
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "展示齐平嵌入式电动转盘、隐藏驱动、六把日常餐椅和圆变椭圆展开逻辑。"
+    },
+    {
+      "id": "view-1f-entry",
+      "name": "1F 玄关柜",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -5.6,
+        "y": 3.1,
+        "z": -5.8
+      },
+      "target": {
+        "x": -1.47,
+        "y": 0.65,
+        "z": -2.8
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "查看玄关柜、挂衣区和入户动线。"
+    },
+    {
+      "id": "view-1f-fireplace",
+      "name": "1F 壁炉 / 起居区",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -0.88,
+        "y": 1.35,
+        "z": 1.05
+      },
+      "target": {
+        "x": -2.04,
+        "y": 0.64,
+        "z": 1.71
+      },
+      "zoom": 1.05,
+      "mode": "perspective",
+      "description": "从客厅内部正看电视、独立火箱、仿真木柴与明显暖色火苗的一体化关系。"
+    },
+    {
+      "id": "view-b2-activity",
+      "name": "B2 活动区",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": 5.8,
+        "y": 3.5,
+        "z": 6.3
+      },
+      "target": {
+        "x": 1.62,
+        "y": 0.5,
+        "z": 1.97
+      },
+      "zoom": 1.06,
+      "mode": "perspective",
+      "description": "查看 W-B2-011 整面洞洞板的孔阵、活动层板与挂件细节。"
+    },
+    {
+      "id": "view-b2-study",
+      "name": "B2 书房",
+      "floor": "B2",
+      "cameraPosition": {
+        "x": -6.1,
+        "y": 3.5,
+        "z": 5.8
+      },
+      "target": {
+        "x": -2.65,
+        "y": 0.55,
+        "z": 1.97
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "大板桌、展示书柜与阅读照明。"
+    },
+    {
+      "id": "view-b1-guest-room",
+      "name": "B1 家政房",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": 5.6,
+        "y": 3.4,
+        "z": -4.8
+      },
+      "target": {
+        "x": 0.13,
+        "y": 0.58,
+        "z": -2.46
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "description": "客房床、床头柜和整墙换季衣柜。"
+    },
+    {
+      "id": "view-b1-bath",
+      "name": "B1 卫生间",
+      "floor": "B1",
+      "cameraPosition": {
+        "x": -4.6,
+        "y": 3,
+        "z": -5.6
+      },
+      "target": {
+        "x": -1.33,
+        "y": 0.58,
+        "z": -3.27
+      },
+      "zoom": 1.12,
+      "mode": "perspective",
+      "description": "紧凑卫浴与洗衣功能的给排水检修关系。"
+    },
+    {
+      "id": "view-1f-yard-overview",
+      "name": "1F + 南北院总览",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": 8.4,
+        "y": 7.6,
+        "z": 10.8
+      },
+      "target": {
+        "x": 0.1,
+        "y": 0.42,
+        "z": 0.9
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "all",
+      "description": "展示一层室内、北院入户庭院与南院生活庭院的整体关系。"
+    },
+    {
+      "id": "view-yard-all",
+      "name": "全院总览",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 8.2,
+        "y": 7.2,
+        "z": 10.5
+      },
+      "target": {
+        "x": 0,
+        "y": 0.34,
+        "z": 0.4
+      },
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "all",
+      "description": "聚焦南北院、围栏、铺装、庭院设备和水电需求点。"
+    },
+    {
+      "id": "view-yard-south",
+      "name": "南院生活庭院",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 2.7,
+        "y": 2.5,
+        "z": 6.8
+      },
+      "target": {
+        "x": 0.3,
+        "y": 0.45,
+        "z": 5.15
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "southYard",
+      "description": "查看休闲平台、晾晒、户外柜、宠物角、给水和排水需求。"
+    },
+    {
+      "id": "view-yard-north",
+      "name": "北院入户庭院",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 0,
+        "y": 2.9,
+        "z": -7.3
+      },
+      "target": {
+        "x": 0.45,
+        "y": 0.52,
+        "z": -4.8
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "northYard",
+      "description": "查看入户院门、围栏、烧烤岛台、户外插座和通行动线。"
+    },
+    {
+      "id": "view-yard-entry",
+      "name": "入户北院",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": -0.35,
+        "y": 1.7,
+        "z": -5.3
+      },
+      "target": {
+        "x": 1,
+        "y": 0.5,
+        "z": -4.55
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "entryYard",
+      "description": "聚焦北院入户庭院、庭院门、烧烤岛台与北侧围栏。"
+    },
+    {
+      "id": "view-yard-south-living",
+      "name": "南院生活区",
+      "floor": "YARD",
+      "cameraPosition": {
+        "x": 2.8,
+        "y": 1.8,
+        "z": 6.65
+      },
+      "target": {
+        "x": 1,
+        "y": 0.55,
+        "z": 4.9
+      },
+      "zoom": 1.08,
+      "mode": "perspective",
+      "scope": "courtyard",
+      "targetArea": "southLiving",
+      "description": "聚焦南院休闲活动区、连接小路、庭院灯和宠物角。"
+    },
+    {
+      "id": "view-1f-living-sofa-detail",
+      "name": "1F 低靠背浅弧沙发细节",
+      "floor": "1F",
+      "cameraPosition": {
+        "x": -1.9,
+        "y": 1.55,
+        "z": 3.35
+      },
+      "target": {
+        "x": -0.25,
+        "y": 0.55,
+        "z": 1.72
+      },
+      "zoom": 1.04,
+      "mode": "perspective",
+      "description": "展示浅弧沙发正对电视/壁炉墙，取消茶几、休闲椅和边几，中央地面完全净空。"
+    },
+    {
+      "id": "stair-view-2f-down-entry",
+      "name": "2F 下行入口",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -4.8,
+        "y": 7.2,
+        "z": 4.6
+      },
+      "target": {
+        "x": -3.25,
+        "y": -1.2,
+        "z": 0.28
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-down",
+      "description": "2F 仅检查真实下行至 1F 的入口与踏步。"
+    },
+    {
+      "id": "stair-view-2f-arrival-landing",
+      "name": "2F 到达平台",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -0.9,
+        "y": 3.55,
+        "z": 3.8
+      },
+      "target": {
+        "x": -2.72,
+        "y": -0.8,
+        "z": -0.25
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-landing",
+      "description": "从 2F 检查 1F↔2F 中间平台与下行回转。"
+    },
+    {
+      "id": "stair-view-2f-opening-overlook",
+      "name": "2F 挑空俯视",
+      "floor": "2F",
+      "cameraPosition": {
+        "x": -2.15,
+        "y": 5.75,
+        "z": 3.55
+      },
+      "target": {
+        "x": -3.1,
+        "y": -1.05,
+        "z": 0.05
+      },
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "stair-opening",
+      "description": "俯视 2F 洞口、危险边栏杆与下行路径。"
+    },
+    {
+      "id": "designer-camera-2f-v3-01-stair-arrival",
+      "floor": "2F",
+      "order": 1,
+      "name": "01 上楼到达—开启双开门与主卧端景",
+      "cameraPosition": {
+        "x": -1.5,
+        "y": 1.6,
+        "z": -0.2
+      },
+      "target": {
+        "x": 2,
+        "y": 1.25,
+        "z": -0.5
+      },
+      "fov": 60,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-007",
+      "description": "从2F楼梯到达后的走廊向东看；开启的主卧双开门位于尽端，门内首先读到五斗橱端景。楼梯不应出现在主卧内。"
+    },
+    {
+      "id": "designer-camera-2f-v3-02-stair-night",
+      "floor": "2F",
+      "order": 2,
+      "name": "02 东段走廊回看—楼梯、双卧门与客卫门",
+      "cameraPosition": {
+        "x": 1,
+        "y": 1.62,
+        "z": -0.2
+      },
+      "target": {
+        "x": -3,
+        "y": 1.2,
+        "z": -0.3
+      },
+      "fov": 62,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-008",
+      "description": "从走廊东段向西回看：楼梯洞口在走廊尽端，父母房和儿童房入口位于南侧，客卫门位于北侧；不得生成二层入户门。"
+    },
+    {
+      "id": "designer-camera-2f-v3-03-guest-bath",
+      "floor": "2F",
+      "order": 3,
+      "name": "03 客卫定稿—门内东南角看完整湿区",
+      "cameraPosition": {
+        "x": -0.85,
+        "y": 1.55,
+        "z": -1.8
+      },
+      "target": {
+        "x": -1.7,
+        "y": 1.05,
+        "z": -3.2
+      },
+      "fov": 72,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-001",
+      "description": "相机位于客卫东南角，向西北看：北侧玻璃淋浴、东侧马桶与东南台盆保持定稿，不穿墙、不夸大面积。"
+    },
+    {
+      "id": "designer-camera-2f-v3-04-master-bed",
+      "floor": "2F",
+      "order": 4,
+      "name": "04 主卧东北角—床区与南墙唯一飘窗",
+      "cameraPosition": {
+        "x": 3.15,
+        "y": 1.55,
+        "z": 0.9
+      },
+      "target": {
+        "x": 1.2,
+        "y": 1,
+        "z": 2.35
+      },
+      "fov": 68,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-006",
+      "description": "从主卧东北角向西南看：床头在西墙，南墙只出现一个飘窗；东墙收纳位于镜头后方，不生成第二或第三扇窗。"
+    },
+    {
+      "id": "designer-camera-2f-v3-05-master-storage",
+      "floor": "2F",
+      "order": 5,
+      "name": "05 主卧真实入户—左主卫移门、前五斗橱、右床尾柜",
+      "cameraPosition": {
+        "x": 2.05,
+        "y": 1.55,
+        "z": -0.2
+      },
+      "target": {
+        "x": 3.2,
+        "y": 1.05,
+        "z": 0.4
+      },
+      "fov": 68,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-006",
+      "description": "从西侧双开门内向东偏南看：左侧北墙为800mm单扇暗藏主卫移门，前方偏左为五斗橱，右侧同一东墙为四扇3000×350mm薄柜，床只从右下进入画面；飘窗不入镜。"
+    },
+    {
+      "id": "designer-camera-2f-v3-06-dressing",
+      "floor": "2F",
+      "order": 6,
+      "name": "06 衣帽间确认候选 R01—保留飘窗与双侧金属架玻璃平开门",
+      "cameraPosition": {
+        "x": 0.5,
+        "y": 1.6,
+        "z": -1.2
+      },
+      "target": {
+        "x": 0.5,
+        "y": 1.05,
+        "z": -3.55
+      },
+      "fov": 68,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-002",
+      "description": "从南侧1.5m无门开放洞口看入衣帽间：两侧600mm深可调金属架、深色可透视玻璃细边框平开门，西L1-L4与东R4-R1分区清晰；北端保留飘窗/台座与待实测退让区；入口帘、穿衣镜和小收纳纳入候选；不出现固定桌、椅或显示器。"
+    },
+    {
+      "id": "designer-camera-2f-v3-07-master-bath",
+      "floor": "2F",
+      "order": 7,
+      "name": "07 主卫门口—浴缸、马桶、淋浴与双台盆",
+      "cameraPosition": {
+        "x": 2.25,
+        "y": 1.58,
+        "z": -1.55
+      },
+      "target": {
+        "x": 2.55,
+        "y": 1,
+        "z": -3.25
+      },
+      "fov": 74,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-003",
+      "description": "从主卫南墙单扇移门口向北看：北窗下横浴缸，西侧依次为淋浴与马桶，东墙1600mm双台盆；主卫仅此一樘入口。"
+    },
+    {
+      "id": "designer-camera-2f-v3-08-parent",
+      "floor": "2F",
+      "order": 8,
+      "name": "08 客房1门口—C2床位、西墙窄柜与封窗阳台",
+      "cameraPosition": {
+        "x": -2.4,
+        "y": 1.55,
+        "z": 0.9
+      },
+      "target": {
+        "x": -3.85,
+        "y": 1,
+        "z": 2.2
+      },
+      "fov": 72,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-004",
+      "description": "模型核对父母房C2：西墙窄柜、床头朝西、南侧封窗阳台休闲椅/边几/收起态电晾衣架；不改变窗与结构。",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-PAR-001-R01 · 父母房A_封窗阳台_休闲态_C2材质同步修正版_待PMO复核_20261012.png",
+        "toleranceMm": 150
+      }
+    },
+    {
+      "id": "designer-camera-2f-v3-09-child",
+      "floor": "2F",
+      "order": 9,
+      "name": "09 客房2南侧回看—v4东床、西墙衣柜无书桌",
+      "cameraPosition": {
+        "x": -0.8,
+        "y": 1.55,
+        "z": 3
+      },
+      "target": {
+        "x": -0.8,
+        "y": 1.05,
+        "z": 1.65
+      },
+      "fov": 78,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-2F-005",
+      "description": "模型核对儿童房v4：东侧单床床头朝南、西墙成长衣柜、南侧封窗阳台低位收纳；不配置书桌。",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 150
+      }
+    },
+    {
+      "id": "designer-camera-2f-v3-10-balcony",
+      "floor": "2F",
+      "order": 10,
+      "name": "10 客房2封窗阳台—v4低位收纳与活动面",
+      "cameraPosition": {
+        "x": -1.7,
+        "y": 1.48,
+        "z": 3.9
+      },
+      "target": {
+        "x": 0.25,
+        "y": 1.15,
+        "z": 3.9
+      },
+      "fov": 72,
+      "zoom": 1,
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "OD-2F-BALCONY-02",
+      "description": "模型核对儿童房v4封窗阳台低位收纳与阅读/游戏活动面。",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "visual-estimate",
+        "sourceNote": "LYHP-2F-KID-001-R01 · 儿童房写实候选-完成面路线-v4.png",
+        "toleranceMm": 150
+      }
+    },
+    {
+      "id": "designer-camera-1f-bedroom-small-wardrobe-doorway",
+      "name": "1F卧室门口看床与飘窗（半开放衣帽架版）",
+      "cameraPosition": {
+        "x": -2.55,
+        "y": 1.45,
+        "z": 0.92
+      },
+      "target": {
+        "x": -4.05,
+        "y": 0.98,
+        "z": 2.42
+      },
+      "description": "严格按2947×2650mm卧室：1500×2000mm床靠西、床头朝北；北墙东端900mm门洞，东侧保留100mm墙垛，门扇内开后贴东墙；门扇后100mm开始700×450×1750mm半开放衣帽架，床侧净通道约897mm，柜体南侧留空950mm。禁止把门洞画到东墙、禁止镜像、斜放和虚增空间。",
+      "floor": "1F",
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-004",
+      "fov": 38,
+      "zoom": 1.02
+    },
+    {
+      "id": "designer-camera-1f-bedroom-small-wardrobe-bay",
+      "name": "1F卧室飘窗回看门洞与半开放衣帽架",
+      "cameraPosition": {
+        "x": -4.18,
+        "y": 1.42,
+        "z": 3.08
+      },
+      "target": {
+        "x": -2.72,
+        "y": 1.02,
+        "z": 1.28
+      },
+      "description": "严格按2947×2650mm卧室：1500×2000mm床靠西、床头朝北；北墙东端900mm门洞，东侧保留100mm墙垛，门扇内开后贴东墙；门扇后100mm开始700×450×1750mm半开放衣帽架，床侧净通道约897mm，柜体南侧留空950mm。禁止把门洞画到东墙、禁止镜像、斜放和虚增空间。",
+      "floor": "1F",
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-004",
+      "fov": 38,
+      "zoom": 1.02
+    },
+    {
+      "id": "designer-camera-1f-bedroom-small-wardrobe-detail",
+      "name": "1F卧室临时衣柜与床侧通道细节",
+      "cameraPosition": {
+        "x": -3.22,
+        "y": 1.38,
+        "z": 2.72
+      },
+      "target": {
+        "x": -2.38,
+        "y": 1.12,
+        "z": 2
+      },
+      "description": "严格按2947×2650mm卧室：1500×2000mm床靠西、床头朝北；北墙东端900mm门洞，东侧保留100mm墙垛，门扇内开后贴东墙；门扇后100mm开始700×450×1750mm半开放衣帽架，床侧净通道约897mm，柜体南侧留空950mm。禁止把门洞画到东墙、禁止镜像、斜放和虚增空间。",
+      "floor": "1F",
+      "mode": "perspective",
+      "scope": "floor",
+      "targetArea": "ROOM-1F-004",
+      "fov": 36,
+      "zoom": 1.05
+    }
+  ],
+  "roomTourViews": [
+    {
+      "id": "lighting-view-1f-living-gathering",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "name": "1F 客厅会客",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": -0.811,
+        "y": 1.45,
+        "z": 1.183
+      },
+      "target": {
+        "x": -1.928,
+        "y": 1.15,
+        "z": 1.975
+      },
+      "yaw": -0.9540275976181767,
+      "pitch": -0.2156838380429157,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "1F 客厅会客 · 推荐场景：SCENE-MWN-V1-1F-DAILY",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-1F-DAILY"
+    },
+    {
+      "id": "lighting-view-1f-living-movie",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "name": "1F 客厅观影",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": -0.811,
+        "y": 1.45,
+        "z": 1.183
+      },
+      "target": {
+        "x": -1.928,
+        "y": 1.15,
+        "z": 1.975
+      },
+      "yaw": -0.9540275976181767,
+      "pitch": -0.2156838380429157,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "1F 客厅观影 · 推荐场景：SCENE-MWN-V1-1F-NIGHT",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-1F-NIGHT"
+    },
+    {
+      "id": "lighting-view-1f-dining",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-005",
+      "name": "1F 餐厅用餐",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": -0.811,
+        "y": 1.25,
+        "z": 1.183
+      },
+      "target": {
+        "x": 1.85,
+        "y": 1.15,
+        "z": 1.85
+      },
+      "yaw": 1.3251987971569952,
+      "pitch": -0.03643603646161167,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "1F 餐厅用餐 · 推荐场景：SCENE-MWN-V1-1F-ACTIVITY",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-1F-ACTIVITY"
+    },
+    {
+      "id": "lighting-view-1f-kitchen",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-002",
+      "name": "1F 厨房烹饪",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": 0.032,
+        "y": 1.45,
+        "z": -2.45
+      },
+      "target": {
+        "x": 0.54,
+        "y": 1.15,
+        "z": -3.825
+      },
+      "yaw": 2.787692593159114,
+      "pitch": -0.2018729678792988,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "1F 厨房烹饪 · 推荐场景：SCENE-MWN-V1-1F-ACTIVITY",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-1F-ACTIVITY"
+    },
+    {
+      "id": "lighting-view-2f-master-bedtime",
+      "floorId": "2F",
+      "roomId": "ROOM-2F-004",
+      "name": "主卧睡前",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": -4.076,
+        "y": 1.45,
+        "z": 2.325
+      },
+      "target": {
+        "x": -4.253,
+        "y": 1.15,
+        "z": 1.831
+      },
+      "yaw": -2.79754320397853,
+      "pitch": -0.5193494090833651,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "主卧睡前 · 推荐场景：bedtime",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-2F-NIGHT"
+    },
+    {
+      "id": "lighting-view-2f-master-bath-night",
+      "floorId": "2F",
+      "roomId": "ROOM-2F-001",
+      "name": "主卫夜间",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": -1.97,
+        "y": 1.45,
+        "z": -2.45
+      },
+      "target": {
+        "x": -1.134,
+        "y": 1.15,
+        "z": -2.835
+      },
+      "yaw": 2.0023693780184018,
+      "pitch": -0.31508923616313517,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "主卫夜间 · 推荐场景：night",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-2F-NIGHT"
+    },
+    {
+      "id": "lighting-view-b2-relax",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-001",
+      "name": "地下室休闲",
+      "type": "viewpoint",
+      "cameraPosition": {
+        "x": -0.33,
+        "y": 1.45,
+        "z": -0.957
+      },
+      "target": {
+        "x": -0.25,
+        "y": 1.15,
+        "z": -0.7
+      },
+      "yaw": 0.3017767128002111,
+      "pitch": -0.8395238430499221,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "地下室休闲 · 推荐场景：SCENE-MWN-V1-B2-NIGHT（低照度观影）",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-B2-NIGHT"
+    },
+    {
+      "id": "lighting-view-1f-stair-night",
+      "floorId": "1F",
+      "roomId": "ROOM-1F-006",
+      "name": "楼梯起夜",
+      "type": "stair",
+      "cameraPosition": {
+        "x": -4.187,
+        "y": 1.45,
+        "z": -0.05
+      },
+      "target": {
+        "x": -3.687,
+        "y": 0.75,
+        "z": -0.4
+      },
+      "yaw": 2.181522291184105,
+      "pitch": -0.8537265801538695,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "楼梯起夜 · 推荐场景：SCENE-MWN-V1-1F-NIGHT",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-MWN-V1-1F-NIGHT"
+    },
+    {
+      "id": "lighting-view-yard-south-relax",
+      "floorId": "YARD",
+      "outdoorId": "OD-YARD-SOUTH-001",
+      "name": "南院休闲",
+      "type": "yard",
+      "cameraPosition": {
+        "x": -1.277,
+        "y": 1.45,
+        "z": 5.65
+      },
+      "target": {
+        "x": 1.68,
+        "y": 1.15,
+        "z": 4.05
+      },
+      "yaw": 2.066772301395926,
+      "pitch": -0.08899373552880029,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "南院休闲 · 推荐场景：yard-relax",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-YARD-RELAX"
+    },
+    {
+      "id": "lighting-view-yard-north-welcome",
+      "floorId": "YARD",
+      "outdoorId": "OD-YARD-NORTH-001",
+      "name": "北院迎宾",
+      "type": "yard",
+      "cameraPosition": {
+        "x": 0.086,
+        "y": 1.45,
+        "z": -4.8
+      },
+      "target": {
+        "x": -1.62,
+        "y": 1.15,
+        "z": -5.922
+      },
+      "yaw": -2.152550709562638,
+      "pitch": -0.1458789268178872,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "北院迎宾 · 推荐场景：yard-welcome",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-YARD-WELCOME"
+    },
+    {
+      "id": "lighting-view-yard-north-bbq",
+      "floorId": "YARD",
+      "outdoorId": "OD-YARD-NORTH-001",
+      "name": "北院烧烤",
+      "type": "yard",
+      "cameraPosition": {
+        "x": 0.086,
+        "y": 1.45,
+        "z": -4.8
+      },
+      "target": {
+        "x": 0.48,
+        "y": 1.15,
+        "z": -5.724
+      },
+      "yaw": 2.738530930621143,
+      "pitch": -0.2902244761415623,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "北院烧烤 · 推荐场景：yard-bbq",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-YARD-BBQ"
+    },
+    {
+      "id": "lighting-view-yard-south-laundry",
+      "floorId": "YARD",
+      "outdoorId": "OD-YARD-SOUTH-001",
+      "name": "南院洗衣",
+      "type": "yard",
+      "cameraPosition": {
+        "x": -1.277,
+        "y": 1.45,
+        "z": 5.65
+      },
+      "target": {
+        "x": -3.24,
+        "y": 1.15,
+        "z": 4.788
+      },
+      "yaw": -1.984568874274965,
+      "pitch": -0.13902757036779978,
+      "fov": 58,
+      "linkedNodeIds": [],
+      "description": "南院洗衣 · 推荐场景：yard-laundry",
+      "status": "active",
+      "supportedSheetTypes": [
+        "lightingPlan"
+      ],
+      "recommendedLightingSceneId": "SCENE-YARD-LAUNDRY"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { readHistoricalWorkspace } from "./read-historical-workspace.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
@@ -6,7 +7,7 @@ import {
   CURRENT_WORKSPACE_SCHEMA_VERSION
 } from "../lib/workspace-migrations.ts";
 
-const canonical = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
+let canonical = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
 
 const current = applyWorkspaceMigrations(canonical);
 assert.equal(current.workspace.schemaVersion, CURRENT_WORKSPACE_SCHEMA_VERSION);
@@ -14,13 +15,16 @@ assert.equal(current.workspace.dataRevision, CURRENT_WORKSPACE_DATA_REVISION);
 assert.equal(current.sources.drawingItems, "default-workspace");
 assert.deepEqual(current.workspace.drawingItems, canonical.drawingItems, "Current drawing items must pass through unchanged.");
 assert.deepEqual(current.workspace.furniture, canonical.furniture, "Current furniture must pass through without injected defaults.");
-assert.ok(current.workspace.drawingItems.filter((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category)).every((item) => item.confidence === "schemePositioned"), "Current MEP points must carry scheme-stage confidence.");
+assert.ok(current.workspace.drawingItems.filter((item) => ["socket", "network", "switch", "light", "waterSupply", "drainage"].includes(item.category)).every((item) => ["schemePositioned", "requirementConfirmed"].includes(item.confidence)), "Current MEP requirements and positioned drafts must retain their explicit confidence without promotion.");
 assert.deepEqual(current.workspace.semanticObjects, canonical.semanticObjects, "Current semantic objects must pass through unchanged.");
 assert.deepEqual(current.workspace.cameraViews, canonical.cameraViews, "Current camera views must pass through unchanged.");
 assert.deepEqual(current.workspace.roomTourViews, canonical.roomTourViews, "Current room tour views must pass through unchanged.");
 assert.equal(current.workspace.selectedDrawingSheetType, canonical.selectedDrawingSheetType, "Current drawing specialty must pass through unchanged.");
 assert.deepEqual(current.workspace.houseStructuresByFloor, canonical.houseStructuresByFloor, "Current structures must pass through unchanged.");
 
+// Legacy July conversion scenarios use their immutable historical release fixture.
+// The current canonical exact pass-through assertions above still use actual current data.
+canonical = readHistoricalWorkspace();
 const legacy = structuredClone(canonical);
 legacy.schemaVersion = 4;
 delete legacy.dataRevision;

@@ -1,0 +1,22 @@
+{
+  "phase": "LOCAL_REBASED_SOURCE_PENDING_COMBINED_NATIVE_REVIEW",
+  "modelSha256": "e4632447345f0cc9c1fb9b33d5984ffed0790cc8eb7bf65ee6ab4d1ec4776fdb",
+  "ownerSourceManifestSha256": "2cc84427875ac3b0f24595cb43ac188bf7f7dc1aceab1e92a9ce67f82febf68a",
+  "ownerDataCandidateSha256": "20adcfd899997dad4e9ad097221783221d2ada297bdd53b19ebbdcbcf38e4bee",
+  "historicalBoundaryRenderIdentity": "87844b596bcdd2e0661b159b850b51e4a8eba810f8cbc4f36d64d80c7a954b20",
+  "changedFiles": [
+    {
+      "path": "components/floor-3d-view.tsx",
+      "beforeSha256": "2930645357e7ec93c15e2296fe158bec86f46df5c48730bace6070cdddd7853f",
+      "afterSha256": "1081fd9b51c3c3cf074618b32a46dbb894fa0a834db41854f0f7afa426237958"
+    },
+    {
+      "path": "components/design-evidence-audit.tsx",
+      "beforeSha256": "cc56729cd698ad5a1f968882291ed3fd9f9294ab5898a6bef6be88f8bcb74797",
+      "afterSha256": "d1953bf12e5f3eb5f798c76914ebc670368fbb95eee0a3995e57013262249250",
+      "scope": "Evidence export only: actual triangles/position/index for exactly two B2 lightwell material Shapes. No rendering geometry change."
+    }
+  ],
+  "scope": "Original author2 hunks explicitly rebased; production per-leaf/bed/900 swing state; five unverified skylight references render as nonphysical magenta wire envelopes, no fabricated shaft/slab cut. Historical other3 boundary renderer files still exact. No inherited source code/spatial acceptance for this new runtime.",
+  "fullReviewAccepted": false
+}

@@ -43,7 +43,7 @@ const STRUCTURE_COLLECTIONS = [
 ] as const;
 
 const NOTE_FIELDS = new Set(["note", "notes", "constructionNote"]);
-const ID_TOKEN_PATTERN = /\b(?:ROOM|OD|W|AW|D|WIN|BW|SK|ST|STAIR-SYS|LANDING|OPENING|GUARD|LIGHT|furn|ph|module)-[A-Za-z0-9][A-Za-z0-9-]*\b/g;
+const ID_TOKEN_PATTERN = /\b(?:(?:ROOM|OD|W|AW|D|WIN|BW|SK|ST|STAIR-SYS|LANDING|OPENING|GUARD|LIGHT)-[A-Z0-9][A-Z0-9-]*|(?:furn|ph|module)-[A-Za-z0-9][A-Za-z0-9-]*)\b/g;
 
 function asRecord(value: unknown): JsonRecord | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;

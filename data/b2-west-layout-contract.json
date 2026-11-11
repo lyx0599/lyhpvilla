@@ -1,0 +1,525 @@
+{
+  "revision": "B2-WEST-SOCIAL-SOUTH-SPORTS-20261106-r3-index-fix",
+  "sourceCommit": "4efc7f61440e6bc573e205f5aacc892a74cb7520",
+  "sourceSha256": "873d481224419e325704e6620fcac0d6993021a6eceff095052f07b6e380d657",
+  "candidateSha256": "5c15e4f57bf1cc7f8479068e659c2ca8b1ac5f8c725b2d5fde3ad553a00cc7b4",
+  "ids": {
+    "sports": "furn-b2-sports-camping-storage-candidate-20261030",
+    "island": "furn-b2-study-handwash-001",
+    "table": "furn-b2-study-slab-table-001",
+    "wine": "furn-b2-study-wine-cabinet-001",
+    "castle": "furn-b2-study-souvenir-cabinet-001",
+    "fire": "furn-b2-fireplace-east-candidate-20261030",
+    "bike": "furn-b2-bike-trainer-candidate-20261030",
+    "peg": "furn-b2-activity-outdoor-pegboard-001"
+  },
+  "rectsMm": {
+    "sports": [
+      5600,
+      7140,
+      8000,
+      7690
+    ],
+    "island": [
+      1060,
+      5900,
+      2360,
+      6550
+    ],
+    "table": [
+      2160,
+      5900,
+      4160,
+      6800
+    ],
+    "wine": [
+      1060,
+      5150,
+      2060,
+      5800
+    ],
+    "castle": [
+      1215,
+      5260,
+      1905,
+      5690
+    ],
+    "fire": [
+      5450,
+      5240,
+      6050,
+      5840
+    ]
+  },
+  "chairs": {
+    "N1": {
+      "id": "furn-b2-chair-west-1-candidate-20261030",
+      "sizeMm": [
+        550,
+        400,
+        850
+      ],
+      "daily": true,
+      "dailyPoseMm": [
+        2500,
+        5650,
+        0
+      ],
+      "partyPoseMm": [
+        2500,
+        5650,
+        0
+      ]
+    },
+    "N2": {
+      "id": "furn-b2-chair-west-3-candidate-20261030",
+      "sizeMm": [
+        550,
+        400,
+        850
+      ],
+      "daily": true,
+      "dailyPoseMm": [
+        3750,
+        5650,
+        0
+      ],
+      "partyPoseMm": [
+        3750,
+        5650,
+        0
+      ]
+    },
+    "S1": {
+      "id": "furn-b2-chair-east-1-candidate-20261030",
+      "sizeMm": [
+        550,
+        400,
+        850
+      ],
+      "daily": true,
+      "dailyPoseMm": [
+        2500,
+        7050,
+        180
+      ],
+      "partyPoseMm": [
+        2500,
+        7050,
+        180
+      ]
+    },
+    "E": {
+      "id": "furn-b2-chair-east-3-candidate-20261030",
+      "sizeMm": [
+        550,
+        400,
+        850
+      ],
+      "daily": true,
+      "dailyPoseMm": [
+        4410,
+        6400,
+        90
+      ],
+      "partyPoseMm": [
+        3750,
+        7050,
+        180
+      ]
+    },
+    "NM": {
+      "id": "furn-b2-chair-west-2-candidate-20261030",
+      "sizeMm": [
+        550,
+        400,
+        850
+      ],
+      "daily": false,
+      "dailyPoseMm": null,
+      "partyPoseMm": [
+        3125,
+        5650,
+        0
+      ]
+    },
+    "SM": {
+      "id": "furn-b2-chair-east-2-candidate-20261030",
+      "sizeMm": [
+        550,
+        400,
+        850
+      ],
+      "daily": false,
+      "dailyPoseMm": null,
+      "partyPoseMm": [
+        3125,
+        7050,
+        180
+      ]
+    }
+  },
+  "bike": {
+    "U": {
+      "bike": [
+        7500,
+        4900,
+        9000,
+        5500
+      ],
+      "trainer": [
+        8200,
+        4800,
+        8800,
+        5600
+      ]
+    },
+    "S": {
+      "bike": [
+        7500,
+        4550,
+        9000,
+        5150
+      ],
+      "trainer": [
+        7350,
+        5450,
+        8150,
+        6050
+      ]
+    }
+  },
+  "orientationAssumption": "north up; western social side is an explicit candidate assumption, NOT user-coordinate confirmation",
+  "jointStudyMm": 200,
+  "islandSinkMm": [
+    1700,
+    6150,
+    2050,
+    6500
+  ],
+  "fridgeMm": [
+    1080,
+    5920,
+    1660,
+    6530
+  ],
+  "fridgeHingeMm": [
+    1660,
+    6550
+  ],
+  "fridgeLeafStudyMm": [
+    500,
+    25
+  ],
+  "fridgeOperatorMm": [
+    2000,
+    7100
+  ],
+  "fridgeOpeningPathMm": [
+    [
+      1400,
+      6900
+    ],
+    [
+      1400,
+      7350
+    ],
+    [
+      2000,
+      7350
+    ],
+    [
+      2000,
+      7100
+    ]
+  ],
+  "fridgeModeS1ChairEastMm": 200,
+  "doorParkingXmm": {
+    "minus": [
+      4400,
+      5600
+    ],
+    "plus": [
+      8000,
+      9200
+    ]
+  },
+  "southCabinetFullDoorRunXmm": [
+    4400,
+    9200
+  ],
+  "doorMotionEachSideMm": 1200,
+  "maxAdditionalDoorHangerProjectionMm": 150,
+  "fullDoorBandMm": [
+    4400,
+    6990,
+    9200,
+    7140
+  ],
+  "doorOperatorsMm": {
+    "minus": [
+      5150,
+      6650
+    ],
+    "plus": [
+      6350,
+      6650
+    ]
+  },
+  "minimalTradeoffPendingPMO": "门外挂追加研究上限150；深头盔/大篮入柜。不是用户已选限值。单人连续全开/换手循环未核，分侧站位与门扫掠先验。",
+  "standPointsMm": {
+    "N1": [
+      3125,
+      5550
+    ],
+    "N2": [
+      3125,
+      5550
+    ],
+    "S1": [
+      3150,
+      7150
+    ],
+    "E": [
+      5000,
+      5775
+    ]
+  },
+  "chairPullMm": {
+    "N1": [
+      0,
+      -200
+    ],
+    "N2": [
+      150,
+      0
+    ],
+    "S1": [
+      0,
+      100
+    ],
+    "E": [
+      350,
+      0
+    ]
+  },
+  "partyTemporaryParkMm": {
+    "NM": [
+      8800,
+      5850
+    ],
+    "SM": [
+      8800,
+      6300
+    ]
+  },
+  "partyTemporaryPeopleMm": [
+    [
+      7000,
+      5500
+    ],
+    [
+      8000,
+      6500
+    ]
+  ],
+  "interlocks": [
+    "S1南绕行时南柜门先关闭，X−停车段清空；不宣称任意同时使用",
+    "聚会临时席先让位，实际扶挪轨迹仍待核；静态停点不是运输通过",
+    "冰箱操作时S1让位、椅向东200；500门研究算例非已选产品，实际SKU与给排水未确认"
+  ],
+  "castleSetMm": [
+    690,
+    430,
+    580
+  ],
+  "castlePlatformTopMm": 1100,
+  "structuralEdits": [],
+  "mergedObjects": {
+    "primaryId": "furn-b2-sports-camping-storage-candidate-20261030",
+    "retiredPegboardId": "furn-b2-activity-outdoor-pegboard-001",
+    "originalPegboard": {
+      "id": "furn-b2-activity-outdoor-pegboard-001",
+      "code": "PG-B2-01",
+      "name": "B2 W-B2-011 户外用品洞洞板",
+      "type": "pegboard",
+      "catalogId": "storage-pegboard",
+      "moduleCategory": "storage",
+      "moduleType": "pegboard",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-003",
+      "dimensions": {
+        "width": 300,
+        "depth": 10,
+        "height": 200,
+        "unit": "cm"
+      },
+      "material": "暖橡木整面洞洞板 + 黑色金属挂钩 + 活动层板",
+      "note": "R7已采纳北墙TV设计：保3000×100×2000洞洞板，沿同南墙西移1800，为酒柜让位，不删运动挂物功能。 已纳入独立合模候选；非采购或施工批准。",
+      "constructionNote": "R7已采纳北墙TV设计：保3000×100×2000洞洞板，沿同南墙西移1800，为酒柜让位，不删运动挂物功能。 已纳入独立合模候选；非采购或施工批准。 安装、完成面、固定、可开门/服务与接口重新复核。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 50,
+        "y": 85.77777777777777,
+        "rotation": 180
+      },
+      "color": "#334155",
+      "cabinetDesign": {
+        "template": "pegboard",
+        "title": "B2 户外用品洞洞板设计",
+        "designThinking": "把容易散落的户外物品全部上墙：大件自行车有独立承重点，小件头盔、球拍和护具用可移动挂件，后续运动品类变化也能重排。",
+        "recommendedPlacement": "贴 B2 底部 W-B2-011 墙面右半段，靠活动区一侧，从柱子右边开始布置，避开书房主桌椅动线。",
+        "layoutNotes": [
+          "自行车挂位需要实墙加固",
+          "头盔和护具放在拿取高度",
+          "球拍、球袋和小工具用可移动挂钩分区",
+          "底部留防污垫和鞋/打气筒位置"
+        ],
+        "zones": [
+          {
+            "id": "bike-zone",
+            "label": "自行车挂位",
+            "role": "自行车 / 轮胎",
+            "widthPercent": 42,
+            "heightPercent": 100,
+            "detail": "用承重挂架固定自行车，轮胎下方留防污区域。",
+            "serviceNote": "固定点打到实墙或加固基层。"
+          },
+          {
+            "id": "helmet-zone",
+            "label": "头盔护具",
+            "role": "头盔 / 护膝",
+            "widthPercent": 24,
+            "heightPercent": 72,
+            "detail": "头盔和护具放在腰胸高度，回家顺手挂上。"
+          },
+          {
+            "id": "racket-zone",
+            "label": "球拍小件",
+            "role": "球拍 / 打气筒 / 工具",
+            "widthPercent": 34,
+            "heightPercent": 78,
+            "detail": "竖向挂球拍、球袋和维修工具，小件用盒篮集中。",
+            "serviceNote": "可在侧边预留充电插座。"
+          }
+        ],
+        "cautionNotes": [
+          "自行车挂架不能只固定在薄板上，必须确认墙体基层。",
+          "洞洞板下方要留清洁和防泥水空间。"
+        ]
+      },
+      "render3d": {
+        "assetType": "pegboard",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "proceduralDefault",
+        "variationSeed": 1072732003,
+        "styleSource": "manual",
+        "styleLocked": true,
+        "primaryMaterialResourceId": "showroomWarmOakVertical",
+        "secondaryMaterialResourceId": "showroomWarmOakVertical",
+        "accentMaterialResourceId": "showroomDarkBronze"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "R7对象已移动；旧电源/灯光/网络坐标不作施工依据，未选择新增设备或回路。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "customCabinet",
+        "reserveSize": "360x12x220cm",
+        "wallDependency": "依现场墙面完成面复尺，校核基层与收口",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "背板分片上墙并校核基层承重，孔阵按 100mm 模数；重物挂件固定到结构基层。"
+      },
+      "hostWallId": "W-B2-011"
+    }
+  },
+  "mainModelMerged": false,
+  "detailCorrectionR2": {
+    "previousCandidateSha256": "6ee0fd48ecb8844a9d570dc415ef035d9c4d9461b7738bb25197e3d6c68ada94",
+    "islandDry200LowerVoidMm": [
+      2160,
+      5900,
+      2360,
+      6550,
+      0,
+      800
+    ],
+    "tablePedestalsMm": [
+      [
+        2660,
+        6350
+      ],
+      [
+        3660,
+        6350
+      ]
+    ],
+    "tableFootDepthMm": 100,
+    "tableFootWidthMm": 380,
+    "humanGeometryUnchanged": true,
+    "dailyEChairAndPersonShiftMm": [
+      0,
+      350
+    ],
+    "reasonForE": "日常E/N2脚部相交；端席向南350保留四席，人体尺寸姿态不改。Party6的三＋三位置不变。",
+    "oldWaterbarActiveMepInherited": false,
+    "archivedDrawingIds": [
+      "L-B2-CAB-WETBAR-001",
+      "L-B2-V1-16",
+      "MEP-B2-WETBAR-DRAIN-001",
+      "MEP-B2-WETBAR-INSPECTION-001",
+      "MEP-B2-WETBAR-POWER-001",
+      "MEP-B2-WETBAR-WATER-001",
+      "SW-B2-CABINET-WETBAR-001",
+      "SW-B2-V1-16"
+    ]
+  },
+  "indexOnlyIncrement": {
+    "baselineRevision": "B2-WEST-SOCIAL-SOUTH-SPORTS-20261106-r2",
+    "baselineSha256": "b2868c29a6e3f524fb5d7c6393356726af955ce6ef761161448ce4472c4b355f",
+    "removedDrawingPackageEntries": [
+      {
+        "index": 251,
+        "id": "SW-B2-V1-16"
+      },
+      {
+        "index": 252,
+        "id": "L-B2-V1-16"
+      }
+    ],
+    "geometryAndActiveDrawingItemsUnchanged": true,
+    "R2StaticAndMepNarrowClosurePreservedNotReissued": true
+  }
+}

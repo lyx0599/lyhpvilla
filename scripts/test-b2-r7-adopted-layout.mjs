@@ -1,7 +1,9 @@
+import { readHistoricalWorkspace } from "./read-historical-workspace.mjs";
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {applyWorkspaceMigrations} from '../lib/workspace-migrations.ts';
-const model=JSON.parse(await readFile(new URL('../data/default-workspace.json',import.meta.url),'utf8'));
+// Historical377 design regression, current5900 is covered separately.
+const model=readHistoricalWorkspace();
 const byId=id=>{const f=model.furniture.find(f=>f.id===id);assert.ok(f,id);return f;};
 assert.match(model.defaultWorkspaceRevision,/^main-model-(?:four-items-mechanical-20261101-r10-m1|source-ratio-A-integrated-\d{8}-(?:r12|r15(?:-r16)?)-[\w-]+)$/);
 const b2=model.furniture.filter(f=>f.floorId==='B2');assert.equal(b2.length,24);assert.equal(new Set(b2.map(f=>f.id)).size,24);

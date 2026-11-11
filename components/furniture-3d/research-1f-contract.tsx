@@ -29,7 +29,8 @@ export function Research1FContract(props:FurnitureFamily3DProps){
  const query=useSearchParams(),party=false,phase=query.get('phase')??'closed';
  const {item,width,depth,height}=props,floorY=-height/2,baseX=item.position.x*120,baseY=item.position.y*90;
  const worldRotation=(item.position.rotation||0)*Math.PI/180;
- const state=(party?contract.states.party:contract.states.daily) as unknown as Array<ChairPose&{kind:string;parent:string}>;
+ const authored=(item.render3d as {authoredSeatLayoutsMm?:{daily?:Array<ChairPose&{kind:string;parent:string}>}}|undefined)?.authoredSeatLayoutsMm?.daily;
+ const state=(party?contract.states.party:authored??contract.states.daily) as unknown as Array<ChairPose&{kind:string;parent:string}>;
  const selectedPullSeat=query.get('seat')??'R1';
  const offsetFor=(p:ChairPose):[number,number]=>{
   if(phase!=='chairs-pulled'||p.id!==selectedPullSeat)return [0,0];

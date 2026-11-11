@@ -19,8 +19,12 @@ import { SoftDecor3D } from "./soft-decor-3d";
 import { CoffeeTableFamily3D, DiningTableFamily3D, SitStandDesk3D } from "./table-family-3d";
 import type { FurnitureFamily3DProps } from "./types";
 import { WetAreaFamily3D } from "./wet-area-family-3d";
+import {hasCal5900Bath,Cal5900Bath} from './cal5900-bath';
+import {hasCal5900Media,Cal5900Media} from './cal5900-media';
 
 export function FurnitureFamily3D(props: FurnitureFamily3DProps) {
+  if(hasCal5900Media(props))return <Cal5900Media {...props}/>;
+  if(hasCal5900Bath(props))return <Cal5900Bath {...props}/>;
   if (isR16Cloak(props.item)) return <R16FourDoorCloset {...props}/>;
   if (approvedR14Role(props.item)) return <R14ApprovedSubset {...props} />;
   if (hasR11BathFixture(props)) return <R11BathFixture {...props}/>;

@@ -7,7 +7,7 @@ import type { FixedCameraView, FloorId, Furniture, HouseStructure } from "../typ
 export const modelPreviewFloors = ["B2", "B1", "1F", "2F", "YARD"] as const;
 
 export const modelPreviewLabels: Record<FloorId, { title: string; subtitle: string }> = {
-  B2: { title: "B2 实时预览", subtitle: "观影、聚会与书房" },
+  B2: { title: "B2 实时预览", subtitle: "观影、四人社交与骑行" },
   B1: { title: "B1 实时预览", subtitle: "阅读、家政房与洗衣" },
   "1F": { title: "1F 实时预览", subtitle: "客餐厅、厨房与日常生活" },
   "2F": { title: "2F 实时预览", subtitle: "卧室、衣帽间与卫浴" },

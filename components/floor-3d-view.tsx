@@ -1,4 +1,15 @@
 "use client";
+import {B2WestParts,B2WestPeople} from "@/components/b2-west-layout-parts";
+import {B1R06Cabinet} from './b1-r06-cabinets';
+import {B1R03Entity} from './b1-r03-functional';
+import {D004PublicSlidingLeaf,SecondFloorFinishedHingedLeaf,SecondFloorHingeMount} from './second-floor-door-corrections';
+import {B2FinishedFloorSeams} from './b2-finished-floor-seams';
+import {B2FloorFittedLeaf,B2FloorHingeMount} from './b2-floor-fitted-door';
+import {useB2DoorOperation} from '../lib/b2-door-operation';
+import b2FinishedFloorContract from '../data/b2-finished-floor-contract.json';
+import {useSecondFloorDoorOperation} from '../lib/second-floor-door-operation';
+import b1Migration from '@/data/b1-migration.json';
+import {useB1CabinetOperation} from '@/lib/b1-cabinet-operation';
 import {useSearchParams} from 'next/navigation';
 import d005Contract from '@/data/d005-interface.json';
 import {d006RoomInwardYaw} from '@/lib/d006-room-side';
@@ -6,7 +17,7 @@ import {YardC03AStudy,hasC03AStudy} from "@/components/yard-c03a-study";
 import {B2LowdoorStudy} from "@/components/b2-lowdoor-study";
 import {B2R7RoleParts,B2R7EvidenceOverlay,R7ChairStudyOutline} from "@/components/b2-r7-design";
 import {DesignEvidenceAudit} from "@/components/design-evidence-audit";
-import {R15Proxies} from '@/components/r15-proxies';
+import {Cal5900R15Proxies as R15Proxies} from '@/components/cal5900-r15-proxies';
 import {R11BathEntry} from '@/components/furniture-3d/r11-bath-fixtures';
 import {R11BayBench} from '@/components/furniture-3d/r11-bay-bench';
 
@@ -2559,7 +2570,7 @@ function RoomFloorMeshContents({
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   const floorStyle = getRoomFloorStyle(room, structure, designStyle);
-  const floorSurfaceY = roomFloorPresentationElevationM(structure.floorId, index);
+  const floorSurfaceY = structure.floorId==='B2'?b2FinishedFloorContract.finishedSurfaceMm*MM_TO_M:roomFloorPresentationElevationM(structure.floorId, index);
   const bounds = getSceneBounds(room.boundary, structure);
   const surfaceSizeM: readonly [number, number] = [
     Math.max(0.1, bounds.maxX - bounds.minX),
@@ -2581,6 +2592,7 @@ function RoomFloorMeshContents({
           roughness={floorStyle.roughness}
         />
       </mesh>
+      {structure.floorId==='B2'&&floorStyle.pattern!==SHOWROOM_HERRINGBONE_PATTERN&&floorStyle.kind!=='microcement'&&<B2FinishedFloorSeams geometry={geometry} width={surfaceSizeM[0]} depth={surfaceSizeM[1]} elevation={floorSurfaceY} joint={floorStyle.joint} wood={floorStyle.kind==='wood'} tileWidthMm={floorStyle.tileWidthMm} tileLengthMm={floorStyle.tileLengthMm} directionDeg={floorStyle.directionDeg}/>}
       {floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN && <ShowroomHerringboneOverlay
         geometry={geometry}
         bounds={bounds}
@@ -2668,6 +2680,9 @@ function RoomFloorFinishOverlayContents({
   designStyle: DesignStylePreset;
   presentationMode: boolean;
 }) {
+  // B2 seams now share the exact35mm clipped room shape in RoomFloorMesh.
+  // Preserve the floor/hole polygons; do not retain old55..59 floating boxes.
+  if(structure.floorId==='B2')return null;
   const bounds = getSceneBounds(room.boundary, structure);
   if (!Number.isFinite(bounds.minX) || !Number.isFinite(bounds.minZ)) return null;
 
@@ -3329,6 +3344,15 @@ function LandscapePlantCluster({ x, y = 0.055, z, scale, index, herb = false }: 
   );
 }
 
+/** B2 lightwell joints are a material on the existing44mm surface, never raised paver bars. */
+function B2LightwellMaterialJoints({surface,structure}:{surface:HouseOutdoorSurface;structure:HouseStructure}) {
+  const key=surface.polygon.map(p=>`${p.x},${p.y}`).join(' ');
+  const geometry=useMemo(()=>{const shape=new THREE.Shape();surface.polygon.forEach((p,i)=>{const q=toShapePoint(p,structure);if(i===0)shape.moveTo(q.x,q.y);else shape.lineTo(q.x,q.y);});shape.closePath();return normalizePlanarUvs(new THREE.ShapeGeometry(shape));},[key,structure]);
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
+  const bounds=getSceneBounds(surface.polygon,structure);
+  return <B2FinishedFloorSeams surfaceId={surface.id} geometry={geometry} width={bounds.maxX-bounds.minX} depth={bounds.maxZ-bounds.minZ} elevation={.044} joint="#71685d" wood={false} tileWidthMm={820} tileLengthMm={820}/>;
+}
+
 function OutdoorSurfaceDetails({ surface, structure }: { surface: HouseOutdoorSurface; structure: HouseStructure }) {
   const bounds = getSceneBounds(surface.polygon, structure);
   if (!Number.isFinite(bounds.minX) || !Number.isFinite(bounds.minZ)) return null;
@@ -3410,6 +3434,8 @@ function OutdoorSurfaceDetails({ surface, structure }: { surface: HouseOutdoorSu
       </>
     );
   }
+
+  if(structure.floorId==='B2' && ['OS-OD-B2-LIGHTWELL-N','OS-OD-B2-LIGHTWELL-SE'].includes(surface.id))return <B2LightwellMaterialJoints surface={surface} structure={structure}/>;
 
   const paverXCount = Math.max(2, Math.floor(width / (surface.surfaceType === "path" ? 0.95 : 0.82))) + 1;
   const paverZCount = Math.max(2, Math.floor(depth / (surface.surfaceType === "path" ? 0.62 : 0.82))) + 1;
@@ -4646,6 +4672,9 @@ function OpeningMeshContents({
 }) {
   const host = getHostSegment(structure, opening.hostId);
   const operationQuery=useSearchParams();
+  const b1Operation=useB1CabinetOperation();
+  const secondFloorDoorOperation=useSecondFloorDoorOperation();
+  const b2DoorOperation=useB2DoorOperation();
   if (!host) return null;
   const metrics = lineMetrics(host.start, host.end, structure);
   const t = Math.min(1, Math.max(0, opening.positionOnWall));
@@ -4654,6 +4683,9 @@ function OpeningMeshContents({
     z: metrics.startPoint.z + (metrics.endPoint.z - metrics.startPoint.z) * t
   };
   const isDoor = "openDirection" in opening;
+  const finished2FDoor = structure.floorId==='2F' && ['D-2F-003','D-2F-006'].includes(opening.id);
+  const finishedB2Door = structure.floorId==='B2' && ['D-B2-001','D-B2-STORAGE-001','D-B2-LW-N','D-B2-LW-S'].includes(opening.id);
+  const publicD004 = structure.floorId==='2F' && opening.id==='D-2F-004' && opening.hostId==='W-2F-023' && opening.width===850;
   const r08Door=isDoor&&opening.id===d005Contract.doorId&&(opening.verificationMeta?.sourceNote??'').startsWith(d005Contract.enableSourceNotePrefix);
   const width = Math.max(0.2, opening.width * MM_TO_M);
   const windowDisplayMetrics = isDoor ? null : getWindow3DDisplayMetrics(host.height, opening.height, opening.sillHeightMm);
@@ -4676,6 +4708,7 @@ function OpeningMeshContents({
   const liningDepth = Math.max(0.06, (doorVisual?.liningDepthMm ?? host.thickness) * MM_TO_M);
   const revealWidth = Math.max(0.004, (doorVisual?.revealWidthMm ?? 8) * MM_TO_M);
   const jambFrameWidth = doorVisual?.jambMode === "flush" ? revealWidth : frameWidth;
+  const frameBase = finishedB2Door?b2FinishedFloorContract.finishedSurfaceMm*MM_TO_M:0;
   const windowOperation = isDoor ? "fixed" : (opening as HouseWindow).operation ?? "fixed";
   const windowPanelCount = isDoor
     ? 1
@@ -4724,8 +4757,8 @@ function OpeningMeshContents({
       {isDoor ? doorRenderPolicy?.mode === "openPassage" ? null : (
         <>
           {[-1, 1].map((xSide) => (
-            <mesh key={`${opening.id}-door-jamb-${xSide}`} castShadow position={[xSide * width * 0.5, height / 2, 0]}>
-              <boxGeometry args={[jambFrameWidth, height, liningDepth]} />
+            <mesh key={`${opening.id}-door-jamb-${xSide}`} castShadow position={[xSide * width * 0.5, (height+frameBase) / 2, 0]}>
+              <boxGeometry args={[jambFrameWidth, height-frameBase, liningDepth]} />
               <PbrMaterial token={doorFrameToken} fallbackRole={isGlassDoor ? "trimMetal" : "joineryMain"} color={frameColor} roughness={isGlassDoor ? 0.34 : 0.68} metalness={isGlassDoor ? 0.48 : 0.01} surfaceSizeM={[jambFrameWidth, height]} />
             </mesh>
           ))}
@@ -4739,7 +4772,7 @@ function OpeningMeshContents({
               <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={frameColor} roughness={0.42} metalness={0.36} surfaceSizeM={[width, liningDepth]} />
             </mesh>
           )}
-          {opening.operation === "sliding" ? (
+          {publicD004 ? <D004PublicSlidingLeaf amount={secondFloorDoorOperation[opening.id] ?? explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0}/> : opening.operation === "sliding" ? (
             (doorVisual?.leafCount === 1
               ? [(opening as HouseDoor).openDirection.startsWith("left") ? -1 : 1]
               : [-1, 1]
@@ -4780,6 +4813,8 @@ function OpeningMeshContents({
             const opensInside = opening.openDirection === "leftIn" || opening.openDirection === "rightIn";
             const leafDirection = opensFromStart ? 1 : -1;
             let designSwingAngle = (opensFromStart ? -1 : 1) * (opensInside ? 1 : -1) * Math.PI * 0.4;
+            const calRoomId=({'D-1F-003':'ROOM-1F-004','D-1F-002':'ROOM-1F-005','D-1F-007':'ROOM-1F-001'}as Record<string,string>)[opening.id]??null;
+            if(calRoomId){const dx=host.end.x-host.start.x,dy=host.end.y-host.start.y,len=Math.hypot(dx,dy),p={x:host.start.x+dx*t,y:host.start.y+dy*t},room=structure.rooms.find(r=>r.id===calRoomId);let n={x:-dy/len,y:dx/len};if(room&&!pointInPolygon({x:p.x+100*n.x,y:p.y+100*n.y},room.boundary))n={x:-n.x,y:-n.y};const localZ=n.x*(-dy/len)+n.y*(dx/len);designSwingAngle=-Math.sign(localZ)*(opensInside?1:-1)*leafDirection*Math.PI*.4;}
             if(r08Door){
               const dx=host.end.x-host.start.x,dy=host.end.y-host.start.y,len=Math.hypot(dx,dy),doorPoint={x:host.start.x+dx*t,y:host.start.y+dy*t};
               const room=structure.rooms.find(room=>room.id===d005Contract.targetRoomId);
@@ -4793,7 +4828,17 @@ function OpeningMeshContents({
               const room=structure.rooms.find(r=>r.id==='ROOM-2F-001');
               if(room)designSwingAngle=d006RoomInwardYaw({id:opening.id,hostStart:host.start,hostEnd:host.end,positionOnWall:t,roomBoundary:room.boundary,leafDirection,angleDeg:90})??designSwingAngle;
             }
-            const swingAngle = r08Door&&operationQuery.has('d005')
+            const calQueryKey=({'D-1F-003':'d003','D-1F-002':'d002','D-1F-007':'d007'}as Record<string,string>)[opening.id];
+            const swingAngle = calRoomId&&calQueryKey&&operationQuery.has(calQueryKey)
+              ? designSwingAngle*Math.max(0,Math.min(90,Number(operationQuery.get(calQueryKey))))/72
+
+              : finishedB2Door&&b2DoorOperation[opening.id]!==undefined
+              ? designSwingAngle*b2DoorOperation[opening.id]
+              : finished2FDoor&&secondFloorDoorOperation[opening.id]!==undefined
+              ? designSwingAngle*secondFloorDoorOperation[opening.id]
+              : opening.id==='D-B1-001'&&b1Operation.userTouched
+              ? designSwingAngle*b1Operation.bathDoorAmount
+              : r08Door&&operationQuery.has('d005')
               ? designSwingAngle*Math.max(0,Math.min(d005Contract.fullOpenDeg,Number(operationQuery.get('d005'))))/d005Contract.fullOpenDeg
               : r12GuestDoor&&operationQuery.has('d006')
               ? designSwingAngle*Math.max(0,Math.min(90,Number(operationQuery.get('d006'))))/90
@@ -4813,12 +4858,20 @@ function OpeningMeshContents({
                 </group>
               );
             }
+            const fittedWidth=finished2FDoor||finishedB2Door?width-jambFrameWidth-.006:width;
+            const b2FittedHeight=height-jambFrameWidth/2-.003-.045;
+            const hingeSide=-Math.sign(designSwingAngle)*leafDirection;
+            const pivotX=opensFromStart?-fittedWidth/2:fittedWidth/2;
             return (
-              <group name={r08Door?'D005-R08-real-moving-leaf':r12GuestDoor?'D006-R12-real-inward-leaf':undefined} userData={r08Door?{auditEntityId:'D-1F-005',auditKind:'d005-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:d005Contract.targetRoomId}:r12GuestDoor?{auditEntityId:opening.id,auditKind:'d006-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:'ROOM-2F-001'}:undefined} position={[opensFromStart ? -width / 2 : width / 2, 0, 0]} rotation={[0, swingAngle, 0]}>
-                {r12GuestDoor?<group name="D006-R12-full900x55-two-normal-knobs" position={[leafDirection*width/2,height/2,0]}>
+              <group>
+              {finished2FDoor&&<SecondFloorHingeMount id={opening.id} pivotX={pivotX} insideSide={hingeSide} direction={leafDirection}/>}
+              {finishedB2Door&&<B2FloorHingeMount id={opening.id} pivotX={pivotX} height={b2FittedHeight} direction={leafDirection} side={hingeSide}/>}
+              <group name={calRoomId?'CAL5900-room-directed-'+opening.id:r08Door?'D005-R08-real-moving-leaf':r12GuestDoor?'D006-R12-real-inward-leaf':undefined} userData={calRoomId?{auditEntityId:opening.id,auditKind:opening.id==='D-1F-003'?'d003-leaf':'cal5900-door-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:calRoomId}:r08Door?{auditEntityId:'D-1F-005',auditKind:'d005-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:d005Contract.targetRoomId}:r12GuestDoor?{auditEntityId:opening.id,auditKind:'d006-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:'ROOM-2F-001'}:undefined} position={[pivotX, 0, finished2FDoor?hingeSide*.0275:finishedB2Door?hingeSide*.030:0]} rotation={[0, swingAngle, 0]}>
+                {finishedB2Door ? <B2FloorFittedLeaf id={opening.id} width={fittedWidth} height={b2FittedHeight} direction={leafDirection} side={hingeSide} color={doorWoodColor}/> : finished2FDoor ? <SecondFloorFinishedHingedLeaf id={opening.id} width={fittedWidth} direction={leafDirection} color={doorWoodColor} insideSide={hingeSide}/> : r12GuestDoor?<group name="D006-R12-full900x55-two-normal-knobs" position={[leafDirection*width/2,height/2,0]}>
                   <mesh name="D006-R12-full-leaf" castShadow receiveShadow><boxGeometry args={[width,height,.055]}/><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={doorWoodColor} roughness={.7} surfaceSizeM={[width,height]}/></mesh>
                   {[-1,1].map(side=><mesh key={side} name={`D006-R12-normal-knob-${side}`} position={[leafDirection*width*.39,0,side*.0506]}><sphereGeometry args={[.036,20,16]}/><PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={doorHardwareColor} metalness={.6} roughness={.3} surfaceSizeM={[.072,.072]}/></mesh>)}
                 </group>:isGlassDoor && doorStyle === "standard" ? <mesh castShadow receiveShadow position={[leafDirection * width / 2, height / 2, 0]}><boxGeometry args={[width, height * 0.985, 0.055]} /><PbrMaterial token="clearGlass" fallbackRole="glassMain" color={color} transmission={0.68} opacity={0.56} roughness={0.08} thicknessMm={18} side={THREE.DoubleSide} surfaceSizeM={[width, height]} /></mesh> : <StyledDoorLeaf style={doorStyle} width={width} height={height} color={doorWoodColor} glassColor={doorGlassColor} hardwareColor={doorHardwareColor} leafDirection={leafDirection} woodTexture={woodTexture} />}
+              </group>
               </group>
             );
           })()}
@@ -5047,6 +5100,10 @@ function SkylightMesh({
   const frameColor = selected ? "#2563eb" : effectMaterialCatalog.blackMetal.color;
   const isYardProjection = structure.floorId === "YARD";
   const skylightBaseY = isYardProjection ? curbHeight + 0.065 : resolveStructureStoryHeightMm(structure) * MM_TO_M + 0.04;
+  const unresolvedCrossFloor=skylight.verificationMeta?.status==='unverified'&&/^(SKY-B1-|SKY-YARD-B1-)/.test(skylight.id);
+  if(unresolvedCrossFloor)return <group name={`${skylight.id}-unadopted-location-reference`} position={[center.x,skylightBaseY,center.z]} rotation={[0,-skylight.rotation*Math.PI/180,0]} userData={{auditEntityId:skylight.id,auditKind:'unadopted-skylight-reference',auditNonPhysical:true,crossFloorConstruction:'unresolved',installedWindow:false}}>
+    <mesh name={`${skylight.id}-reference-envelope`}><boxGeometry args={[width,curbHeight,depth]}/><meshBasicMaterial color="#a8458f" wireframe transparent opacity={0.8} depthTest={false}/></mesh>
+  </group>;
   return (
     <group
       position={[center.x, skylightBaseY, center.z]}
@@ -8139,6 +8196,7 @@ function LivingFireplaceMediaWall3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Fireplace3DGroup(props: FurnitureAssetGroupProps) {
+  if(String((props.item.render3d as {geometryContractId?:string}|undefined)?.geometryContractId??'').startsWith('CAL5900-new-m'))return <FineVariantFurniture3DGroup {...props}/>;
   if (props.item.render3d?.variantId === "dualNicheMediaWall") {
     return <LivingDualNicheMediaWall3DGroup {...props} />;
   }
@@ -9002,13 +9060,20 @@ function B2R7RoleGroup(props:FurnitureAssetGroupProps&{role:'castle'|'sports'|'b
 function B2R7ChairOutline(props:FurnitureAssetGroupProps){
  const m=useFineAssetMetrics(props);return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><R7ChairStudyOutline id={props.item.id} width={m.width} depth={m.depth} height={m.height}/></SelectableFurnitureGroup>;
 }
+function B2BoundParts(props:FurnitureAssetGroupProps){const m=useFineAssetMetrics(props);return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><B2WestParts id={props.item.id} height={m.height}/></SelectableFurnitureGroup>;}
 function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
+  if(props.item.render3d?.variantId==='b1R06LessOpen')return <B1R06Cabinet id={props.item.id}/>;
+  if(props.item.note?.includes('B1-R03-FUNCTIONAL')&&['furn-b1-guest-bed-001','furn-b1-laundry-washer-001','furn-b1-bath-toilet-001','furn-b1-bath-vanity-001','furn-b1-laundry-cleaning-cabinet-001'].includes(props.item.id)) {
+    const delta=(b1Migration as Record<string,number[]>)[props.item.id];
+    return <group name={'MIGRATION-'+props.item.id} position={[delta[0]/1000,0,delta[1]/1000]}><B1R03Entity id={props.item.id}/></group>;
+  }
   const sourceAsset = resolve3DAsset(props.item);
   const resolvedAsset: Resolved3DAsset = {
     ...sourceAsset,
     detailLevel: resolveUnifiedSceneDetailLevel(sourceAsset.detailLevel, props.sceneLod)
   };
   if (!resolveVisibility(props.item).visible3d || !resolvedAsset.visibleIn3d) return null;
+  if(props.item.render3d?.variantId==='b2-west-layout-r2')return <B2BoundParts {...props} resolvedAsset={resolvedAsset}/>;
   if (props.item.id === "furn-b2-fireplace-east-candidate-20261030") return <B2UnselectedIntentEnvelope {...props} resolvedAsset={resolvedAsset} />;
   const role=props.item.id==='furn-b2-sofa-residence-four-reference-20261031-r7'?'sofa':props.item.id==='furn-b2-study-souvenir-cabinet-001'?'castle':props.item.id==='furn-b2-sports-camping-storage-candidate-20261030'?'sports':props.item.id==='furn-b2-bike-trainer-candidate-20261030'?'bike':null;
   if(role)return <B2R7RoleGroup {...props} resolvedAsset={resolvedAsset} role={role}/>;
@@ -11381,8 +11446,8 @@ function Floor3DScene({
     <PbrQualityProvider quality={pbrQuality} device={pbrDevice} maxTextureSize={staticPreview ? (balancedQuality ? 512 : 1024) : undefined} includeHeightMap={staticPreview ? false : undefined}>
       <ScenePerformanceMonitor mode={presentationMode ? "presentation" : "edit"} interactionActive={cameraInteractionActive} />
       <DesignEvidenceAudit/>
-      {houseStructure.floorId==='1F'&&<R15Proxies/>}
-      {houseStructure.floorId==='B2'&&<B2R7EvidenceOverlay/>}
+      {houseStructure.floorId==='1F'&&<R15Proxies furniture={furniture}/>} 
+      {houseStructure.floorId==='B2'&&<B2WestPeople/>}
       <LocalClippingController />
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} staticPreview={staticPreview} />
       <SceneReflectionEnvironment presentationMode={presentationMode} intensity={reflectionEnvironmentIntensity} />
@@ -14034,6 +14099,7 @@ export function Floor3DView({
       data-render-preflight-errors={currentRenderPreflight.errorCount}
       data-render-preflight-warnings={currentRenderPreflight.warningCount}
     >
+      {['B1','1F','YARD'].includes(floor.id)&&houseStructuresByFloor.B1?.skylights.some(w=>w.verificationMeta?.status==='unverified')&&<div className="pointer-events-none absolute bottom-2 left-2 z-20 max-w-md rounded bg-white/95 px-3 py-1 text-xs text-[#883971]" data-testid="unadopted-cross-floor-skylight-note">洋红线框仅为采光定位参照：构造未采用，非已实施窗；跨层通光关系待核。</div>}
       <Canvas
         // Keep the renderer and its GPU resource identity stable while the
         // user switches floors. The scene contents can update in-place; a

@@ -1,0 +1,610 @@
+{
+  "phase": "PMO_ADOPTED_5900_DESIGN_RELEASE",
+  "revision": "main-model-source-ratio-A-integrated-20261111-four-floor-integration-r36",
+  "modelSha256": "e4632447345f0cc9c1fb9b33d5984ffed0790cc8eb7bf65ee6ab4d1ec4776fdb",
+  "basePublicCommit": "377892e72044f2efc8ba56b68fd47dd81705a8b4",
+  "basePublicModelSha256": "5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a",
+  "renderRevision": "main-model-source-ratio-A-integrated-20261111-four-floor-integration-r36-native-cf181b87f12c",
+  "renderIdentitySha256": "cf181b87f12c00375c8ab6c8e98c143a91ccbe1f22a121605d721a8521d44b5d",
+  "sourceFiles": [
+    {
+      "path": "components/floor-3d-view.tsx",
+      "sha256": "1081fd9b51c3c3cf074618b32a46dbb894fa0a834db41854f0f7afa426237958"
+    },
+    {
+      "path": "components/design-evidence-audit.tsx",
+      "sha256": "d1953bf12e5f3eb5f798c76914ebc670368fbb95eee0a3995e57013262249250"
+    },
+    {
+      "path": "components/b1-joined-railing.tsx",
+      "sha256": "847d2e884398beb2e13c949526b7d1947cf12b48c4d8829e6040b7c9b1dea09d"
+    },
+    {
+      "path": "lib/b1-boundary-profile.ts",
+      "sha256": "f6e0a83352e21287f007d6945e8ecb3e9c0b0194f5a55fec25e2adbd94c285ce"
+    },
+    {
+      "path": "components/plan-canvas.tsx",
+      "sha256": "dbf9f53700a72f9616a80a40bf5901a709f3ccf0b01239da54b8d0b1042c755f"
+    },
+    {
+      "path": "lib/model-display-bounds.ts",
+      "sha256": "3446931f430ca16ce6e5d39918ceb8e7dd80883020aaf8e7ce57ba97c970d992"
+    },
+    {
+      "path": "components/model-preview.tsx",
+      "sha256": "51d80bbcb3d252c8c8a58701f8b0af209c6cec2e89a433a0d46983de714da9d3"
+    },
+    {
+      "path": "lib/model-inspection-cameras.ts",
+      "sha256": "ad01d86cd07ed22b8a48b961049b5751efaaa8eb8e569958ea24ec0f63556f83"
+    },
+    {
+      "path": "lib/courtyard-model.ts",
+      "sha256": "76afa7f92067f292e9abb2c1b0acdeb823ff34d9f1ee39a9805a1234311005c7"
+    },
+    {
+      "path": "components/b1-r06-cabinets.tsx",
+      "sha256": "f3e83eb37f4836dbf17d549932b19c50932cfa1f9451ff9ba6efc9bed9ed2bc0"
+    },
+    {
+      "path": "components/b1-r03-functional.tsx",
+      "sha256": "81358e210960e037bfd488dd4920f127755092b6dd186912420d25ff23674ff8"
+    },
+    {
+      "path": "lib/b1-r06-state.ts",
+      "sha256": "6d4dfb0b5404e904a1912bd7efe0675cc1e7770be9d44a248f27a4685527439e"
+    },
+    {
+      "path": "lib/b1-r03-fix1-state.ts",
+      "sha256": "ef6acd1422001f5fc95a1c63c96599408d7ba69d2b8d449b6c7ab5716da8e39b"
+    },
+    {
+      "path": "lib/b1-cabinet-operation.ts",
+      "sha256": "b143fe43569514a0d6e04b6601da485a12501a65ef1c0ee821abf842dfcd3fca"
+    },
+    {
+      "path": "lib/b1-bed-profile.ts",
+      "sha256": "3166ef713a0058feadce2e9118bd3d815004c58a9d56a14d770b897ad6562704"
+    },
+    {
+      "path": "data/b1-r06.json",
+      "sha256": "80299766a4f6149afec15f5810e17e17a8f9164e1ea0215b9489d620ac6d8809"
+    },
+    {
+      "path": "data/b1-r03-functional.json",
+      "sha256": "8d394a55a7ee2879c00d2ee6fb4bea145d8c372d58e94917fc87f2fc8741de21"
+    },
+    {
+      "path": "data/b1-migration.json",
+      "sha256": "48e4f64cefbb10cad265d88c5218172d85cfc2c6a2498ce4ed8a6eb188821d22"
+    },
+    {
+      "path": "components/second-floor-door-corrections.tsx",
+      "sha256": "5bf772a6ff876c786526d17fa7ff1ba1fadb2a7fd5ac63656b6557201c32a944"
+    },
+    {
+      "path": "lib/second-floor-door-operation.ts",
+      "sha256": "cccf1ea48e565f79f561faa319a754175dda2b57810f330f0f57cba2a1bc238a"
+    },
+    {
+      "path": "components/b2-finished-floor-seams.tsx",
+      "sha256": "b7f557529894f947423739a277f8f9ea1aa50035f8deafcfeb548e2113351b22"
+    },
+    {
+      "path": "data/b2-finished-floor-contract.json",
+      "sha256": "8a15e0393fcbbdfa6626f9b2647fc4e43182aeb3d2fa5af165662129c159ef2d"
+    },
+    {
+      "path": "components/b2-floor-fitted-door.tsx",
+      "sha256": "ee3ff623b9aa6097a502c7f449f4206c87c9c9284c09d3ed855b51fdd51fe338"
+    },
+    {
+      "path": "lib/b2-door-operation.ts",
+      "sha256": "0401fbb424ccb041dc346e8fadbf0a8064ebb600a33da3dce9365a3f2087e27c"
+    },
+    {
+      "path": "components/furniture-3d/index.tsx",
+      "sha256": "d130f2427ce319d81779c764d68a114d919117add3c061bcbf30f7c45cb86eaf"
+    },
+    {
+      "path": "components/furniture-3d/research-1f-contract.tsx",
+      "sha256": "b2a1660972f4d8c1b69be294754f019541c14acc536adc1e26e5cf1a6a4c2152"
+    },
+    {
+      "path": "components/furniture-3d/cal5900-media.tsx",
+      "sha256": "c6364ced732bc4e6559943d1167cb01eb8be10851fc5ab6b1bd704dfe8170b80"
+    },
+    {
+      "path": "components/furniture-3d/cal5900-bath.tsx",
+      "sha256": "dd410b2bee14207e0117b09a1926bb24c15b61b7083dc58aceaf573b4f788e4b"
+    },
+    {
+      "path": "components/cal5900-r15-proxies.tsx",
+      "sha256": "6ec93275d997b546be5374a73db01b189665b6e07851cbbf9a9378efcce7c6eb"
+    },
+    {
+      "path": "data/research-1f-contract.json",
+      "sha256": "a220e460353bac26d2241b065de8aae8e7d25138519337bd87f32b9b41a49314"
+    },
+    {
+      "path": "components/b2-west-layout-parts.tsx",
+      "sha256": "95cee782e6d53f4b039fc169887bacbf3efc0f5a24da35049d7698accd0b2d7f"
+    },
+    {
+      "path": "components/b2-west-layout-preview.tsx",
+      "sha256": "4e8abc9aa835f96a4c9dd0daa7fd85c45bcb4ad9ca6a11d86f9ecb7a442ccc8b"
+    },
+    {
+      "path": "app/b2-south-layout/page.tsx",
+      "sha256": "0d13023dd3f217a238ae54bb6a403881efa8f755d0c6bdd1dfef9d2c8e283f38"
+    },
+    {
+      "path": "data/b2-south-scene.json",
+      "sha256": "4c904f065d978fb38dc1595825c87482e4bbc41ddc5c7977f6b40d010459e39a"
+    },
+    {
+      "path": "data/b2-native-custom-parts.json",
+      "sha256": "8df6d0c235d45d61a0e4cfdb626d37cb80ddff8f6a6944fd46cd3e59a8c6f0cb"
+    },
+    {
+      "path": "data/b2-r3-viewer-frames.json",
+      "sha256": "e796a3e33458825d1959cee30356bc60a8d4247ba6f226ac74df9decb415ed9b"
+    },
+    {
+      "path": "data/b2-west-layout-contract.json",
+      "sha256": "7b2837dd8be6d1e8c1fb0682211303103f0a76b840dd297a6e9d2d49e4538e7e"
+    },
+    {
+      "path": "lib/model-preview.ts",
+      "sha256": "b45c04756d679331492e67796354dc97f34509336f5a6cd8bc0214fe80b8f177"
+    },
+    {
+      "path": "lib/workspace-migrations.ts",
+      "sha256": "be566a3f18be33f3b017e330c76fdc31a1ca7d4e5e1118c447a81a45c1f97cc3"
+    },
+    {
+      "path": "lib/workspace-reference-validator.ts",
+      "sha256": "8a9684f98b0a599305e7e30463170d1ff6d19d262e217dcfb76943181f42ec4f"
+    }
+  ],
+  "scope": "User-confirmed5900 net-span source-photo calibration across four floors, original-owner furniture and limited operations/dependencies, independently conditionally accepted in one final combination review and adopted by PMO. Inferred design model; not field construction, unrestricted whole-house use, product or MEP certification.",
+  "currentModelFacts": {
+    "furnitureCount": 102,
+    "changedFurniturePositionCount": 100,
+    "changedFurniturePositionIds": [
+      "furn-b2-living-tv-console-001",
+      "furn-b2-living-large-tv-001",
+      "furn-b2-sofa-residence-four-reference-20261031-r7",
+      "furn-b2-entry-slim-foyer-cabinet-001",
+      "furn-b2-entry-left-wall-foyer-001",
+      "furn-b2-activity-outdoor-pegboard-001",
+      "furn-b2-study-souvenir-cabinet-001",
+      "furn-b2-study-slab-table-001",
+      "furn-plant-001",
+      "module-2f-cloak-left",
+      "module-2f-cloak-right",
+      "furn-2f-guest-shower-001",
+      "furn-2f-guest-toilet-001",
+      "furn-2f-guest-vanity-001",
+      "furn-2f-master-shower-001",
+      "furn-2f-master-bathtub-001",
+      "furn-2f-master-vanity-001",
+      "furn-2f-master-toilet-001",
+      "furn-2f-bedroom1-bed-001",
+      "furn-2f-bedroom1-wardrobe-001",
+      "furn-2f-bedroom2-bed-001",
+      "furn-2f-master-bedroom-bed-001",
+      "furn-2f-master-bedroom-large-wardrobe-001",
+      "furn-2f-master-bedroom-chest-001",
+      "furn-2f-master-bay-bench-001",
+      "module-2f-wardrobe-002",
+      "module-1f-bed-002",
+      "module-1f-wardrobe-001",
+      "furn-kitchen-run-001",
+      "furn-kitchen-u-left-run",
+      "furn-cooktop-001",
+      "furn-sink-001",
+      "furn-fridge-001",
+      "furn-bath-shower-001",
+      "furn-bath-toilet-001",
+      "furn-bath-vanity-001",
+      "furn-living-waterbar-001",
+      "furn-living-waterbar-upper-001",
+      "furn-living-snack-pullout-001",
+      "furn-entry-slim-hanging-001",
+      "furn-living-fireplace-south-001",
+      "ph-1f-north-yard-gate",
+      "ph-1f-north-outdoor-socket",
+      "module-1f-table-001",
+      "furn-b1-room-seasonal-wardrobe-001",
+      "furn-b1-guest-bed-001",
+      "furn-b1-bath-vanity-001",
+      "furn-b1-bath-toilet-001",
+      "furn-1f-living-main-sofa-001",
+      "furn-1f-living-floor-lamp-001",
+      "furn-2f-master-rug-001",
+      "furn-b1-laundry-washer-001",
+      "furn-b1-laundry-cleaning-cabinet-001",
+      "furn-b1-activity-piano-001",
+      "furn-2f-master-nightstand-north-001",
+      "furn-2f-master-nightstand-south-001",
+      "furn-b1-activity-beanbag-001",
+      "furn-b1-activity-rug-001",
+      "furn-b1-activity-coffee-table-001",
+      "furn-b2-under-stair-room-shell-001",
+      "furn-b2-under-stair-shelf-001",
+      "furn-b2-under-stair-shelf-002",
+      "furn-b2-under-stair-shelf-003",
+      "furn-b1-activity-floor-lamp-001",
+      "furn-b1-activity-bookshelf-001",
+      "furn-kitchen-u-right-run",
+      "furn-b2-living-coffee-table-001",
+      "furn-b2-study-wine-cabinet-001",
+      "furn-b2-study-handwash-001",
+      "OUT-N-KITCHEN-ISLAND",
+      "OUT-N-BBQ",
+      "OUT-N-TAP",
+      "OUT-N-PLANTER",
+      "OUT-N-STORAGE",
+      "OUT-N-HOSE",
+      "OUT-S-RELAX",
+      "OUT-S-UMBRELLA",
+      "OUT-S-LAUNDRY",
+      "OUT-S-DRYING",
+      "OUT-S-PET-HOUSE",
+      "OUT-S-PET-WASH",
+      "OUT-S-GARDEN-BED",
+      "OUT-S-PATH-LIGHT",
+      "furn-2f-balcony-02-cabinet",
+      "furn-1f-bedroom-headboard-ledge-001",
+      "furn-1f-bedroom-bay-storage-001",
+      "furn-2f-parent-balcony-lounge-chair-001",
+      "furn-2f-parent-balcony-side-table-001",
+      "furn-2f-parent-balcony-drying-rack-001",
+      "furn-2f-bedroom1-headboard-shelf-001",
+      "furn-2f-child-balcony-reading-rug-001",
+      "furn-1f-independent-long-table-r05",
+      "PLAN-YARD-R31-N-THIN-CABINET-001",
+      "furn-b2-fireplace-east-candidate-20261030",
+      "furn-b2-sports-camping-storage-candidate-20261030",
+      "furn-b2-bike-trainer-candidate-20261030",
+      "furn-b2-chair-west-1-candidate-20261030",
+      "furn-b2-chair-west-3-candidate-20261030",
+      "furn-b2-chair-east-1-candidate-20261030",
+      "furn-b2-chair-east-3-candidate-20261030"
+    ],
+    "reviewedB1CompleteOwnerIds": [
+      "furn-b1-room-seasonal-wardrobe-001",
+      "furn-b1-guest-bed-001",
+      "furn-b1-bath-vanity-001",
+      "furn-b1-bath-toilet-001",
+      "furn-b1-laundry-washer-001",
+      "furn-b1-laundry-cleaning-cabinet-001",
+      "furn-b1-activity-piano-001",
+      "furn-b1-activity-beanbag-001",
+      "furn-b1-activity-rug-001",
+      "furn-b1-activity-coffee-table-001",
+      "furn-b1-activity-small-shelf-001",
+      "furn-b1-activity-floor-lamp-001",
+      "furn-b1-activity-bookshelf-001",
+      "furn-b1-activity-instrument-rack-001"
+    ],
+    "publicBathVestibuleB": true,
+    "guestCommonEntryAlcove": true,
+    "sourceNorthWallY": 6004.344,
+    "b1Skylights": [
+      {
+        "id": "SKY-B1-W002-001",
+        "center": {
+          "x": 6710.429,
+          "y": 760
+        },
+        "width": 800,
+        "depth": 560,
+        "status": "unverified"
+      },
+      {
+        "id": "SKY-B1-W002-002",
+        "center": {
+          "x": 7739.384,
+          "y": 760
+        },
+        "width": 800,
+        "depth": 560,
+        "status": "unverified"
+      },
+      {
+        "id": "SKY-B1-W002-003",
+        "center": {
+          "x": 9210.639,
+          "y": 760
+        },
+        "width": 800,
+        "depth": 560,
+        "status": "unverified"
+      },
+      {
+        "id": "SKY-B1-W009-001",
+        "center": {
+          "x": 1925.45,
+          "y": 8899.314
+        },
+        "width": 800,
+        "depth": 560,
+        "status": "unverified"
+      },
+      {
+        "id": "SKY-B1-W009-002",
+        "center": {
+          "x": 3171.858,
+          "y": 8899.314
+        },
+        "width": 800,
+        "depth": 560,
+        "status": "unverified"
+      }
+    ],
+    "net5900Anchor": "user-confirmed calibration anchor, not field measured"
+  },
+  "openItems": [
+    "Model source-photo calibration anchored to user5900 net; not field measurement, structural expansion or construction/product approval.",
+    "1F eight target600 upright finite routes and chair movements are limited; R1 pull280 only; seated articulated bodies mostly failed original finite domain; party10+2 and comfort not accepted.",
+    "2F three door normal-body cycles and installed frame/leaf/bench/cabinets are finite ideal geometry; floorXY support is not actual completed threshold or installation tolerance. Two fixed hand-adjusted drawing points remain pending.",
+    "B1 bed870/430 and phased cabinets are reviewed design endpoints/operations; appliance support transfer/OEM/load/field slab/rail detailing remain unconfirmed.",
+    "B2 four chairs only; original2086 retained poses are finite study, critical nominal1.31/1.69mm gaps not manufacturing/site allowances. OEM fridge/ventilation, trainer loads, threshold/lightwell delivery and low1250 understair door/access remain unconfirmed.",
+    "Five B1/YARD skylight references are unadopted nonphysical outlines: offsets north690/south730 and actual upperfloor projection blockage remain; no new shafts/slab holes/daylight approval.",
+    "35 fixed/unknown owner-linked MEP drafts keep historical coordinates/cache and requirement-only/todo semantics; B1 logical lighting/YARD follow rules are model design only; all3 physical stair light systems remain explicitly pending-review despite current geometry fingerprints.",
+    "Virtual inspection cameras/HV fitting do not certify physically accessible observation positions or every object unoccluded. Historical E2/privacy/six-point/533/775 calculations are preserved only at their original version scope.",
+    "Remote CI/Pages and public native verification are separate post-release steps; no local test result is remote success."
+  ],
+  "reviewedOtherOwnerReferences": [
+    {
+      "floor": "1F",
+      "sourcePatchSha256": "a9144aac28cde70627173e76241f8f0d0149595b47c27670fb9992e0359a6965",
+      "reviewReportSha256": "016a8da4b2d94dfe4b7f87871f2e10dbc87338d57788726fee2158a85ba5b4ea",
+      "adoptedIds": [
+        "furn-kitchen-u-left-run",
+        "furn-cooktop-001",
+        "furn-fridge-001",
+        "furn-bath-shower-001",
+        "furn-bath-toilet-001",
+        "furn-bath-vanity-001",
+        "furn-living-fireplace-south-001",
+        "module-1f-table-001",
+        "furn-1f-living-main-sofa-001",
+        "furn-1f-living-floor-lamp-001",
+        "furn-kitchen-u-right-run",
+        "furn-1f-bedroom-bay-storage-001",
+        "furn-1f-independent-long-table-r05"
+      ],
+      "adoptionStatus": "REVIEWED_AND_PMO_ADOPTED_LIMITED_SCOPE",
+      "scope": "Exact full-owner newValue only; reviewed source dimensions. Not mobile alternative or complete8person/party10+2 use."
+    },
+    {
+      "floor": "2F",
+      "sourcePatchSha256": "39fb272e16f1ed61932d7468aa095c6b05314a43d0ec9d93917deb69fd573525",
+      "reviewReportSha256": "d08237f633226539877b89c0a90d2b583ab5efc9d1c8adb9acaea9f1eccc1155",
+      "adoptedIds": [
+        "module-2f-cloak-left",
+        "furn-2f-bedroom1-bed-001",
+        "furn-2f-bedroom1-wardrobe-001",
+        "furn-2f-bedroom2-bed-001",
+        "furn-2f-master-bay-bench-001",
+        "module-2f-wardrobe-002",
+        "furn-2f-bedroom1-headboard-shelf-001"
+      ],
+      "adoptionStatus": "REVIEWED_AND_PMO_ADOPTED_LIMITED_SCOPE",
+      "scope": "Original reviewd082 plus PMO adopted exact6position/3host, including parent1370/7150 and W010. F06 source/native identity closed by authorcurrent26a61d3d; not new door or whole-use acceptance."
+    },
+    {
+      "floor": "B2",
+      "sourcePatchSha256": "a4e0498cda5c6aa354b027e890489396faf1e4562305605a295a1d50c128285a",
+      "reviewReportSha256": "e2068dfd9687fb9ae90ed3f36bfdd0882c5ca79af996cf41537fc3ef2882ed23",
+      "adoptedIds": [
+        "furn-b2-study-slab-table-001",
+        "furn-b2-study-handwash-001",
+        "furn-b2-study-wine-cabinet-001",
+        "furn-b2-sports-camping-storage-candidate-20261030",
+        "furn-b2-study-souvenir-cabinet-001",
+        "furn-b2-chair-west-1-candidate-20261030",
+        "furn-b2-chair-west-3-candidate-20261030",
+        "furn-b2-chair-east-1-candidate-20261030",
+        "furn-b2-chair-east-3-candidate-20261030",
+        "furn-b2-living-tv-console-001",
+        "furn-b2-living-large-tv-001",
+        "furn-b2-sofa-residence-four-reference-20261031-r7",
+        "furn-b2-living-coffee-table-001",
+        "furn-b2-entry-slim-foyer-cabinet-001",
+        "furn-b2-entry-left-wall-foyer-001",
+        "furn-b2-activity-outdoor-pegboard-001",
+        "furn-b2-fireplace-east-candidate-20261030",
+        "furn-b2-bike-trainer-candidate-20261030",
+        "furn-b2-under-stair-room-shell-001",
+        "furn-b2-under-stair-shelf-001",
+        "furn-b2-under-stair-shelf-002",
+        "furn-b2-under-stair-shelf-003"
+      ],
+      "adoptionStatus": "LIMITED_RESEARCH_REVIEWED_AND_PMO_ADOPTED_INTEGRATION_CANDIDATE",
+      "scope": "Original e2068dfd limited geometry/source/fourchair/use evidence plus PMO formal adoption of22replacement/2canceledremoval into integrated candidate. Remaining real35floor/feet/fourdoor-fit normal native narrow review and final combined adoption before publication; no OEM/site/continuous joint/comfort/real trainer/understair certification."
+    }
+  ],
+  "explicitCanceledFurnitureIds": [
+    "furn-b2-chair-west-2-candidate-20261030",
+    "furn-b2-chair-east-2-candidate-20261030"
+  ],
+  "ownerDependencyOverrides": {
+    "sha256": "173d282ac4e13090729c98c93163d0a6679396be00fb08dc898c0c77b2cda80a",
+    "scope": "Writer current owner semantic dependencies only, source after-value guarded; cannot alter dimensions, positions, render assets or body geometry. Original source records retained in incoming and per-stage history; final affected review pending.",
+    "changes": [
+      {
+        "id": "furn-b2-under-stair-room-shell-001",
+        "field": "roomId",
+        "oldValue": "ROOM-B2-004",
+        "newValue": "ROOM-B2-005",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-room-shell-001",
+        "field": "note",
+        "oldValue": "用户已选B：以外侧开门取物为主，不默认内部走入通道。高相对区放高大件、中区可调架/箱、低区低箱篮；真实斜底、支撑、净高和分缝待核，不默认重型拉出。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。",
+        "newValue": "本轮明确新CAD1460×450×2400毫米西南独立储物柜，实际位于书房ROOM-B2-005；旧梯下ID仅沿用标识，不代表原梯下斜底或700×1250门取用已过。当前尺寸/姿态按已核原生保留；原三组程序架不是实物库存等容量证书。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-room-shell-001",
+        "field": "constructionNote",
+        "oldValue": "外壳按楼梯斜底分段收口；700×1250mm矮门设置在净高较高一端，右侧外开，采用极窄暗缝和内嵌拉手；门内布置300-350mm深可调货架、吸尘器位和感应灯。",
+        "newValue": "本轮西南独立CAD柜体/模块，按当前实体核定摆位；不把旧梯下隔墙或旧墙host当直接支承。防倾倒、层板承载、固定及库存容量待深化；原梯下房/洞口/矮门保留另域。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-001",
+        "field": "roomId",
+        "oldValue": "ROOM-B2-004",
+        "newValue": "ROOM-B2-005",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-001",
+        "field": "note",
+        "oldValue": "沿西墙设置高位主货架，收纳箱包、工具与清洁用品；与另外两组矮架组成密集迷你仓库。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。 旧程序原生代理实测780×387，本次依PMO授权明确重建700×300新设计，不称原物未缩；容量/实物盘点未批准。",
+        "newValue": "本轮明确新CAD700×300×1100毫米柜内模块，实际位于书房ROOM-B2-005；旧梯下ID仅沿用标识，不代表原梯下斜底或700×1250门取用已过。当前尺寸/姿态按已核原生保留；原三组程序架不是实物库存等容量证书。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-001",
+        "field": "constructionNote",
+        "oldValue": "沿西墙设置高位主货架，收纳箱包、工具与清洁用品；与另外两组矮架组成密集迷你仓库。",
+        "newValue": "本轮西南独立CAD柜体/模块，按当前实体核定摆位；不把旧梯下隔墙或旧墙host当直接支承。防倾倒、层板承载、固定及库存容量待深化；原梯下房/洞口/矮门保留另域。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-001",
+        "field": "hostWallId",
+        "oldValue": "W-B2-008",
+        "newValue": null,
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged. Optional null normalized to absent per strict schema.",
+        "removeField": true
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-002",
+        "field": "roomId",
+        "oldValue": "ROOM-B2-004",
+        "newValue": "ROOM-B2-005",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-002",
+        "field": "note",
+        "oldValue": "贴北侧斜底布置中矮货架，分层放周转箱、备品和低频物件。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。 旧程序原生代理实测780×387，本次依PMO授权明确重建700×300新设计，不称原物未缩；容量/实物盘点未批准。",
+        "newValue": "本轮明确新CAD700×300×850毫米柜内模块，实际位于书房ROOM-B2-005；旧梯下ID仅沿用标识，不代表原梯下斜底或700×1250门取用已过。当前尺寸/姿态按已核原生保留；原三组程序架不是实物库存等容量证书。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-002",
+        "field": "constructionNote",
+        "oldValue": "贴北侧斜底布置中矮货架，分层放周转箱、备品和低频物件。",
+        "newValue": "本轮西南独立CAD柜体/模块，按当前实体核定摆位；不把旧梯下隔墙或旧墙host当直接支承。防倾倒、层板承载、固定及库存容量待深化；原梯下房/洞口/矮门保留另域。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-002",
+        "field": "hostWallId",
+        "oldValue": "W-B2-007",
+        "newValue": null,
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged. Optional null normalized to absent per strict schema.",
+        "removeField": true
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-003",
+        "field": "roomId",
+        "oldValue": "ROOM-B2-004",
+        "newValue": "ROOM-B2-005",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-003",
+        "field": "note",
+        "oldValue": "沿东侧最低处布置矮货架，放鞋盒、耗材和小型收纳筐，中央保留取物带。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。 旧程序原生代理实测780×387，本次依PMO授权明确重建700×300新设计，不称原物未缩；容量/实物盘点未批准。",
+        "newValue": "本轮明确新CAD700×300×700毫米柜内模块，实际位于书房ROOM-B2-005；旧梯下ID仅沿用标识，不代表原梯下斜底或700×1250门取用已过。当前尺寸/姿态按已核原生保留；原三组程序架不是实物库存等容量证书。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-003",
+        "field": "constructionNote",
+        "oldValue": "沿东侧最低处布置矮货架，放鞋盒、耗材和小型收纳筐，中央保留取物带。",
+        "newValue": "本轮西南独立CAD柜体/模块，按当前实体核定摆位；不把旧梯下隔墙或旧墙host当直接支承。防倾倒、层板承载、固定及库存容量待深化；原梯下房/洞口/矮门保留另域。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-under-stair-shelf-003",
+        "field": "hostWallId",
+        "oldValue": "W-B2-STORAGE-001",
+        "newValue": null,
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged. Optional null normalized to absent per strict schema.",
+        "removeField": true
+      },
+      {
+        "id": "furn-b2-study-handwash-001",
+        "field": "note",
+        "oldValue": "1300×650×900；干区200段X2160..2360下方0..800研究全通空，底座/南北裙板/端撑退到X2160前，保留上部连续顶板。悬挑/防水/承重节点待选品；不缩小或隐藏人体。 R05绑定家具重排研究；完整原研究模块尺寸保留；仅新建筑落位，旧通过不继承。 非完整操作/施工通过。 明确1250→1270仅向北加20，为570安装宽留实际柜内余量；厂家DM50CD参考非采购批准，旧500×760平开研究门撤回，不称原门缩小后通过。",
+        "newValue": "本轮明确1270×650×900毫米岛台，与2000×900桌侧接810毫米；抽屉饮品冷藏为参考实体。旧1300/1250及1650东墙水吧说明退为历史。原水/排/电需求保留为未定接口，未确认盆、厂家冷藏、散热或接管。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b2-study-handwash-001",
+        "field": "constructionNote",
+        "oldValue": "已采纳方案设计；尺寸为待核模型值，非实物现状、现场复尺或接口实施批准。A水吧在东墙下段，1650×550保原外廓，正面朝西；盆位/冷热排水接口未落实。",
+        "newValue": "当前西侧1270岛台及饮品冷藏参考，模型推定；原冷热水和排水需求不等于本体已有盆或现场接口。结构、散热、出线、供排水及产品选型待定，不能沿旧东墙水吧锚点施工。",
+        "reason": "Explicit current new-CAD room/host/function dependency; exact positions/dimensions/render geometry unchanged."
+      },
+      {
+        "id": "furn-b1-guest-bed-001",
+        "field": "hostWallId",
+        "oldValue": null,
+        "newValue": null,
+        "removeField": true,
+        "reason": "Original owner unhosted optional null normalized to absent; no added association or geometry change."
+      },
+      {
+        "id": "furn-b1-activity-beanbag-001",
+        "field": "hostWallId",
+        "oldValue": null,
+        "newValue": null,
+        "removeField": true,
+        "reason": "Original owner unhosted optional null normalized to absent; no added association or geometry change."
+      },
+      {
+        "id": "furn-b1-activity-rug-001",
+        "field": "hostWallId",
+        "oldValue": null,
+        "newValue": null,
+        "removeField": true,
+        "reason": "Original owner unhosted optional null normalized to absent; no added association or geometry change."
+      },
+      {
+        "id": "furn-b1-activity-coffee-table-001",
+        "field": "hostWallId",
+        "oldValue": null,
+        "newValue": null,
+        "removeField": true,
+        "reason": "Original owner unhosted optional null normalized to absent; no added association or geometry change."
+      },
+      {
+        "id": "furn-b1-activity-floor-lamp-001",
+        "field": "hostWallId",
+        "oldValue": null,
+        "newValue": null,
+        "removeField": true,
+        "reason": "Original owner unhosted optional null normalized to absent; no added association or geometry change."
+      }
+    ]
+  },
+  "reviewScopesRecord": "model-releases/2026-11-11-four-floor-review-scopes.json",
+  "finalCombinationReport": {
+    "report": "四层5900_R36整包及R38砖缝增量独立条件通过_20261111.txt",
+    "sha256": "d71e36d488577c1287a62af0066448c0705395795c1edf142e24d658da7691ac"
+  },
+  "pmoFinalAdoptionSha256": "729bb71f60b73d337447c6d648c7078dc3c1e912cd9fffa9d56031b0338bb175"
+}

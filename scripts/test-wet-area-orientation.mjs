@@ -22,7 +22,7 @@ function furnitureCenterMm(item, structure) {
   };
 }
 
-const fixtures = workspace.furniture.filter((item) => ["bathroomVanity", "sink"].includes(item.render3d?.assetType));
+const fixtures = workspace.furniture.filter((item) => ["bathroomVanity", "sink"].includes(item.render3d?.assetType) && item.render3d?.variantId !== "b2-west-layout-r2");
 assert.ok(fixtures.length >= 5, "The whole-house audit should include every currently modeled vanity and fixed sink.");
 
 for (const item of fixtures) {

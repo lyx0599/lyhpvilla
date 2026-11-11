@@ -33,12 +33,13 @@ export function DesignEvidenceAudit(){
     const corners=[box.min.x,box.max.x].flatMap(x=>[box.min.y,box.max.y].flatMap(y=>[box.min.z,box.max.z].map(z=>new THREE.Vector3(x,y,z).applyMatrix4(object.matrixWorld).toArray())));
     const world=new THREE.Box3().setFromObject(object,true);
     const floorTriangles:number[][][]=[];
-    if(kind==='room-floor'&&object.geometry.type==='ShapeGeometry'){
+    const lightwellMaterialShape=kind==='floor-finish'&&object.geometry.type==='ShapeGeometry'&&['OS-OD-B2-LIGHTWELL-N','OS-OD-B2-LIGHTWELL-SE'].includes(entityId??'')&&object.userData.auditPart==='b2-coplanar-material-seams';
+    if((kind==='room-floor'||lightwellMaterialShape)&&object.geometry.type==='ShapeGeometry'){
      const a=object.geometry.attributes.position,indices=object.geometry.index;
      const count=indices?indices.count:a.count;
      for(let i=0;i<count;i+=3)floorTriangles.push([0,1,2].map(j=>new THREE.Vector3().fromBufferAttribute(a,indices?indices.getX(i+j):i+j).applyMatrix4(object.matrixWorld).toArray()));
     }
-    const nativeGeometry=kind==='r14-part'||kind==='d005-leaf'||kind==='d006-leaf'||String(object.userData.auditPart??'').startsWith('b1-joined-')?{position:Array.from(object.geometry.attributes.position.array),index:object.geometry.index?Array.from(object.geometry.index.array):null}:null;
+    const nativeGeometry=lightwellMaterialShape||kind==='r14-part'||kind==='d005-leaf'||kind==='d006-leaf'||String(object.userData.auditPart??'').startsWith('b1-joined-')?{position:Array.from(object.geometry.attributes.position.array),index:object.geometry.index?Array.from(object.geometry.index.array):null}:null;
     meshes.push({name:object.name,uuid:object.uuid,entityId,kind,part:object.userData.auditPart??null,r14Owner:object.userData.r14Owner??null,operation:object.userData.operation??null,operationFraction:object.userData.operationFraction??null,lineage,visible,physical,materialInfo,geometryType:object.geometry.type,vertexCount:object.geometry.attributes.position?.count??0,matrixWorld:object.matrixWorld.toArray(),worldBoundingBox:{min:world.min.toArray(),max:world.max.toArray()},localBoundingBox:{min:box.min.toArray(),max:box.max.toArray()},worldCorners:corners,floorTriangles,nativeGeometry});
    });
    const c=camera as THREE.PerspectiveCamera;

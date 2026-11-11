@@ -1,0 +1,732 @@
+{
+  "revision": "B1-TRUE-SIZE-MIGRATION-R01-ON-ARCH-R08-20261110",
+  "sourceModelSha256": "138fb3291092b6e4bcdd12781ca276ab2c164dca2c35504282c5a136e19a8b86",
+  "units": "mm/source plan XY, world height includes35",
+  "bookId": "furn-b1-activity-bookshelf-001",
+  "portableId": "furn-b1-activity-piano-001",
+  "lampId": "furn-b1-activity-floor-lamp-001",
+  "parts": [
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-back",
+      "center": [
+        1094.0,
+        7199.999999999999,
+        1235
+      ],
+      "size": [
+        18,
+        2700,
+        2400
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-side-4979",
+      "center": [
+        1310.0,
+        5858.999999999999,
+        1235
+      ],
+      "size": [
+        450,
+        18,
+        2400
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-side-7661",
+      "center": [
+        1310.0,
+        8541.0,
+        1235
+      ],
+      "size": [
+        450,
+        18,
+        2400
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-cap-44",
+      "center": [
+        1310.0,
+        7199.999999999999,
+        44
+      ],
+      "size": [
+        450,
+        2664,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-cap-2426",
+      "center": [
+        1310.0,
+        7199.999999999999,
+        2426
+      ],
+      "size": [
+        450,
+        2664,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-divider-6793",
+      "center": [
+        1319.0,
+        7672.999999999999,
+        1235
+      ],
+      "size": [
+        432,
+        18,
+        2364
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-divider-5925",
+      "center": [
+        1319.0,
+        6804.999999999999,
+        1235
+      ],
+      "size": [
+        432,
+        18,
+        2364
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-0-280",
+      "center": [
+        1303.0,
+        8106.999999999999,
+        315
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-0-650",
+      "center": [
+        1303.0,
+        8106.999999999999,
+        685
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-0-1020",
+      "center": [
+        1303.0,
+        8106.999999999999,
+        1055
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-0-1390",
+      "center": [
+        1303.0,
+        8106.999999999999,
+        1425
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-0-1760",
+      "center": [
+        1303.0,
+        8106.999999999999,
+        1795
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-0-2130",
+      "center": [
+        1303.0,
+        8106.999999999999,
+        2165
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-1-650",
+      "center": [
+        1303.0,
+        7238.999999999999,
+        685
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-1-1200",
+      "center": [
+        1303.0,
+        7238.999999999999,
+        1235
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-1-2130",
+      "center": [
+        1303.0,
+        7238.999999999999,
+        2165
+      ],
+      "size": [
+        400,
+        850,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-2-620",
+      "center": [
+        1303.0,
+        6331.999999999999,
+        655
+      ],
+      "size": [
+        400,
+        928,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-2-1120",
+      "center": [
+        1303.0,
+        6331.999999999999,
+        1155
+      ],
+      "size": [
+        400,
+        928,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-2-1620",
+      "center": [
+        1303.0,
+        6331.999999999999,
+        1655
+      ],
+      "size": [
+        400,
+        928,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "name": "reading-shelf-2-2130",
+      "center": [
+        1303.0,
+        6331.999999999999,
+        2165
+      ],
+      "size": [
+        400,
+        928,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-back",
+      "center": [
+        4600,
+        9190.314,
+        1035
+      ],
+      "size": [
+        1800,
+        18,
+        2000
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-side-2469",
+      "center": [
+        3709,
+        9024.314,
+        1035
+      ],
+      "size": [
+        18,
+        350,
+        2000
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-side-4251",
+      "center": [
+        5491,
+        9024.314,
+        1035
+      ],
+      "size": [
+        18,
+        350,
+        2000
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-cap-44",
+      "center": [
+        4600,
+        9024.314,
+        44
+      ],
+      "size": [
+        1764,
+        350,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-cap-2026",
+      "center": [
+        4600,
+        9024.314,
+        2026
+      ],
+      "size": [
+        1764,
+        350,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-small-closed-top",
+      "center": [
+        5052,
+        9026.314,
+        295
+      ],
+      "size": [
+        860,
+        310,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-books-bottom",
+      "center": [
+        5052,
+        9026.314,
+        324
+      ],
+      "size": [
+        860,
+        310,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-books-top",
+      "center": [
+        5052,
+        9026.314,
+        1990
+      ],
+      "size": [
+        860,
+        310,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-divider-01",
+      "center": [
+        4613,
+        9026.314,
+        1017
+      ],
+      "size": [
+        18,
+        310,
+        1964
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-instrument-top",
+      "center": [
+        4150,
+        9026.314,
+        1394
+      ],
+      "size": [
+        864,
+        310,
+        18
+      ]
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "name": "portable-display-top",
+      "center": [
+        4150,
+        9026.314,
+        1990
+      ],
+      "size": [
+        864,
+        310,
+        18
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "id": "read-0-low-L",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        8532.0
+      ],
+      "dir": -1,
+      "length": 422,
+      "bottom": 53,
+      "height": 250,
+      "shoulder": 600,
+      "gripZ": 303
+    },
+    {
+      "id": "read-0-upper-L",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        8532.0
+      ],
+      "dir": -1,
+      "length": 422,
+      "bottom": 324,
+      "height": 2082,
+      "shoulder": 1400,
+      "gripZ": 1400
+    },
+    {
+      "id": "read-0-low-R",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        7681.999999999999
+      ],
+      "dir": 1,
+      "length": 422,
+      "bottom": 53,
+      "height": 250,
+      "shoulder": 600,
+      "gripZ": 303
+    },
+    {
+      "id": "read-0-upper-R",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        7681.999999999999
+      ],
+      "dir": 1,
+      "length": 422,
+      "bottom": 324,
+      "height": 2082,
+      "shoulder": 1400,
+      "gripZ": 1400
+    },
+    {
+      "id": "read-1-upper-L",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        7663.999999999999
+      ],
+      "dir": -1,
+      "length": 422,
+      "bottom": 1256,
+      "height": 1150,
+      "shoulder": 1400,
+      "gripZ": 1400
+    },
+    {
+      "id": "read-1-upper-R",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        6813.999999999999
+      ],
+      "dir": 1,
+      "length": 422,
+      "bottom": 1256,
+      "height": 1150,
+      "shoulder": 1400,
+      "gripZ": 1400
+    },
+    {
+      "id": "read-2-low-L",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        6795.999999999999
+      ],
+      "dir": -1,
+      "length": 461,
+      "bottom": 53,
+      "height": 590,
+      "shoulder": 900,
+      "gripZ": 643
+    },
+    {
+      "id": "read-2-upper-L",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        6795.999999999999
+      ],
+      "dir": -1,
+      "length": 461,
+      "bottom": 664,
+      "height": 1742,
+      "shoulder": 1400,
+      "gripZ": 1400
+    },
+    {
+      "id": "read-2-low-R",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        5867.999999999999
+      ],
+      "dir": 1,
+      "length": 461,
+      "bottom": 53,
+      "height": 590,
+      "shoulder": 900,
+      "gripZ": 643
+    },
+    {
+      "id": "read-2-upper-R",
+      "entity": "furn-b1-activity-bookshelf-001",
+      "face": "east",
+      "hinge": [
+        1526.0,
+        5867.999999999999
+      ],
+      "dir": 1,
+      "length": 461,
+      "bottom": 664,
+      "height": 1742,
+      "shoulder": 1400,
+      "gripZ": 1400
+    },
+    {
+      "id": "port-book-L",
+      "entity": "furn-b1-activity-piano-001",
+      "face": "north",
+      "hinge": [
+        5482,
+        8858.314
+      ],
+      "dir": -1,
+      "length": 427,
+      "bottom": 56,
+      "height": 1956,
+      "gripZ": 1100,
+      "shoulder": 1300
+    },
+    {
+      "id": "port-book-R",
+      "entity": "furn-b1-activity-piano-001",
+      "face": "north",
+      "hinge": [
+        4622,
+        8858.314
+      ],
+      "dir": 1,
+      "length": 427,
+      "bottom": 56,
+      "height": 1956,
+      "gripZ": 1100,
+      "shoulder": 1300
+    },
+    {
+      "id": "port-instrument-L",
+      "entity": "furn-b1-activity-piano-001",
+      "face": "north",
+      "hinge": [
+        4582,
+        8858.314
+      ],
+      "dir": -1,
+      "length": 429,
+      "bottom": 1406,
+      "height": 606,
+      "gripZ": 1650,
+      "shoulder": 1400
+    },
+    {
+      "id": "port-instrument-R",
+      "entity": "furn-b1-activity-piano-001",
+      "face": "north",
+      "hinge": [
+        3718,
+        8858.314
+      ],
+      "dir": 1,
+      "length": 429,
+      "bottom": 1406,
+      "height": 606,
+      "gripZ": 1650,
+      "shoulder": 1400
+    }
+  ],
+  "bodyDiameterMm": 600,
+  "handReachMm": 650,
+  "doorThicknessMm": 18,
+  "doorEndDegree": 90,
+  "otherDoorsClosed": true,
+  "proposal": "Short split hinged leaves, no added sliding tracks; reading center low open, portable instrument low open",
+  "caseDimensionsUnchanged": true,
+  "moduleInventoryUnchanged": true,
+  "bookEffectiveDepthMm": 400,
+  "portableEffectiveDepthMm": 310,
+  "readingOpenApproxFaceRatio": 0.1574074074074074,
+  "portableOpenApproxFaceRatio": 0.324,
+  "ratiosAreDesignResultsNotHumanTargets": true,
+  "floorLampCenter": [
+    4800,
+    6800
+  ],
+  "portableRotation": 180,
+  "approach": [
+    [
+      4500,
+      5000
+    ],
+    [
+      5000,
+      5900
+    ],
+    [
+      5500,
+      6500
+    ],
+    [
+      5500,
+      8430
+    ],
+    [
+      2150,
+      8430
+    ]
+  ],
+  "conditions": [
+    "Actual stored item and instrument case dimensions",
+    "Tall narrow door mass/hinge rating/anti-tip/warping and hardware sample",
+    "5–11mm top shadow gaps and3mm nominal reveals are ventilation reservations, not airflow/humidity certification",
+    "No volume stolen for tracks or drivers; lighting strips remain a removable shallow under-shelf interface, not recessed through structural modules",
+    "Current estimated skylights not field-confirmed; artificial task-light and moisture design independent of assumed east skylight",
+    "A stacked-laundry full service HOLD;635restricted side aisle unchanged",
+    "Old world geometry checks do not transfer; target operations require affected review",
+    "R08 fixed skylight hosts preserved; upper-east wardrobe nominal85 vertical separation is not actual full-opening clearance",
+    "Bath swing door is architecture source; old bifold renderer is not adopted here"
+  ],
+  "actorFormula": {
+    "reading": "x=2035+dx+215*t+80*sin(pi*t); y=min(7350+dy,hingeY+dir*(600-170*t-80*sin(pi*t)))",
+    "portable": "x=hingeX+dir*(600-20*t+120*sin(pi*t)); y=6840+dy",
+    "offset": "dx/dy = actorSourceOffsets[entity]; shoulder/grip height unchanged"
+  },
+  "architectureSourceSha256": "ab2bba706ae59131ca92aed654b23b39186a46f1feb4bac7b128696617dcb97e",
+  "actorSourceOffsets": {
+    "furn-b1-activity-bookshelf-001": [
+      0.0,
+      879.9999999999991
+    ],
+    "furn-b1-activity-piano-001": [
+      1240,
+      1594.3140000000003
+    ]
+  },
+  "operatorRefinement": {
+    "readingStartXSourceMm": 2035,
+    "readingXTravelMm": 215,
+    "readingInitialAlongMm": 600,
+    "readingAlongTravelMm": 170,
+    "readingMidArcBumpMm": 80,
+    "portableAdditionalStandOffMm": 60,
+    "purpose": "keep600body and650reach assumptions; improve own leaf clearance without shrinking doors"
+  }
+}

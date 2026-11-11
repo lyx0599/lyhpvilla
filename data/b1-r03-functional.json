@@ -1,0 +1,1471 @@
+{
+  "revision": "B1-R03-FIX1-SERVICE-STAFF-PULLOUT-STATES-20261108",
+  "recommendation": "B: independent wet WC/basin room plus west-side open-front stacked laundry position; no wall or slab enlargement",
+  "adoption": "internal candidate for PMO and original second-line review, not user adopted or merged",
+  "sourcePackage": "../b1-interior-r02-20261108",
+  "sourceCandidateSha256": "44be69558dd49ad36a99d200e0ba0fc54ac1bea8d1bcd1b40f944c56ae89ca17",
+  "bodyDiameterMm": 600,
+  "handReachFromBodyCenterMm": 650,
+  "handReachIsStudyAssumption": true,
+  "finishFace": {
+    "west": 4057,
+    "east": 5890,
+    "north": 460,
+    "south": 1690
+  },
+  "door": {
+    "id": "D-B1-001",
+    "sourceOpeningUnchangedMm": 900,
+    "mechanism": "two-leaf inward bifold with guided free edge; NOT a telescopic door",
+    "hingeMm": [
+      5395,
+      1935
+    ],
+    "panelLengthMm": 400,
+    "panelThicknessMm": 40,
+    "outsideFrameRectMm": [
+      4554.295,
+      1690,
+      5454.295,
+      1955
+    ],
+    "leftJambRectMm": [
+      4554.295,
+      1690,
+      4590,
+      1955
+    ],
+    "rightJambRectMm": [
+      5444.295,
+      1690,
+      5454.295,
+      1955
+    ],
+    "pivotStopRectMm": [
+      5395,
+      1935,
+      5444.295,
+      1955
+    ],
+    "clearOpeningWhenParkedMm": [
+      4590,
+      5355
+    ],
+    "clearWidthWhenParkedMm": 765,
+    "heightMm": 2065,
+    "leafHeightMm": 2020,
+    "knobRadiusMm": 365,
+    "guidedLeafPullInsetMm": 70,
+    "supplierBasis": "JELD-WEN right-hand bifold pivot+top-guide arrangement; bespoke wet-room finish/seal/lock and actual frame details require matching supplier shop drawing, not a purchased UK SKU",
+    "angleMeaning": "0 closed;90 folded inward and parked",
+    "jointFormula": "J=H+[-400*cos(a),-400*sin(a)];F=H+[-800*cos(a),0];first panel material normal=[sin(a),-cos(a)], second=[-sin(a),-cos(a)], each thickness40; pivot stop lies south of H, not across the parked leaf",
+    "frameDetail": "Original900 rough opening retained; left fixed frame35.705, right10 metal face and49.295 south-side pivot-stop return; nominal closed-end gap5 and parked clearance9.295 require supplier fabrication and seals. This is a designed detail, not an approved off-the-shelf SKU."
+  },
+  "items": {
+    "washerNiche": {
+      "id": "furn-b1-laundry-washer-001",
+      "installedRectMm": [
+        4057,
+        2380,
+        4757,
+        3030
+      ],
+      "installedHeightMm": 1900,
+      "rotation": 270,
+      "fullLocalDimensionsMm": [
+        650,
+        700,
+        1900
+      ],
+      "enclosure": "no extra tall cabinet door; actual appliance fronts stay visible, no sham retracting door",
+      "rearServiceMm": 50,
+      "machineRearX": 4107,
+      "centerY": 2705,
+      "machineWidthMm": 598,
+      "washerBodyDepthMm": 588,
+      "washerClosedDepthMm": 632,
+      "dryerBodyDepthMm": 613,
+      "dryerClosedDepthMm": 648,
+      "washerHeightMm": 845,
+      "dryerHeightMm": 842,
+      "stackingKitHeightMm": 35,
+      "washerDoorHinge": "south",
+      "dryerDoorHinge": "north",
+      "doorDiameterEnvelopeMm": 480,
+      "doorThicknessEnvelopeMm": 50,
+      "washerMaxOpenDepthOfficialMm": 1049,
+      "dryerMaxOpenDepthOfficialMm": 1096,
+      "doorStudyIsConservativeMm": 480
+    },
+    "wc": {
+      "id": "furn-b1-bath-toilet-001",
+      "installedRectMm": [
+        4057,
+        555,
+        4807,
+        1005
+      ],
+      "installedHeightMm": 850,
+      "rotation": 270,
+      "fullLocalDimensionsMm": [
+        450,
+        750,
+        850
+      ],
+      "basis": "Duravit D-Neo close-coupled bowl370x650 and cistern395 wide; full study envelope450x750 includes tank, rear valves and side allowance; no hidden cistern borrowed from a wall"
+    },
+    "basin": {
+      "id": "furn-b1-bath-vanity-001",
+      "installedRectMm": [
+        5610,
+        1140,
+        5890,
+        1590
+      ],
+      "installedHeightMm": 1050,
+      "rotation": 90,
+      "fullLocalDimensionsMm": [
+        450,
+        280,
+        1050
+      ],
+      "basinRimHeightMm": 850,
+      "basis": "Duravit D-Neo073940400x220; installed450x280 includes rim/tap allowance and trap/service zone, wallhung not a floor-filled vanity"
+    },
+    "cleaning": {
+      "id": "furn-b1-laundry-cleaning-cabinet-001",
+      "installedRectMm": [
+        4057,
+        1270,
+        4482,
+        1650
+      ],
+      "installedHeightMm": 2100,
+      "rotation": 270,
+      "fullLocalDimensionsMm": [
+        380,
+        425,
+        2100
+      ],
+      "doorHingeMm": [
+        4470,
+        1270
+      ],
+      "doorLengthMm": 380,
+      "doorThicknessMm": 24,
+      "basis": "same380width/2100height as source; complete depth425 includes original350body, back gap and handles; no reduction of storage to fake fit"
+    }
+  },
+  "sequences": {
+    "bathApproach": {
+      "bathAngle": 0,
+      "points": [
+        [
+          5200,
+          2705
+        ],
+        [
+          5200,
+          2400
+        ],
+        [
+          5080,
+          2330
+        ]
+      ]
+    },
+    "bathOpen": {
+      "door": "bath",
+      "keyframes": [
+        [
+          0,
+          [
+            5080,
+            2330
+          ]
+        ],
+        [
+          30,
+          [
+            5080,
+            2330
+          ]
+        ],
+        [
+          60,
+          [
+            5080,
+            2330
+          ]
+        ],
+        [
+          90,
+          [
+            5080,
+            2330
+          ]
+        ]
+      ],
+      "fixedOtherDoorsClosed": true,
+      "grip": "guided-leaf flush pull70from free edge; crease push/inside auxiliary pull also drawn"
+    },
+    "bathEnter": {
+      "bathAngle": 90,
+      "points": [
+        [
+          5080,
+          2330
+        ],
+        [
+          5080,
+          2110
+        ],
+        [
+          5000,
+          1900
+        ],
+        [
+          5000,
+          1650
+        ],
+        [
+          5000,
+          1400
+        ],
+        [
+          5100,
+          1200
+        ]
+      ]
+    },
+    "bathCloseInside": {
+      "door": "bath",
+      "keyframes": [
+        [
+          90,
+          [
+            5100,
+            1200
+          ]
+        ],
+        [
+          60,
+          [
+            5100,
+            1200
+          ]
+        ],
+        [
+          30,
+          [
+            5100,
+            1320
+          ]
+        ],
+        [
+          0,
+          [
+            5100,
+            1430
+          ]
+        ]
+      ],
+      "fixedOtherDoorsClosed": true
+    },
+    "basinApproach": {
+      "bathAngle": 0,
+      "points": [
+        [
+          5100,
+          1430
+        ],
+        [
+          5250,
+          1365
+        ]
+      ],
+      "handTargetMm": [
+        5780,
+        1365
+      ]
+    },
+    "wcApproach": {
+      "bathAngle": 0,
+      "points": [
+        [
+          5100,
+          1430
+        ],
+        [
+          5150,
+          1200
+        ],
+        [
+          5150,
+          780
+        ]
+      ]
+    },
+    "cleaningOpen": {
+      "door": "cleaning",
+      "bathAngle": 0,
+      "keyframes": [
+        [
+          0,
+          [
+            5050,
+            1580
+          ]
+        ],
+        [
+          30,
+          [
+            5150,
+            1470
+          ]
+        ],
+        [
+          60,
+          [
+            5200,
+            1420
+          ]
+        ],
+        [
+          90,
+          [
+            5200,
+            1400
+          ]
+        ]
+      ]
+    },
+    "cleaningToDrawer": {
+      "bathAngle": 0,
+      "cleaningAngle": 90,
+      "points": [
+        [
+          5200,
+          1400
+        ],
+        [
+          4950,
+          1600
+        ]
+      ]
+    },
+    "washerOpen": {
+      "door": "washer",
+      "bathAngle": 0,
+      "keyframes": [
+        [
+          0,
+          [
+            5180,
+            2705
+          ]
+        ],
+        [
+          20,
+          [
+            5300,
+            2380
+          ]
+        ],
+        [
+          45,
+          [
+            5400,
+            2480
+          ]
+        ],
+        [
+          90,
+          [
+            5500,
+            2530
+          ]
+        ]
+      ]
+    },
+    "washerLoad": {
+      "bathAngle": 0,
+      "washerAngle": 90,
+      "points": [
+        [
+          5500,
+          2530
+        ],
+        [
+          5200,
+          2500
+        ]
+      ],
+      "handTargetMm": [
+        4739,
+        2705
+      ]
+    },
+    "dryerOpen": {
+      "door": "dryer",
+      "bathAngle": 0,
+      "keyframes": [
+        [
+          0,
+          [
+            5200,
+            2705
+          ]
+        ],
+        [
+          30,
+          [
+            5450,
+            2950
+          ]
+        ],
+        [
+          60,
+          [
+            5500,
+            2970
+          ]
+        ],
+        [
+          90,
+          [
+            5500,
+            2970
+          ]
+        ]
+      ]
+    },
+    "dryerLoad": {
+      "bathAngle": 0,
+      "dryerAngle": 90,
+      "points": [
+        [
+          5500,
+          2970
+        ],
+        [
+          5200,
+          2830
+        ]
+      ],
+      "handTargetMm": [
+        4755,
+        2705
+      ]
+    }
+  },
+  "concurrency": [
+    {
+      "activities": [
+        "bath door fold/entry",
+        "appliance door opening/loading"
+      ],
+      "rule": "sequential; close appliance doors before bath entry, close bath privacy door before operating laundry"
+    },
+    {
+      "activities": [
+        "WC or basin with privacy door closed",
+        "one appliance being loaded"
+      ],
+      "rule": "separate users can be studied; no simultaneous door motions in shared approach"
+    },
+    {
+      "activities": [
+        "washer door",
+        "dryer door"
+      ],
+      "rule": "one at a time for loading; shut lower door before opening upper"
+    },
+    {
+      "activities": [
+        "appliance extraction",
+        "ordinary circulation"
+      ],
+      "rule": "temporary professional service zone, no claim of ordinary simultaneous use"
+    }
+  ],
+  "tradeoff": "Laundry and WC/basin are split within the same family-service area. An open-front laundry position occupies0.455m²; no reserve cabinet capacity is removed. The visible appliance fronts are an explicit aesthetic tradeoff, not a hidden adopted enclosure.",
+  "noWallMove": true,
+  "noNewBridge": true,
+  "tail2250Unchanged": true,
+  "optionA": "rotated laundry inside old wet room with compact real WC/basin; not recommended if600-body tolerances or service movements remain too tight. Do not use reduced human size.",
+  "bed": {
+    "id": "furn-b1-guest-bed-001",
+    "centerX": 7150,
+    "northY": 560,
+    "widthMm": 2000,
+    "foldedDepthMm": 1050,
+    "flatDepthMm": 1500,
+    "conservativeMotionDepthMm": 1700,
+    "foldedHeightMm": 870,
+    "flatHeightMm": 430,
+    "basis": "Innovation Living Osvald official200x105x87cm sofa /150x200cm bed. No exact OEM intermediate trajectory supplied; motion1700 is a proposed conservative design envelope and remains a supplier/sample acceptance gate.",
+    "operatorStartMm": [
+      7150,
+      2060
+    ],
+    "operatorEndMm": [
+      7150,
+      2710
+    ]
+  },
+  "storage": {
+    "id": "furn-b1-room-seasonal-wardrobe-001",
+    "frontX": 8785,
+    "northY": 500,
+    "southY": 3000,
+    "depthMm": 600,
+    "heightMm": 2600,
+    "doorType": "retained source two bypass sliding leaves:1232 wide,24 thick,45 track-center spacing; all modules unchanged; no roomward hinged sweep",
+    "northAccessBodyCenterMm": [
+      8467.5,
+      1120
+    ],
+    "southAccessBodyCenterMm": [
+      8467.5,
+      2380
+    ],
+    "closedBedToCabinetGapMm": 635,
+    "largeBeddingRule": "Retrieve folded bedding from existing north wide bay before bed expansion. Carry envelope600Xx800Y stays aligned through635 aisle, then use south foot lane and set on existing reading seat. Convert bed, fetch bedding and make bed. After expansion only small overnight items through635 aisle; no promise of large-bin turning or arbitrary carry orientations in that aisle.",
+    "carryProxyMm": [
+      600,
+      800
+    ]
+  },
+  "fix1": {
+    "issues": [
+      "P1-B1-R03-SERVICE-STAFF",
+      "P2-B1-R03-PULLOUT-STATE"
+    ],
+    "supersedes": {
+      "revision": "B1-INTERIOR-R03-FUNCTIONAL-20261108",
+      "contractSha256": "d2fbe8f98bfa25ee45cf8e19fab8d73ef8082d90fdc7a38c60beab353929ebe5",
+      "manifestSha256": "778cf464c782054514da489e61c4a462c5f7eef2fb7c3f13f58b61391e9714c2",
+      "candidateSha256": "138fb3291092b6e4bcdd12781ca276ab2c164dca2c35504282c5a136e19a8b86"
+    },
+    "bodyDiameterMm": 600,
+    "personCount": 2,
+    "table": {
+      "widthMm": 700,
+      "depthMm": 700,
+      "platformBottomMm": 875,
+      "platformTopMm": 915,
+      "baseWidthMm": 500,
+      "baseDepthMm": 450,
+      "designRatedCapacityKgMinimum": 100,
+      "manufacturerAndRatingUnselected": true
+    },
+    "serviceStages": [
+      {
+        "id": "svc01ApproachA",
+        "label": "01 A到设备前／B等候；台在南侧临时停放",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                4490,
+                4475
+              ],
+              [
+                4490,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.2,
+            "actors": [
+              [
+                4490,
+                4100
+              ],
+              [
+                4490,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.5,
+            "actors": [
+              [
+                5200,
+                3800
+              ],
+              [
+                4490,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                4490,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "spatial_design_proxy_only"
+      },
+      {
+        "id": "svc02ApproachB",
+        "label": "02 B到设备前；A保持站位",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                4490,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.15,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                4490,
+                5200
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.5,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                4490,
+                4100
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.75,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                5200,
+                3800
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "spatial_design_proxy_only"
+      },
+      {
+        "id": "svc03Disconnect",
+        "label": "03 前侧断接界面研究；台未进入",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "connection_points_are_design_requirements_not_installed_fact"
+      },
+      {
+        "id": "svc04ClearA",
+        "label": "04 A先退东北侧；B不动",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.45,
+            "actors": [
+              [
+                5500,
+                2270
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "spatial_design_proxy_only"
+      },
+      {
+        "id": "svc05GetCart",
+        "label": "05 B绕台到南侧推行位",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5200,
+                3030
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.15,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5200,
+                4100
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.3,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5650,
+                4100
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.45,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5880,
+                4350
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.65,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5880,
+                5000
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 0.8,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5880,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5180,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "spatial_design_proxy_only"
+      },
+      {
+        "id": "svc06CartIn",
+        "label": "06 B推台进场；A在东北侧",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5180,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "spatial_design_proxy_only"
+      },
+      {
+        "id": "svc07OperatorEast",
+        "label": "07 A到台东侧；B在南侧",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2705
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 0
+          }
+        ],
+        "scope": "spatial_design_proxy_only"
+      },
+      {
+        "id": "svc08ExtractionProxy",
+        "label": "08 上机转接路径敏感性；承托链未证、不可执行",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2705
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 0
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2705
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 720
+          }
+        ],
+        "scope": "NOT_SERVICE_CLOSED_UNVERIFIED_SUPPORT_TRANSFER"
+      },
+      {
+        "id": "svc09ClearForOut",
+        "label": "09 假设载台后A退北；不代表承托方案通过",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2705
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 720
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 720
+          }
+        ],
+        "scope": "conditional_on_professional_support_transfer"
+      },
+      {
+        "id": "svc10CartOutStart",
+        "label": "10 台先南移300；A不跨台",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5170,
+                3405
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              2705
+            ],
+            "deviceShiftMm": 720
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5170,
+                3705
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              3005
+            ],
+            "deviceShiftMm": 720
+          }
+        ],
+        "scope": "conditional_on_professional_support_transfer"
+      },
+      {
+        "id": "svc11ACrossNorth",
+        "label": "11 台停；A经已空出的北侧去前导位",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5880,
+                2230
+              ],
+              [
+                5170,
+                3705
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              3005
+            ],
+            "deviceShiftMm": 720
+          },
+          {
+            "t": 0.4,
+            "actors": [
+              [
+                5500,
+                2270
+              ],
+              [
+                5170,
+                3705
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              3005
+            ],
+            "deviceShiftMm": 720
+          },
+          {
+            "t": 0.8,
+            "actors": [
+              [
+                5200,
+                2270
+              ],
+              [
+                5170,
+                3705
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              3005
+            ],
+            "deviceShiftMm": 720
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5170,
+                2305
+              ],
+              [
+                5170,
+                3705
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              3005
+            ],
+            "deviceShiftMm": 720
+          }
+        ],
+        "scope": "conditional_on_professional_support_transfer"
+      },
+      {
+        "id": "svc12CartOut",
+        "label": "12 A前导B后随，回南侧临时停放",
+        "keyframes": [
+          {
+            "t": 0,
+            "actors": [
+              [
+                5170,
+                2305
+              ],
+              [
+                5170,
+                3705
+              ]
+            ],
+            "cartCenterMm": [
+              5170,
+              3005
+            ],
+            "deviceShiftMm": 720
+          },
+          {
+            "t": 1,
+            "actors": [
+              [
+                5180,
+                4100
+              ],
+              [
+                5180,
+                5500
+              ]
+            ],
+            "cartCenterMm": [
+              5180,
+              4800
+            ],
+            "deviceShiftMm": 720
+          }
+        ],
+        "scope": "conditional_on_professional_support_transfer"
+      }
+    ],
+    "serviceControls": {
+      "disconnect": [
+        {
+          "actor": 0,
+          "targetMm": [
+            4745,
+            2430,
+            1150
+          ],
+          "shoulderHeightMm": 1400
+        },
+        {
+          "actor": 1,
+          "targetMm": [
+            4755,
+            2705,
+            1415
+          ],
+          "shoulderHeightMm": 1400
+        }
+      ],
+      "tableOperation": [
+        {
+          "actor": 0,
+          "targetMm": [
+            5500,
+            2705,
+            1035
+          ],
+          "shoulderHeightMm": 1400
+        },
+        {
+          "actor": 1,
+          "targetMm": [
+            5170,
+            3055,
+            1035
+          ],
+          "shoulderHeightMm": 1400
+        }
+      ],
+      "scope": "Control locations are explicit design interface requirements, not selected product controls, not grasp/stabilization of the appliance."
+    },
+    "serviceAcceptance": {
+      "oldStaffCentersWithdrawn": [
+        [
+          5550,
+          2320
+        ],
+        [
+          5550,
+          2970
+        ]
+      ],
+      "oldFullServiceClosureWithdrawn": true,
+      "requested": "Only staged600staff/table/local path geometry and explicit withdrawal of complete-service claim",
+      "completeServiceClosed": false,
+      "supportTransferVerified": false,
+      "extractionCanBeExecuted": false,
+      "requirements": [
+        "matching manufacturer disconnect/unstack instructions",
+        "named rated extraction/lift equipment plus continuous load/support drawing",
+        "actual handling forces and grip/stabilization positions",
+        "pipe/cord/stacking-kit release and stability",
+        "site headroom,floor loading,stairs transport and professional method"
+      ],
+      "scope": "No manual54.6kg lift or invented pulling bridge/hoist. svc08–12 remain conditional sensitivity views, not service instructions."
+    },
+    "pulloutStates": {
+      "lowerPulloutOpen": {
+        "drawer": "lower",
+        "direction": "open",
+        "actorStartMm": [
+          4950,
+          1600
+        ],
+        "actorEndMm": [
+          5030,
+          1570
+        ],
+        "shoulderHeightMm": 650,
+        "gripHeightMm": 395
+      },
+      "lowerPulloutClose": {
+        "drawer": "lower",
+        "direction": "close",
+        "actorStartMm": [
+          5030,
+          1570
+        ],
+        "actorEndMm": [
+          4950,
+          1600
+        ],
+        "shoulderHeightMm": 650,
+        "gripHeightMm": 395
+      },
+      "upperPulloutOpen": {
+        "drawer": "upper",
+        "direction": "open",
+        "actorStartMm": [
+          4950,
+          1600
+        ],
+        "actorEndMm": [
+          5030,
+          1570
+        ],
+        "shoulderHeightMm": 1500,
+        "gripHeightMm": 1745
+      },
+      "upperPulloutClose": {
+        "drawer": "upper",
+        "direction": "close",
+        "actorStartMm": [
+          5030,
+          1570
+        ],
+        "actorEndMm": [
+          4950,
+          1600
+        ],
+        "shoulderHeightMm": 1500,
+        "gripHeightMm": 1745
+      }
+    },
+    "pulloutGeometry": {
+      "closedRectMm": [
+        4145,
+        1288,
+        4425,
+        1482
+      ],
+      "travelMm": 280,
+      "lowerHeightWorldMm": [
+        35,
+        395
+      ],
+      "upperHeightWorldMm": [
+        1535,
+        1955
+      ],
+      "otherDrawerAlwaysClosed": true,
+      "bathDoorDegree": 0,
+      "cleaningDoorDegree": 90,
+      "planBodyDiameterMm": 600,
+      "handReachMm": 650,
+      "posturesAreDesignAssumptions": true
+    },
+    "withdrawnLegacyStateNames": [
+      "cleaningPullout",
+      "dryerExtract",
+      "closedMachineTransfer"
+    ],
+    "oldLimitedResultsPreserved": "Original13segments/1618samples and7bed/cabinet paths4159samples retained only under originalR03 contract and independent limited report; not rerun or enlarged by this fix."
+  }
+}

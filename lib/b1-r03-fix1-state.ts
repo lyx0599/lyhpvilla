@@ -1,0 +1,11 @@
+export type Fix1Frame={t:number;actors:number[][];cartCenterMm:number[];deviceShiftMm:number};
+export type Fix1Contract={fix1:{serviceStages:{id:string;label:string;keyframes:Fix1Frame[];scope:string}[];pulloutStates:Record<string,{drawer:string;direction:string;actorStartMm:number[];actorEndMm:number[];shoulderHeightMm:number;gripHeightMm:number}>;withdrawnLegacyStateNames:string[]}};
+const mix=(a:number[],b:number[],t:number)=>a.map((v,i)=>v+(b[i]-v)*t);
+export function evaluateFix1(C:Fix1Contract,name:string,t:number){
+ const s=C.fix1.serviceStages.find(x=>x.id===name);if(s){let k=Math.max(0,s.keyframes.findIndex((x,i)=>i<s.keyframes.length-1&&t<=s.keyframes[i+1].t));if(t===1)k=s.keyframes.length-2;const a=s.keyframes[k],b=s.keyframes[k+1],u=(t-a.t)/(b.t-a.t||1),actors=a.actors.map((p,i)=>({id:i?'SERVICE-B-600':'SERVICE-A-600',position:mix(p,b.actors[i],u),shoulderHeightMm:1400,posture:'standing600-design-proxy'})),cart=mix(a.cartCenterMm,b.cartCenterMm,u),shift=a.deviceShiftMm+(b.deviceShiftMm-a.deviceShiftMm)*u,carryOrigin=[5170,2705];
+  return {label:s.label,scope:s.scope,actors,actor:actors[0].position,cartCenter:cart,deviceShift:shift,deviceTranslation:[shift+(shift>=720?cart[0]-carryOrigin[0]:0),shift>=720?cart[1]-carryOrigin[1]:0],drawerShifts:[0,0],gripHeightMm:null,completeServiceClosed:false,status:'candidate-not-accepted'};
+ }
+ const p=C.fix1.pulloutStates[name];if(p){const f=p.direction==='close'?1-t:t;return{label:(p.drawer==='lower'?'下篮':'上抽')+(p.direction==='close'?'收回':'拉出')+'｜另一只关闭',scope:'single-drawer-posture-design-proxy',actors:[{id:p.drawer==='lower'?'LOWER-BODY-600':'UPPER-BODY-600',position:mix(p.actorStartMm,p.actorEndMm,t),shoulderHeightMm:p.shoulderHeightMm,posture:p.drawer==='lower'?'crouched600-design-proxy':'standing600-design-proxy'}],actor:mix(p.actorStartMm,p.actorEndMm,t),cartCenter:null,deviceShift:0,deviceTranslation:[0,0],drawerShifts:p.drawer==='lower'?[280*f,0]:[0,280*f],gripHeightMm:p.gripHeightMm,completeServiceClosed:false,status:'candidate-not-accepted'};}
+ if(C.fix1.withdrawnLegacyStateNames.includes(name))return{label:'旧混合／无人员检修态已撤回；请选Fix1独立状态',scope:'WITHDRAWN-LEGACY-STATE',actors:[],actor:null,cartCenter:null,deviceShift:0,deviceTranslation:[0,0],drawerShifts:[0,0],gripHeightMm:null,completeServiceClosed:false,status:'withdrawn-not-evidence'};
+ return null;
+}

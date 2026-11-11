@@ -1,0 +1,91 @@
+{
+  "phase": "PMO_ADOPTED_5900_DESIGN_RELEASE",
+  "modelSha256": "e4632447345f0cc9c1fb9b33d5984ffed0790cc8eb7bf65ee6ab4d1ec4776fdb",
+  "reviewedNativeRenderIdentitySha256": "2e5dfa9115924ad430d53deef49ab650a887c356887575473179094ff213bef4",
+  "queue": "3f74430988ba12da30fb6051",
+  "human5900NetCalibrationAndReleaseAuthorizationSha256": "d7e72ac8e33776ee8144f6d6ec9138092b200f5f4a3285ed045108e7d5c20127",
+  "independentReports": [
+    {
+      "report": "B2R30_实体35完成面与四门底缝独立有限关闭_20261111.txt",
+      "sha256": "4ca3051a30f18c1e790e1772c65fb40309621bb811ed8f12996699dac3ac238d"
+    },
+    {
+      "report": "2F_R20家具新增位置三宿主与16图纸草案分项条件通过_F06实源关闭_20261111.txt",
+      "sha256": "d08237f633226539877b89c0a90d2b583ab5efc9d1c8adb9acaea9f1eccc1155"
+    },
+    {
+      "report": "1F_R17整包比例实体与有限正常通行独立条件通过_人体代理边界及可合字段_20261111.txt",
+      "sha256": "016a8da4b2d94dfe4b7f87871f2e10dbc87338d57788726fee2158a85ba5b4ea"
+    },
+    {
+      "report": "R36正式整包_B1B2庭院绑定与新原生诊断独立有限接收_20261111.txt",
+      "sha256": "45962351a91dec3fe4caed2f0e8ba9232ff391971e3d658583debb7d047e3f9a"
+    },
+    {
+      "report": "B1R19_床闭870展430两端高度整改独立关闭_20261111.txt",
+      "sha256": "64fb4ef174c38d30beac07258577aef059bd798a312efcc3257b47f10566db04"
+    },
+    {
+      "report": "5900楼梯俯剖同源原生关系独立有限接收_20261111.txt",
+      "sha256": "4a62de28eb91ae0b054814076ec166ae8aa6ba47f66d399d78b620ffd8263f4a"
+    },
+    {
+      "report": "R21正式分项_B1逻辑灯控语义依赖与庭院封包接续独立有限接收_20261111.txt",
+      "sha256": "1a1559908cf8ad22897a37ddc8d4c355d230ca1db2aed0fa2b562706be468914"
+    },
+    {
+      "report": "R36_B1整层同版原生身份与画幅独立有限接收_20261111.txt",
+      "sha256": "f83c714af513e72ec1d430b54fec4254bd482155a3dddb7bcf01185f77148282"
+    },
+    {
+      "report": "1F_R26草案依赖21项独立条件通过_12自动跟随与9固定待协调_20261111.txt",
+      "sha256": "3b80bc49efe2a955db5317a95997340b4e858c5a350d595d058ff6bcf1c4edbb"
+    },
+    {
+      "report": "B2R31_新柜归属与历史机电点分级独立有限接收_20261111.txt",
+      "sha256": "c6dc1e2094777c6404de28d006154c972476a5fa17a704db3d411f1f09999e67"
+    },
+    {
+      "report": "R36_B2四门0至72度与框脚35原生增量独立有限接收_20261111.txt",
+      "sha256": "8c8dc81bfb2db7c7eb16e69348bdc7cd6a9c1d702a49379a37fb603569436072"
+    },
+    {
+      "report": "2F_R23适配门叶框墙连续几何分项条件通过_F07局部关闭_20261111.txt",
+      "sha256": "388d663ca16da95c76e2d935ec9664861d782bd79ecbb9ab48c4bbc28af49888"
+    },
+    {
+      "report": "2F_R25三门必要正常身体与地板平面支撑独立条件通过_20261111.txt",
+      "sha256": "de3120a4a7027d7d94492a18ed07a5d294195c432868c70e082a014cbd4ef429"
+    },
+    {
+      "report": "B2R4_主要使用研究证据有限接收与实体支承缺口_20261111.txt",
+      "sha256": "e2068dfd9687fb9ae90ed3f36bfdd0882c5ca79af996cf41537fc3ef2882ed23"
+    }
+  ],
+  "pmoR36ActualNativeAndAxesReviewSha256": "8d8cf5405f2c8e29f4f837119afe36a583ed6ce4962a6b0648d122f6b51d42cb",
+  "openItems": [
+    "Model source-photo calibration anchored to user5900 net; not field measurement, structural expansion or construction/product approval.",
+    "1F eight target600 upright finite routes and chair movements are limited; R1 pull280 only; seated articulated bodies mostly failed original finite domain; party10+2 and comfort not accepted.",
+    "2F three door normal-body cycles and installed frame/leaf/bench/cabinets are finite ideal geometry; floorXY support is not actual completed threshold or installation tolerance. Two fixed hand-adjusted drawing points remain pending.",
+    "B1 bed870/430 and phased cabinets are reviewed design endpoints/operations; appliance support transfer/OEM/load/field slab/rail detailing remain unconfirmed.",
+    "B2 four chairs only; original2086 retained poses are finite study, critical nominal1.31/1.69mm gaps not manufacturing/site allowances. OEM fridge/ventilation, trainer loads, threshold/lightwell delivery and low1250 understair door/access remain unconfirmed.",
+    "Five B1/YARD skylight references are unadopted nonphysical outlines: offsets north690/south730 and actual upperfloor projection blockage remain; no new shafts/slab holes/daylight approval.",
+    "35 fixed/unknown owner-linked MEP drafts keep historical coordinates/cache and requirement-only/todo semantics; B1 logical lighting/YARD follow rules are model design only; all3 physical stair light systems remain explicitly pending-review despite current geometry fingerprints.",
+    "Virtual inspection cameras/HV fitting do not certify physically accessible observation positions or every object unoccluded. Historical E2/privacy/six-point/533/775 calculations are preserved only at their original version scope.",
+    "Remote CI/Pages and public native verification are separate post-release steps; no local test result is remote success."
+  ],
+  "scope": "User-confirmed5900 net-span source-photo calibration across four floors, original-owner furniture and limited operations/dependencies, independently conditionally accepted in one final combination review and adopted by PMO. Inferred design model; not field construction, unrestricted whole-house use, product or MEP certification.",
+  "currentRenderIdentitySha256": "cf181b87f12c00375c8ab6c8e98c143a91ccbe1f22a121605d721a8521d44b5d",
+  "finalCombinationReport": {
+    "report": "四层5900_R36整包及R38砖缝增量独立条件通过_20261111.txt",
+    "sha256": "d71e36d488577c1287a62af0066448c0705395795c1edf142e24d658da7691ac"
+  },
+  "pmoFinalAdoptionSha256": "729bb71f60b73d337447c6d648c7078dc3c1e912cd9fffa9d56031b0338bb175",
+  "finalSourceDelta": {
+    "reviewedR38RenderIdentitySha256": "e188557b3a2f40fa8a22ce6f8c346ac2a5467712de65d2d1f0fdb96b8a030f09",
+    "r39": "Evidence export only for actual triangles and position/index of exactly two B2 lightwell material Shapes; both actual598-mesh states world geometry equalR38. Explicit historicalB1 audit-source before/after rebase guard preserves original two other boundary files.",
+    "r38": "31 raised paver joint boxes at68–74mm replaced by2 materialShape surfaces on exact original44mm polygons, with unchanged other533 physical meshes and no physical-exclusion trick.",
+    "r37": "Exact current migration pass-through/reference brand parsing;13 historical fixture suites retain old assertions while newcurrent5900 checks run with all41 scripts. UI factual labels and B2state change retains actual selected camera."
+  },
+  "publicationStatus": "Approved design source; actual deployment identity and CI status are generated/verified separately. This record does not itself assert remote success."
+}

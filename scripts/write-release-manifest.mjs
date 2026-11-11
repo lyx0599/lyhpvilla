@@ -105,14 +105,42 @@ if(model.defaultWorkspaceRevision.endsWith('r15-r16-published-r01')){
  ];
 }
 const b1RenderRecord=path.join(root,'public/render-releases/2026-11-08-b1-r03.json');
+const calibrationRecord=path.join(root,'public/model-releases/2026-11-11-four-floor-candidate.json');
+const calibrationBinding=fs.existsSync(calibrationRecord)?JSON.parse(fs.readFileSync(calibrationRecord,'utf8')):null;
+if(calibrationBinding){
+ if(!model.defaultWorkspaceRevision.includes('four-floor')||calibrationBinding.modelSha256!==manifest.modelSha256)throw new Error('Four-floor candidate model identity mismatch');
+ for(const file of calibrationBinding.sourceFiles){const actual=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file.path))).digest('hex');if(actual!==file.sha256)throw new Error('Four-floor candidate code identity mismatch: '+file.path);}
+}
 if(fs.existsSync(b1RenderRecord)){
  const binding=JSON.parse(fs.readFileSync(b1RenderRecord,'utf8'));
- if(binding.sourceModelSha256!==manifest.modelSha256)throw new Error('B1 renderer is not bound to the declared unchanged model');
- for(const file of binding.files){const actual=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file.path))).digest('hex');if(actual!==file.afterSha256)throw new Error('B1 renderer file hash mismatch: '+file.path);}
+ if(binding.sourceModelSha256!==manifest.modelSha256&&!calibrationBinding)throw new Error('B1 renderer is not bound to the declared unchanged model');
+ const integrationPath=path.join(root,'public/model-releases/2026-11-11-b1-renderer-integration.json');
+ const integration=calibrationBinding&&fs.existsSync(integrationPath)?JSON.parse(fs.readFileSync(integrationPath,'utf8')):null;
+ if(integration&&integration.modelSha256!==manifest.modelSha256)throw new Error('Current B1 runtime integration model binding mismatch');
+ for(const file of binding.files){
+  const actual=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file.path))).digest('hex');
+  if(actual===file.afterSha256)continue;
+  const changed=integration?.changedFiles?.find(entry=>entry.path===file.path);
+  if(!['components/floor-3d-view.tsx','components/design-evidence-audit.tsx'].includes(file.path)||!changed||changed.beforeSha256!==file.afterSha256||changed.afterSha256!==actual)throw new Error('B1 renderer file hash mismatch without explicit current rebase: '+file.path);
+ }
+ if(integration)manifest.currentB1RuntimeIntegration={...integration,record:'model-releases/2026-11-11-b1-renderer-integration.json'};
  manifest.renderRevision=binding.revision;manifest.renderIdentitySha256=binding.renderIdentitySha256;manifest.b1BoundaryIncrement={phase:binding.phase,sourceModelJSONUnchanged:true,sourcePublicCommit:binding.sourcePublicCommit,reviewedIntegrationCommit:binding.reviewedIntegrationCommit,sourceReportSha256:binding.independentSourceReportSha256,integrationBindingReportSha256:binding.independentIntegrationBindingReportSha256,localMainEntryReportSha256:binding.independentLocalMainEntryReportSha256,scope:binding.pmoAdoptedScope};
  manifest.scope=manifest.scope.replace('All unrelated model fields and geometry are unchanged.','The prior R15/R16 model JSON projection remains unchanged; the separately identified B1 renderer increment below changes native boundary meshes.');
  manifest.scope+=' B1 render-only boundary increment: source220 wall caps/shadows/baseboards flush to source axes; original-section continuous rail miters and5duplicate endpoint posts removed. Original arc/2250/Y7800, all source model data and existing materials/lighting retained. This is separate from the unadopted basement whole-plan.';
  manifest.openItems.push(...binding.retainedLimits);
+}
+if(calibrationBinding){
+ manifest.integrationStatus='UNREVIEWED_LOCAL_FOUR_FLOOR_ARCHITECTURE_CANDIDATE_NOT_PUBLIC_RELEASE';
+ manifest.scope=calibrationBinding.scope;
+ manifest.renderRevision=calibrationBinding.renderRevision;manifest.renderIdentitySha256=calibrationBinding.renderIdentitySha256;
+ manifest.candidateBindingRecord='model-releases/2026-11-11-four-floor-candidate.json';manifest.basePublicCommit=calibrationBinding.basePublicCommit;
+ manifest.b1BoundaryIncrement={...manifest.b1BoundaryIncrement,basis:'Historical renderer-source review ONLY; not current changed-world spatial acceptance',currentGeometryReview:'pending'};
+ manifest.openItems=calibrationBinding.openItems;
+ if(calibrationBinding.phase==='PMO_ADOPTED_5900_DESIGN_RELEASE'){
+  manifest.integrationStatus='reviewed-and-pmo-adopted-5900-inferred-design-release';
+  manifest.reviewScopesRecord=calibrationBinding.reviewScopesRecord;manifest.finalCombinationReport=calibrationBinding.finalCombinationReport;manifest.pmoFinalAdoptionSha256=calibrationBinding.pmoFinalAdoptionSha256;
+  manifest.b1BoundaryIncrement={...manifest.b1BoundaryIncrement,sourceModelJSONUnchanged:false,basis:'Historical B1 renderer record is provenance; current changed-world limited design acceptance is bound to the5900 final combination and originalsecond-line reports.',currentGeometryReview:'independently-conditionally-accepted-with-retained-design-limits'};
+ }
 }
 fs.writeFileSync(path.join(root,'public/release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(`Release identity: ${commit} / ${manifest.modelSha256}`);

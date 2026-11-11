@@ -896,7 +896,8 @@ export function applyWorkspaceMigrations(
   if (migrateYardCirculationLayout(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateFurnitureVariants(workspace)) sources.furniture = "migration";
   if (canMigrate && migrateLightingDrawingItemsV1(workspace)) sources.drawingItems = "migration";
-  if (migrateMepSchemePositioning(workspace)) sources.drawingItems = "migration";
+  // Current reviewed requirements keep their explicit fields and absent placement rules.
+  if (canMigrate && migrateMepSchemePositioning(workspace)) sources.drawingItems = "migration";
   if (canMigrate && migrateLightingSemanticCorrections(workspace)) {
     sources.drawingItems = "migration";
     sources.lightingDesign = "migration";

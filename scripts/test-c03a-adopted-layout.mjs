@@ -1,9 +1,11 @@
+import { readHistoricalWorkspace } from "./read-historical-workspace.mjs";
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Matrix4,Vector3} from 'three';
 import {c03aDesignReferences,getC03ADesignTransform,hasC03ADesignContract} from '../lib/c03a-design-contract.ts';
 import {applyWorkspaceMigrations} from '../lib/workspace-migrations.ts';
-const model=JSON.parse(await readFile(new URL('../data/default-workspace.json',import.meta.url),'utf8'));
+// Historical377 design regression, current5900 is covered separately.
+const model=readHistoricalWorkspace();
 const near=(a,b,t=1e-8)=>assert.ok(Math.abs(a-b)<t,`${a} != ${b}`);
 function world(item,sourcePoint){
  const height=item.dimensions.height/100,t=getC03ADesignTransform(item,height),ref=t.reference;

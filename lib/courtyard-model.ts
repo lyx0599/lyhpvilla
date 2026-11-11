@@ -60,7 +60,9 @@ export function createUnifiedCourtyardModel({
     ...oneFloorStructure,
     outdoors: uniqueById(yardOutdoors),
     fences: uniqueById(yardFences),
-    outdoorSurfaces: uniqueById(yardSurfaces)
+    outdoorSurfaces: uniqueById(yardSurfaces),
+    outdoorZones: uniqueById([...oneFloorStructure.outdoorZones,...yardStructure.outdoorZones]),
+    skylights: uniqueById([...oneFloorStructure.skylights,...yardStructure.skylights])
   };
 
   return {

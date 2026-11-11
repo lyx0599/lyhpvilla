@@ -1,0 +1,19 @@
+{
+  "revision": "B2-FINISHED-FLOOR-35-PROPOSAL-20261111-R01",
+  "finishedSurfaceMm": 35,
+  "scope": "Explicit interior design finish top only. Reuse exact current room floor ShapeGeometry and stair holes. No lightwell/yard surface, new slab, hole fill, structural thickness or storey-height change.",
+  "priorRoomDisplaySurfaceMm": [
+    18,
+    20,
+    22,
+    24,
+    26
+  ],
+  "priorDecorativeSeamBoxesMm": [
+    55,
+    59
+  ],
+  "seamReplacement": "Same clipped room geometry, coplanar material texture at35; replaces floating volumetric seam decorations, without relabeling them nonphysical.",
+  "notSiteMeasuredOrStructuralSlabDesign": true,
+  "physicalFootSupportVerification": "Independent R30 limited floor/support closure4ca3051a and R36 fixed-jamb/0–72deg closure8c8dc81b; actual ordinary geometry continuation. Not field installation/threshold or complete bodily use acceptance."
+}

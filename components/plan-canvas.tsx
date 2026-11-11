@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getModelDisplayBounds, getDisplayPercentBounds } from '@/lib/model-display-bounds';
 import type { MouseEvent, PointerEvent, TouchEvent, WheelEvent } from "react";
 import {
   emptyInteractionState,
@@ -828,8 +829,9 @@ export function PlanCanvas({
   }, [houseStructure.outdoors, yardFocus, yardImmersiveMode, yardToken]);
   const planBounds = useMemo(() => {
     if (yardImmersiveMode && focusedYardOutdoor) return getPointsBounds(focusedYardOutdoor.polygon, 280);
-    return getPlanBounds(floor.id);
-  }, [floor.id, focusedYardOutdoor, yardImmersiveMode]);
+    return getModelDisplayBounds(houseStructure,getPlanBounds(floor.id));
+  }, [floor.id, focusedYardOutdoor, yardImmersiveMode,houseStructure]);
+  const frameInteractionBounds=useMemo(()=>getDisplayPercentBounds(houseStructure,getModelDisplayBounds(houseStructure,getPlanBounds(floor.id))),[houseStructure,floor.id]);
   const debugRooms = useMemo(() => {
     if (!houseStructure.rooms.length) return legacyRooms;
     return houseStructure.rooms.flatMap((room) => {
@@ -1216,12 +1218,10 @@ export function PlanCanvas({
   function getFurniturePosition(event: PointerEvent<Element>) {
     const point = getMmPosition(event);
     if (!point) return null;
-    const usesSiteBounds = floor.id === "1F" || floor.id === "YARD";
-    const minY = usesSiteBounds ? (SITE_PLAN_MIN_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 0;
-    const maxY = usesSiteBounds ? (SITE_PLAN_MAX_Y_MM / STRUCTURE_HEIGHT_MM) * 100 : 100;
+    const cs=houseStructure.coordinateSystem;
     return {
-      x: Math.min(100, Math.max(0, (point.x / STRUCTURE_WIDTH_MM) * 100)),
-      y: Math.min(maxY, Math.max(minY, (point.y / STRUCTURE_HEIGHT_MM) * 100))
+      x: Math.min(frameInteractionBounds.maxX, Math.max(frameInteractionBounds.minX, ((point.x-cs.origin.x) / cs.width) * 100)),
+      y: Math.min(frameInteractionBounds.maxY, Math.max(frameInteractionBounds.minY, ((point.y-cs.origin.y) / cs.height) * 100))
     };
   }
 
@@ -1253,12 +1253,12 @@ export function PlanCanvas({
       ...current,
       position: {
         ...current.position,
-        x: Math.min(100, Math.max(0, current.position.x + delta.x)),
-        y: Math.min(100, Math.max(0, current.position.y + delta.y))
+        x: Math.min(frameInteractionBounds.maxX, Math.max(frameInteractionBounds.minX, current.position.x + delta.x)),
+        y: Math.min(frameInteractionBounds.maxY, Math.max(frameInteractionBounds.minY, current.position.y + delta.y))
       }
     };
     onFurnitureChange(furniture.map((item) => item.id === furnitureId ? next : item));
-    onFurnitureDragEnd(next, { x: delta.x / 100 * houseStructure.coordinateSystem.width, y: delta.y / 100 * houseStructure.coordinateSystem.height });
+    onFurnitureDragEnd(next, { x: (next.position.x-current.position.x) / 100 * houseStructure.coordinateSystem.width, y: (next.position.y-current.position.y) / 100 * houseStructure.coordinateSystem.height });
   }
 
   function rotateFurnitureObject(furnitureId: string, delta: number) {
@@ -6737,10 +6737,7 @@ export function PlanCanvas({
                       const position = getMmPosition(event);
                       if (!position) return;
                       const delta = { x: position.x - drag.lastPosition.x, y: position.y - drag.lastPosition.y };
-                      const usesSiteBounds = floor.id === "1F" || floor.id === "YARD";
-                      const minY = usesSiteBounds ? SITE_PLAN_MIN_Y_MM / houseStructure.coordinateSystem.height * 100 : 0;
-                      const maxY = usesSiteBounds ? SITE_PLAN_MAX_Y_MM / houseStructure.coordinateSystem.height * 100 : 100;
-                      const latestFurniture = applyPlanDelta(drag.latestFurniture, delta, houseStructure.coordinateSystem, { minX: 0, maxX: 100, minY, maxY });
+                      const latestFurniture = applyPlanDelta(drag.latestFurniture, delta, houseStructure.coordinateSystem, frameInteractionBounds);
                       drag.latestFurniture = latestFurniture;
                       drag.totalDelta = { x: drag.totalDelta.x + delta.x, y: drag.totalDelta.y + delta.y };
                       onFurnitureChange(furniture.map((candidate) => candidate.id === item.id ? latestFurniture : candidate));

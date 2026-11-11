@@ -1,7 +1,10 @@
+import { readHistoricalWorkspace } from "./read-historical-workspace.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
+// Historical release scope: old adopted coordinates/roles are immutable fixtures.
+// Current model is checked by test-four-floor-calibration.mjs and native review.
+const workspace = readHistoricalWorkspace();
 const wetTypes = new Set(["vanity", "toilet", "shower", "bathtub"]);
 const storageTypes = new Set(["wardrobe", "cabinet", "bookshelf", "snackCabinet"]);
 const wetItems = workspace.furniture.filter((item) => wetTypes.has(item.moduleType ?? item.type));

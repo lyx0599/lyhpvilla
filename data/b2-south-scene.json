@@ -1,0 +1,869 @@
+{
+  "revision": "B2-TRUE-SIZE-R06-BOUND-20261111-r4",
+  "scope": "CURRENT_SOURCE_BOUND_B2_CONDITIONAL_DESIGN_RESEARCH_NOT_CONSTRUCTION_OR_MERGE",
+  "furnitureOverrides": {
+    "furn-b2-study-slab-table-001": {
+      "id": "furn-b2-study-slab-table-001",
+      "code": "DT-B2-01",
+      "name": "约2m独立木桌·200高差错接槽研究",
+      "type": "table",
+      "moduleCategory": "decor",
+      "moduleType": "table",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-005",
+      "dimensions": {
+        "width": 200.0,
+        "depth": 90,
+        "height": 75.0,
+        "unit": "cm"
+      },
+      "material": "整块实木大板桌面 + 黑钛金属桌脚 + 四把暖胡桃木靠背椅",
+      "note": "仅四人续作：约2000×900桌，南岛北桌保留；桌中心北移200，非继承旧六席1100试验。完整源支脚随桌同移，稳定仍需深化。 R05绑定家具重排研究；完整原研究模块尺寸保留；仅新建筑落位，旧通过不继承。 非完整操作/施工通过。",
+      "constructionNote": "仅四人独立送审候选；四把完整源椅保留，偶六和备用椅依后续真人确认取消。非采购、结构承重或施工批准。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 30.416666666666668,
+        "y": 84.44444444444444,
+        "rotation": 270
+      },
+      "color": "#b9824d",
+      "render3d": {
+        "assetType": "slabTable",
+        "variantId": "b2-west-layout-r2",
+        "seatCount": 4,
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "darkWalnut",
+        "secondaryMaterial": "darkWalnut",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "styleSource": "manual",
+        "styleLocked": true,
+        "variationSeed": 839482481,
+        "accentMaterialResourceId": "showroomDarkBronze"
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "R1独立候选：原定位不继承，接口随新位置待重定；未改源MEP图元或新增未选设备。"
+      }
+    },
+    "furn-b2-study-handwash-001": {
+      "id": "furn-b2-study-handwash-001",
+      "code": "HW-B2-01",
+      "name": "西侧1270岛台｜抽屉饮品冷藏参考",
+      "type": "vanity",
+      "moduleCategory": "bath",
+      "moduleType": "vanity",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-005",
+      "dimensions": {
+        "width": 127,
+        "depth": 65.0,
+        "height": 90.0,
+        "unit": "cm"
+      },
+      "material": "圆角悬浮胡桃木无拉手柜体 + 30mm奶油洞石薄台面与低挡水 + 台下浅盆 + 古铜龙头 + 单层烟玻置物板",
+      "note": "1300×650×900；干区200段X2160..2360下方0..800研究全通空，底座/南北裙板/端撑退到X2160前，保留上部连续顶板。悬挑/防水/承重节点待选品；不缩小或隐藏人体。 R05绑定家具重排研究；完整原研究模块尺寸保留；仅新建筑落位，旧通过不继承。 非完整操作/施工通过。 明确1250→1270仅向北加20，为570安装宽留实际柜内余量；厂家DM50CD参考非采购批准，旧500×760平开研究门撤回，不称原门缩小后通过。",
+      "constructionNote": "已采纳方案设计；尺寸为待核模型值，非实物现状、现场复尺或接口实施批准。A水吧在东墙下段，1650×550保原外廓，正面朝西；盆位/冷热排水接口未落实。",
+      "serviceRequirements": {
+        "water": true,
+        "drainage": true,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 23.958333333333332,
+        "y": 93.61111111111111,
+        "rotation": 90
+      },
+      "color": "#d8d1c6",
+      "render3d": {
+        "assetType": "bathroomVanity",
+        "variantId": "b2-west-layout-r2",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "darkWalnut",
+        "secondaryMaterial": "travertine",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "styleSource": "manual",
+        "styleLocked": true,
+        "wetAreaVisual": {
+          "fixtureKind": "vanity",
+          "basinCount": 1,
+          "basinShape": "rectangular",
+          "floating": true,
+          "mirrorStyle": "cabinet",
+          "frameFinish": "bronze",
+          "mirrorHeightMm": 580,
+          "mirrorCabinetDepthMm": 110
+        },
+        "variationSeed": 1539144998,
+        "secondaryMaterialResourceId": "showroomWarmVeinedStone",
+        "cabinetMaterialOverrides": {
+          "door": "darkWalnut",
+          "carcass": "darkWalnut",
+          "countertop": "travertine",
+          "glass": "smokedGlass",
+          "hardware": "brushedBronze"
+        }
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "manual-input",
+        "toleranceMm": 50,
+        "sourceNote": "B2 第二轮功能模型：外廓沿用现有方案估算；内部模块为功能预留，不替代现场复尺。",
+        "notes": "建筑边界、柱位、大板桌和湿吧外廓本轮未修改。"
+      }
+    },
+    "furn-b2-sports-camping-storage-candidate-20261030": {
+      "id": "furn-b2-sports-camping-storage-candidate-20261030",
+      "code": "FURN_B2_SPORTS_CAMPING_STORAGE_CANDIDATE_20261030",
+      "name": "东墙2400运动露营柜｜双组外滑＋550深头盔大篮",
+      "type": "custom",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-003",
+      "position": {
+        "x": 81.66666666666667,
+        "y": 74.44444444444444,
+        "rotation": 270
+      },
+      "dimensions": {
+        "width": 240.0,
+        "depth": 55.0,
+        "height": 220.0,
+        "unit": "cm"
+      },
+      "material": "研究外廓，非产品规格",
+      "note": "独立布局候选；图北上/西侧社交是假设，非用户坐标确认。非产品/人体舒适/热态/施工批准。 R05绑定家具重排研究；完整原研究模块尺寸保留；仅新建筑落位，旧通过不继承。 非完整操作/施工通过。 R4同功能替代旧南墙运动挂板，保留头盔/护具/大篮功能；球拍工具挂件及实际库存容量需深化，不宣称容量已批准。",
+      "color": "#b7b29a",
+      "render3d": {
+        "assetType": "generic",
+        "detailLevel": "presentation",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "variantId": "b2-west-layout-r2",
+        "variationSeed": 1342380414
+      },
+      "constructionNote": "已采纳方案设计；尺寸为待核模型值，非实物现状、现场复尺或接口实施批准。A运动露营柜在东墙上段，1200×500保原外廓；可调箱架挂杆不减，不默认固定格。柜门/挂件未过。",
+      "sourceObjectIds": [
+        "furn-b2-sports-camping-storage-candidate-20261030",
+        "furn-b2-activity-outdoor-pegboard-001"
+      ]
+    },
+    "furn-b2-study-wine-cabinet-001": {
+      "id": "furn-b2-study-wine-cabinet-001",
+      "code": "WC-B2-01",
+      "name": "西北酒杯+双面展示组合·分区保功能",
+      "type": "cabinet",
+      "moduleCategory": "storage",
+      "moduleType": "cabinet",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-005",
+      "dimensions": {
+        "width": 80.0,
+        "depth": 60.0,
+        "height": 240.0,
+        "unit": "cm"
+      },
+      "material": "600x600mm墙角内凹深胡桃木底座 + 90°连续凹弧烟灰玻璃 + 香槟古铜径向细框 + 三层凹弧暖光展示层",
+      "note": "1000×650×2400共享外柜；中段71043独立展位，酒杯上下分区；分区容量为设计研究，非全物品盘点。原城堡ID成为柜中展示件，不另渲染重叠外柜。 R05绑定家具重排研究；完整原研究模块尺寸保留；仅新建筑落位，旧通过不继承。 非完整操作/施工通过。 R4取消与城堡原底座重叠的重复1135中层板；保留独立25厚平台，顶1135承托完整580高城堡，非缩城堡或悬空。",
+      "constructionNote": "R7已采纳北墙TV设计：保600×600×2400常温酒水杯具柜，移活动区南侧朝北；不整合缩水、不新增酒冰箱。 已纳入独立合模候选；非采购或施工批准。 安装、完成面、固定、可开门/服务与接口重新复核。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 11.583333333333334,
+        "y": 77.22222222222223,
+        "rotation": 270
+      },
+      "color": "#6b4935",
+      "render3d": {
+        "assetType": "cabinet",
+        "variantId": "b2-west-layout-r2",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "darkWalnut",
+        "secondaryMaterial": "smokedGlass",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "styleSource": "manual",
+        "styleLocked": true,
+        "variationSeed": 2379525704,
+        "cabinetMaterialOverrides": {
+          "door": "smokedGlass",
+          "carcass": "darkWalnut",
+          "countertop": "darkWalnut",
+          "glass": "smokedGlass",
+          "hardware": "brushedBronze"
+        }
+      },
+      "mepMeta": {
+        "needsSocket": true,
+        "socketCount": 1,
+        "socketHeight": 300,
+        "needsSwitch": true,
+        "switchControl": [
+          "模块照明"
+        ],
+        "needsLighting": true,
+        "lightingType": "decorative",
+        "lightColorTemperature": "3000K",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": true,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "R1独立候选：原定位不继承，接口随新位置待重定；未改源MEP图元或新增未选设备。"
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "manual-input",
+        "toleranceMm": 50,
+        "sourceNote": "B2 第二轮功能模型：外廓沿用现有方案估算；内部模块为功能预留，不替代现场复尺。",
+        "notes": "建筑边界、柱位、大板桌和湿吧外廓本轮未修改。"
+      }
+    },
+    "furn-b2-study-souvenir-cabinet-001": {
+      "id": "furn-b2-study-souvenir-cabinet-001",
+      "code": "SC-B2-01",
+      "name": "组合柜内71043展位·690×430×580未缩放",
+      "type": "cabinet",
+      "moduleCategory": "storage",
+      "moduleType": "bookshelf",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-003",
+      "dimensions": {
+        "width": 69.0,
+        "depth": 43.0,
+        "height": 58.0,
+        "unit": "cm"
+      },
+      "material": "通透展示研究外廓；generic预览不等于已实现两面玻璃工艺。",
+      "note": "独立布局候选；图北上/西侧社交是假设，非用户坐标确认。非产品/人体舒适/热态/施工批准。 R05绑定家具重排研究；完整原研究模块尺寸保留；仅新建筑落位，旧通过不继承。 非完整操作/施工通过。",
+      "constructionNote": "已采纳方案设计；尺寸为待核模型值，非实物现状、现场复尺或接口实施批准。1100×750独立防尘城堡柜靠台阶墙边设计，南/东两面可看；不删功能，不移柱，不假定套装/门扇和固定。",
+      "position": {
+        "x": 11.583333333333334,
+        "y": 77.22222222222223,
+        "rotation": 270
+      },
+      "color": "#dbeafe",
+      "render3d": {
+        "assetType": "generic",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "detailLevel": "presentation",
+        "primaryMaterial": "clearGlass",
+        "variantId": "b2-west-layout-r2",
+        "variationSeed": 2245613984,
+        "elevationMm": 1100
+      },
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "manual-input",
+        "toleranceMm": 50,
+        "sourceNote": "B2 第二轮功能模型：外廓沿用现有方案估算；内部模块为功能预留，不替代现场复尺。",
+        "notes": "建筑边界、柱位、大板桌和湿吧外廓本轮未修改。"
+      },
+      "displayContainerId": "furn-b2-study-wine-cabinet-001"
+    },
+    "furn-b2-bike-trainer-candidate-20261030": {
+      "id": "furn-b2-bike-trainer-candidate-20261030",
+      "code": "FURN_B2_BIKE_TRAINER_CANDIDATE_20261030",
+      "name": "右侧原整车1610实际外廓＋未选型轮胎驱动台接口",
+      "type": "custom",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-003",
+      "position": {
+        "x": 67.08333333333333,
+        "y": 60.0,
+        "rotation": 90
+      },
+      "dimensions": {
+        "width": 161,
+        "depth": 80,
+        "height": 132,
+        "unit": "cm"
+      },
+      "material": "研究外廓，非产品规格",
+      "note": "原1500×800骑行U外廓向西250mm研究，不缩自行车或训练台；U/S拆装与操作者/旋转/线缆仍未过。 R05绑定家具重排研究；尺寸保持；电视改东墙避北井门，炉型/热距及骑行实际接口仍待核。 非完整操作/施工通过。 原生整车未缩，整体抬60，前轮支撑75；旧轴立柱错误代理撤回，侧支撑/滚筒仅设备接口设计，不冒已选设备/承重通过。",
+      "color": "#b7b29a",
+      "render3d": {
+        "assetType": "generic",
+        "detailLevel": "draft",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "variantId": "b2-west-layout-r2",
+        "variationSeed": 1889861970
+      },
+      "constructionNote": "已采纳方案设计；尺寸为待核模型值，非实物现状、现场复尺或接口实施批准。原1500×800骑行U外廓向西250mm研究，不缩自行车或训练台；U/S拆装与操作者/旋转/线缆仍未过。"
+    },
+    "furn-b2-under-stair-shelf-001": {
+      "id": "furn-b2-under-stair-shelf-001",
+      "code": "SH-B2-ST-01",
+      "name": "新设计CAD储架1100｜700×300全尺寸",
+      "type": "bookshelf",
+      "catalogId": "storage-bookshelf",
+      "moduleCategory": "storage",
+      "moduleType": "bookshelf",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-004",
+      "dimensions": {
+        "width": 70,
+        "depth": 30,
+        "height": 110,
+        "unit": "cm"
+      },
+      "material": "可调节暖木层板 + 黑色金属立柱",
+      "note": "沿西墙设置高位主货架，收纳箱包、工具与清洁用品；与另外两组矮架组成密集迷你仓库。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。 旧程序原生代理实测780×387，本次依PMO授权明确重建700×300新设计，不称原物未缩；容量/实物盘点未批准。",
+      "constructionNote": "沿西墙设置高位主货架，收纳箱包、工具与清洁用品；与另外两组矮架组成密集迷你仓库。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 12.083333333333334,
+        "y": 99.0,
+        "rotation": 180
+      },
+      "color": "#cfc4b5",
+      "render3d": {
+        "assetType": "bookshelf",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmWhiteMineral",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "b2-west-layout-r2",
+        "variationSeed": 3241986983,
+        "styleSource": "manual",
+        "elevationMm": 20,
+        "styleLocked": true,
+        "primaryMaterialResourceId": "showroomWarmOakVertical",
+        "secondaryMaterialResourceId": "showroomLimePlaster",
+        "accentMaterialResourceId": "showroomDarkBronze"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "沿西墙设置高位主货架，收纳箱包、工具与清洁用品；与另外两组矮架组成密集迷你仓库。；B2 lighting-cabinet contract v1 绑定对象：L-B2-CAB-STORAGE-001、MEP-B2-CAB-STORAGE-POWER-001、MEP-B2-CAB-STORAGE-INSPECTION-001。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "wallSecured",
+        "reserveSize": "70x30x110cm",
+        "wallDependency": "绑定 W-B2-008，安装前按墙面完成面复尺并复核收口。",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "按楼梯斜底逐格复尺，最高点不与梯段结构冲突",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "沿西墙设置高位主货架，收纳箱包、工具与清洁用品；与另外两组矮架组成密集迷你仓库。"
+      },
+      "hostWallId": "W-B2-008",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "manual-input",
+        "sourceNote": "用户自然语言设计意图",
+        "toleranceMm": 50
+      },
+      "cabinetDesign": {
+        "lightingCabinetContract": {
+          "version": "b2-lighting-cabinet-contract-v1",
+          "userGroup": "柜体/镜前",
+          "fixtureIds": [
+            "L-B2-CAB-STORAGE-001"
+          ],
+          "powerIds": [
+            "MEP-B2-CAB-STORAGE-POWER-001"
+          ],
+          "waterSupplyIds": [],
+          "drainageIds": [],
+          "inspectionIds": [
+            "MEP-B2-CAB-STORAGE-INSPECTION-001"
+          ],
+          "notes": "储藏柜 A/B/C 货架连续取物灯带与楼梯下斜底、检修和防潮条件绑定。"
+        }
+      }
+    },
+    "furn-b2-under-stair-shelf-002": {
+      "id": "furn-b2-under-stair-shelf-002",
+      "code": "SH-B2-ST-02",
+      "name": "新设计CAD储架850｜700×300全尺寸",
+      "type": "bookshelf",
+      "catalogId": "storage-bookshelf",
+      "moduleCategory": "storage",
+      "moduleType": "bookshelf",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-004",
+      "dimensions": {
+        "width": 70,
+        "depth": 30,
+        "height": 85,
+        "unit": "cm"
+      },
+      "material": "浅木层板 + 深灰金属框",
+      "note": "贴北侧斜底布置中矮货架，分层放周转箱、备品和低频物件。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。 旧程序原生代理实测780×387，本次依PMO授权明确重建700×300新设计，不称原物未缩；容量/实物盘点未批准。",
+      "constructionNote": "贴北侧斜底布置中矮货架，分层放周转箱、备品和低频物件。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 12.083333333333334,
+        "y": 99.0,
+        "rotation": 180
+      },
+      "color": "#cfc4b5",
+      "render3d": {
+        "assetType": "bookshelf",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmWhiteMineral",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "b2-west-layout-r2",
+        "variationSeed": 3241986980,
+        "styleSource": "manual",
+        "elevationMm": 1140,
+        "styleLocked": true,
+        "primaryMaterialResourceId": "showroomWarmOakVertical",
+        "secondaryMaterialResourceId": "showroomLimePlaster",
+        "accentMaterialResourceId": "showroomDarkBronze"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "贴北侧斜底布置中矮货架，分层放周转箱、备品和低频物件。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "wallSecured",
+        "reserveSize": "70x30x85cm",
+        "wallDependency": "绑定 W-B2-007，安装前按墙面完成面复尺并复核收口。",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "按楼梯斜底逐格复尺，最高点不与梯段结构冲突",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "贴北侧斜底布置中矮货架，分层放周转箱、备品和低频物件。"
+      },
+      "hostWallId": "W-B2-007",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "manual-input",
+        "sourceNote": "用户自然语言设计意图",
+        "toleranceMm": 50
+      }
+    },
+    "furn-b2-under-stair-shelf-003": {
+      "id": "furn-b2-under-stair-shelf-003",
+      "code": "SH-B2-ST-03",
+      "name": "新设计CAD储架700｜700×300全尺寸",
+      "type": "bookshelf",
+      "catalogId": "storage-bookshelf",
+      "moduleCategory": "storage",
+      "moduleType": "bookshelf",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-004",
+      "dimensions": {
+        "width": 70,
+        "depth": 30,
+        "height": 70,
+        "unit": "cm"
+      },
+      "material": "浅木层板 + 深灰金属框",
+      "note": "沿东侧最低处布置矮货架，放鞋盒、耗材和小型收纳筐，中央保留取物带。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。 旧程序原生代理实测780×387，本次依PMO授权明确重建700×300新设计，不称原物未缩；容量/实物盘点未批准。",
+      "constructionNote": "沿东侧最低处布置矮货架，放鞋盒、耗材和小型收纳筐，中央保留取物带。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": false,
+        "exhaust": false
+      },
+      "position": {
+        "x": 18.083333333333332,
+        "y": 99.0,
+        "rotation": 180
+      },
+      "color": "#cfc4b5",
+      "render3d": {
+        "assetType": "bookshelf",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmOak",
+        "secondaryMaterial": "warmWhiteMineral",
+        "accentMaterial": "blackTitanium",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "variantId": "b2-west-layout-r2",
+        "variationSeed": 3241986981,
+        "styleSource": "manual",
+        "elevationMm": 20,
+        "styleLocked": true,
+        "primaryMaterialResourceId": "showroomWarmOakVertical",
+        "secondaryMaterialResourceId": "showroomLimePlaster",
+        "accentMaterialResourceId": "showroomDarkBronze"
+      },
+      "mepMeta": {
+        "needsSocket": false,
+        "socketCount": 0,
+        "socketHeight": 0,
+        "needsSwitch": false,
+        "switchControl": [],
+        "needsLighting": false,
+        "lightingType": "none",
+        "needsWaterSupply": false,
+        "waterSupplyType": "none",
+        "needsDrainage": false,
+        "drainageType": "none",
+        "needsNetwork": false,
+        "needsVentilation": false,
+        "needsSmartControl": false,
+        "relatedCircuit": "常规插座回路",
+        "notes": "沿东侧最低处布置矮货架，放鞋盒、耗材和小型收纳筐，中央保留取物带。"
+      },
+      "constructionMeta": {
+        "customMade": true,
+        "installType": "wallSecured",
+        "reserveSize": "70x30x70cm",
+        "wallDependency": "绑定 W-B2-STORAGE-001，安装前按墙面完成面复尺并复核收口。",
+        "floorDependency": "按完成面标高校核落地尺寸",
+        "ceilingDependency": "按楼梯斜底逐格复尺，最高点不与梯段结构冲突",
+        "waterproofRequired": false,
+        "inspectionAccessRequired": false,
+        "purchaseCategory": "定制柜体/硬装",
+        "supplierType": "全屋定制/木作供应商",
+        "notes": "沿东侧最低处布置矮货架，放鞋盒、耗材和小型收纳筐，中央保留取物带。"
+      },
+      "hostWallId": "W-B2-STORAGE-001",
+      "verificationMeta": {
+        "status": "estimated",
+        "source": "manual-input",
+        "sourceNote": "用户自然语言设计意图",
+        "toleranceMm": 50
+      }
+    },
+    "furn-b2-under-stair-room-shell-001": {
+      "id": "furn-b2-under-stair-room-shell-001",
+      "code": "RM-B2-ST-01",
+      "name": "西南实墙独立新储物柜｜1460×450×2400",
+      "type": "bookshelf",
+      "moduleCategory": "storage",
+      "moduleType": "bookshelf",
+      "floorId": "B2",
+      "roomId": "ROOM-B2-004",
+      "dimensions": {
+        "width": 146,
+        "depth": 45,
+        "height": 240,
+        "unit": "cm"
+      },
+      "material": "暖石灰漆斜顶围护 + 700×1250mm同墙色隐形矮门 + 内嵌古铜拉手",
+      "note": "用户已选B：以外侧开门取物为主，不默认内部走入通道。高相对区放高大件、中区可调架/箱、低区低箱篮；真实斜底、支撑、净高和分缝待核，不默认重型拉出。 R05绑定家具重排研究；独立新增西南贴墙储物柜，与原梯下待深化分开；原三组储架不缩。 非完整操作/施工通过。",
+      "constructionNote": "外壳按楼梯斜底分段收口；700×1250mm矮门设置在净高较高一端，右侧外开，采用极窄暗缝和内嵌拉手；门内布置300-350mm深可调货架、吸尘器位和感应灯。",
+      "serviceRequirements": {
+        "water": false,
+        "drainage": false,
+        "power": true,
+        "exhaust": false
+      },
+      "position": {
+        "x": 15.083333333333334,
+        "y": 99.82222222222222,
+        "rotation": 180
+      },
+      "color": "#ded4c6",
+      "render3d": {
+        "assetType": "bookshelf",
+        "variantId": "b2-west-layout-r2",
+        "detailLevel": "presentation",
+        "stylePreset": "modernNatural",
+        "primaryMaterial": "warmWhiteMineral",
+        "secondaryMaterial": "warmOak",
+        "accentMaterial": "brushedBronze",
+        "visibleIn3d": true,
+        "selectableIn3d": true,
+        "childrenMode": "grouped",
+        "styleSource": "manual",
+        "styleLocked": true,
+        "variationSeed": 310820261,
+        "primaryMaterialResourceId": "showroomLimePlaster",
+        "secondaryMaterialResourceId": "showroomWarmOakVertical"
+      }
+    }
+  },
+  "dailyChairPosesMm": {
+    "N1": [
+      2945,
+      7030,
+      270
+    ],
+    "N2": [
+      4425,
+      6940,
+      90
+    ],
+    "S1": [
+      4425,
+      7690,
+      90
+    ],
+    "E": [
+      4425,
+      8440,
+      90
+    ]
+  },
+  "chairStableIds": {
+    "N1": "furn-b2-chair-west-1-candidate-20261030",
+    "N2": "furn-b2-chair-west-3-candidate-20261030",
+    "S1": "furn-b2-chair-east-1-candidate-20261030",
+    "E": "furn-b2-chair-east-3-candidate-20261030"
+  },
+  "tableRectMm": [
+    3200.000011920929,
+    6600.0,
+    4099.999988079071,
+    8600.0
+  ],
+  "islandRectMm": [
+    2550,
+    7790,
+    3200,
+    9060
+  ],
+  "wineRectMm": [
+    1090.000000387431,
+    6549.99999981001,
+    1690.0000001899907,
+    7350.0
+  ],
+  "castleRectMm": [
+    1174.9999964237213,
+    6605.000001192093,
+    1605.0000035762787,
+    7294.999998807907
+  ],
+  "sportsRectMm": [
+    9525,
+    5500,
+    10075,
+    7900
+  ],
+  "fridge": {
+    "type": "FACTORY_DRAWER_REFERENCE_DM50CD_NOT_PURCHASE_APPROVED",
+    "front": "WEST",
+    "unitOuterEW_NS_H_Mm": [
+      508,
+      550,
+      423
+    ],
+    "unitRawH": [
+      400,
+      823
+    ],
+    "recessEW_NS_H_Mm": [
+      490,
+      570,
+      443
+    ],
+    "frontDatumMm": 2530,
+    "centreNS": 8105,
+    "maxReservedTravelMm": 500,
+    "strokeRangeForLocalCheckMm": [
+      250,
+      350,
+      500
+    ],
+    "strokeNotInOfficialManual": true,
+    "normalOperatorClosedMm": [
+      2250,
+      7805
+    ],
+    "openingWaistDeg": 15,
+    "retrievalWaistDeg": 35,
+    "unselectedSKU": true,
+    "noFreezerOrFreshFoodClaim": true
+  },
+  "whole_package_accepted": false,
+  "allowed_merge_scope": [],
+  "mainModelChanged": false,
+  "wineWidthMm": 800,
+  "wineDepthMm": 600,
+  "tableDepthMm": 900,
+  "northTableSupportShiftSouthMm": 150,
+  "islandLengthMm": 1270,
+  "storedChairPosesMm": {},
+  "nativeScope": "INDEPENDENT_COMPLETE_RESEARCH_CANDIDATE_NOT_CONSTRUCTION_OR_MERGE_APPROVAL",
+  "avoidStairRatherThanAssumeSoffit": true,
+  "bikeChangesAreExplicitNotInheritedEndpointApproval": true,
+  "fullTaskCompleted": false,
+  "dailyChairGroundRawMm": 35,
+  "currentUseModes": [
+    "daily4"
+  ],
+  "activeChairKeys": [
+    "N1",
+    "N2",
+    "S1",
+    "E"
+  ],
+  "cancelledRequirements": {
+    "party6": "CANCELLED_BY_USER_NOT_REPAIRED_PASS",
+    "twoSpareWholeOrFoldingChairs": "CANCELLED_BY_USER_NOT_REPAIRED_PASS",
+    "spareStorageCarryUnfoldReturn": "CANCELLED_BY_USER_NOT_REPAIRED_PASS",
+    "oldResearchRemainsUnchanged": true
+  },
+  "scopeSource": {
+    "path": "/Users/lyx/Documents/林屿湖畔/设计资料/用户确认/20261109_B2仅四人使用.json",
+    "sha256": "76e1b327a208f82024d21bdfa06ade559526c57c2bdbd2e078e3fea567505e17",
+    "userExact": "那就4人",
+    "notDesignAcceptance": true
+  },
+  "activeStudy": {
+    "type": "FOUR_FULL_SOURCE_CHAIRS_2000x900_ONLY",
+    "fullTaskCompleted": false,
+    "whole_package_accepted": false,
+    "allowed_merge_scope": []
+  },
+  "chairPullTravelMm": {
+    "N1": 450,
+    "N2": 300,
+    "S1": 300,
+    "E": 300
+  },
+  "fourPersonIteration": {
+    "seating": "one west / three east, full original source chairs",
+    "eastSpacingMm": 750,
+    "westWithdrawal": "200mm occupied, each foot back100mm while supported, remaining250mm; not a 450mm fixed-foot leg stretch",
+    "notUserAdoption": true,
+    "needsFullOperationChecks": true,
+    "no1100Table": true,
+    "twoWestIterationRetainedAsSupersededResearch": true,
+    "eastRowNorthShiftMm": 60,
+    "purposeOfEastShift": "Retain750 spacing while increasing last shoulder/arm clearance to south wall; no reduction of body/chair size or travel."
+  },
+  "ridingInterfaceScope": "UNSELECTED_WHEEL_ON_DESIGN_NOT_CLAIM_OF_ACTUAL_OWNED_DEVICE_OR_PEDAL_AXLE",
+  "retiredFurniture": {
+    "furn-b2-activity-outdoor-pegboard-001": {
+      "status": "SUPERSEDED_FUNCTIONAL_REPLACEMENT",
+      "replacedByIds": [
+        "furn-b2-sports-camping-storage-candidate-20261030",
+        "furn-b2-bike-trainer-candidate-20261030"
+      ],
+      "historyPath": "history/south-pegboard-before-functional-replacement.json",
+      "capacityEquivalenceApproved": false
+    }
+  },
+  "activeSeatingCapacity": 4,
+  "sourceParentRevision": "main-model-source-ratio-A-integrated-20261111-four-floor-architecture-r06",
+  "sourceParentModelSha256": "319c8aa143bd97797950faeff7c5d161430a10af9c0b27b18a0296dc4ce8498f",
+  "noGoStairProjectionMm": [
+    950,
+    3567.371,
+    4097.429,
+    5782.229
+  ],
+  "sourceGeometry": "GEOMETRY.json raw current R4 parts, full native retained cages, no obstacle/body inflation",
+  "legacyHelperCompatibilityPath": "history/LEGACY_HELPER_COMPATIBILITY.json",
+  "legacyCoordinatesNotCurrentScene": true,
+  "chairSourceExtent": {
+    "nativeFullHeightMm": 943.5,
+    "nativePartsPerChair": 6,
+    "rawGroundMm": 35,
+    "nominalObjectDimensionsNotCollisionProxy": true
+  },
+  "eastSlidingDoors": {
+    "front": "WEST",
+    "closedCabinetBodyRectMm": [
+      9525,
+      5500,
+      10075,
+      7900
+    ],
+    "fullParkingNSmm": [
+      4300,
+      9100
+    ],
+    "leftGroupSignedTravelNSmm": 1200,
+    "rightGroupSignedTravelNSmm": -1200,
+    "externalDepthIncludingPlateMm": 550,
+    "barAdditionalProjectionMm": 25,
+    "barRawCentreHeightMm": 850,
+    "rawMaterialPartsSource": "GEOMETRY.json doorLeafIndex",
+    "inventoryCapacityApproved": false
+  },
+  "ridingInterfaceContract": "RIDING_INTERFACE_CONTRACT.json",
+  "newStorageContract": "STORAGE_DESIGN_CONTRACT.json"
+}

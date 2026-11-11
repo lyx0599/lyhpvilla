@@ -18,6 +18,8 @@ function expectedHeightRange(item) {
   // R08 replaces this former story-height asset with an independently reviewed
   // 2200mm real cabinet. Its inherited visual preset is not its height contract.
   if (item.id === 'furn-living-snack-pullout-001' && item.render3d?.geometryContractId === 'R08-R14-native-tall-D005-clear') return [220, 220];
+  // Reviewed B1 source object is a basin + faucet/service envelope, not a 105cm basin rim.
+  if (item.id === "furn-b1-bath-vanity-001" && item.dimensions.width === 45 && item.dimensions.depth === 28) return [105,105];
   const kind = item.moduleType ?? item.type;
   if (kind === "tallCabinet" && /tower|fullHeight/i.test(item.render3d?.variantId ?? "")) return [240, 275];
   if (kind !== "wardrobe") return expectedHeightRangesCm[kind];
@@ -42,7 +44,7 @@ for (const item of workspace.furniture.filter((candidate) => indoorFloorIds.has(
 
   const range = expectedHeightRange(item);
   if (range) {
-    assert.ok(item.dimensions.height >= range[0] && item.dimensions.height <= range[1], `${item.id} should use a plausible ${(item.moduleType ?? item.type)} height`);
+    assert.ok(((item.moduleType ?? item.type) === "vanity" ? actualTopMm / 10 : item.dimensions.height) >= range[0] && ((item.moduleType ?? item.type) === "vanity" ? actualTopMm / 10 : item.dimensions.height) <= range[1], `${item.id} should use a plausible ${(item.moduleType ?? item.type)} height`);
   }
 }
 

@@ -1,10 +1,13 @@
+import { readHistoricalWorkspace } from "./read-historical-workspace.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { generateLightingDesignV1, lightingLayers } from "../lib/lighting-design.ts";
 import { buildConstructionPackageData } from "../lib/construction-package-export.ts";
 import { validateWorkspaceReferences } from "../lib/workspace-reference-validator.ts";
 
-const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
+// Historical release scope: old adopted coordinates/roles are immutable fixtures.
+// Current model is checked by test-four-floor-calibration.mjs and native review.
+const workspace = readHistoricalWorkspace();
 const lights = workspace.drawingItems.filter((item) => item.category === "light");
 const switches = workspace.drawingItems.filter((item) => item.category === "switch");
 const requiredFields = ["lightType", "lightingLayer", "colorTemperature", "beamAngle", "mountingType", "heightMm", "relatedSwitchId", "controlGroupId", "smartControl", "dimming", "relatedFurnitureId", "relatedRoomId", "hostCeilingAreaId", "hostWallId", "status", "notes"];
