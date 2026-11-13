@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="420mm" viewBox="0 0 1782 2520" role="img" aria-label="B2 architecture floor plan"><title>B2 R06 model-derived architecture reference</title><rect width="1782" height="2520" fill="white"/>
+<text x="100.00" y="95.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="43" text-anchor="start" dominant-baseline="central" fill="#253f50">供 GPT 空间沟通 · 四层户型底图</text>
+<text x="100.00" y="158.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="34" text-anchor="start" dominant-baseline="central" fill="#253f50">B2  /  R06 共同建筑基底</text>
+<text x="100.00" y="215.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="25" text-anchor="start" dominant-baseline="central" fill="#253f50">模型轴界参考 · 无家具层 · 不是施工图或现场实测</text>
+<text x="100.00" y="260.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="start" dominant-baseline="central" fill="#253f50">地下 66.23㎡参照  /  地上 137.83㎡采用  /  北向上  /  单位 mm</text>
+<text x="100.00" y="304.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#61737e">R01  ·  2026-11-13  ·  source ecd562992684…  ·  A3 原尺寸打印 1:50</text>
+<polygon points="876.269,659.084 876.269,733.836 700.513,733.836 700.513,1027.608 508.000,1027.608 340.000,1027.608 340.000,1153.608 340.000,1324.591 340.000,1689.883 340.000,1924.297 1406.850,1924.297 1406.850,1689.883 1406.850,1281.302 1406.850,659.084 1406.850,484.390 876.269,484.390 876.269,659.084" fill="#f0f3f5" stroke="#a6b4bb" stroke-width="1"/>
+<polygon points="876.269,484.390 1406.850,484.390 1406.850,659.084 876.269,659.084 876.269,484.390" fill="#e7f0e9" stroke="#719882" stroke-width="2"/>
+<polyline points="" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="876.269,644.992 890.361,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="876.269,616.192 919.161,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="876.269,587.392 947.961,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="876.269,558.592 976.761,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="876.269,529.792 1005.561,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="876.269,500.992 1034.361,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="888.467,484.390 1063.161,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="917.267,484.390 1091.961,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="946.067,484.390 1120.761,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="974.867,484.390 1149.561,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1003.667,484.390 1178.361,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1032.467,484.390 1207.161,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1061.267,484.390 1235.961,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1090.067,484.390 1264.761,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1118.867,484.390 1293.561,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1147.667,484.390 1322.361,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1176.467,484.390 1351.161,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1205.267,484.390 1379.961,659.084" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1234.067,484.390 1406.850,657.173" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1262.867,484.390 1406.850,628.373" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1291.667,484.390 1406.850,599.573" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1320.467,484.390 1406.850,570.773" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1349.267,484.390 1406.850,541.973" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1378.067,484.390 1406.850,513.173" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polygon points="340.000,1689.883 1406.850,1689.883 1406.850,1924.297 340.000,1924.297 340.000,1689.883" fill="#e7f0e9" stroke="#719882" stroke-width="2"/>
+<polyline points="" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1923.123 341.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1894.323 369.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1865.523 398.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1836.723 427.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1807.923 456.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1779.123 485.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1750.323 513.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1721.523 542.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="340.000,1692.723 571.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="365.959,1689.883 600.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="394.759,1689.883 629.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="423.559,1689.883 657.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="452.359,1689.883 686.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="481.159,1689.883 715.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="509.959,1689.883 744.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="538.759,1689.883 773.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="567.559,1689.883 801.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="596.359,1689.883 830.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="625.159,1689.883 859.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="653.959,1689.883 888.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="682.759,1689.883 917.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="711.559,1689.883 945.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="740.359,1689.883 974.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="769.159,1689.883 1003.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="797.959,1689.883 1032.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="826.759,1689.883 1061.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="855.559,1689.883 1089.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="884.359,1689.883 1118.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="913.159,1689.883 1147.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="941.959,1689.883 1176.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="970.759,1689.883 1205.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="999.559,1689.883 1233.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1028.359,1689.883 1262.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1057.159,1689.883 1291.574,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1085.959,1689.883 1320.374,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1114.759,1689.883 1349.174,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1143.559,1689.883 1377.974,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1172.359,1689.883 1406.774,1924.297" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1201.159,1689.883 1406.850,1895.573" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1229.959,1689.883 1406.850,1866.773" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1258.759,1689.883 1406.850,1837.973" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1287.559,1689.883 1406.850,1809.173" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1316.359,1689.883 1406.850,1780.373" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1345.159,1689.883 1406.850,1751.573" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1373.959,1689.883 1406.850,1722.773" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="1402.759,1689.883 1406.850,1693.973" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#bed2c2" stroke-width="1"/>
+<polygon points="355.600,1043.208 355.600,1308.991 487.093,1308.991 487.093,1043.208 355.600,1043.208" fill="#e1eaee" stroke="#819aa5" stroke-width="1"/>
+<polygon points="733.291,1043.208 487.093,1043.208 487.093,1171.125 733.291,1171.125 733.291,1043.208" fill="#f9fbfc" stroke="#8096a2" stroke-width="1"/>
+<polyline points="733.291,1171.125 733.291,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="708.672,1171.125 708.672,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="684.052,1171.125 684.052,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="659.432,1171.125 659.432,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="634.812,1171.125 634.812,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="610.192,1171.125 610.192,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="585.572,1171.125 585.572,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="560.952,1171.125 560.952,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="536.332,1171.125 536.332,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="511.712,1171.125 511.712,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="487.093,1171.125 487.093,1043.208" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<text x="610.19" y="1107.17" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#395b6a">← 上 10级</text>
+<polygon points="733.291,1181.074 487.093,1181.074 487.093,1308.991 733.291,1308.991 733.291,1181.074" fill="#f9fbfc" stroke="#8096a2" stroke-width="1"/>
+<polyline points="733.291,1308.991 733.291,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="708.672,1308.991 708.672,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="684.052,1308.991 684.052,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="659.432,1308.991 659.432,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="634.812,1308.991 634.812,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="610.192,1308.991 610.192,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="585.572,1308.991 585.572,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="560.952,1308.991 560.952,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="536.332,1308.991 536.332,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="511.712,1308.991 511.712,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="487.093,1308.991 487.093,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<text x="610.19" y="1245.03" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#395b6a">下 → 10级</text>
+<polygon points="876.269,747.036 876.269,720.636 700.513,720.636 700.513,747.036 876.269,747.036" fill="#344c58"/>
+<polygon points="713.713,1027.608 713.713,942.066 687.313,942.066 687.313,1027.608 713.713,1027.608" fill="#344c58"/>
+<polygon points="713.713,733.836 687.313,733.836 687.313,834.066 713.713,834.066 713.713,733.836" fill="#344c58"/>
+<polygon points="1393.650,1924.297 1420.050,1924.297 1420.050,484.390 1393.650,484.390 1393.650,1924.297" fill="#344c58"/>
+<polygon points="700.513,1040.808 700.513,1014.408 340.000,1014.408 340.000,1040.808 700.513,1040.808" fill="#344c58"/>
+<polygon points="326.800,1924.297 353.200,1924.297 353.200,1027.608 326.800,1027.608 326.800,1924.297" fill="#344c58"/>
+<polygon points="658.105,1937.497 658.105,1911.097 340.000,1911.097 340.000,1937.497 658.105,1937.497" fill="#344c58"/>
+<polygon points="1406.850,1937.497 1406.850,1911.097 658.105,1911.097 658.105,1937.497 1406.850,1937.497" fill="#344c58"/>
+<polygon points="493.159,1147.877 507.559,1147.877 507.559,1027.608 493.159,1027.608 493.159,1147.877" fill="#bca5c6"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1145.082 495.954,1147.877" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1135.482 505.554,1147.877" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1125.882 507.559,1140.282" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1116.282 507.559,1130.682" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1106.682 507.559,1121.082" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1097.082 507.559,1111.482" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1087.482 507.559,1101.882" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1077.882 507.559,1092.282" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1068.282 507.559,1082.682" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1058.682 507.559,1073.082" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1049.082 507.559,1063.482" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1039.482 507.559,1053.882" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="493.159,1029.882 507.559,1044.282" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="500.485,1027.608 507.559,1034.682" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polygon points="340.000,1155.077 360.998,1155.077 360.998,1140.677 340.000,1140.677 340.000,1155.077" fill="#bca5c6"/>
+<polygon points="500.359,1155.077 500.359,1140.677 444.998,1140.677 444.998,1155.077 500.359,1155.077" fill="#bca5c6"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="340.000,1145.523 349.554,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="344.754,1140.677 359.154,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="354.354,1140.677 360.998,1147.321" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="444.998,1154.521 445.554,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="444.998,1144.921 455.154,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="450.354,1140.677 464.754,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="459.954,1140.677 474.354,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="469.554,1140.677 483.954,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="479.154,1140.677 493.554,1155.077" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="488.754,1140.677 500.359,1152.282" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="498.354,1140.677 500.359,1142.682" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polyline points="" fill="none" stroke="#6e4784" stroke-width="1"/>
+<polygon points="863.069,733.836 889.469,733.836 889.469,484.390 863.069,484.390 863.069,733.836" fill="#344c58"/>
+<polygon points="1406.850,497.590 1406.850,471.190 876.269,471.190 876.269,497.590 1406.850,497.590" fill="#344c58"/>
+<polygon points="933.001,1329.154 932.978,1327.741 932.909,1326.329 932.793,1324.920 932.632,1323.515 932.424,1322.117 932.171,1320.726 931.873,1319.344 931.529,1317.973 931.141,1316.614 930.709,1315.268 930.232,1313.937 929.713,1312.622 929.151,1311.325 928.546,1310.047 927.900,1308.790 927.214,1307.554 926.487,1306.342 925.721,1305.154 924.916,1303.991 924.074,1302.856 923.195,1301.748 922.281,1300.670 921.331,1299.623 920.348,1298.607 919.332,1297.624 918.285,1296.675 917.207,1295.760 916.100,1294.881 914.964,1294.039 913.802,1293.235 912.614,1292.469 911.401,1291.742 910.166,1291.055 908.908,1290.409 907.630,1289.805 906.333,1289.243 905.018,1288.723 903.687,1288.247 902.342,1287.814 900.982,1287.426 899.611,1287.083 898.229,1286.784 896.838,1286.531 895.440,1286.324 894.036,1286.162 892.627,1286.047 891.215,1285.977 889.801,1285.954 888.388,1285.977 886.976,1286.047 885.567,1286.162 884.163,1286.324 882.764,1286.531 881.373,1286.784 879.992,1287.083 878.620,1287.426 877.261,1287.814 875.915,1288.247 874.584,1288.723 873.269,1289.243 871.972,1289.805 870.694,1290.409 869.437,1291.055 868.201,1291.742 866.989,1292.469 865.801,1293.235 864.638,1294.039 863.503,1294.881 862.395,1295.760 861.318,1296.675 860.270,1297.624 859.254,1298.607 858.271,1299.623 857.322,1300.670 856.407,1301.748 855.528,1302.856 854.686,1303.991 853.882,1305.154 853.116,1306.342 852.389,1307.554 851.702,1308.790 851.056,1310.047 850.452,1311.325 849.890,1312.622 849.370,1313.937 848.894,1315.268 848.461,1316.614 848.073,1317.973 847.730,1319.344 847.431,1320.726 847.178,1322.117 846.971,1323.515 846.809,1324.920 846.694,1326.329 846.624,1327.741 846.601,1329.154 846.624,1330.568 846.694,1331.980 846.809,1333.388 846.971,1334.793 847.178,1336.191 847.431,1337.582 847.730,1338.964 848.073,1340.335 848.461,1341.694 848.894,1343.040 849.370,1344.371 849.890,1345.686 850.452,1346.983 851.056,1348.261 851.702,1349.518 852.389,1350.754 853.116,1351.967 853.882,1353.155 854.686,1354.317 855.528,1355.453 856.407,1356.560 857.322,1357.638 858.271,1358.685 859.254,1359.701 860.270,1360.684 861.318,1361.634 862.395,1362.548 863.503,1363.427 864.638,1364.269 865.801,1365.074 866.989,1365.840 868.201,1366.566 869.437,1367.253 870.694,1367.899 871.972,1368.503 873.269,1369.066 874.584,1369.585 875.915,1370.062 877.261,1370.494 878.620,1370.882 879.992,1371.226 881.373,1371.524 882.764,1371.777 884.163,1371.985 885.567,1372.146 886.976,1372.262 888.388,1372.331 889.801,1372.354 891.215,1372.331 892.627,1372.262 894.036,1372.146 895.440,1371.985 896.838,1371.777 898.229,1371.524 899.611,1371.226 900.982,1370.882 902.342,1370.494 903.687,1370.062 905.018,1369.585 906.333,1369.066 907.630,1368.503 908.908,1367.899 910.166,1367.253 911.401,1366.566 912.614,1365.840 913.802,1365.074 914.964,1364.269 916.100,1363.427 917.207,1362.548 918.285,1361.634 919.332,1360.684 920.348,1359.701 921.331,1358.685 922.281,1357.638 923.195,1356.560 924.074,1355.453 924.916,1354.317 925.721,1353.155 926.487,1351.967 927.214,1350.754 927.900,1349.518 928.546,1348.261 929.151,1346.983 929.713,1345.686 930.232,1344.371 930.709,1343.040 931.141,1341.694 931.529,1340.335 931.873,1338.964 932.171,1337.582 932.424,1336.191 932.632,1334.793 932.793,1333.388 932.909,1331.980 932.978,1330.568 933.001,1329.154" fill="#dfd0e6" stroke="#89659a" stroke-width="2"/>
+<text x="889.80" y="1329.15" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="middle" dominant-baseline="central" fill="#6c4280">柱？</text>
+<polygon points="766.915,1197.431 766.892,1196.017 766.823,1194.606 766.707,1193.197 766.546,1191.792 766.338,1190.394 766.085,1189.003 765.787,1187.621 765.443,1186.250 765.055,1184.891 764.623,1183.545 764.147,1182.214 763.627,1180.899 763.065,1179.602 762.460,1178.324 761.814,1177.067 761.128,1175.831 760.401,1174.618 759.635,1173.430 758.830,1172.268 757.988,1171.132 757.110,1170.025 756.195,1168.947 755.246,1167.900 754.262,1166.884 753.247,1165.901 752.199,1164.951 751.121,1164.037 750.014,1163.158 748.878,1162.316 747.716,1161.511 746.528,1160.745 745.315,1160.019 744.080,1159.332 742.822,1158.686 741.544,1158.082 740.247,1157.519 738.933,1157.000 737.602,1156.524 736.256,1156.091 734.896,1155.703 733.525,1155.359 732.143,1155.061 730.753,1154.808 729.354,1154.601 727.950,1154.439 726.541,1154.323 725.129,1154.254 723.715,1154.231 722.302,1154.254 720.890,1154.323 719.481,1154.439 718.077,1154.601 716.678,1154.808 715.288,1155.061 713.906,1155.359 712.534,1155.703 711.175,1156.091 709.829,1156.524 708.498,1157.000 707.184,1157.519 705.887,1158.082 704.609,1158.686 703.351,1159.332 702.115,1160.019 700.903,1160.745 699.715,1161.511 698.552,1162.316 697.417,1163.158 696.310,1164.037 695.232,1164.951 694.184,1165.901 693.168,1166.884 692.185,1167.900 691.236,1168.947 690.321,1170.025 689.443,1171.132 688.600,1172.268 687.796,1173.430 687.030,1174.618 686.303,1175.831 685.616,1177.067 684.971,1178.324 684.366,1179.602 683.804,1180.899 683.284,1182.214 682.808,1183.545 682.376,1184.891 681.987,1186.250 681.644,1187.621 681.346,1189.003 681.092,1190.394 680.885,1191.792 680.723,1193.197 680.608,1194.606 680.539,1196.017 680.515,1197.431 680.539,1198.844 680.608,1200.256 680.723,1201.665 680.885,1203.070 681.092,1204.468 681.346,1205.859 681.644,1207.241 681.987,1208.612 682.376,1209.971 682.808,1211.317 683.284,1212.648 683.804,1213.963 684.366,1215.260 684.971,1216.538 685.616,1217.795 686.303,1219.031 687.030,1220.243 687.796,1221.432 688.600,1222.594 689.443,1223.729 690.321,1224.837 691.236,1225.915 692.185,1226.962 693.168,1227.978 694.184,1228.961 695.232,1229.910 696.310,1230.825 697.417,1231.704 698.552,1232.546 699.715,1233.350 700.903,1234.116 702.115,1234.843 703.351,1235.530 704.609,1236.176 705.887,1236.780 707.184,1237.343 708.498,1237.862 709.829,1238.338 711.175,1238.771 712.534,1239.159 713.906,1239.502 715.288,1239.801 716.678,1240.054 718.077,1240.261 719.481,1240.423 720.890,1240.538 722.302,1240.608 723.715,1240.631 725.129,1240.608 726.541,1240.538 727.950,1240.423 729.354,1240.261 730.753,1240.054 732.143,1239.801 733.525,1239.502 734.896,1239.159 736.256,1238.771 737.602,1238.338 738.933,1237.862 740.247,1237.343 741.544,1236.780 742.822,1236.176 744.080,1235.530 745.315,1234.843 746.528,1234.116 747.716,1233.350 748.878,1232.546 750.014,1231.704 751.121,1230.825 752.199,1229.910 753.247,1228.961 754.262,1227.978 755.246,1226.962 756.195,1225.915 757.110,1224.837 757.988,1223.729 758.830,1222.594 759.635,1221.432 760.401,1220.243 761.128,1219.031 761.814,1217.795 762.460,1216.538 763.065,1215.260 763.627,1213.963 764.147,1212.648 764.623,1211.317 765.055,1209.971 765.443,1208.612 765.787,1207.241 766.085,1205.859 766.338,1204.468 766.546,1203.070 766.707,1201.665 766.823,1200.256 766.892,1198.844 766.915,1197.431" fill="#dfd0e6" stroke="#89659a" stroke-width="2"/>
+<text x="723.72" y="1197.43" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="middle" dominant-baseline="central" fill="#6c4280">柱？</text>
+<polyline points="700.513,834.066 700.513,942.066" fill="none" stroke="#b17b39" stroke-width="4"/>
+<text x="700.51" y="864.07" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#b17b39">D001</text>
+<polyline points="444.998,1147.877 360.998,1147.877" fill="none" stroke="#b17b39" stroke-width="4"/>
+<text x="403.00" y="1123.88" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#b17b39">历史门</text>
+<text x="1102.00" y="875.52" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">客厅</text>
+<text x="1102.00" y="907.52" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">28.76㎡  /  R001</text>
+<text x="614.90" y="1507.24" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">书房</text>
+<text x="614.90" y="1539.24" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">14.37㎡  /  R005</text>
+<text x="1148.33" y="1485.59" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">活动区</text>
+<text x="1148.33" y="1517.59" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">14.67㎡  /  R003</text>
+<text x="1141.56" y="571.74" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">北侧联用候选 · 待核</text>
+<text x="1141.56" y="603.74" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">6.44㎡ / 新顶条件未核</text>
+<text x="873.43" y="1807.09" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">南侧联用候选 · 待核</text>
+<text x="873.43" y="1839.09" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">17.37㎡ / 新顶条件未核</text>
+<text x="1090.00" y="2000.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#79558b">紫色柱 / 轻墙：历史条件参考</text>
+<text x="1090.00" y="2028.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#79558b">柱位与梯段存在未解交叠；旧框不限制全库</text>
+<polyline points="1555.000,530.000 1555.000,410.000" fill="none" stroke="#253f50" stroke-width="4"/>
+<polygon points="1555.000,386.000 1543.000,418.000 1567.000,418.000" fill="#253f50"/>
+<text x="1555.00" y="350.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="25" text-anchor="middle" dominant-baseline="central" fill="#253f50">N / 北</text>
+<polygon points="118.000,2080.000 238.000,2080.000 238.000,2096.000 118.000,2096.000" fill="#344c58" stroke="#344c58" stroke-width="1"/>
+<polygon points="238.000,2080.000 358.000,2080.000 358.000,2096.000 238.000,2096.000" fill="#ffffff" stroke="#344c58" stroke-width="1"/>
+<polygon points="358.000,2080.000 478.000,2080.000 478.000,2096.000 358.000,2096.000" fill="#344c58" stroke="#344c58" stroke-width="1"/>
+<polygon points="478.000,2080.000 598.000,2080.000 598.000,2096.000 478.000,2096.000" fill="#ffffff" stroke="#344c58" stroke-width="1"/>
+<text x="118.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">0</text>
+<text x="238.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">1000</text>
+<text x="358.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">2000</text>
+<text x="478.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">3000</text>
+<text x="598.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">4000</text>
+<text x="358.00" y="2155.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#253f50">mm · 屏幕缩放请以标尺为准</text>
+<text x="1100.00" y="2140.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#438296">蓝框：梯洞；浅蓝：半层平台投影</text>
+<polyline points="1515.000,484.390 1515.000,1924.297" fill="none" stroke="#7d929d" stroke-width="1"/>
+<polyline points="1506.000,484.390 1524.000,484.390" fill="none" stroke="#7d929d" stroke-width="2"/>
+<polyline points="1506.000,1924.297 1524.000,1924.297" fill="none" stroke="#7d929d" stroke-width="2"/>
+<text x="1540.00" y="1204.34" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="start" dominant-baseline="central" fill="#253f50">11999</text>
+<text x="890.00" y="355.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="middle" dominant-baseline="central" fill="#253f50">室内房界并集 90.03㎡（轴界，非净面积）</text>
+<polyline points="100.000,2200.000 1682.000,2200.000" fill="none" stroke="#bdc9cf" stroke-width="2"/>
+<text x="100.00" y="2240.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">墙体：真实模型厚度；剖切高1200。青色：窗/低护栏；棕色：名义门洞；红色：待修门区。</text>
+<text x="100.00" y="2281.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">门窗仅名义宽高；邻墙侵入保留，不代表完成面净洞、开门扫掠或施工验收。</text>
+<text x="100.00" y="2322.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">共同梯核、踏步与洞口来自同一模型；楼层高/墙厚及室外边界均须图纸和现场核实。</text>
+<text x="100.00" y="2363.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">北侧TV+隐形门后储藏、全库重排、洞洞板墙均未落模；新顶厚度与支承待核。</text>
+<text x="100.00" y="2440.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="start" dominant-baseline="central" fill="#61737e">同源数据：space-layout.json   |   来源与未知项：source-index.json   |   无家具 / 无未批方案</text>
+</svg>
