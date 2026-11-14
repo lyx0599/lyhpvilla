@@ -1,3 +1,4 @@
+import {readHistoricalWorkspace} from "./read-historical-workspace.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
@@ -58,13 +59,16 @@ const b1Door = b1.doors.find((door) => door.hostId === "W-B1-016");
 assert.ok(b1Door, "B1 W-B1-016 door fixture must exist.");
 assert.ok(renderedOpeningIds.includes(b1Door.id), "B1 W-B1-016 door must create a visible 3D wall opening.");
 
-const b2 = workspace.houseStructuresByFloor.B2;
+// Current opening coverage is checked above. The following1250mm storage regression belongs to the immutable older release.
+const historicalWorkspace=readHistoricalWorkspace();
+const b2 = historicalWorkspace.houseStructuresByFloor.B2;
 assert.equal(b2.walls.some((wall) => wall.id === "W-B2-009"), false, "The user-confirmed nonexistent B2 Wall 009 must stay removed.");
 assert.ok(b2.walls.some((wall) => wall.id === "W-B2-STORAGE-001"), "The under-stair storage east partition must render.");
 assert.ok(b2.walls.some((wall) => wall.id === "W-B2-STORAGE-002"), "The under-stair storage south partition must render.");
-assert.ok(renderedOpeningIds.includes("D-B2-STORAGE-001"), "The under-stair storage sliding door must cut its host wall.");
+const historicalB2OpeningIds=b2.walls.filter(w=>w.kind==="straight").flatMap(w=>getHostedOpeningCuts(b2,w.id,"wall",Math.hypot(w.end.x-w.start.x,w.end.y-w.start.y),w.height)).map(c=>c.id);
+assert.ok(historicalB2OpeningIds.includes("D-B2-STORAGE-001"), "The under-stair storage sliding door must cut its host wall.");
 const b2StorageDoor = b2.doors.find((door) => door.id === "D-B2-STORAGE-001");
 assert.deepEqual({ width: b2StorageDoor?.width, height: b2StorageDoor?.height }, { width: 700, height: 1250 }, "The under-stair storage opening must remain the confirmed low door below the stair slope.");
-assert.equal(workspace.furniture.filter((item) => item.id.startsWith("furn-b2-under-stair-shelf-")).length, 3, "The under-stair storage must keep its three compact rack runs in addition to the room shell.");
+assert.equal(historicalWorkspace.furniture.filter((item) => item.id.startsWith("furn-b2-under-stair-shelf-")).length, 3, "The under-stair storage must keep its three compact rack runs in addition to the room shell.");
 
 console.log(`3D structure rendering coverage passed: ${expectedOpeningIds.length} wall openings and ${Object.values(workspace.houseStructuresByFloor).flatMap((structure) => structure.skylights).length} skylights.`);

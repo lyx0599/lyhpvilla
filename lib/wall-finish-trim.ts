@@ -18,7 +18,10 @@ export function buildWallFinishTrim(
   if (length < 1e-6) throw new Error("Degenerate finish host");
   const ux=(hostEnd.x-hostStart.x)/length, uy=(hostEnd.y-hostStart.y)/length;
   const offset=(p:TrimPoint)=>(p.x-hostStart.x)*ux+(p.y-hostStart.y)*uy;
-  const a=offset(start),b=offset(end),lo=Math.min(a,b),hi=Math.max(a,b);
+  // Source-rounded segment ends must share exact host-end offsets. Without
+  // this snap, a0.0001mm sliver becomes LineBox's10mm untrimmed end block.
+  const snap=(v:number)=>Math.abs(v)<.001?0:Math.abs(v-length)<.001?length:v;
+  const a=snap(offset(start)),b=snap(offset(end)),lo=Math.min(a,b),hi=Math.max(a,b);
   const bounds=[lo,hi,...ranges.flatMap(r=>[r.startOffsetMm,r.endOffsetMm])]
     .filter(v=>v>=lo&&v<=hi).sort((x,y)=>x-y)
     .filter((v,i,all)=>!i||v-all[i-1]>1e-6);

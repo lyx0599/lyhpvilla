@@ -25,7 +25,7 @@ function ContractChair({pose,baseX,baseY,floorY,offset}:{pose:ChairPose;baseX:nu
 }
 
 export function Research1FContract(props:FurnitureFamily3DProps){
- // Public release only renders the adopted daily eight. 1750/10 remains a design goal, not an adopted pose.
+ // Default closed state and explicit expanded rearrangement use the current item authored six-chair data.
  const query=useSearchParams(),party=false,phase=query.get('phase')??'closed';
  const {item,width,depth,height}=props,floorY=-height/2,baseX=item.position.x*120,baseY=item.position.y*90;
  const worldRotation=(item.position.rotation||0)*Math.PI/180;
@@ -33,6 +33,7 @@ export function Research1FContract(props:FurnitureFamily3DProps){
  const state=(party?contract.states.party:authored??contract.states.daily) as unknown as Array<ChairPose&{kind:string;parent:string}>;
  const selectedPullSeat=query.get('seat')??'R1';
  const offsetFor=(p:ChairPose):[number,number]=>{
+  if(['1F-FIXEDTV-R05-EXTENDABLE-CANDIDATE','1F-SOURCE-LAYOUT-R07-CANDIDATE'].includes((item.render3d as {geometryContractId?:string})?.geometryContractId??''))return [0,0];
   if(phase!=='chairs-pulled'||p.id!==selectedPullSeat)return [0,0];
   const a=p.angleDeg*Math.PI/180;
   const paths=(contract as unknown as {dailyActions?:Record<string,number[][]>}).dailyActions;

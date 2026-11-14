@@ -2872,7 +2872,7 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
       estimated: "现场估算",
       unverified: "待确认"
     } as const;
-    const sourceLabels = { "developer-plan": "开发商图纸", "visual-estimate": "视觉估算", "manual-input": "人工录入", "site-measurement": "现场测量", other: "其他来源" } as const;
+    const sourceLabels = { "developer-plan": "开发商图纸", "visual-estimate": "视觉估算", "manual-input": "人工录入", "site-measurement": "现场测量", "design-assumption": "设计假设", other: "其他来源" } as const;
     return { label: labels[status], source: verificationMeta ? `${sourceLabels[verificationMeta.source]}${verificationMeta.sourceNote ? ` · ${verificationMeta.sourceNote}` : ""}` : "尚未登记数据来源", status };
   }, [activeDrawingItem, activeFurniture, activeVerificationTarget]);
   const modernNaturalScope: ModernNaturalScope = modernNaturalScopeType === "house"
@@ -5823,6 +5823,7 @@ export function SpacePlanner({ data, initialViewMode = "2d" }: { data: SpaceData
             </button>
             {mobileMoreOpen && (
               <div className="absolute right-3 top-12 z-[100] w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-white/80 bg-white/98 p-2 text-sm font-semibold text-stone-700 shadow-[0_18px_46px_rgba(39,34,28,0.22)] backdrop-blur">
+                <a className="block w-full rounded-xl px-3 py-2.5 text-left hover:bg-stone-50" href={`${WORKSPACE_ASSET_BASE_PATH}/model-plans/index.html`}>当前四层平面图</a>
                 <button className="block w-full rounded-xl px-3 py-2.5 text-left hover:bg-stone-50" onClick={resetMobileCurrentView} type="button">重置视角</button>
                 <div className="mt-1 rounded-xl bg-stone-50 p-1">
                   <div className="grid grid-cols-3 gap-1 text-xs">

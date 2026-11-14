@@ -1,7 +1,9 @@
+import {readHistoricalWorkspace} from "./read-historical-workspace.mjs";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const workspace = JSON.parse(await readFile(new URL("../data/default-workspace.json", import.meta.url), "utf8"));
+// Catalogue/style regression uses its immutable historical fixture. R09 source adapters and actual model are verified by test-r09-publication and independent native scopes.
+const workspace = readHistoricalWorkspace();
 const room = (floorId, roomId) => workspace.houseStructuresByFloor[floorId].rooms.find((candidate) => candidate.id === roomId);
 
 for (const structure of Object.values(workspace.houseStructuresByFloor)) {

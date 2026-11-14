@@ -9,6 +9,7 @@ import {buildModelInspectionCameras} from '../lib/model-inspection-cameras.ts';
 import {getModelDisplayBounds,getDisplayPercentBounds} from '../lib/model-display-bounds.ts';
 const read=p=>JSON.parse(fs.readFileSync(new URL(p,import.meta.url)));
 const bytes=fs.readFileSync(new URL('../data/default-workspace.json',import.meta.url)),m=JSON.parse(bytes);
+if(m.defaultWorkspaceRevision==='UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE'){await import('./test-r09-publication.mjs');process.exit(0);}
 assert.match(m.defaultWorkspaceRevision,/four-floor/);
 const binding=read('../public/model-releases/2026-11-11-four-floor-candidate.json');
 assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),binding.modelSha256);

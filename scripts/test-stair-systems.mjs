@@ -125,7 +125,7 @@ const b1CurrentLayer = workspace.stairSystems
     opening: workspace.stairOpenings.find((candidate) => candidate.id === system.openingId),
     mode: "current-floor"
   }));
-assert.equal(b1CurrentLayer.flatMap((system) => [system.lowerFlight, system.upperFlight].filter(Boolean)).length, 2, "B1 ordinary 3D must only render its two current-floor stair flights.");
+assert.equal(b1CurrentLayer.flatMap((system) => [system.lowerFlight, system.upperFlight].filter(Boolean)).length, 3, "B1 ordinary model retains its down flight and the complete registered B1-to1F paired geometry.");
 assert.ok(b1CurrentLayer.every((system) => system.landing), `B1 ordinary 3D must render the two real half-level landings that connect its up/down flights.\n${b1CurrentLayer.map(formatStairRenderDebug).join("\n\n")}`);
 assert.deepEqual(
   b1CurrentLayer.map((system) => system.landing?.finalYMm).sort((a, b) => a - b),
@@ -169,10 +169,11 @@ const twoFCurrentLayer = workspace.stairSystems
     });
     return [renderSystem.lowerFlight, renderSystem.upperFlight].filter(Boolean);
   });
-assert.deepEqual(twoFCurrentLayer.map((flight) => flight.stair.direction), ["down"], "2F current 3D must not render a false up flight.");
-assert.equal(twoFCurrentLayer[0]?.stair.id, "ST-2F-001", "2F must render the real arrival/down flight connected to 1F.");
-assert.equal(twoFCurrentLayer[0]?.finalFloorYMm, 0, "2F arrival flight must meet the 2F finished floor.");
-assert.equal(twoFCurrentLayer[0]?.finalPlatformYMm, -STAIR_FLIGHT_RISE_MM, "2F arrival flight must continue down toward the 1F half landing.");
+assert.deepEqual(twoFCurrentLayer.map((flight) => flight.stair.id), ["ST-1F-001", "ST-2F-001"], "2F current model includes both real source flights of its registered pair, not a fabricated extra exit.");
+const twoFArrival=twoFCurrentLayer.find(f=>f.stair.id==="ST-2F-001");
+assert.equal(twoFArrival?.stair.id, "ST-2F-001", "2F must render the real arrival/down flight connected to 1F.");
+assert.equal(twoFArrival?.finalFloorYMm, 0, "2F arrival flight must meet the 2F finished floor.");
+assert.equal(twoFArrival?.finalPlatformYMm, -STAIR_FLIGHT_RISE_MM, "2F arrival flight must continue down toward the 1F half landing.");
 
 const invalidSteps = structuredClone(workspace);
 invalidSteps.houseStructuresByFloor.B1.stairs[0].stepCount = 9;

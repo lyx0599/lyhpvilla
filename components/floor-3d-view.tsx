@@ -1,8 +1,28 @@
 "use client";
+import {OneFD003Fit} from "./onef-d003-fit";
+import joint1FFloor from "@/data/joint-1f-exact-floor.json";
+import {R02GuardSideSupports} from "./r02-guard-side-supports";
+import stairCeilingApertures from "@/data/stair-ceiling-apertures.json";
+import {NativeStairSection} from "./native-stair-section";
+import {R02ContinuousStairPart} from "./r02-continuous-stair";
+import southRegisteredStair from "@/data/south-registered-stair.json";
+import {R02NorthBathAsset} from "./r02-north-bath";
+import area2fExactFloor from "@/data/area2f-exact-floor.json";
+
+import undergroundColumnJoin from "@/data/underground-column-trim-r01.json";
+import {hasB2SpaceFurniture} from './b2-r08/B2SpaceFurniture';
+import {B2R08Furniture,B2R08NorthDoor} from './b2-r08/bridge';
+import {B1ReflowActor} from '@/components/b1-reflow-operation';
+import reflowFloor from '@/data/b1-reflow-floor.json';
+import {Area6623Roof} from "./area6623-architecture";
+import {B2FullDesignLayer} from './b2-full-design-layer';
 import {B2WestParts,B2WestPeople} from "@/components/b2-west-layout-parts";
+import {B1LayoutDoor,B1LayoutCleaning,B1LayoutWasher} from './b1-layout-r01';
+import {B1D01Ceiling} from './b1-d01-ceiling';
 import {B1R06Cabinet} from './b1-r06-cabinets';
 import {B1R03Entity} from './b1-r03-functional';
 import {D004PublicSlidingLeaf,SecondFloorFinishedHingedLeaf,SecondFloorHingeMount} from './second-floor-door-corrections';
+import {B1D01FloorSeams} from './b1-d01-floor-seams';
 import {B2FinishedFloorSeams} from './b2-finished-floor-seams';
 import {B2FloorFittedLeaf,B2FloorHingeMount} from './b2-floor-fitted-door';
 import {useB2DoorOperation} from '../lib/b2-door-operation';
@@ -2014,7 +2034,7 @@ function getShowroomFloorOverride(room: HouseStructure["rooms"][number], structu
     };
   }
 
-  if (["B1", "1F"].includes(structure.floorId)) {
+  if (structure.floorId === "1F") {
     return {
       // Keep the main floor identical to the showroom reference on every
       // level. Bathrooms still use their authored wet-area finish above.
@@ -2244,6 +2264,7 @@ function getFurnitureScenePosition(item: Furniture, structure: HouseStructure): 
 
 function getFurnitureActualHeight(item: Furniture) {
   const height = item.dimensions.height / 100;
+  if (item.id==='furn-b1-activity-rug-001') return height;
   if (isRugLike(item)) return 0.024;
   return Math.max(0.024, height);
 }
@@ -2529,7 +2550,10 @@ function getFurnitureServiceMarkers(item: Furniture) {
 }
 
 function RoomFloorMesh(props: Parameters<typeof RoomFloorMeshContents>[0]) {
-  return <group name={`${props.room.id}-actual-native-floor`} userData={{auditEntityId:props.room.id,auditKind:'room-floor'}}><RoomFloorMeshContents {...props}/></group>;
+  // These four R01 room polygons lie entirely north of the unchanged stair holes.
+  // Do not insert the distant hole as an out-of-polygon Shape hole. All other floors/rooms retain source clipping.
+  const unaffectedByStairHole=props.structure.floorId==='B1'&&['ROOM-B1-001','ROOM-B1-002','ROOM-B1-006','ROOM-B1-007'].includes(props.room.id);
+  return <group name={`${props.room.id}-actual-native-floor`} userData={{auditEntityId:props.room.id,auditKind:'room-floor'}}><RoomFloorMeshContents {...props} openings={unaffectedByStairHole?[]:props.openings}/></group>;
 }
 
 function RoomFloorMeshContents({
@@ -2547,6 +2571,24 @@ function RoomFloorMeshContents({
 }) {
   const key = `${room.boundary.map((point) => `${point.x},${point.y}`).join(" ")}|${openings.map((opening) => opening.polygon.map((point) => `${point.x},${point.y}`).join(" ")).join("|")}`;
   const geometry = useMemo(() => {
+    if(structure.floorId==='1F'){
+      const record=joint1FFloor.rooms.find(r=>r.id===room.id);
+      if(!record||JSON.stringify(record.boundary)!==JSON.stringify(room.boundary)||JSON.stringify(joint1FFloor.openings)!==JSON.stringify(openings.map(o=>({id:o.id,polygon:o.polygon}))))throw new Error('1F joint floor source changed: regenerate actual room-minus-opening contract');
+      const exact=new THREE.BufferGeometry();exact.setAttribute('position',new THREE.Float32BufferAttribute(record.position,3));exact.computeVertexNormals();return normalizePlanarUvs(exact);
+    }
+    if(structure.floorId==='2F'){
+      const record=area2fExactFloor.rooms.find(r=>r.id===room.id);
+      if(!record||JSON.stringify(record.boundary)!==JSON.stringify(room.boundary)||JSON.stringify(area2fExactFloor.openings)!==JSON.stringify(openings.map(o=>({id:o.id,polygon:o.polygon}))))throw new Error('2F exact floor source mismatch: regenerate registered boundary-minus-openings contract');
+      const exact=new THREE.BufferGeometry();exact.setAttribute('position',new THREE.Float32BufferAttribute(record.position,3));exact.computeVertexNormals();return normalizePlanarUvs(exact);
+    }
+    if (structure.floorId === 'B1') {
+      const binding=(reflowFloor.rooms as Record<string,{positions:number[]}>)[room.id];
+      if (!binding) throw new Error('Unbound R06 B1 floor '+room.id);
+      const g=new THREE.BufferGeometry();
+      g.setAttribute('position',new THREE.Float32BufferAttribute(binding.positions,3));
+      g.computeVertexNormals();
+      return normalizePlanarUvs(g);
+    }
     const shape = new THREE.Shape();
     room.boundary.forEach((point, pointIndex) => {
       const nextPoint = toShapePoint(point, structure);
@@ -2570,7 +2612,7 @@ function RoomFloorMeshContents({
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   const floorStyle = getRoomFloorStyle(room, structure, designStyle);
-  const floorSurfaceY = structure.floorId==='B2'?b2FinishedFloorContract.finishedSurfaceMm*MM_TO_M:roomFloorPresentationElevationM(structure.floorId, index);
+  const floorSurfaceY = structure.floorId==='B2'?b2FinishedFloorContract.finishedSurfaceMm*MM_TO_M:(structure.floorId==='1F'||structure.floorId==='2F')?.018:roomFloorPresentationElevationM(structure.floorId, index);
   const bounds = getSceneBounds(room.boundary, structure);
   const surfaceSizeM: readonly [number, number] = [
     Math.max(0.1, bounds.maxX - bounds.minX),
@@ -2592,6 +2634,7 @@ function RoomFloorMeshContents({
           roughness={floorStyle.roughness}
         />
       </mesh>
+      {structure.floorId==='B1'&&<B1D01FloorSeams geometry={geometry} width={surfaceSizeM[0]} depth={surfaceSizeM[1]} elevation={floorSurfaceY} joint={floorStyle.joint} wood={false} tileWidthMm={floorStyle.tileWidthMm} tileLengthMm={floorStyle.tileLengthMm} directionDeg={floorStyle.directionDeg}/>}
       {structure.floorId==='B2'&&floorStyle.pattern!==SHOWROOM_HERRINGBONE_PATTERN&&floorStyle.kind!=='microcement'&&<B2FinishedFloorSeams geometry={geometry} width={surfaceSizeM[0]} depth={surfaceSizeM[1]} elevation={floorSurfaceY} joint={floorStyle.joint} wood={floorStyle.kind==='wood'} tileWidthMm={floorStyle.tileWidthMm} tileLengthMm={floorStyle.tileLengthMm} directionDeg={floorStyle.directionDeg}/>}
       {floorStyle.pattern === SHOWROOM_HERRINGBONE_PATTERN && <ShowroomHerringboneOverlay
         geometry={geometry}
@@ -2682,7 +2725,7 @@ function RoomFloorFinishOverlayContents({
 }) {
   // B2 seams now share the exact35mm clipped room shape in RoomFloorMesh.
   // Preserve the floor/hole polygons; do not retain old55..59 floating boxes.
-  if(structure.floorId==='B2')return null;
+  if(structure.floorId==='B2'||structure.floorId==='B1')return null;
   const bounds = getSceneBounds(room.boundary, structure);
   if (!Number.isFinite(bounds.minX) || !Number.isFinite(bounds.minZ)) return null;
 
@@ -3057,7 +3100,13 @@ function PolygonSurfaceMesh({
   onClearHover?: (id: string) => void;
 }) {
   const key = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const isCeilingSurface=materialRole==='ceilingBase'||id.startsWith('ceiling-fallback-')||id.startsWith('room-ceiling-');
   const geometry = useMemo(() => {
+    const binding=isCeilingSurface?stairCeilingApertures.records.find(r=>r.floorId===structure.floorId&&r.ids.includes(id)):undefined;
+    if(binding){
+      if(binding.boundary.length!==points.length||binding.boundary.some((p,i)=>p.x!==points[i].x||p.y!==points[i].y))throw new Error('Stair ceiling aperture source changed: regenerate current room/opening binding');
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(binding.positions,3));g.computeVertexNormals();return normalizePlanarUvs(g);
+    }
     const shape = new THREE.Shape();
     points.forEach((point, pointIndex) => {
       const nextPoint = toShapePoint(point, structure);
@@ -3066,7 +3115,7 @@ function PolygonSurfaceMesh({
     });
     shape.closePath();
     return normalizePlanarUvs(new THREE.ShapeGeometry(shape));
-  }, [key, structure]);
+  }, [key, structure,id,isCeilingSurface]);
   const bounds = getSceneBounds(points, structure);
   const repeatX = Number.isFinite(bounds.maxX) ? Math.max(1, bounds.maxX - bounds.minX) : 1;
   const repeatY = Number.isFinite(bounds.maxZ) ? Math.max(1, bounds.maxZ - bounds.minZ) : 1;
@@ -3076,6 +3125,8 @@ function PolygonSurfaceMesh({
 
   return (
     <mesh
+      name={isCeilingSurface?id:undefined}
+      userData={isCeilingSurface?{auditEntityId:id,auditKind:'ceiling-surface'}:undefined}
       receiveShadow
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, y, 0]}
@@ -4047,7 +4098,7 @@ function SolidWallSegment({
         id={id}
         start={start}
         end={end}
-        widthMm={displayProfile.capMm}
+        widthMm={id==='W-1F-012'&&structure.floorId==='1F'?widthMm:displayProfile.capMm}
         heightMm={capHeightMm}
         structure={structure}
         color={selected ? WALL_CAP_SELECTED_COLOR : technicalCap ? WALL_CAP_COLOR : wallSurfaceColor}
@@ -4176,7 +4227,7 @@ function CutWallPanel({
           id={id}
           start={start}
           end={end}
-          widthMm={displayProfile.capMm}
+          widthMm={id==='W-1F-012'&&structure.floorId==='1F'?widthMm:displayProfile.capMm}
           heightMm={capHeightMm}
           structure={structure}
           color={selected ? WALL_CAP_SELECTED_COLOR : technicalCap ? WALL_CAP_COLOR : wallSurfaceColor}
@@ -4508,7 +4559,7 @@ function ColumnMesh({
   const accentColor = tableColumn ? "#ae8c5b" : stairColumn ? "#b9a078" : column.accentColor ?? "#a78358";
 
   return (
-    <group
+    <group name={column.id} userData={{auditEntityId:column.id,auditKind:"column"}}
       onClick={(event) => {
         event.stopPropagation();
         onSelect(column.id);
@@ -4649,7 +4700,7 @@ function StyledDoorLeaf({
 
 function OpeningMesh(props: Parameters<typeof OpeningMeshContents>[0]) {
   return <group name={`${props.opening.id}-actual-hosted-opening`} userData={{auditEntityId:props.opening.id,auditKind:props.opening.id.startsWith('D-')?'door':'window',hostId:props.opening.hostId}}>
-    <OpeningMeshContents {...props}/>
+    {props.structure.floorId==='1F'&&props.opening.id==='D-1F-003'?<OneFD003Fit door={props.opening as HouseDoor} structure={props.structure}/>:props.structure.floorId==='B1'&&['D-B1-001','D-B1-LAUNDRY-R01','D-B1-GUEST-R01'].includes(props.opening.id)?<B1LayoutDoor id={props.opening.id}/>:<OpeningMeshContents {...props}/>}
   </group>;
 }
 
@@ -4685,7 +4736,7 @@ function OpeningMeshContents({
   const isDoor = "openDirection" in opening;
   const finished2FDoor = structure.floorId==='2F' && ['D-2F-003','D-2F-006'].includes(opening.id);
   const finishedB2Door = structure.floorId==='B2' && ['D-B2-001','D-B2-STORAGE-001','D-B2-LW-N','D-B2-LW-S'].includes(opening.id);
-  const publicD004 = structure.floorId==='2F' && opening.id==='D-2F-004' && opening.hostId==='W-2F-023' && opening.width===850;
+  const publicD004 = structure.floorId==='2F' && opening.id==='D-2F-004' && opening.hostId==='W-2F-013' && opening.width===850 && isDoor && opening.operation==='sliding' && Math.abs(host.start.y-host.end.y)<.001 && host.end.x>host.start.x;
   const r08Door=isDoor&&opening.id===d005Contract.doorId&&(opening.verificationMeta?.sourceNote??'').startsWith(d005Contract.enableSourceNotePrefix);
   const width = Math.max(0.2, opening.width * MM_TO_M);
   const windowDisplayMetrics = isDoor ? null : getWindow3DDisplayMetrics(host.height, opening.height, opening.sillHeightMm);
@@ -4772,17 +4823,18 @@ function OpeningMeshContents({
               <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={frameColor} roughness={0.42} metalness={0.36} surfaceSizeM={[width, liningDepth]} />
             </mesh>
           )}
-          {publicD004 ? <D004PublicSlidingLeaf amount={secondFloorDoorOperation[opening.id] ?? explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0}/> : opening.operation === "sliding" ? (
+          {publicD004 ? <D004PublicSlidingLeaf sideOffsetMm={190} amount={secondFloorDoorOperation[opening.id] ?? explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0}/> : opening.operation === "sliding" ? (
             (doorVisual?.leafCount === 1
               ? [(opening as HouseDoor).openDirection.startsWith("left") ? -1 : 1]
               : [-1, 1]
             ).map((panelSide) => {
               const isSingleSlidingLeaf = doorVisual?.leafCount === 1;
-              const openingAmount = explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0;
+              const balconyRebind=structure.floorId==='2F'&&['D-2F-009','D-2F-010'].includes(opening.id);
+              const openingAmount = (balconyRebind?secondFloorDoorOperation[opening.id]:undefined) ?? explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0;
               const panelWidth = width * (isSingleSlidingLeaf ? 0.98 : 0.54);
               const panelOffset = isSingleSlidingLeaf
                 ? panelSide * width * openingAmount * 0.52
-                : panelSide * width * (0.23 + openingAmount * 0.25);
+                : balconyRebind ? panelSide*width*.23+(panelSide===-1?width*.46*openingAmount:0) : panelSide * width * (0.23 + openingAmount * 0.25);
               return (
               <group
                 key={`${opening.id}-sliding-panel-${panelSide}`}
@@ -4823,11 +4875,12 @@ function OpeningMeshContents({
               const insideLocalZ=n.x*(-dy/len)+n.y*(dx/len),desiredLocalZ=insideLocalZ*(opensInside?1:-1);
               designSwingAngle=-Math.sign(desiredLocalZ)*leafDirection*d005Contract.fullOpenDeg*Math.PI/180;
             }
-            const r12GuestDoor=opening.id==='D-2F-006'&&(opening.verificationMeta?.sourceNote??'').includes('R12-D006-room-side');
+            const r12GuestDoor=opening.id==='D-2F-006'; // Source-restored guest entry derives room inward side by stable ID, never by an obsolete note marker.
             if(r12GuestDoor){
               const room=structure.rooms.find(r=>r.id==='ROOM-2F-001');
-              if(room)designSwingAngle=d006RoomInwardYaw({id:opening.id,hostStart:host.start,hostEnd:host.end,positionOnWall:t,roomBoundary:room.boundary,leafDirection,angleDeg:90})??designSwingAngle;
+              if(room)designSwingAngle=d006RoomInwardYaw({id:opening.id,hostStart:host.start,hostEnd:host.end,positionOnWall:t,roomBoundary:room.boundary,leafDirection,angleDeg:(opening as HouseDoor & {notes?:string}).notes?.includes('R02-NORTH-110')?110:90,maxAngleDeg:(opening as HouseDoor & {notes?:string}).notes?.includes('R02-NORTH-110')?110:90})??designSwingAngle;
             }
+            if(finished2FDoor&&opening.id==='D-2F-003'&&opening.openDirection==='leftOut')designSwingAngle=Math.sign(designSwingAngle)*Math.PI/2;
             const calQueryKey=({'D-1F-003':'d003','D-1F-002':'d002','D-1F-007':'d007'}as Record<string,string>)[opening.id];
             const swingAngle = calRoomId&&calQueryKey&&operationQuery.has(calQueryKey)
               ? designSwingAngle*Math.max(0,Math.min(90,Number(operationQuery.get(calQueryKey))))/72
@@ -4841,7 +4894,7 @@ function OpeningMeshContents({
               : r08Door&&operationQuery.has('d005')
               ? designSwingAngle*Math.max(0,Math.min(d005Contract.fullOpenDeg,Number(operationQuery.get('d005'))))/d005Contract.fullOpenDeg
               : r12GuestDoor&&operationQuery.has('d006')
-              ? designSwingAngle*Math.max(0,Math.min(90,Number(operationQuery.get('d006'))))/90
+              ? designSwingAngle*Math.max(0,Math.min((opening as HouseDoor & {notes?:string}).notes?.includes('R02-NORTH-110')?110:90,Number(operationQuery.get('d006'))))/((opening as HouseDoor & {notes?:string}).notes?.includes('R02-NORTH-110')?110:90)
               : explorationDoorState
               ? designSwingAngle * explorationDoorState.currentAngle
               : designSwingAngle * ((opening as HouseDoor).defaultOpenAmount ?? 0);
@@ -4862,11 +4915,13 @@ function OpeningMeshContents({
             const b2FittedHeight=height-jambFrameWidth/2-.003-.045;
             const hingeSide=-Math.sign(designSwingAngle)*leafDirection;
             const pivotX=opensFromStart?-fittedWidth/2:fittedWidth/2;
+            const northCorrectedMount=r12GuestDoor&&(opening as HouseDoor & {notes?:string}).notes?.includes('R02-NORTH-110');
+            const fittedHingePlaneM=northCorrectedMount?(host.thickness/2+18)*MM_TO_M:.0275;
             return (
               <group>
-              {finished2FDoor&&<SecondFloorHingeMount id={opening.id} pivotX={pivotX} insideSide={hingeSide} direction={leafDirection}/>}
+              {finished2FDoor&&<group position={[0,0,northCorrectedMount?hingeSide*(fittedHingePlaneM-.0275):0]}><SecondFloorHingeMount id={opening.id} pivotX={pivotX} insideSide={hingeSide} direction={leafDirection} jambExtension={northCorrectedMount}/></group>}
               {finishedB2Door&&<B2FloorHingeMount id={opening.id} pivotX={pivotX} height={b2FittedHeight} direction={leafDirection} side={hingeSide}/>}
-              <group name={calRoomId?'CAL5900-room-directed-'+opening.id:r08Door?'D005-R08-real-moving-leaf':r12GuestDoor?'D006-R12-real-inward-leaf':undefined} userData={calRoomId?{auditEntityId:opening.id,auditKind:opening.id==='D-1F-003'?'d003-leaf':'cal5900-door-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:calRoomId}:r08Door?{auditEntityId:'D-1F-005',auditKind:'d005-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:d005Contract.targetRoomId}:r12GuestDoor?{auditEntityId:opening.id,auditKind:'d006-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:'ROOM-2F-001'}:undefined} position={[pivotX, 0, finished2FDoor?hingeSide*.0275:finishedB2Door?hingeSide*.030:0]} rotation={[0, swingAngle, 0]}>
+              <group name={calRoomId?'CAL5900-room-directed-'+opening.id:r08Door?'D005-R08-real-moving-leaf':r12GuestDoor?'D006-R12-real-inward-leaf':undefined} userData={calRoomId?{auditEntityId:opening.id,auditKind:opening.id==='D-1F-003'?'d003-leaf':'cal5900-door-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:calRoomId}:r08Door?{auditEntityId:'D-1F-005',auditKind:'d005-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:d005Contract.targetRoomId}:r12GuestDoor?{auditEntityId:opening.id,auditKind:'d006-leaf',actualAngleDeg:swingAngle*180/Math.PI,targetRoomId:'ROOM-2F-001'}:undefined} position={[pivotX, 0, finished2FDoor?hingeSide*fittedHingePlaneM:finishedB2Door?hingeSide*.030:0]} rotation={[0, swingAngle, 0]}>
                 {finishedB2Door ? <B2FloorFittedLeaf id={opening.id} width={fittedWidth} height={b2FittedHeight} direction={leafDirection} side={hingeSide} color={doorWoodColor}/> : finished2FDoor ? <SecondFloorFinishedHingedLeaf id={opening.id} width={fittedWidth} direction={leafDirection} color={doorWoodColor} insideSide={hingeSide}/> : r12GuestDoor?<group name="D006-R12-full900x55-two-normal-knobs" position={[leafDirection*width/2,height/2,0]}>
                   <mesh name="D006-R12-full-leaf" castShadow receiveShadow><boxGeometry args={[width,height,.055]}/><PbrMaterial token="warmOak" fallbackRole="joineryMain" color={doorWoodColor} roughness={.7} surfaceSizeM={[width,height]}/></mesh>
                   {[-1,1].map(side=><mesh key={side} name={`D006-R12-normal-knob-${side}`} position={[leafDirection*width*.39,0,side*.0506]}><sphereGeometry args={[.036,20,16]}/><PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color={doorHardwareColor} metalness={.6} roughness={.3} surfaceSizeM={[.072,.072]}/></mesh>)}
@@ -5199,10 +5254,11 @@ function StairLandingMesh({
     depth: Math.max(0.5, bounds.maxZ - bounds.minZ)
   };
   const elevation = elevationMm * MM_TO_M;
-  const isB2StorageLanding = structure.floorId === "B2" && landing.id === "LANDING-B2-B1";
+  if(landing.id==="LANDING-1F-2F"||landing.id==="LANDING-B1-1F")return null; // R02 turning treads replace inherited fictitious flat platform.
+  const isB2StorageLanding = landing.id === "LANDING-B2-B1"; // One physical platform profile in every floor view.
   const platformThickness = isB2StorageLanding ? 0.1 : 0.13;
   return (
-    <group
+    <group name={`${landing.id}-actual-stair-landing`} userData={{auditEntityId:landing.id,auditKind:"stair-landing"}}
       onClick={(event) => {
         event.stopPropagation();
         onSelect(landing.id);
@@ -5239,10 +5295,31 @@ function StairLandingMesh({
   );
 }
 
+function ColumnJoinedOpeningFinish({pieceKey,selected}:{pieceKey:string;selected:boolean}) {
+  const piece=undergroundColumnJoin.pieces.find(p=>p.key===pieceKey)!;
+  const geometry=useMemo(()=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(piece.position,3));g.computeVertexNormals();return g;},[piece]);
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
+  return <mesh name={`column-joined-${pieceKey}`} geometry={geometry} castShadow receiveShadow>
+    <PbrMaterial token={pieceKey.startsWith('slab')?'warmWhiteMineral':'microCement'} fallbackRole="wallBase" color={selected?'#93c5fd':pieceKey.startsWith('slab')?'#d8d0c4':'#766b60'} roughness={.82} side={THREE.DoubleSide}/>
+  </mesh>;
+}
+
+function SouthArrivalGuardLink({opening,elevation,structure}:{opening:StairOpening;elevation:number;structure:HouseStructure}){
+ const edge=opening.guardEdges.find(e=>e.id==='GUARD-B1-1F-SOUTH-SOURCE-NOTCH');
+ const rail=southRegisteredStair.registeredRails.find(r=>r.id==='SOUTH17-upper--1');
+ if(!edge||!rail)return null;
+ const pp=toScenePoint({x:rail.b[0],y:rail.b[1]},structure),qq=toScenePoint(edge.start,structure);
+ // Existing opening datum is10mm; registered finished floor is18mm.
+ const a=new THREE.Vector3(pp.x,elevation+(southRegisteredStair.finishOffsetMm-10)/1000+1,pp.z),b=new THREE.Vector3(qq.x,elevation+.955,qq.z),d=b.clone().sub(a);
+ const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());
+ return <mesh name="SOUTH17-arrival-to-floor-guard-real-wood-joint" userData={{auditPart:'arrival-handrail-joint',conceptJointNotFieldAnchor:true}} position={a.clone().add(b).multiplyScalar(.5)} quaternion={q}><cylinderGeometry args={[.023,.023,d.length(),12]}/><meshStandardMaterial color="#705744" roughness={.55}/></mesh>;
+}
+
 function StairOpeningMesh({ opening, elevationMm, structure, selected, showSlabFrame }: { opening: StairOpening; elevationMm: number; structure: HouseStructure; selected: boolean; showSlabFrame: boolean }) {
   const elevation = elevationMm * MM_TO_M;
   const points = opening.polygon.map((point) => toScenePoint(point, structure));
   const openingBounds = getSceneBounds(opening.polygon, structure);
+  const winding = Math.sign(points.reduce((sum,p,i)=>{const q=points[(i+1)%points.length];return sum+p.x*q.z-q.x*p.z;},0)) || 1;
   const stairRoom = structure.rooms.find((room) => /楼梯/.test(room.name));
   const roomBounds = stairRoom ? getSceneBounds(stairRoom.boundary, structure) : null;
   const slabPieces = roomBounds ? [
@@ -5252,9 +5329,9 @@ function StairOpeningMesh({ opening, elevationMm, structure, selected, showSlabF
     { id: "edge-b", minX: openingBounds.minX, maxX: openingBounds.maxX, minZ: openingBounds.maxZ, maxZ: roomBounds.maxZ }
   ].filter((piece) => piece.maxX - piece.minX > 0.01 && piece.maxZ - piece.minZ > 0.01) : [];
   return (
-    <group>
+    <group name={`${opening.id}-actual-stair-opening`} userData={{auditEntityId:opening.id,auditKind:"stair-opening"}}>
       {showSlabFrame && slabPieces.map((piece) => (
-        <mesh
+        opening.id===undergroundColumnJoin.openingId&&undergroundColumnJoin.pieces.some(p=>p.key===`slab-${piece.id}`)?<ColumnJoinedOpeningFinish key={`${opening.id}-slab-${piece.id}`} pieceKey={`slab-${piece.id}`} selected={selected}/>:<mesh
           key={`${opening.id}-slab-${piece.id}`}
           castShadow
           receiveShadow
@@ -5269,30 +5346,41 @@ function StairOpeningMesh({ opening, elevationMm, structure, selected, showSlabF
         const dx = next.x - point.x;
         const dz = next.z - point.z;
         const length = Math.hypot(dx, dz);
+        if(opening.id===undergroundColumnJoin.openingId&&undergroundColumnJoin.pieces.some(p=>p.key===`reveal-${index}`))return <ColumnJoinedOpeningFinish key={`${opening.id}-reveal-${index}`} pieceKey={`reveal-${index}`} selected={selected}/>;
         return (
-          <mesh key={`${opening.id}-reveal-${index}`} position={[(point.x + next.x) / 2, elevation - 0.08, (point.z + next.z) / 2]} rotation={[0, Math.atan2(-dz, dx), 0]}>
+          <mesh key={`${opening.id}-reveal-${index}`} position={[(point.x + next.x) / 2 + winding * dz / length * 0.12, elevation - 0.08, (point.z + next.z) / 2 - winding * dx / length * 0.12]} rotation={[0, Math.atan2(-dz, dx), 0]}>
             <boxGeometry args={[length, 0.18, 0.24]} />
             <PbrMaterial token="microCement" fallbackRole="wallBase" color={selected ? "#2563eb" : "#766b60"} roughness={0.8} surfaceSizeM={[length, 0.18]} />
           </mesh>
         );
       })}
+      {opening.id==='OPENING-1F-2F' && opening.guardEdges.some(e=>Math.abs(e.start.x-3060)<.01&&Math.abs(e.end.x-3060)<.01) && <R02GuardSideSupports polygon={points} edges={opening.guardEdges.map(e=>({id:e.id,start:toScenePoint(e.start,structure),end:toScenePoint(e.end,structure)}))} elevation={elevation}/>}
+      {opening.id==='OPENING-B1-1F'&&<SouthArrivalGuardLink opening={opening} elevation={elevation} structure={structure}/>}
       {opening.guardEdges.map((edge) => {
         const metrics = lineMetrics(edge.start, edge.end, structure);
         const railingHeight = 0.92;
+        const north40 = opening.id==='OPENING-B2-B1' && edge.id==='GUARD-B2-B1-N-CONTINUOUS';
+        // R07: continuous guard on existing floor side; actual finish is18mm.
+        // Baseplates/short anchors are design joints only, no field anchorage claim.
         return (
-          <group key={edge.id} position={[metrics.startPoint.x, elevation, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+          <group key={edge.id} position={[metrics.startPoint.x, elevation+(north40?.018:0), metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
+            {north40 && <mesh name="B2B1-north40-wall-end-glass-link" userData={{auditPart:'guard-wall-end-glass-link',fieldAnchorageProven:false}} position={[-.020,.46,0]}><boxGeometry args={[.040,.92,.018]}/><PbrMaterial token="clearGlass" fallbackRole="glassMain" color="#bfe0e3" transmission={.84} opacity={.24} roughness={.05} depthWrite={false} side={THREE.DoubleSide}/></mesh>}
+            {north40 && [0,1].map((t,i)=><group key={`north40-foot-${i}`}>
+              <mesh name={`B2B1-north40-baseplate-${i}`} userData={{auditPart:'guard-design-baseplate',fieldAnchorageProven:false}} position={[metrics.length*t,.004,0]}><boxGeometry args={[.08,.008,.05]}/><meshStandardMaterial color="#665f57" roughness={.4} metalness={.65}/></mesh>
+              {[-.025,.025].flatMap((dx,ix)=>[0].map((dz,iz)=><mesh key={`${ix}-${iz}`} name={`B2B1-north40-anchor-${i}-${ix}-${iz}`} userData={{auditPart:'guard-design-short-anchor',fieldAnchorageProven:false}} position={[metrics.length*t+dx,-.01,dz]}><cylinderGeometry args={[.004,.004,.044,8]}/><meshStandardMaterial color="#665f57" roughness={.4} metalness={.65}/></mesh>))}
+            </group>)}
             <mesh position={[metrics.length / 2, railingHeight / 2, 0]}>
               <boxGeometry args={[metrics.length, railingHeight, 0.018]} />
               <PbrMaterial token="clearGlass" fallbackRole="glassMain" color="#bfe0e3" transmission={0.84} opacity={0.24} roughness={0.05} depthWrite={false} side={THREE.DoubleSide} surfaceSizeM={[metrics.length, railingHeight]} />
             </mesh>
-            {[0, 0.5, 1].map((t) => (
+            {(north40 ? [0, 1] : [0, 0.5, 1]).map((t) => (
               <mesh key={`${edge.id}-post-${t}`} castShadow position={[metrics.length * t, railingHeight / 2, 0]}>
                 <boxGeometry args={[0.026, railingHeight, 0.026]} />
                 <PbrMaterial token="blackTitanium" fallbackRole="trimMetal" color="#665f57" roughness={0.32} metalness={0.66} surfaceSizeM={[0.026, railingHeight]} />
               </mesh>
             ))}
             <mesh castShadow position={[metrics.length / 2, railingHeight + 0.035, 0]}>
-              <boxGeometry args={[metrics.length + 0.08, 0.07, 0.075]} />
+              <boxGeometry args={[metrics.length + (opening.id==="OPENING-1F-2F"||edge.id==='GUARD-B1-1F-SOUTH-SOURCE-NOTCH'?0:0.08), 0.07, 0.075]} />
               <PbrMaterial token="warmOak" fallbackRole="joineryMain" color={selected ? "#2563eb" : "#78411f"} roughness={0.4} surfaceSizeM={[metrics.length, 0.07]} />
             </mesh>
           </group>
@@ -5413,7 +5501,11 @@ function StairGlassRailings({
   return (
     <group position={[metrics.startPoint.x, 0, metrics.startPoint.z]} rotation={[0, metrics.rotationY, 0]}>
       {[-1, 1].map((side) => {
-        const sideZ = side * (stairWidth / 2 + 0.018);
+        // This source-backed concept station keeps the column fixed; inset only
+        // the adjacent upper-flight south rail, rather than erase its geometry.
+        const join=undergroundColumnJoin.flightRailInset;
+        const inset=stairId===join.id&&side===join.localSide?join.insetMm/1000:0;
+        const sideZ = side * (stairWidth / 2 + 0.018-inset);
         return (
           <group key={`${stairId}-railing-${side}`}>
             <mesh position={[0, 0, sideZ]} renderOrder={muted ? 17 : 4}>
@@ -5463,7 +5555,12 @@ function StairGlassRailings({
   );
 }
 
-function StairMesh({
+function StairMesh(props:Parameters<typeof GenericStairMesh>[0]){
+ if(props.stair.id==='ST-B1-001'||props.stair.id==='ST-1F-002')return <R02ContinuousStairPart registration={southRegisteredStair} flightId={props.stair.id} lowerFinishRelativeMm={props.stair.id==='ST-B1-001'?props.startHeightMm:props.startHeightMm-2800}/>;
+ if(props.stair.id==='ST-1F-001'||props.stair.id==='ST-2F-001')return <R02ContinuousStairPart flightId={props.stair.id} lowerFinishRelativeMm={props.stair.id==='ST-1F-001'?props.startHeightMm:props.startHeightMm-2800}/>;
+ return <GenericStairMesh {...props}/>;
+}
+function GenericStairMesh({
   stair,
   structure,
   startHeightMm,
@@ -5519,7 +5616,7 @@ function StairMesh({
   const stepMaterialColor = selected ? "#2563eb" : showroomStyle ? "#d8cdbc" : materialPreview ? "#8f542f" : isDownRun ? "#9b846b" : "#d6c6ae";
   const treadTops = Array.from({ length: count }, (_, index) => THREE.MathUtils.lerp(startHeight, endHeight, (index + 1) / count));
   return (
-    <group
+    <group name={`${stair.id}-actual-stair-flight`} userData={{auditEntityId:stair.id,auditKind:"stair-flight"}}
       onClick={(event) => {
         event.stopPropagation();
         onSelect(stair.id);
@@ -5565,7 +5662,7 @@ function StairMesh({
         };
         return (
           <group key={`${stair.id}-step-group-${index}`}>
-            <mesh castShadow={!muted} receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]}>
+            <mesh name={`${stair.id}-actual-tread-${index}`} userData={{auditPart:"actual-tread",treadIndex:index}} castShadow={!muted} receiveShadow position={[center.x, centerY, center.z]} rotation={[0, metrics.rotationY, 0]}>
               <boxGeometry args={[stepLength * 1.02, 0.1, stairWidth]} />
               <PbrMaterial
                 token={showroomStyle ? "travertine" : materialPreview ? "warmOak" : "microCement"}
@@ -7326,11 +7423,13 @@ function ExternalGltfFurniture3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function FineVariantFurniture3DGroup(props: FurnitureAssetGroupProps) {
+  const reflowQuery=useSearchParams();
+  const reflowItem=props.item.id==='furn-b1-room-seasonal-wardrobe-001'?{...props.item,cabinetInterior:{...props.item.cabinetInterior!,doorStates:{...props.item.cabinetInterior?.doorStates,leftHalfOpen:reflowQuery.get('reflowReserve')==='north',rightHalfOpen:reflowQuery.get('reflowReserve')==='south'}}}:props.item;
   const metrics = useFineAssetMetrics(props);
   const persistedOpenAmount = props.item.cabinetInterior?.doorStates && Object.values(props.item.cabinetInterior.doorStates).some(Boolean) ? 1 : 0;
   const content = (
     <FurnitureFamily3D
-      item={props.item}
+      item={reflowItem}
       asset={props.resolvedAsset}
       width={metrics.width}
       depth={metrics.depth}
@@ -9062,7 +9161,9 @@ function B2R7ChairOutline(props:FurnitureAssetGroupProps){
 }
 function B2BoundParts(props:FurnitureAssetGroupProps){const m=useFineAssetMetrics(props);return <SelectableFurnitureGroup props={props} position={m.position} groupY={m.groupY} rotation={m.rotation}><B2WestParts id={props.item.id} height={m.height}/></SelectableFurnitureGroup>;}
 function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
-  if(props.item.render3d?.variantId==='b1R06LessOpen')return <B1R06Cabinet id={props.item.id}/>;
+  if(props.item.id==='furn-b1-laundry-washer-001')return <B1LayoutWasher/>;
+  if(props.item.id==='furn-b1-laundry-cleaning-cabinet-001')return <B1LayoutCleaning/>;
+  if(props.item.render3d?.variantId==='b1R06LessOpen')return <><B1R06Cabinet id={props.item.id}/>{props.item.id==='furn-b1-activity-bookshelf-001'&&<B1D01Ceiling/>}</>;
   if(props.item.note?.includes('B1-R03-FUNCTIONAL')&&['furn-b1-guest-bed-001','furn-b1-laundry-washer-001','furn-b1-bath-toilet-001','furn-b1-bath-vanity-001','furn-b1-laundry-cleaning-cabinet-001'].includes(props.item.id)) {
     const delta=(b1Migration as Record<string,number[]>)[props.item.id];
     return <group name={'MIGRATION-'+props.item.id} position={[delta[0]/1000,0,delta[1]/1000]}><B1R03Entity id={props.item.id}/></group>;
@@ -9073,6 +9174,8 @@ function ResolvedFurnitureAsset(props: ResolvedFurnitureAssetProps) {
     detailLevel: resolveUnifiedSceneDetailLevel(sourceAsset.detailLevel, props.sceneLod)
   };
   if (!resolveVisibility(props.item).visible3d || !resolvedAsset.visibleIn3d) return null;
+  if(props.item.render3d?.variantId==='r02SourceNorthVanity'||props.item.render3d?.variantId==='r02SourceNorthShower')return <R02NorthBathAsset item={props.item}/>;
+  if(props.item.floorId==='B2'&&hasB2SpaceFurniture(props.item.id))return <B2R08Furniture item={props.item} position={getFurnitureScenePosition(props.item,props.structure)} openAmount={props.cabinetOpenAmount} onSelect={part=>props.onSelect(props.item,part)} onHover={()=>props.onHover(props.item.id)} onClearHover={()=>props.onClearHover(props.item.id)}/>;
   if(props.item.render3d?.variantId==='b2-west-layout-r2')return <B2BoundParts {...props} resolvedAsset={resolvedAsset}/>;
   if (props.item.id === "furn-b2-fireplace-east-candidate-20261030") return <B2UnselectedIntentEnvelope {...props} resolvedAsset={resolvedAsset} />;
   const role=props.item.id==='furn-b2-sofa-residence-four-reference-20261031-r7'?'sofa':props.item.id==='furn-b2-study-souvenir-cabinet-001'?'castle':props.item.id==='furn-b2-sports-camping-storage-candidate-20261030'?'sports':props.item.id==='furn-b2-bike-trainer-candidate-20261030'?'bike':null;
@@ -10427,7 +10530,7 @@ function SpecialtyCeilingLayer({
     }),
     ...structure.rooms
       .filter((room) => !roomsWithCeilingItems.has(room.id))
-      .map((room) => ({ id: `ceiling-fallback-${room.id}`, points: room.boundary, y: (room.finishedCeilingHeightMm ?? DEFAULT_CEILING_HEIGHT_MM) * MM_TO_M, color: "#f4f0e8", roughness: 0.76, materialToken: "warmWhiteMineral", materialRole: "ceilingBase" as const, materialResourceId: undefined, type: "fallback", splineProfile: undefined, centerMm: null, radiusXMm: 0, radiusYMm: 0 }))
+      .map((room) => ({ id: `ceiling-fallback-${room.id}`, points: room.boundary, y: (room.finishedCeilingHeightMm ?? DEFAULT_CEILING_HEIGHT_MM) * MM_TO_M, color: structure.floorId==="B1"?"#dedbd4":"#f4f0e8", roughness: structure.floorId==="B1"?0.86:0.76, materialToken: "warmWhiteMineral", materialRole: "ceilingBase" as const, materialResourceId: undefined, type: "fallback", splineProfile: undefined, centerMm: null, radiusXMm: 0, radiusYMm: 0 }))
   ];
   return (
     <group>
@@ -11445,9 +11548,11 @@ function Floor3DScene({
   return (
     <PbrQualityProvider quality={pbrQuality} device={pbrDevice} maxTextureSize={staticPreview ? (balancedQuality ? 512 : 1024) : undefined} includeHeightMap={staticPreview ? false : undefined}>
       <ScenePerformanceMonitor mode={presentationMode ? "presentation" : "edit"} interactionActive={cameraInteractionActive} />
-      <DesignEvidenceAudit/>
+      <DesignEvidenceAudit renderedSceneInputs={{houseStructure,furniture,stairSystems,stairLandings,stairOpenings}}/><NativeStairSection cutPlanYMm={(()=>{const sys=stairSystems.find(x=>x.upperFloorId===houseStructure.floorId);if(!sys)return undefined;return houseStructuresByFloor[sys.lowerFloorId]?.stairs.find(x=>x.id===sys.lowerFlightId)?.start.y;})()}/>{houseStructure.floorId==='B1'&&<B1ReflowActor/>}
       {houseStructure.floorId==='1F'&&<R15Proxies furniture={furniture}/>} 
-      {houseStructure.floorId==='B2'&&<B2WestPeople/>}
+      {houseStructure.floorId==='B2'&&!hasB2SpaceFurniture('furn-b2-study-handwash-001')&&<B2WestPeople/>}
+      {houseStructure.floorId==='B2'&&!hasB2SpaceFurniture('furn-b2-study-handwash-001')&&<B2FullDesignLayer/>}
+      {houseStructure.floorId==='B2'&&<Area6623Roof/>}
       <LocalClippingController />
       <RenderToneMapping presentationMode={presentationMode} mobilePresentationMode={mobilePresentationMode} mobileQuality={mobileQuality} exposure={toneMappingExposure} staticPreview={staticPreview} />
       <SceneReflectionEnvironment presentationMode={presentationMode} intensity={reflectionEnvironmentIntensity} />
@@ -11678,7 +11783,7 @@ function Floor3DScene({
       ))}
 
       {houseStructure.doors.filter((door) => resolveVisibility(door).visible3d && (!currentRoomActive || currentRoomWallIds.has(door.hostId))).map((door) => (
-        door.id==='D-2F-007'&&door.name.includes('G02/R11')?<R11BathEntry key={door.id} structure={houseStructure} door={door}/>:<OpeningMesh
+        door.id==='D-B2-NSTORE-R4'?<B2R08NorthDoor key={door.id} pivotScene={toScenePoint({x:5580,y:940},houseStructure)} openAmount={explorationDoorStates?.[door.id]?.currentAngle??0} onSelect={()=>onSelectStructure(door.id)}/>:door.id==='D-2F-007'&&door.name.includes('G02/R11')?<R11BathEntry key={door.id} structure={houseStructure} door={door}/>:<OpeningMesh
           key={door.id}
           opening={storageDoorPreviewOpen && door.id === "D-B2-STORAGE-001"
             ? { ...door, defaultOpenAmount: 0.76, openDirection: "rightOut" }

@@ -80,6 +80,7 @@ export function TopNavigation({
           <span className={`size-1.5 rounded-full ${saveTone === "error" ? "bg-red-500" : saveTone === "dirty" ? "bg-amber-500" : saveTone === "saving" ? "bg-blue-500 animate-pulse" : "bg-emerald-500"}`} />
           <span className="truncate">{saveLabel}</span>
         </span>
+        <a className="hidden h-8 items-center rounded-md border border-stone-200 bg-white px-2.5 text-[11px] font-semibold text-stone-700 md:flex" href={`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/model-plans/index.html`}>当前平面图</a>
         <button className="hidden h-8 rounded-md border border-stone-200 bg-white px-2.5 text-[11px] font-semibold text-stone-700 hover:border-stone-300 md:block" onClick={onExport} type="button">导出</button>
         <button aria-label="更多" className="grid size-8 place-items-center rounded-md text-lg font-semibold text-stone-600 hover:bg-stone-100" onClick={onToggleMore} type="button">···</button>
       </div>

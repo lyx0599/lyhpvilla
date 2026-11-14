@@ -1,6 +1,8 @@
 "use client";
+import compiledIdentity from "@/data/b1-reflow-identity.json";
 
 import Link from "next/link";
+import {Area6623RoomDetails} from "./area6623-architecture";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Floor3DView } from "@/components/floor-3d-view";
@@ -14,18 +16,24 @@ import {isR16Cloak} from '@/lib/r16-cloak-binding';
 import { R11CycleControls } from '@/components/r11-cycle-controls';
 import { buildModelPreviewOverview, getModelPreviewCameras, getModelPreviewScene, modelPreviewCameraLabel, modelPreviewFloors, modelPreviewLabels, resolveModelPreviewFloor } from "@/lib/model-preview";
 import { buildModelInspectionCameras } from '@/lib/model-inspection-cameras';
+import {B1ReflowControls} from './b1-reflow-operation';
+import {B1LayoutControls} from './b1-layout-r01';
 import {B1R06Controls} from '@/components/b1-r06-cabinets';
 import {SecondFloorDoorControls} from './second-floor-door-corrections';
 import {B2FloorDoorControls} from './b2-floor-fitted-door';
 import type { Drawing3DWallMode } from "@/lib/drawing-3d-profiles";
-import type { MobileQuality, FixedCameraView } from "@/types/space";
+import type { MobileQuality, FixedCameraView, Furniture } from "@/types/space";
+
+import oneFTableStates from '@/data/onef-r04-table-states.json';
+import currentArea from '@/data/unified-area-summary.json';
 
 const noop = () => undefined;
 const controlClass = "min-h-11 whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#586349]";
 
 export function ModelPreview() {
   const searchParams = useSearchParams();
-  const calibrationStage=defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('four-floor');
+  const calibrationStage=true;
+  const comboCapture = searchParams.get("comboCapture") === "1";
   const mechanicalStage = defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('four-items-');
   const r14SubsetStage=defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('r14-r08-integrated');
   const m3B1Stage=defaultWorkspaceIdentity.defaultWorkspaceRevision.includes('b1-selected2250-staged');
@@ -33,6 +41,7 @@ export function ModelPreview() {
   const r15Stage=Object.hasOwn(cabinetGeometry.operations,'coat-north');
   const [actualEvidence,setActualEvidence]=useState('');
   const floorId = resolveModelPreviewFloor(searchParams.get("floor"));
+  const b1ReflowEvidence = floorId === "B1" && searchParams.get("b1Reflow") === "1";
   const b1Review=floorId==='B1'&&searchParams.get('review')==='1';
   const workspace = defaultSpaceData.workspace;
   const b2Rebound=workspace.furniture.some(f=>f.floorId==='B2'&&f.render3d?.variantId==='b2-west-layout-r2');
@@ -46,7 +55,8 @@ export function ModelPreview() {
   const [viewport, setViewport] = useState({ width: 1000, height: 700 });
   const diagnostics=searchParams.get('diagnostics')==='1',evidence=(floorId==='B2'&&diagnostics&&searchParams.get('evidence')==='1')||(floorId==='2F'&&searchParams.get('toiletReview')==='1');
   const b2Party=!b2Rebound&&searchParams.get('state')==='party6',b2Bike=searchParams.get('bike')==='S'?'S':'U',pull=diagnostics?Math.max(0,Math.min(300,Number(searchParams.get('pull')??0))):0,seat=searchParams.get('seat')??'west-1';
-  const scene = useMemo(() => {const furniture=floorId==='B2'?(b2Rebound?workspace.furniture.map(f=>{const key=Object.entries(currentB2Scene.chairStableIds).find(([,id])=>id===f.id)?.[0];const pose=key?(b2Frame.commonChairPoses as Record<string,number[]>)[key]:null;return pose?{...f,position:{x:pose[0]/120,y:pose[1]/90,rotation:pose[2]},render3d:{...f.render3d!,elevationMm:127.5}}:f;}):workspace.furniture.filter(f=>b2Party||!/^furn-b2-chair-(west|east)-2-/.test(f.id)).map(f=>f.id===`furn-b2-chair-${seat}-candidate-20261030`?{...f,position:{...f.position,x:f.position.x+(seat.startsWith('west')?-pull:pull)/120}}:f)):workspace.furniture;return getModelPreviewScene(floorId,workspace.houseStructuresByFloor,furniture);}, [floorId, workspace,b2Party,pull,seat,b2Rebound,b2Frame]);
+  const oneFExpanded=searchParams.get('dining')==='expanded';
+  const scene = useMemo(()=>{const displayed=floorId==='1F'&&oneFExpanded?workspace.furniture.map(f=>f.id==='module-1f-table-001'?oneFTableStates.expanded as unknown as Furniture:f):workspace.furniture;return getModelPreviewScene(floorId,workspace.houseStructuresByFloor,displayed);},[floorId,workspace,oneFExpanded]);
   const b2Link=(key:string,value:string)=>{const q=new URLSearchParams(searchParams.toString());q.set('floor','B2');q.set(key,value);return '?'+q.toString();};
   const legacyCameras = useMemo(() => [...(floorId==='B2'?b2DesignCameras.cameras.map(view=>({...view,name:({'B2-R7-overall':'整体空间','B2-R7-eye-1':'左侧座位视角','B2-R7-eye-2':'中央偏左座位视角','B2-R7-eye-3':'中央偏右座位视角','B2-R7-eye-4':'右侧座位视角','B2-R7-role-inspection':'收纳与骑行区','B2-R7-sofa-inspection':'沙发与茶几','B2-R7-chair-inspection':'餐桌与座椅'} as Record<string,string>)[view.id]??view.name})) as FixedCameraView[]:getModelPreviewCameras(floorId, workspace.cameraViews)), ...(floorId === "1F" ? [
     ...(!unifiedR12Stage?[
@@ -75,13 +85,15 @@ export function ModelPreview() {
     {id:'review-b1-2250-whole',name:'B1已选2250尾长｜保原弧主体',floor:'B1',cameraPosition:{x:0,y:15,z:.1},target:{x:0,y:0,z:0},fov:42},
     {id:'review-b1-2250-local',name:'B1 · 2250尾段原生地坪与右界｜非工程验收',floor:'B1',cameraPosition:{x:1.85,y:5.9,z:3.1},target:{x:1.5,y:.25,z:2.3},fov:48}
   ] as FixedCameraView[]:[])].filter(view=>!unifiedR12Stage||floorId!=='2F'||view.id.startsWith('review-r12-')||view.id==='review-g02-north'||['designer-camera-2f-v3-08-parent','designer-camera-2f-v3-09-child','designer-camera-2f-v3-10-balcony'].includes(view.id)).map(view=>unifiedR12Stage?{...view,name:({'designer-camera-2f-v3-08-parent':'客房1｜原有床柜与封窗阳台','designer-camera-2f-v3-09-child':'客房2｜原有床柜布局','designer-camera-2f-v3-10-balcony':'客房2封窗阳台｜收纳与活动面'} as Record<string,string>)[view.id]??view.name}:view), [floorId, workspace.cameraViews, unifiedR12Stage]);
-  const cameras=useMemo(()=>calibrationStage?buildModelInspectionCameras(floorId,scene.structure,viewport,scene.furniture):legacyCameras,[calibrationStage,floorId,scene.structure,scene.furniture,viewport,legacyCameras]);
+  const layoutCameras:FixedCameraView[]=[{id:'layout-fix1-low',name:'FIX1门脚与实体饰条交接',floor:'B1',cameraPosition:{x:-.12,y:.35,z:-1.25},target:{x:.343,y:.08,z:-1.84},fov:45},{id:'layout-whole',name:'R06联动真尺寸总平',floor:'B1',cameraPosition:{x:0,y:14.5,z:.4},target:{x:0,y:0,z:.4},fov:48},{id:'layout-north-top',name:'R06独立房门与设备俯视',floor:'B1',cameraPosition:{x:1.1,y:7.5,z:-2.5},target:{x:1.1,y:0,z:-2.5},fov:51},{id:'layout-entries',name:'R06前室与独立房门',floor:'B1',cameraPosition:{x:-.05,y:2.5,z:-.2},target:{x:-.3,y:1,z:-2.2},fov:76},{id:'layout-guest',name:'R06开床与整面2500储备柜',floor:'B1',cameraPosition:{x:2,y:2.4,z:-.25},target:{x:2,y:.8,z:-2.8},fov:65}];
+  const d01Cameras:FixedCameraView[]=[{id:'d01-whole',name:'D01完整平面｜灰金推荐',floor:'B1',cameraPosition:{x:0,y:14.5,z:.4},target:{x:0,y:0,z:.4},fov:48},{id:'d01-reading',name:'D01南阅读｜地墙柜栏关系',floor:'B1',cameraPosition:{x:1,y:2.6,z:3.8},target:{x:-3.3,y:1.1,z:2.7},fov:64},{id:'d01-north',name:'D01北偶住与家政｜分时使用',floor:'B1',cameraPosition:{x:0,y:2.1,z:-.4},target:{x:1.5,y:1,z:-2.6},fov:70}];
+  const cameras=useMemo(()=>b1ReflowEvidence?layoutCameras:calibrationStage?buildModelInspectionCameras(floorId,scene.structure,viewport,scene.furniture):legacyCameras,[b1ReflowEvidence,calibrationStage,floorId,scene.structure,scene.furniture,viewport,legacyCameras]);
   const selectedCameraId = selection.floorId === floorId ? selection.id : "overview";
   const authored = cameras.find((view) => view.id === selectedCameraId);
   const overview = useMemo(() => buildModelPreviewOverview(floorId, scene.structure, { ...viewport, topInset: 20, bottomInset: 20 }), [floorId, scene.structure, viewport]);
   const selectedView = authored ?? overview;
   const requestedCamera = useMemo(() => ({ view: selectedView, nonce: `${floorId}:${selectedView.id}:${selection.nonce}:${authored ? "fixed" : `${viewport.width}x${viewport.height}`}`.split("").reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) | 0, 0) }), [authored, floorId, selectedView, selection.nonce, viewport]);
-  const drawingItems = useMemo(() => workspace.drawingItems.filter((item) => item.floorId === floorId || (floorId === "YARD" && item.floorId === "1F")), [floorId, workspace.drawingItems]);
+  const drawingItems = useMemo(() => workspace.drawingItems.filter((item) => (item.floorId === floorId || (floorId === "YARD" && item.floorId === "1F")) && (floorId!=="B1" || ((!("visible" in item) || item.visible!==false) && (!("hidden" in item) || item.hidden!==true)))), [floorId, workspace.drawingItems]);
   const wallMode = wallOverride ?? (authored&&!calibrationStage ? "full" : "cutaway");
 
   useEffect(() => {
@@ -110,8 +122,9 @@ export function ModelPreview() {
 
   const b2UseControls=<div className="flex flex-wrap items-center gap-3 rounded border bg-white px-3 py-2 text-xs"><span>四席布局；人体为声明尺寸研究代理</span><label>使用示意 <select aria-label="B2使用示意" value={b2Frame.id} onChange={e=>{const view=currentB2Frames.views.find(v=>v.id===e.target.value);if(!view)return;const q=new URLSearchParams(searchParams.toString());q.set('camera',selectedCameraId);q.set('frame',view.id);q.set('slide',String(view.slide));q.set('fridge',String(view.fridge));q.set('group',view.group);window.location.search=q.toString();}}>{[['0','四席闭态'],['2','东侧深挂展开'],['12','冷藏取物抬高示意'],['15','深挂取物抬高示意']].map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label><span>原六席及备用椅已取消；成品、安装与舒适性待定。</span></div>;
   return (
-    <main className="flex min-h-dvh flex-col bg-[#f3efe7] text-[#32382f] lg:h-dvh lg:overflow-hidden" data-testid="model-preview" data-preview-floor={floorId} data-model-revision={defaultWorkspaceIdentity.defaultWorkspaceRevision}>
-      {calibrationStage&&<header className="shrink-0 border-b bg-[#faf8f2] px-4 py-2 text-sm" data-testid="four-floor-candidate-status"><h1>{floorId} · 5900基准推定模型｜校正设计版</h1><p className="text-xs">按用户5900净跨基准推定，非现场测量。四层家具、入口及B2完成面按同版模型校核；机电与实际使用保各项有限边界，五处采光参照构造未采用。采用范围与实际部署身份见本构建记录。</p><nav className="flex gap-4 text-xs">{['B2','B1','1F','2F','YARD'].map(f=><Link key={f} href={`/model-preview/?floor=${f}&audit=1`}>{f==='YARD'?'庭院':f}当前模型</Link>)}<Link href="/release-manifest.json">本构建身份</Link></nav></header>}
+    <main className={`flex min-h-dvh flex-col bg-[#f3efe7] text-[#32382f] ${comboCapture ? "" : "lg:h-dvh lg:overflow-hidden"}`} data-testid="model-preview" data-preview-floor={floorId} data-model-revision={defaultWorkspaceIdentity.defaultWorkspaceRevision}>
+      {calibrationStage&&<header className="shrink-0 border-b bg-[#faf8f2] px-4 py-2 text-sm" data-testid="four-floor-candidate-status"><h1>{floorId} · 推定模型方案版｜PMO已采用</h1><p className="text-xs">实际构建批次：{compiledIdentity.revision}</p><p className="text-xs">沿用原注册比例 k；当前1F+2F轴界合计{currentArea.currentUpperFloorAxisUnionM2.toFixed(5)}㎡，原图北墙纠错增加{currentArea.authorizedSourceNorthAreaDeltaM2.toFixed(5)}㎡。这是模型轴界面积，非实测建筑面积。源未证尺寸和柱位保留推定标注；原双线有限复核与PMO采用范围见本构建身份。</p><p className="text-xs">西墙电视、对面朝西沙发、主桌原餐区与北墙客卧门恢复来源关系。南支采用P17（9下+4扇形转步+4上达）、北墙源313作联合注册推定；相对源310手读中心偏3像素。样板间可见三角转步，不证明B1级数/层高/墙轴。北门900为名义墙洞，候选框内净口809、叶803；保原72把手和30饰块，未选成品。已按明确状态有限复核；不代表整梯全程净空或施工认证。</p><nav className="flex gap-4 text-xs">{['B2','B1','1F','2F','YARD'].map(f=><Link key={f} href={`/model-preview/?floor=${f}&audit=1`}>{f==='YARD'?'庭院':f}当前模型</Link>)}<Link href="/model-plans/index.html">当前四层平面图</Link><Link href="/release-manifest.json">本构建身份</Link>{floorId==='B2'&&<Link href={`/model-preview/?floor=B2&audit=1&roof=${searchParams.get('roof')==='1'?'0':'1'}`}>{searchParams.get('roof')==='1'?'隐藏':'查看'}B2条件新顶</Link>}</nav>{floorId==='B2'&&<p className="text-xs">C02柱位2200/6300仅为柜端使用侧设计假设；当前显示的是未核饰面代理。柱芯、承重及是否支撑B1均未知，视频未建立本户毫米定位。</p>}<Area6623RoomDetails floorId={floorId}/></header>}
+      {b1ReflowEvidence&&<aside data-testid="b1-reflow-isolated-status" className="px-4 py-2 text-xs">B1保留已审布局，地下梯洞与实际楼面同步修正；本轮受影响域待原审。600代理不代表真人使用通过。</aside>}
       {b1Review&&!calibrationStage&&<header className="shrink-0 border-b bg-[#faf8f2] px-4 py-2 text-sm"><h1>B1 墙栏R03局部修正｜保原弧与2250尾长</h1><p className="text-xs">墙帽齐220原轴、原截面栏杆连续斜接及去重复柱；实际栏高1070、板厚／承载／现场待核，不是地下室全案批准。</p><nav className="flex gap-4 text-xs"><button onClick={()=>selectView('review-b1-2250-whole')}>B1整层</button><button onClick={()=>selectView('review-b1-2250-local')}>2250局部</button></nav></header>}
       <header style={b1Review||calibrationStage?{display:'none'}:undefined} className="shrink-0 border-b border-[#d9d5ca] bg-[#faf8f2] px-4 py-3 sm:px-6">
         <div className="flex items-center justify-between gap-3">
@@ -119,7 +132,7 @@ export function ModelPreview() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#7c816e]">LIN YU LAKESIDE / LIVE MODEL</p>
             <h1 className="mt-1 text-xl font-medium tracking-tight">{modelPreviewLabels[floorId].title}</h1>
             <p className="mt-2 text-xs text-[#7c816e]" data-testid="model-design-note">方案设计中，尺寸待核</p>
-            {r15Stage&&<p data-testid="r15-integration-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">已采用柜体：1F餐边柜{cabinetGeometry.parts.length}构件／{Object.keys(cabinetGeometry.operations).length}操作；{r16Stage?'2F每侧四门、原24模块保留；':''}另接B1墙栏R03局部修正，模型JSON不变；不含新B2或材料全案，不是工程认证。<Link className="ml-2 underline" href="/r15/?audit=1">1F开关门／低视角</Link>{r16Stage&&<Link className="ml-2 underline" href="/closet-candidate/?audit=1">2F新八门／新分侧循环</Link>}</p>}
+            {false&&<p data-testid="r15-integration-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">已采用柜体：1F餐边柜{cabinetGeometry.parts.length}构件／{Object.keys(cabinetGeometry.operations).length}操作；{r16Stage?'2F每侧四门、原24模块保留；':''}另接B1墙栏R03局部修正，模型JSON不变；不含新B2或材料全案，不是工程认证。<Link className="ml-2 underline" href="/r15/?audit=1">1F开关门／低视角</Link>{r16Stage&&<Link className="ml-2 underline" href="/closet-candidate/?audit=1">2F新八门／新分侧循环</Link>}</p>}
             {mechanicalStage&&!m3B1Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">{r14SubsetStage?'R10-M2 独立增量，未发布：M1基础上已接餐边柜R08全部113真实零件、退让弧端／普通柜门、D005房界门向、全尺寸灯与L34关联。原审已关闭门弧柜冲突，实际合入本版本继续复核。':'R10-M1 分部集成，尚未发布：已合1350圆桌／2298长桌实体、衣帽每侧三门及功能高度。'} 桌椅最终布局及两层共同墙轴仍待统一整合；不代表四项完成，B2、墙轴、楼梯和沙发不改。</p>}
             {m3B1Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">M3a 独立暂存，未发布：已验M2桌体／衣帽／原生餐边柜113件、D005、L34全部保持，仅加已选B1右尾2250与对应地坪/研究护栏。原弧主体、其他家具与楼梯不改；不是四项完成，最终1F八席及共同1F2F/R11方案尚待整合、验收和采用。</p>}
             {unifiedR12Stage&&<p data-testid="integration-stage-status" className="mt-2 max-w-4xl text-xs leading-5 text-amber-900">本次整合：B1已选2250尾长、1350圆桌／2298长桌与固定八席、餐边柜、每侧{r16Stage?'四':'三'}门衣帽及两层按图比例协调。主卧内部A北220／入口1400已采用。尺寸为方案推定，待复尺；不代表结构、成品安装、舒适或全屋任意同时使用确认。<Link className="ml-2 underline" href={`/unified-r12/?floor=${floorId}&camera=review-r12-plan&audit=1`}>整层与局部实景</Link></p>}
@@ -149,7 +162,7 @@ export function ModelPreview() {
         </nav>
       </header>
 
-      <div style={b1Review?{display:'block',minHeight:0}:evidence?{display:'block',width:1632,flex:'none'}:undefined} className="grid min-h-0 flex-1 gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_272px]">
+      <div style={comboCapture?{display:'block',minHeight:0}:b1Review?{display:'block',minHeight:0}:evidence?{display:'block',width:1632,flex:'none'}:undefined} className="grid min-h-0 flex-1 gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,1fr)_272px]">
         <section className="flex min-w-0 flex-col gap-2.5">
           <div className="flex shrink-0 flex-wrap items-center gap-2" aria-label="模型显示设置">
             <button type="button" onClick={() => selectView("overview")} className={`${controlClass} border-[#c5ccbc] bg-white`} data-testid="model-overview">↖ 全区总览</button>
@@ -164,11 +177,12 @@ export function ModelPreview() {
               </select>
             </label>
           </div>
-          {floorId==='B1'&&scene.furniture.some(f=>f.render3d?.variantId==='b1R06LessOpen')&&<B1R06Controls/>}
+          {floorId==='1F'&&<nav aria-label="主餐桌两态" className="flex flex-wrap gap-3 rounded border bg-white p-3 text-xs">{[['closed','收拢（日常默认）'],['expanded','展开（另行改摆）']].map(([state,label])=><Link key={state} href={'?'+(()=>{const q=new URLSearchParams(searchParams.toString());q.set('dining',state);return q.toString();})()}>{label}</Link>)}<span>一张主桌、六把原椅；尺寸与伸缩机构为设计候选，未选产品。</span></nav>}
+          {floorId==='B1'&&scene.furniture.some(f=>f.render3d?.variantId==='b1R06LessOpen')&&<><B1LayoutControls/>{b1ReflowEvidence&&<B1ReflowControls/>}<B1R06Controls/></>}
           {calibrationStage&&floorId==='2F'&&<SecondFloorDoorControls/>}
-          {calibrationStage&&floorId==='B2'&&b2Rebound&&b2UseControls}
-          {calibrationStage&&floorId==='B2'&&b2Rebound&&<B2FloorDoorControls/>}
-          <div ref={canvasAreaRef} style={b1Review?{height:'calc(100svh - 190px)',minHeight:350,flex:'none'}:evidence?{width:1600,height:1000,minHeight:1000,flex:'none',border:0,borderRadius:0}:undefined} className="relative h-[62svh] min-h-[420px] overflow-hidden rounded-[24px] border border-[#d6d3c7] bg-[#e7e0d5] lg:h-auto lg:min-h-0 lg:flex-1" data-testid="model-canvas-area">
+          {floorId==='B2'&&<nav aria-label="B2空间状态" className="flex flex-wrap gap-3 rounded border bg-white p-3 text-xs">{[['closed','日常关闭'],['castle','展示柜开门'],['wine','酒柜开门'],['fridge','冷藏抽屉'],['drawer','水槽抽屉'],['north','北库开门']].map(([state,label])=><Link key={state} href={'?'+(()=>{const q=new URLSearchParams(searchParams.toString());q.set('b2Op',state);return q.toString();})()}>{label}</Link>)}<span>各操作分状态查看，家具与设备为当前设计候选。</span></nav>}
+          
+          <div ref={canvasAreaRef} style={comboCapture?{height:640,minHeight:640,flex:'none'}:b1Review?{height:'calc(100svh - 190px)',minHeight:350,flex:'none'}:evidence?{width:1600,height:1000,minHeight:1000,flex:'none',border:0,borderRadius:0}:undefined} className="relative h-[62svh] min-h-[420px] overflow-hidden rounded-[24px] border border-[#d6d3c7] bg-[#e7e0d5] lg:h-auto lg:min-h-0 lg:flex-1" data-testid="model-canvas-area">
             <Floor3DView
               floor={floor}
               houseStructure={scene.structure}
@@ -183,7 +197,7 @@ export function ModelPreview() {
               drawingSheetType="sitePlan"
               cameraViews={workspace.cameraViews}
               cameraViewRequest={requestedCamera}
-              cameraLockEnabledOverride={b1Review&&searchParams.get('audit')==='1'&&selectedCameraId.startsWith('review-b1-2250')}
+              cameraLockEnabledOverride={floorId==='B1'}
               roomTourViews={workspace.roomTourViews}
               lightingDesign={workspace.lightingDesign}
               selectedObjectId=""

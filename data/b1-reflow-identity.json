@@ -1,0 +1,21 @@
+{
+  "revision": "UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE",
+  "modelFileSha256": "b8fe6999a7f9ab13555257950c236b091b3d0340fd181aaf56e6c35efc5878d1",
+  "sourceBundleSha256": "424e03d0f81c5c250159a6decc9f3b47f6367707a672aba83cae9ee5e24e4151",
+  "parentModelSha256": "14324ec9531264af3c11630639e754f12ce9b8cc7499e435e138175120c60f5d",
+  "sourceR06ModelSha256": "ecd562992684907b4365a5b54cb627fd23c099f20d308c130ea015715c75cfd3",
+  "sourceFileCount": 491,
+  "rootDataRevision": "2026-08-03-unified-pbr-material-language-v1",
+  "rootDefaultWorkspaceRevision": "UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE",
+  "floorBindingSha256": "15e75654745b49c770926dc205b10cc5a7a82f9db9ae31930519708609362cc6",
+  "scope": "Unified isolated working candidate: retained closed B1; R08 B2 actual assets and reviewed C02 concept join; unchanged B2-B1 plan/count20 with finished-grade correction35-to2818/20=139.15 and platform1426.5 relative B2 structure0; owner-restored1F R07 west-media/opposite west-facing sofa/original dining region and northW012 D003; source-restored2F north/fixtures and actual R02 stair. Ceiling surfaces follow existing stair voids. C1 joint north-entry/old-hole registration is a selected unverified source relation; South P17 and source313 now form selected source-constrained joint hypotheses, with fan winders instead of a fictitious flat landing. Three existing model-room frames inspected for morphology only; not proof of B1 count/height/wall axis. Actual north-door floor/door sweep and cross-floor headroom pending current native. D004 and two2F connections follow original narrow accepted adapters, combined native checks pending. Not accepted for publication.",
+  "sourceIdentityExclusions": [
+    "data/b1-reflow-identity.json",
+    "public/release-manifest.json",
+    "generated build caches",
+    "environment-only node_modules"
+  ],
+  "applyEnabled": false,
+  "publishEnabled": false,
+  "allowedMergeScope": []
+}

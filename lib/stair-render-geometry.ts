@@ -193,7 +193,7 @@ export function buildStairRenderSystemGeometry(input: {
   presentationOffsetMm?: number;
 }): StairRenderSystemGeometry {
   const presentationOffsetMm = input.presentationOffsetMm ?? 0;
-  const landingDepthMm = input.landing?.depth ?? 0;
+  const landingDepthMm = ["STAIR-SYS-1F-2F","STAIR-SYS-B1-1F"].includes(input.system.id)?0:input.landing?.depth ?? 0;
   const lowerRecord = getFlightRecord(input.structuresByFloor, input.system.lowerFlightId);
   const upperRecord = getFlightRecord(input.structuresByFloor, input.system.upperFlightId);
   const rawLower = lowerRecord ? createFlight({
@@ -214,11 +214,11 @@ export function buildStairRenderSystemGeometry(input: {
     landingDepthMm,
     presentationOffsetMm
   }) : null;
-  const lowerFlight = rawLower && includeFlight(input.mode, input.currentFloorId, rawLower) ? rawLower : null;
-  const upperFlight = rawUpper && includeFlight(input.mode, input.currentFloorId, rawUpper) ? rawUpper : null;
+  const lowerFlight = rawLower && (["STAIR-SYS-1F-2F","STAIR-SYS-B1-1F"].includes(input.system.id)||includeFlight(input.mode,input.currentFloorId,rawLower)) ? rawLower : null;
+  const upperFlight = rawUpper && (["STAIR-SYS-1F-2F","STAIR-SYS-B1-1F"].includes(input.system.id)||includeFlight(input.mode,input.currentFloorId,rawUpper)) ? rawUpper : null;
   const currentFloorWorldY = getFloorWorldElevationMm(input.currentFloorId);
   const lowerFloorWorldY = getFloorWorldElevationMm(input.system.lowerFloorId);
-  const landingWorldElevationMm = lowerFloorWorldY + STAIR_FLIGHT_RISE_MM;
+  const landingWorldElevationMm = lowerFloorWorldY + (input.landing?.elevationFromLowerFloorMm??STAIR_FLIGHT_RISE_MM);
   // A half-level landing is real geometry, not an analysis-only annotation.
   // Hiding it in ordinary floor views made the up/down flights appear detached
   // or twisted even though their elevations were numerically synchronized.

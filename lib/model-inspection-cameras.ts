@@ -23,7 +23,7 @@ export function buildModelInspectionCameras(floor:FloorId,structure:HouseStructu
       if(fitted)break;distance*=1.035;
     }
     if(!fitted)throw new Error('Current model inspection camera cannot frame '+id);
-    views.push({id:'current-'+floor+'-'+id,name,floor,cameraPosition:{x:camera.position.x,y:camera.position.y,z:camera.position.z},target:{x:target.x,y:target.y,z:target.z},fov:42,mode:'perspective',scope:'floor',description:'按当前实际模型边界和画布水平/垂直视场计算；虚拟检查相机，不代表人体可达或通路通过。'});
+    views.push({id:'current-'+floor+'-'+id,name,floor,cameraPosition:{x:camera.position.x,y:camera.position.y,z:camera.position.z},target:{x:target.x,y:target.y,z:target.z},fov:42,mode:'perspective',scope:'floor',targetArea:(id==='stair-down'||id==='stair-section')?'stair-down':id==='stair-up'?'stair-up':undefined,description:'按当前实际模型边界和画布水平/垂直视场计算；虚拟检查相机，不代表人体可达或通路通过。'});
   };
   const region=(points:MmPoint[],padding=180)=>{
     const scenePoints=points.map(p=>explorationScenePoint(p,structure));
@@ -32,9 +32,22 @@ export function buildModelInspectionCameras(floor:FloorId,structure:HouseStructu
   make('plan','当前整层俯视｜实际模型',getStructureCameraBounds(structure,floor==='2F'));
   if(structure.outdoors.length)make('site','室内与室外分界俯视',getStructureCameraBounds(structure,true));
   const stairRoom=structure.rooms.find(r=>r.name.includes('楼梯'));
-  if(stairRoom)make('stair','楼梯与洞口局部｜真实模型',region(stairRoom.boundary,650),false);
+  if(stairRoom){
+    make('stair','楼梯与洞口局部｜真实模型',region(stairRoom.boundary,650),false);
+    if(floor!=='B2')make('stair-down','本层下行成对梯与楼面洞口｜模型剖视',{...region(stairRoom.boundary,650),minY:-2.8,maxY:1.3},false,[1.3,1.8,.2]);
+    if(floor!=='B2')make('stair-section','共梯实际模型纵向剖切｜须启用section=stair',{...region(stairRoom.boundary,120),minY:-2.8,maxY:.5},false,[0,.14,-1]);
+    if(floor!=='2F')make('stair-up','本层上行成对梯与楼面洞口｜模型剖视',{...region(stairRoom.boundary,650),minY:0,maxY:4.1},false,[1.3,1.8,.2]);
+  }
   const roomView=(id:string,label:string)=>{const room=structure.rooms.find(r=>r.id===id);if(room)make(id,label,region(room.boundary));};
   if(floor==='1F')roomView('ROOM-1F-004','长辈房与新入口俯视');
+  if(floor==='1F'){
+    const eye=explorationScenePoint({x:4500,y:4670},structure),aim=explorationScenePoint({x:2050,y:4598.5},structure);
+    views.push({id:'current-1F-sample-route',name:'样板间同向动线对照｜真实模型',floor,scope:'floor',mode:'perspective',cameraPosition:{x:eye.x,y:1.67,z:eye.z},target:{x:aim.x,y:1.0,z:aim.z},fov:60,description:'虚拟对照相机朝西：北上行在右、南下行在左；非视频机位复原，箭头只示实际踏面方向，不代全身通行。'});
+  }
+  if(floor==='2F'){
+    const up=structure.stairs.find(s=>s.id==='ST-2F-001'),door=structure.doors.find(d=>d.id==='D-2F-006'),wall=structure.walls.find(w=>w.id===door?.hostId);
+    if(up&&door&&wall&&'start'in wall&&'end'in wall){const eye=explorationScenePoint({x:up.start.x+190,y:up.start.y},structure),aim=explorationScenePoint({x:wall.start.x+(wall.end.x-wall.start.x)*door.positionOnWall,y:wall.start.y+(wall.end.y-wall.start.y)*door.positionOnWall},structure);views.push({id:'current-2F-public-route',name:'上达公区与客卫分流｜真实模型',floor,scope:'floor',mode:'perspective',cameraPosition:{x:eye.x,y:1.67,z:eye.z},target:{x:aim.x,y:1.0,z:aim.z},fov:70,description:'从真实楼梯上达口朝公区客卫看；虚拟机位，公区路线/楼面另核，不以看见门代全程通行。'});}
+  }
   if(floor==='B2'){
     roomView('ROOM-B2-005','四席桌岛与收纳区｜当前方案');
     roomView('ROOM-B2-001','客厅与入户｜当前模型');

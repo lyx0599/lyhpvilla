@@ -1,0 +1,348 @@
+{
+  "revision": "B2-MIN-LAYOUT-20261113-R2-B",
+  "palette": {
+    "floor": "#b6b1a8",
+    "wall": "#d9d6cf",
+    "ceiling": "#e2dfd8",
+    "cabinet": "#78736a",
+    "bronze": "#9b8059",
+    "wood": "#86664b",
+    "soft": "#8b8981"
+  },
+  "basisCommit": "14d1cce3677094104248c668be959a44fd749633",
+  "sourceModelSha256": "e4632447345f0cc9c1fb9b33d5984ffed0790cc8eb7bf65ee6ab4d1ec4776fdb",
+  "sourceRenderIdentity": "cf181b87f12c00375c8ab6c8e98c143a91ccbe1f22a121605d721a8521d44b5d",
+  "scope": "Concept recommendation; field values blank; no main publication",
+  "sink": {
+    "existingBowlOuterEW_NS_H_Mm": [
+      350,
+      350,
+      170
+    ],
+    "bowlRawBottomTopMm": [
+      729,
+      905
+    ],
+    "outletConceptMm": [
+      2775,
+      741,
+      8625
+    ],
+    "pipeOutsideDiameterMm": 50,
+    "pipeCentrelineRawMm": [
+      [
+        2775,
+        741,
+        8625
+      ],
+      [
+        2775,
+        655,
+        8625
+      ],
+      [
+        2875,
+        655,
+        8625
+      ],
+      [
+        2875,
+        575,
+        8625
+      ],
+      [
+        3000,
+        575,
+        8625
+      ],
+      [
+        3000,
+        630,
+        8625
+      ],
+      [
+        3050,
+        630,
+        8870
+      ]
+    ],
+    "lastPoint": "inside-island service union only; no claim of site drain connection",
+    "trapSpaceRawEW_NS_H_Mm": [
+      2700,
+      8500,
+      3120,
+      8900,
+      500,
+      725
+    ],
+    "accessPanelNS_H_Mm": [
+      440,
+      400
+    ],
+    "preferredDrain": "gravity only if surveyed connection invert allows slope; otherwise sealed accessible greywater lifting unit design by plumbing specialist; no hidden assumed floor penetration",
+    "supply": "cold water shutoff and leak sensor; no hot-water heater selected",
+    "electric": "appliance/driver sockets in dry accessible bay; no socket inside trap reservation",
+    "outletOpeningStudyMm": [
+      60,
+      60
+    ],
+    "trapSealCentrelineDifferenceTargetMm": 55
+  },
+  "ceiling": {
+    "referenceWallModelTopRawMm": 2800,
+    "proposedServicePlaneRawMm": 2600,
+    "notMeasuredNetHeight": true,
+    "equipmentReservationRawMm": [
+      6600,
+      6400,
+      8200,
+      7200,
+      2450,
+      2780
+    ],
+    "accessRequiredMm": [
+      600,
+      600
+    ],
+    "noNewSlabHoles": true
+  },
+  "comfort": {
+    "seats": "four only; R1-B table/island/seat/body coordinates unchanged",
+    "eastShoulderCentreSpacingMm": 700,
+    "westFreeEdgeMm": 1190,
+    "tableIslandSideOverlapMm": 810,
+    "criticalOldSampleMinimaMm": [
+      6.32,
+      1.31,
+      1.69
+    ],
+    "notComfortAcceptance": true,
+    "operationPolicy": [
+      "Table end and8880 route kept clear",
+      "Riding and deep-door taking are scheduled separately",
+      "No mounting footboard extends into routes without a checked layout change"
+    ],
+    "recommendedCandidate": "PMO_B_6900_7600_8300",
+    "nominalShoulderIntervalMm": 100,
+    "southEndShoulderOverhangMm": 0,
+    "affectedDomainEvidence": "COMFORT_B_AFFECTED_RESULTS.json",
+    "oldAResultsNotInherited": true
+  },
+  "deepLoad": {
+    "baskets": 4,
+    "clearBasketMm": [
+      470,
+      470,
+      335
+    ],
+    "grossShellMm": [
+      500,
+      500,
+      350
+    ],
+    "sampleItemsMm": [
+      300,
+      200,
+      200
+    ],
+    "sampleItemsPerBasket": 1,
+    "unfilledUsableSpaceIsNotMassCapacity": true,
+    "designReviewMassTargetPerBasketKg": 5,
+    "massTargetNotOEMRating": true,
+    "helmetEnvelopesMm": [
+      350,
+      400,
+      300
+    ],
+    "depthIncludingPlateMm": 550,
+    "barExtraProjectionMm": 25,
+    "parkingNSMm": [
+      4300,
+      9100
+    ],
+    "actualInventoryAndWeights": "blank; inventory by owner before hardware order"
+  },
+  "acoustics": {
+    "tvWall": "absorptive fabric/perforated insert within existing420 envelope; do not add outward thickness",
+    "ceiling": "two porous absorptive rafts concept; absorption/fire performance to specification",
+    "riding": "resilient full-support mat, local antivibration under both supports with level retuning; no claimed transmission loss or floor load approval"
+  },
+  "lightingScenes": {
+    "social": "3000K concept, table target300lx, cabinet display independently dimmable",
+    "viewing": "low indirect warm light, no direct screen reflection;10–30lx background design target",
+    "riding": "3500K concept, task target300lx, independent from TV scene",
+    "night": "low-level route guidance; emergency/egress by electrical designer"
+  },
+  "measurements": [
+    {
+      "id": "B2-D01",
+      "modelReference": "raw35 finished-floor datum, not tile thickness",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "建筑/测量",
+      "purpose": "finished floor and target drain invert"
+    },
+    {
+      "id": "B2-D02",
+      "modelReference": "island2775/8625, bowl bottom729",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "给排水",
+      "purpose": "real drain location/invert and feasible gravity slope"
+    },
+    {
+      "id": "B2-D03",
+      "modelReference": "reserve2450..2780, wall model2800",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "暖通/建筑",
+      "purpose": "beam/duct bottom and actual ceiling clearance"
+    },
+    {
+      "id": "B2-D04",
+      "modelReference": "two inferred columns5750/6200 and4300/5050",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "结构/建筑",
+      "purpose": "column identity/base/wall finish"
+    },
+    {
+      "id": "B2-D05",
+      "modelReference": "deep-door full parking4300..9100",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "木作/五金",
+      "purpose": "rail anchorage/stroke/loaded deflection"
+    },
+    {
+      "id": "B2-D06",
+      "modelReference": "bike full original+unselected axle interface",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "设备/业主",
+      "purpose": "axle spacing/tyre/actual trainer/pedals/saddle and mount test"
+    },
+    {
+      "id": "B2-D07",
+      "modelReference": "fridge recess570x490x443",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "电器/木作",
+      "purpose": "actual SKU travel/handle/ventilation/access"
+    },
+    {
+      "id": "B2-D08",
+      "modelReference": "understair door1250, original stair retained",
+      "unit": "mm",
+      "fieldValue": null,
+      "photo": null,
+      "responsible": "建筑/结构",
+      "purpose": "real soffit/headroom, do not modify concrete"
+    }
+  ],
+  "layoutR2": {
+    "sportsCentreRawEW_NS": [
+      8000,
+      8924.314
+    ],
+    "sportsRotationDeg": 0,
+    "sportsRearPassageModelMm": 0,
+    "sportsEastTrackWallModelMm": 104.057,
+    "bikeUseRawEW_NS": [
+      8250,
+      5350
+    ],
+    "bikeStoredRawEW_NS": [
+      9650,
+      5350
+    ],
+    "bikeRotationDeg": 90,
+    "castleCaseId": "furn-b2-castle-independent-case-20261113",
+    "castleCaseRawEW_NS": [
+      1550,
+      7000
+    ],
+    "wineRawEW_NS": [
+      1390,
+      6200
+    ],
+    "underStair": [
+      {
+        "id": "B2-UNDERSTAIR-C",
+        "status": "conditional-design-reservation-nonphysical",
+        "zone": "C第二跑高端，外取物优先单口",
+        "frontRawEW_NS_Mm": [
+          3100,
+          5782.229
+        ],
+        "widthMm": 700,
+        "depthMm": 450,
+        "cabinetHeightTargetMm": 700,
+        "enableOnlyIfMeasuredClearHeightMm": 820,
+        "openingHeightTargetMm": 650,
+        "drawerPullMm": 450,
+        "sampleMm": [
+          300,
+          200,
+          200
+        ],
+        "sampleCount": 1,
+        "noConcreteAlteration": true,
+        "access": "从NS>5782.229外侧站立，浅层抽屉外取；不进入梯下",
+        "unknowns": [
+          "真实梯底/梁底/板厚",
+          "该外侧是否可设非结构围护开口",
+          "固定/水电及防潮"
+        ]
+      },
+      {
+        "id": "B2-UNDERSTAIR-A",
+        "status": "alternative-not-adopted-access-obstructed",
+        "zone": "A平台/下跑",
+        "frontRawEW_NS_Mm": [
+          1550,
+          5782.229
+        ],
+        "widthMm": 650,
+        "depthMm": 450,
+        "cabinetHeightTargetMm": 600,
+        "enableOnlyIfMeasuredClearHeightMm": 720,
+        "openingHeightTargetMm": 550,
+        "drawerPullMm": 450,
+        "noConcreteAlteration": true,
+        "access": "本轮酒柜占此口外侧；不宣称A口可达。若C不具备条件再与A外侧家具联动比较。"
+      }
+    ],
+    "B1Projection": "Parent published B1 room-floor polygons, openings, cross-floor elements only; not new B1 author candidate adoption",
+    "sportsRearInstallationGapMm": 40,
+    "southVariant": "B new lane concept; A is comparison only",
+    "southMechanism": {
+      "variant": "B-WALL-NEW-LANES",
+      "cabinetRawEW_NS_Mm": [
+        8000,
+        8924.314
+      ],
+      "left": {
+        "outwardNorthMm": 700,
+        "parkingEW_Mm": 1200
+      },
+      "right": {
+        "outwardNorthMm": 100,
+        "parkingEW_Mm": -1200
+      },
+      "bothOpenAllowed": false,
+      "sequence": "out=0..1 first; then slide=0..1. Recovery: slide back first, then out back. Mode swap only with all panels closed.",
+      "originalPanelsLoadsAnd4800TrackLengthPreserved": true,
+      "newHardwareSelected": false,
+      "newLaneLoadRated": false,
+      "noConcreteFixingAssumed": true
+    }
+  }
+}

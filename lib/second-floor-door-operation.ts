@@ -3,7 +3,7 @@ type DoorState=Readonly<Record<string,number>>;
 const empty:DoorState=Object.freeze({});
 let state:DoorState=empty;
 const listeners=new Set<()=>void>();
-const ids=['D-2F-003','D-2F-004','D-2F-006'];
+const ids=['D-2F-003','D-2F-004','D-2F-006','D-2F-009','D-2F-010'];
 export function setSecondFloorDoor(id:string,amount:number){
   if(!ids.includes(id)||!Number.isFinite(amount))return;
   state={...state,[id]:Math.max(0,Math.min(1,amount))};

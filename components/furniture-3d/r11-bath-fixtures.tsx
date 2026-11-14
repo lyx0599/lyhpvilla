@@ -56,13 +56,15 @@ export function R11BathEntry({structure,door}:{structure:HouseStructure,door:Hou
  const cx=wall.start.x+(wall.end.x-wall.start.x)*door.positionOnWall;
  const cy=wall.start.y+(wall.end.y-wall.start.y)*door.positionOnWall;
  const origin={x:cx-1325,y:cy-2840},c=structure.coordinateSystem;
- const leaf=[850-775*travel,2730,1800-775*travel,2750];
+ const leaf=[850-775*travel,2975,1800-775*travel,2995];
  return <group name="D-2F-007-r11-host-bound-entry" userData={{auditEntityId:door.id,auditKind:'door',hostId:door.hostId,travelMm:775*travel}} position={[(origin.x-c.origin.x-c.width/2)/1000,.035,(origin.y-c.origin.y-c.height/2)/1000]}>
   {[875,1775].map(x=><Box key={x} name={'entry-jamb-'+x} b={[x-10,2760,x+10,2920]} z={[0,2300]} color={metal}/>)}
   <Box name="entry-header" b={[865,2760,1785,2920]} z={[2300,2320]} color={metal}/>
-  <Box name="entry-slider-glass" b={leaf} z={[0,2300]} color="#a0c3c7" opacity={.23}/>
-  <Box name="entry-upper-track" b={[65,2725,1810,2755]} z={[2300,2330]} color={metal}/>
-  <Box name="entry-leading-graspable20mm-frame" b={[leaf[2]-20,2715,leaf[2],2755]} z={[0,2300]} color={metal}/>
-  <Box name="entry-outside-pull" b={[leaf[2]-85,2750,leaf[2]-65,2775]} z={[940,1160]} color={metal}/>
+  <Box name="entry-slider-glass" b={leaf} z={[37.5,2337.5]} color="#a0c3c7" opacity={.23}/>
+  <Box name="entry-upper-track" b={[65,2970,1810,3000]} z={[2347.5,2377.5]} color={metal}/>
+  <Box name="entry-leading-graspable20mm-frame" b={[leaf[2]-20,2960,leaf[2],3000]} z={[37.5,2337.5]} color={metal}/>
+  <Box name="entry-outside-pull" b={[leaf[2]-85,2995,leaf[2]-65,3020]} z={[940,1160]} color={metal}/>
+  {[leaf[0]+120,leaf[2]-120].map((x,i)=><group key={'moving-hanger-'+i}><Box name={'entry-leaf-hanger-'+i} b={[x-10,2977,x+10,2993]} z={[2337.5,2357.5]} color={metal}/><Box name={'entry-track-carriage-'+i} b={[x-25,2973,x+25,2997]} z={[2347.5,2367.5]} color={metal}/></group>)}
+  {[150,650,1150,1700].map((x,i)=><group key={'ceiling-support-'+i} userData={{supportStatus:'declared-model2800-datum-not-engineered-anchor'}}><Box name={'entry-ceiling-hanger-'+i} b={[x-8,2977,x+8,2993]} z={[2377.5,2760]} color={metal}/><Box name={'entry-ceiling-plate-'+i} b={[x-40,2945,x+40,3025]} z={[2760,2765]} color={metal}/></group>)}
  </group>;
 }

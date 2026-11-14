@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import {applyWorkspaceMigrations} from '../lib/workspace-migrations.ts';
+import {validateWorkspaceReferences} from '../lib/workspace-reference-validator.ts';
+const bytes=fs.readFileSync(new URL('../data/default-workspace.json',import.meta.url)),model=JSON.parse(bytes);
+const binding=JSON.parse(fs.readFileSync(new URL('../public/model-releases/2026-11-14-r09-publication.json',import.meta.url)));
+assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),'b8fe6999a7f9ab13555257950c236b091b3d0340fd181aaf56e6c35efc5878d1');
+assert.equal(binding.modelSha256,crypto.createHash('sha256').update(bytes).digest('hex'));
+assert.deepEqual(applyWorkspaceMigrations(model).workspace,model,'Current frozen model must load unchanged; no legacy migration injects old stairs or furniture');
+assert.deepEqual(validateWorkspaceReferences(model).errors,[]);
+assert.equal(binding.reviewedRenderSourceSha256,'424e03d0f81c5c250159a6decc9f3b47f6367707a672aba83cae9ee5e24e4151');
+process.env.R09_RELEASE_VALIDATE_ONLY='1';
+await import('./write-r09-release-manifest.mjs');
+console.log('R09 exact frozen model, unchanged migration, references and separately declared publication adapters verified. Native passage/interface conclusions retain independent bounded scopes.');

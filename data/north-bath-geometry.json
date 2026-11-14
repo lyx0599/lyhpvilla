@@ -1,0 +1,106 @@
+{
+  "variant": "R02 source correction with complete900-class alternative",
+  "entryDoorDesignMaxDeg": 110,
+  "entryDoorOpenAngleNotMeasured": true,
+  "entryInstallation": {
+    "portalCentreMm": [
+      3350.074583377422,
+      3567.371
+    ],
+    "pivotXmm": 2923.324583377422,
+    "oldPivotYmm": 3539.871,
+    "newPivotYmm": 3439.371,
+    "wallThicknessMm": 220,
+    "finishAllowanceMm": 18,
+    "mechanism": "leaf and fixed hinges move together to room-side finished mouth; portal station/width/handing/leaf/knobs unchanged; no wall cut or jamb deletion",
+    "notSiteDoorDepthMeasurement": true
+  },
+  "westMm": 2303.1223352271445,
+  "eastMm": 4146.586680944258,
+  "rearNorthMm": 991.0616102789609,
+  "rearSouthMm": 1891.0616102789609,
+  "rearWidthMm": 1843.4643457171132,
+  "showerDepthMm": 900,
+  "showerHeightMm": 2100,
+  "frontDoor": {
+    "hingeXmm": 2935.1223352271445,
+    "leafWidthMm": 760,
+    "heightMm": 2000,
+    "glassThicknessMm": 8,
+    "opensInwardNorth": true,
+    "leafBottomMm": 12,
+    "handleProjectionMm": 40
+  },
+  "vanity": {
+    "basinOfficialMm": [
+      925,
+      475,
+      186
+    ],
+    "basinSkuReference": "K-77838T-1",
+    "cabinetOfficialCatalogueMm": [
+      904,
+      462,
+      500
+    ],
+    "cabinetSkuReference": "K-77138T-M",
+    "hardwareDesignProjectionMm": 25,
+    "assembledCandidateMm": [
+      925,
+      487,
+      850
+    ],
+    "wallBackXmm": 4146.586680944258,
+    "sinkCentreYmm": 2500,
+    "officialManualUrl": "https://techcomm.kohler.com/techcomm/pdf/77838T.pdf",
+    "officialProductUrl": "https://www.kohler.com.cn/product/K-77838T-1-0/K-77838T-1-0/",
+    "cabinetCatalogueUrl": "https://files.kohler.com.cn/pdfs/1634288115750_21-22%E7%AC%AC%E4%B8%80%E7%89%88%E5%B0%8F%E5%86%8C%E5%AD%90-%E5%AE%B6%E5%85%B7%E5%8F%B0%E7%9B%86-150DPI-0923Final.pdf",
+    "notPurchasedOrProvenShowroomSku": true,
+    "internalModulesDeferredAndArchived": true,
+    "assembledDimensionsExcludeSeparateMirrorAndFaucet": true,
+    "mirrorCabinetMm": [
+      900,
+      110,
+      950
+    ],
+    "mirrorBottomAboveFinishMm": 1155,
+    "mirrorTopAboveFinishMm": 2105,
+    "faucetTopAboveFinishMm": 1075
+  },
+  "bodyRouteMm": [
+    [
+      3520,
+      4050
+    ],
+    [
+      3430,
+      3950
+    ],
+    [
+      3430,
+      3200
+    ],
+    [
+      3325,
+      3200
+    ],
+    [
+      3325,
+      2200
+    ],
+    [
+      3325,
+      1540
+    ]
+  ],
+  "bodyMm": [
+    600,
+    400,
+    1700
+  ],
+  "finiteFeetMm": [
+    340,
+    340
+  ],
+  "notFullGaitOrComfortApproval": true
+}

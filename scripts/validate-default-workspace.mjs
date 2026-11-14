@@ -40,7 +40,10 @@ assert.ok(workspace.drawingItems.filter((item) => item.relatedFurnitureId).every
 assert.equal(workspace.stairSystems.length, 3, "Every adjacent floor pair must have one stair system.");
 assert.equal(workspace.stairLandings.length, 3, "Every stair system must have one explicit landing.");
 assert.equal(workspace.stairOpenings.length, 3, "Every stair system must have one explicit opening.");
-assert.ok(Object.values(workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs).every((stair) => stair.stepCount === 10 && stair.height === 1400 && stair.stairSystemId && stair.landingId), "Every persisted stair flight must retain its 10-step system binding.");
+assert.ok(Object.values(workspace.houseStructuresByFloor).flatMap((structure) => structure.stairs).every((stair) => Number.isInteger(stair.stepCount) && stair.stepCount>0 && Number.isFinite(stair.height) && stair.height>0 && stair.stairSystemId && stair.landingId), "Every actual flight must retain positive step/rise data and an existing system/landing binding; the old10/1400 template cannot overwrite source-corrected geometry.");
+const continuous=JSON.parse(await readFile(new URL('../data/r02-continuous-stair.json',import.meta.url),'utf8'));
+assert.equal(continuous.treads.length,continuous.riserCount-1,'The top floor is the last rise, not an invented extra tread.');
+assert.ok(Math.abs(continuous.riserMm*continuous.riserCount-continuous.floorToFloorMm)<1e-6,'The declared actual stair contract closes its stated concept story height.');
 assert.equal(workspace.cameraViews.filter((view) => view.id.startsWith("stair-view-")).length, 15, "Dedicated stair inspection views must remain available.");
 
 console.log("default-workspace schema validation passed");

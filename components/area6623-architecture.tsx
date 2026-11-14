@@ -1,0 +1,9 @@
+'use client';
+import {useMemo,useState} from 'react';
+import {useSearchParams} from 'next/navigation';
+import * as THREE from 'three';
+import M from '@/data/default-workspace.json';
+import C from '@/data/area6623-architecture-checks.json';
+import type {FloorId} from '@/types/space';
+export function Area6623Roof(){const q=useSearchParams();const parts=useMemo(()=>C.B2IntegratedCandidate.newRoofPlanes.map(r=>{const shape=new THREE.Shape(r.polygon.map(p=>new THREE.Vector2((p.x-6000)/1000,-(p.y-4500)/1000)));return{r,shape};}),[]);if(q.get('roof')!=='1')return null;return <group name="AREA6623-B2-PROPOSED-ROOF-PLANES" userData={{auditKind:'conditional-B2-new-roof',structuralSupportVerified:false,thicknessMm:null,notUpperFloorAddedArea:true}}>{parts.map(({r,shape})=><mesh key={r.roomId} name={r.roomId+'-conditional-new-roof'} rotation={[-Math.PI/2,0,0]} position={[0,r.localElevationMm/1000,0]} userData={{auditEntityId:r.roomId,auditKind:'conditional-B2-new-roof',structuralSupportVerified:false}}><shapeGeometry args={[shape]}/><meshStandardMaterial color="#b58b6e" transparent opacity={.3} depthWrite={false} side={THREE.DoubleSide}/></mesh>)}</group>;}
+export function Area6623RoomDetails({floorId}:{floorId:FloorId}){const rooms=M.houseStructuresByFloor[floorId].rooms,[selected,setSelected]=useState('');const room=rooms.find(r=>r.id===selected)??rooms[0];if(!room)return null;const area=Math.abs(room.boundary.reduce((s,p,i)=>{const q=room.boundary[(i+1)%room.boundary.length];return s+p.x*q.y-q.x*p.y;},0))/2;return <div className="mt-1 flex flex-wrap items-center gap-2 text-xs" data-testid="area6623-room-details"><select aria-label="当前房间面积详情" value={room.id} onChange={e=>setSelected(e.target.value)}>{rooms.map(r=><option value={r.id} key={r.id}>{r.name}</option>)}</select><span>{room.id} · {(room.area/1e6).toFixed(6)}㎡ · 顶点{(area/1e6).toFixed(6)}㎡ · 缓存{room.area.toFixed(3)}mm²</span><span>轴界推定参考，非完成面净面积／产权认证</span></div>;}

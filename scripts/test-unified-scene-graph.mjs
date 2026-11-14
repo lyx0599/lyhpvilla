@@ -64,7 +64,8 @@ assert.equal(resolveUnifiedSceneDetailLevel("presentation", "balanced"), "standa
 assert.equal(resolveUnifiedSceneDetailLevel("standard", "balanced"), "standard");
 assert.equal(resolveUnifiedSceneDetailLevel("draft", "balanced"), "draft", "LOD must never substitute a different semantic asset.");
 
-const firstFurniture = workspace.furniture[0];
+const firstFurniture = sourceVisibleFurniture[0];
+assert.ok(firstFurniture, "Mutation test must use a currently visible source object");
 const movedWorkspace = {
   ...workspace,
   furniture: workspace.furniture.map((item) => item.id === firstFurniture.id

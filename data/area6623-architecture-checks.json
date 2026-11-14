@@ -1,0 +1,1700 @@
+{
+  "revision": "AREA6623-FOUR-FLOOR-ARCHITECTURE-20261113-R06",
+  "baseSha256": "c412393b0404531aa9543232a8285f49f040ca72ef6803a90b3f94debd037b0b",
+  "modelSha256": "ecd562992684907b4365a5b54cb627fd23c099f20d308c130ea015715c75cfd3",
+  "fixedInputSha256": "fce597a8c85afe4e9a6dbcfd8af689d81073a862ce6f666a63b0e54e57c1f32b",
+  "k": 0.9545160737912508,
+  "globalXYReference": [
+    950,
+    3567.371
+  ],
+  "originalDeliveredB2Comparison": {
+    "actualAxisM2": 66.23,
+    "actualOuter110M2": 70.12408953665656,
+    "residualAxisTo66_23M2": 0.0,
+    "outerEnvelopeIsNotTarget": true,
+    "axisPolygon": [
+      {
+        "x": 5418.907761692084,
+        "y": 496.3386651501696
+      },
+      {
+        "x": 5418.907761692084,
+        "y": 1119.2768542599633
+      },
+      {
+        "x": 3954.2715716167227,
+        "y": 1119.2768542599633
+      },
+      {
+        "x": 3954.2715716167227,
+        "y": 3567.371
+      },
+      {
+        "x": 2350.0,
+        "y": 3567.371
+      },
+      {
+        "x": 950.0,
+        "y": 3567.371
+      },
+      {
+        "x": 950.0,
+        "y": 4617.371
+      },
+      {
+        "x": 950.0,
+        "y": 6042.229
+      },
+      {
+        "x": 950.0,
+        "y": 9086.328531244806
+      },
+      {
+        "x": 5531.677154198004,
+        "y": 9086.328531244806
+      },
+      {
+        "x": 9840.417118707917,
+        "y": 9086.328531244806
+      },
+      {
+        "x": 9840.417118707917,
+        "y": 5681.488562165143
+      },
+      {
+        "x": 9840.417118707917,
+        "y": 496.3386651501696
+      }
+    ],
+    "outerPolygon": [
+      {
+        "x": 5308.907761692084,
+        "y": 386.3386651501696
+      },
+      {
+        "x": 5308.907761692084,
+        "y": 1009.2768542599633
+      },
+      {
+        "x": 3844.2715716167227,
+        "y": 1009.2768542599633
+      },
+      {
+        "x": 3844.2715716167227,
+        "y": 3457.371
+      },
+      {
+        "x": 840.0,
+        "y": 3457.371
+      },
+      {
+        "x": 840.0,
+        "y": 9196.328531244806
+      },
+      {
+        "x": 9950.417118707917,
+        "y": 9196.328531244806
+      },
+      {
+        "x": 9950.417118707917,
+        "y": 386.3386651501696
+      }
+    ],
+    "method": "Shapely actual room polygon union including retained core; axis union is R3 calibration reference; separately report miter buffer110 at retained220 wall. Neither contract/registered/net-area identity nor cached area fit"
+  },
+  "B2IntegratedCandidate": {
+    "northAxisM2": 6.436745731590054,
+    "southAxisM2": 17.36702418180385,
+    "newAxisTotalM2": 23.803769913393904,
+    "integratedAxisM2": 90.0337699133939,
+    "eastWingAndUnprovenSoutheastExcluded": true,
+    "southEastBoundaryHypothesis": "along original main east-wall extension, not neighboring property",
+    "newRoofPlanes": [
+      {
+        "roomId": "ROOM-B2-NORTH-INT",
+        "polygon": [
+          {
+            "x": 5418.907761692084,
+            "y": -959.4415247925572
+          },
+          {
+            "x": 9840.417118707917,
+            "y": -959.4415247925572
+          },
+          {
+            "x": 9840.417118707917,
+            "y": 496.3386651501696
+          },
+          {
+            "x": 5418.907761692084,
+            "y": 496.3386651501696
+          }
+        ],
+        "localElevationMm": 2800,
+        "thicknessMm": null,
+        "structuralSupportVerified": false,
+        "scope": "B2-only proposed new weatherproof roof/ceiling plane; not B1/1F added floor or title area"
+      },
+      {
+        "roomId": "ROOM-B2-SOUTH-INT",
+        "polygon": [
+          {
+            "x": 950.0,
+            "y": 9086.328531244806
+          },
+          {
+            "x": 9840.417118707917,
+            "y": 9086.328531244806
+          },
+          {
+            "x": 9840.417118707917,
+            "y": 11039.78290238548
+          },
+          {
+            "x": 950.0,
+            "y": 11039.78290238548
+          }
+        ],
+        "localElevationMm": 2800,
+        "thicknessMm": null,
+        "structuralSupportVerified": false,
+        "scope": "B2-only proposed new weatherproof roof/ceiling plane; not B1/1F added floor or title area"
+      }
+    ],
+    "dividerRetiredIds": [
+      "W-B2-006",
+      "W-B2-012",
+      "W-B2-LW-N-INDOOR",
+      "W-B2-LW-S-INDOOR"
+    ],
+    "oldWell900DoorsRetired": [
+      "D-B2-LW-N",
+      "D-B2-LW-S"
+    ]
+  },
+  "floorAreas": {
+    "B2": {
+      "roomAxisUnionM2": 90.0337699133939,
+      "outdoorAxisM2": 0.0,
+      "basis": "actual per-floor candidate polygons; no forced equal area/outer shape"
+    },
+    "B1": {
+      "roomAxisUnionM2": 56.74115880165425,
+      "outdoorAxisM2": 0.0,
+      "basis": "actual per-floor candidate polygons; no forced equal area/outer shape"
+    },
+    "1F": {
+      "roomAxisUnionM2": 67.14237781595021,
+      "outdoorAxisM2": 45.18102524480911,
+      "basis": "actual per-floor candidate polygons; no forced equal area/outer shape"
+    },
+    "2F": {
+      "roomAxisUnionM2": 70.68756178936208,
+      "outdoorAxisM2": 11.314503741788926,
+      "basis": "actual per-floor candidate polygons; no forced equal area/outer shape"
+    }
+  },
+  "jointContractComparison": {
+    "ownerReportedBuildingM2": 165,
+    "ownerReportedSuiteM2": 138,
+    "actualAboveGroundAxisUnionSumM2": 137.8299396053123,
+    "residualTo138M2": -0.1700603946877095,
+    "doNotDraw27DifferenceInside": true,
+    "boundaryCorrespondenceMeasured": false,
+    "newScaleConvention": "共同模型房界轴界参考：原B2室内并集含本户梯核、不含车库/井/东翼/未证角，以66.23为推定校准量；同因子地上1F+2F轴界约137.82994与用户套内138粗核；不声明等于正式测绘口径。"
+  },
+  "B1ArcAnd2250Check": {
+    "radiusMm": 1936,
+    "tailAxisLengthMm": 2249.999999999999,
+    "outsideSharedMainBoundingShellMm2": 0.0,
+    "arcToRetainedCoreDistanceMm": 1534.2969330599326,
+    "tailEastToSharedMainEastAxisMm": 465.59822993611124,
+    "scope": "Actual arc sampled0.5degree plus45radial envelope and true2250 tail. Bounding-shell fit only; complete irregular slab/open-edge/column/detail compatibility pending."
+  },
+  "architectureConditions": [
+    {
+      "type": "TRUE_SIZE_STAIR_GROUP_TRANSLATION",
+      "offsetMm": {
+        "x": 130,
+        "y": 130
+      },
+      "reason": "Original unknown model stair placement north/west bounds coincide with220 wall axes, causing110 intrusion. Correct unknown MODEL placement of complete6 flights/3 landings/3 openings by130 internally; does not authorize moving existing concrete stairs in the field, preserving all sizes and elevations; allocated core room retains NW axis reference and expands260 east/south to20 minimum outer-wall clearance. Not area/reference scaling and not comfort/legal/headroom approval.",
+      "preservedSizes": true,
+      "sourceHelper": "getStairPlatformPlanPoint with original landingDepth/width/stepCount, unchanged tread/rise"
+    },
+    {
+      "type": "B1_ARC_CORRIDOR_SPLIT",
+      "id": "ROOM-B1-003",
+      "patchAreasMm2": [
+        5357349.12071837,
+        54817.79123065322
+      ],
+      "patchPolygons": [
+        [
+          {
+            "x": 6333.039272114445,
+            "y": 5890.894899886162
+          },
+          {
+            "x": 6388.467272114445,
+            "y": 5776.974899886162
+          },
+          {
+            "x": 6436.324272114445,
+            "y": 5659.673899886161
+          },
+          {
+            "x": 6476.408272114444,
+            "y": 5539.493899886163
+          },
+          {
+            "x": 6508.545272114445,
+            "y": 5416.949899886163
+          },
+          {
+            "x": 6532.599272114445,
+            "y": 5292.565899886163
+          },
+          {
+            "x": 6548.466272114445,
+            "y": 5166.874899886162
+          },
+          {
+            "x": 6556.079272114446,
+            "y": 5040.415899886163
+          },
+          {
+            "x": 6555.405272114445,
+            "y": 4913.728899886161
+          },
+          {
+            "x": 6546.446272114445,
+            "y": 4787.357899886162
+          },
+          {
+            "x": 6529.242272114445,
+            "y": 4661.843899886163
+          },
+          {
+            "x": 6503.865272114446,
+            "y": 4537.722899886162
+          },
+          {
+            "x": 6470.425272114444,
+            "y": 4415.527899886162
+          },
+          {
+            "x": 6429.064272114445,
+            "y": 4295.780899886163
+          },
+          {
+            "x": 6379.960272114444,
+            "y": 4178.995899886161
+          },
+          {
+            "x": 6323.323272114445,
+            "y": 4065.6728998861627
+          },
+          {
+            "x": 6259.396272114445,
+            "y": 3956.2958998861623
+          },
+          {
+            "x": 6188.452272114446,
+            "y": 3851.334899886163
+          },
+          {
+            "x": 6110.795272114445,
+            "y": 3751.2388998861634
+          },
+          {
+            "x": 6026.758272114446,
+            "y": 3656.4348998861633
+          },
+          {
+            "x": 5936.700272114445,
+            "y": 3567.330899886162
+          },
+          {
+            "x": 3954.2715716167227,
+            "y": 3567.371
+          },
+          {
+            "x": 4357.429,
+            "y": 3567.371
+          },
+          {
+            "x": 4357.429,
+            "y": 6042.229
+          },
+          {
+            "x": 4174.830958866944,
+            "y": 6042.229
+          },
+          {
+            "x": 4291.215745665035,
+            "y": 6192.29020292594
+          },
+          {
+            "x": 6135.470878587943,
+            "y": 6192.29020292594
+          },
+          {
+            "x": 6200.458272114445,
+            "y": 6106.656899886161
+          },
+          {
+            "x": 6270.280272114445,
+            "y": 6000.945899886162
+          }
+        ],
+        [
+          {
+            "x": 7124.818888771808,
+            "y": 6192.29020292594
+          },
+          {
+            "x": 6135.470878587943,
+            "y": 6192.29020292594
+          },
+          {
+            "x": 6123.871272114444,
+            "y": 6207.574899886163
+          },
+          {
+            "x": 6040.848272114445,
+            "y": 6303.266899886162
+          }
+        ]
+      ],
+      "status": "ROOM_OWNERSHIP_RESOLVED_PATCH_ALREADY_WITHIN004_NO_PHYSICAL_FLOOR_CHANGE",
+      "reason": "Rigid R1936 arc and retained full-size core against transformed adjacent floor vertices; no false contiguous-path pass",
+      "patchOwnership": [
+        {
+          "polygon": [
+            {
+              "x": 7124.818888771808,
+              "y": 6192.29020292594
+            },
+            {
+              "x": 6135.470878587943,
+              "y": 6192.29020292594
+            },
+            {
+              "x": 6123.871272114444,
+              "y": 6207.574899886163
+            },
+            {
+              "x": 6040.848272114445,
+              "y": 6303.266899886162
+            }
+          ],
+          "areaMm2": 54817.79123065322,
+          "outsideRoom004Mm2": 0.0
+        }
+      ]
+    },
+    {
+      "type": "CORE_INTERNAL_REALLOCATION",
+      "method": "Retain six full-size flights,20 risers/2800 perstorey and all platform/opening dimensions; translate physical group130 east/south and reallocate enlarged core internally. No XY scaling of tread/landing/width.",
+      "coreAxisBoundsMm": [
+        950.0,
+        3567.371,
+        4357.429,
+        6042.229
+      ],
+      "uniformlyTransformedCoreBoundsMm": [
+        950.0,
+        3567.371,
+        3954.2715716167227,
+        5681.488562165143
+      ],
+      "twoFGuestFrontAxisShiftSouthMm": 148.72810010471494,
+      "circulationAndHeadroomStatus": "CURRENT_CANDIDATE_NOT_CERTIFIED; actual landing/door/corridor/headroom checks and owner furniture response still required"
+    },
+    {
+      "type": "1F_SOUTH_CORE_WALL_REALLOCATION",
+      "wallIds": [
+        "W-1F-012",
+        "W-1F-013"
+      ],
+      "oldWallAxisY": 5681.488562165143,
+      "newWallAxisY": 6042.229,
+      "wallThicknessMm": 220,
+      "stairSouthEdgeMm": 5912.229,
+      "nominalInnerFaceClearanceMm": 20,
+      "doorWidthUnchanged": true,
+      "status": "ACTUAL_GEOMETRY_CHANGED_PENDING_SCENE_INTERSECTION"
+    },
+    {
+      "type": "2F_GUEST_ALCOVE_DEEPENING",
+      "oldRearAxisY": 6991.194384755225,
+      "newRearAxisY": 6991.194384755225,
+      "southShiftMm": 0.0,
+      "sideHostLengthMm": 940,
+      "unchangedApertureWidthsMm": [
+        900,
+        850
+      ],
+      "nominalApertureEndMarginsMm": [
+        20,
+        45
+      ],
+      "status": "ARCHITECTURAL_APERTURE_LENGTH_FIT_ONLY; frame/leaf/body operation pending current owner"
+    },
+    {
+      "type": "STRUCTURE_AREA_CACHE_UNIT",
+      "structureRoomAreaUnit": "mm2",
+      "semanticRoomAreaUnit": "m2",
+      "sourceConsumer": "plan-canvas.tsx room.area/1000000; house-geometry.ts getPolygonArea millimetre vertices",
+      "allGeometryCalculatedIndependently": true
+    }
+  ],
+  "openings": [
+    {
+      "id": "D-B2-001",
+      "floor": "B2",
+      "widthMm": 900,
+      "hostLengthMm": 2448.0941457400368,
+      "endMarginMm": 712.8447192265173,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-B2-STORAGE-001",
+      "floor": "B2",
+      "widthMm": 700,
+      "hostLengthMm": 1336.322503307751,
+      "endMarginMm": 174.98384058518798,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-B1-001",
+      "floor": "B1",
+      "widthMm": 850,
+      "hostLengthMm": 1959.6214994934385,
+      "endMarginMm": 124.25622982562595,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-B1-LAUNDRY-R01",
+      "floor": "B1",
+      "widthMm": 900,
+      "hostLengthMm": 1240.870895928626,
+      "endMarginMm": 27.258036895625366,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-B1-GUEST-R01",
+      "floor": "B1",
+      "widthMm": 900,
+      "hostLengthMm": 923.3711688195162,
+      "endMarginMm": 8.167715419800459,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-1F-002",
+      "floor": "1F",
+      "widthMm": 900,
+      "hostLengthMm": 5841.638371602457,
+      "endMarginMm": 874.1048339226625,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-1F-003",
+      "floor": "1F",
+      "widthMm": 900,
+      "hostLengthMm": 3044.099531244806,
+      "endMarginMm": 104.70074172864497,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-1F-004",
+      "floor": "1F",
+      "widthMm": 2298,
+      "hostLengthMm": 4372.883444668685,
+      "endMarginMm": 71.56307136906162,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-1F-005",
+      "floor": "1F",
+      "widthMm": 900,
+      "hostLengthMm": 4372.883444668685,
+      "endMarginMm": 387.8098693602751,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-1F-006",
+      "floor": "1F",
+      "widthMm": 900,
+      "hostLengthMm": 1513.2621024225095,
+      "endMarginMm": 172.3621767475878,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-1F-007",
+      "floor": "1F",
+      "widthMm": 900,
+      "hostLengthMm": 3071.0323348498305,
+      "endMarginMm": 311.6160190427579,
+      "fitsHostLength": true
+    },
+    {
+      "id": "WIN-1F-002",
+      "floor": "1F",
+      "widthMm": 1200,
+      "hostLengthMm": 4372.883444668685,
+      "endMarginMm": 365.87865096528094,
+      "fitsHostLength": true
+    },
+    {
+      "id": "WIN-1F-004",
+      "floor": "1F",
+      "widthMm": 1200,
+      "hostLengthMm": 4372.883444668685,
+      "endMarginMm": 620.5630713690616,
+      "fitsHostLength": true
+    },
+    {
+      "id": "WIN-1F-006",
+      "floor": "1F",
+      "widthMm": 2284.8,
+      "hostLengthMm": 5841.638371602457,
+      "endMarginMm": 92.68911935079473,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-002",
+      "floor": "2F",
+      "widthMm": 1500,
+      "hostLengthMm": 5595.83043776366,
+      "endMarginMm": 1109.8001175284965,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-003",
+      "floor": "2F",
+      "widthMm": 900,
+      "hostLengthMm": 948.9653847552245,
+      "endMarginMm": 24.48269237761224,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-004",
+      "floor": "2F",
+      "widthMm": 850,
+      "hostLengthMm": 948.9653847552245,
+      "endMarginMm": 49.48269237761224,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-006",
+      "floor": "2F",
+      "widthMm": 900,
+      "hostLengthMm": 3642.2567521137616,
+      "endMarginMm": 662.7891565669468,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-007",
+      "floor": "2F",
+      "widthMm": 900,
+      "hostLengthMm": 5595.83043776366,
+      "endMarginMm": 887.4293812479118,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-008",
+      "floor": "2F",
+      "widthMm": 1400,
+      "hostLengthMm": 1903.633582736069,
+      "endMarginMm": 251.8167913680345,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-009",
+      "floor": "2F",
+      "widthMm": 1500,
+      "hostLengthMm": 2814.4708229237012,
+      "endMarginMm": 38.05183041863609,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-010",
+      "floor": "2F",
+      "widthMm": 1400,
+      "hostLengthMm": 2880.6941936072644,
+      "endMarginMm": 109.47506840364122,
+      "fitsHostLength": true
+    },
+    {
+      "id": "D-2F-B-PUBLIC-OPENING",
+      "floor": "2F",
+      "widthMm": 900,
+      "hostLengthMm": 5595.83043776366,
+      "endMarginMm": 83.02277495865758,
+      "fitsHostLength": true
+    },
+    {
+      "id": "WIN-2F-001",
+      "floor": "2F",
+      "widthMm": 1200,
+      "hostLengthMm": 2069.4643457171132,
+      "endMarginMm": 434.7321728585566,
+      "fitsHostLength": true
+    },
+    {
+      "id": "WIN-2F-002",
+      "floor": "2F",
+      "widthMm": 1200,
+      "hostLengthMm": 5595.83043776366,
+      "endMarginMm": 827.0231170377233,
+      "fitsHostLength": true
+    },
+    {
+      "id": "WIN-2F-003",
+      "floor": "2F",
+      "widthMm": 1200,
+      "hostLengthMm": 5595.83043776366,
+      "endMarginMm": 770.8921018441065,
+      "fitsHostLength": true
+    }
+  ],
+  "furnitureOccupancy": [
+    {
+      "id": "furn-b2-living-tv-console-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 760002.1218627816,
+      "wallEnvelopeOverlapMm2": 589600.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-living-large-tv-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-sofa-residence-four-reference-20261031-r7",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-entry-slim-foyer-cabinet-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-entry-left-wall-foyer-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 78377.4744617659,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-activity-outdoor-pegboard-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-study-souvenir-cabinet-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-study-slab-table-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-under-stair-room-shell-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-under-stair-shelf-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-under-stair-shelf-002",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-under-stair-shelf-003",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-living-coffee-table-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-study-wine-cabinet-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-study-handwash-001",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-fireplace-east-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-sports-camping-storage-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-bike-trainer-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-chair-west-1-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-chair-west-3-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-chair-east-1-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-chair-east-3-candidate-20261030",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b2-castle-independent-case-20261113",
+      "floor": "B2",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-room-seasonal-wardrobe-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 759099.7032302085,
+      "wallEnvelopeOverlapMm2": 550000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-guest-bed-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-bath-vanity-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 99000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-bath-toilet-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 23503.998862627213,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-laundry-washer-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-laundry-cleaning-cabinet-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 34200.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-piano-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 203373.8437593496,
+      "wallEnvelopeOverlapMm2": 396000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-beanbag-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-rug-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-coffee-table-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-small-shelf-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 120000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-floor-lamp-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-bookshelf-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-b1-activity-instrument-rack-001",
+      "floor": "B1",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "module-1f-bed-002",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 34575.00000000028,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "module-1f-wardrobe-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 87694.77702617733,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-kitchen-run-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 76311.1968153562,
+      "wallEnvelopeOverlapMm2": 324089.4047567952,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-kitchen-u-left-run",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-cooktop-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-sink-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 1954.451119247642,
+      "wallEnvelopeOverlapMm2": 162554.45111924765,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-fridge-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 128189.17597200413,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-bath-shower-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 267743.2877922349,
+      "wallEnvelopeOverlapMm2": 361282.93135419383,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-bath-toilet-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 209047.91690445843,
+      "wallEnvelopeOverlapMm2": 154000.00000000006,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-bath-vanity-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 259775.89316287503,
+      "wallEnvelopeOverlapMm2": 198000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-living-waterbar-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 627279.7625841667,
+      "wallEnvelopeOverlapMm2": 440000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-living-waterbar-upper-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 627279.7625841667,
+      "wallEnvelopeOverlapMm2": 232720.23741583325,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-living-snack-pullout-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 611597.7685195626,
+      "wallEnvelopeOverlapMm2": 429000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-entry-slim-hanging-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 172213.06076861438,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-living-fireplace-south-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 36285.014064317875,
+      "wallEnvelopeOverlapMm2": 74785.01406431787,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "module-1f-table-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-1f-living-main-sofa-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-1f-living-floor-lamp-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-kitchen-u-right-run",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 198000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-1f-bedroom-headboard-ledge-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 203999.9999999985,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-1f-bedroom-bay-storage-001",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 660000.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-1f-independent-long-table-r05",
+      "floor": "1F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "module-2f-cloak-left",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "module-2f-cloak-right",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 358400.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-guest-shower-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 46944.19673231755,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-guest-toilet-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 57512.1530140246,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-guest-vanity-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-shower-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-bathtub-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 27775.730755288543,
+      "wallEnvelopeOverlapMm2": 218841.77419856135,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-vanity-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 469823.8100673334,
+      "wallEnvelopeOverlapMm2": 352000.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-toilet-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-bedroom1-bed-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 187342.93751038786,
+      "wallEnvelopeOverlapMm2": 407342.93751038786,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-bedroom1-wardrobe-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-bedroom2-bed-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 63582.5625062309,
+      "wallEnvelopeOverlapMm2": 599725.7593800883,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-bedroom-bed-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-bedroom-large-wardrobe-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 861495.1864592568,
+      "wallEnvelopeOverlapMm2": 514276.49456067855,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-bedroom-chest-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 210911.9050336667,
+      "wallEnvelopeOverlapMm2": 157088.0949663333,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-bay-bench-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 880000.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "module-2f-wardrobe-002",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-rug-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-nightstand-north-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-master-nightstand-south-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 0.0,
+      "wallEnvelopeOverlapMm2": 27535.014064317875,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-balcony-02-cabinet",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 245000.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-parent-balcony-lounge-chair-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 489600.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-parent-balcony-side-table-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 202500.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-parent-balcony-drying-rack-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 420000.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-bedroom1-headboard-shelf-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 12177.29093817521,
+      "wallEnvelopeOverlapMm2": 26477.29093817521,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-2f-child-balcony-reading-rug-001",
+      "floor": "2F",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": 1200000.0,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "furn-plant-001",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "ph-1f-north-yard-gate",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "ph-1f-north-outdoor-socket",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-N-KITCHEN-ISLAND",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-N-BBQ",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-N-TAP",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-N-PLANTER",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-N-STORAGE",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-N-HOSE",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-RELAX",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-UMBRELLA",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-LAUNDRY",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-DRYING",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-PET-HOUSE",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-PET-WASH",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-GARDEN-BED",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "OUT-S-PATH-LIGHT",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    },
+    {
+      "id": "PLAN-YARD-R31-N-THIN-CABINET-001",
+      "floor": "YARD",
+      "trueDimensionsUnchanged": true,
+      "positionUnchangedPendingOwner": true,
+      "outsideRoomUnionMm2": null,
+      "wallEnvelopeOverlapMm2": 0.0,
+      "status": "PENDING_ORIGINAL_OWNER_REPOSITION_AND_OPERATIONS",
+      "proxyOnly": "true-size occupancy envelope, not detailed entity operation certificate"
+    }
+  ],
+  "applyEnabled": false,
+  "publishEnabled": false,
+  "nativeEvidenceState": "prepare actual model-scene viewer next; no source owner native identity transferred",
+  "acceptance": "NOT_FURNITURE_COMPLETE_NOT_INDEPENDENTLY_ACCEPTED"
+}

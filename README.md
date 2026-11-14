@@ -2,7 +2,15 @@
 
 这是一个给自住房装修方案用的空间规划工具。它不是一张静态效果图，也不是只展示户型的页面；它把多楼层结构、庭院、家具、柜体、点位、施工备注和发布流程放在同一份可校验的数据里，方便持续调整方案。
 
-## 最新设计进度 · 2026-11-11
+## 最新设计进度 · 2026-11-14
+
+[当前四层真实模型](https://lyx0599.github.io/lyhpvilla/model-preview/?floor=1F) · [当前四层模型平面图](https://lyx0599.github.io/lyhpvilla/model-plans/) · [R09发布身份与有限采用范围](https://lyx0599.github.io/lyhpvilla/release-manifest.json)
+
+R09按原两线同版有限复核及PMO实际看图采用，保留西墙电视、对面朝西沙发、原餐区单桌六椅与北墙卧室门，修正共享楼梯真实楼面接合和墙端短栏，2F公区可按明确门态直接到达客卫。冻结模型SHA256为 b8fe6999a7f9ab13555257950c236b091b3d0340fd181aaf56e6c35efc5878d1；原审查源码为424e03d0f81c5c250159a6decc9f3b47f6367707a672aba83cae9ee5e24e4151，必要发布适配后的源码身份另列于release manifest，不冒称原source未变。
+
+这是推定模型方案版：比例、P17/B1级数、2800层高及柱位仍未实测；有限净空不等于整梯2m或全部步态认证。主卧北移100后北净距597.593mm不称600，旧533/775/六点结果不重签；栏杆模型间距约2/15/0mm和短锚仅设计连接表达，未证现场锚固承载。现场复尺、产品、结构施工及机电深化不由本模型发布批准。部署是否完成以工作流成功及线上模型身份核验为准。
+
+## 历史设计进度 · 2026-11-11
 
 [当前四层真实模型](https://lyx0599.github.io/lyhpvilla/model-preview/?floor=2F) · [同版校核与采用范围](https://lyx0599.github.io/lyhpvilla/model-releases/2026-11-11-four-floor-review-scopes.json) · [实际源码、模型与渲染身份](https://lyx0599.github.io/lyhpvilla/release-manifest.json)
 
@@ -303,3 +311,4 @@ public/floor-plans/          楼层底图资源
 - 增加物品时，模块库、2D 顶视、3D 体块和类型定义要一起更新。
 - 发布前跑校验和 Pages 构建，别只依赖本地页面看起来能打开。
 - 不要把本地预览图片、临时 HTML 或未确认的 workflow 改动混进功能提交。
+

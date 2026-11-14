@@ -126,6 +126,24 @@ for (const directory of ["development", "webpack"]) {
   }
 }
 
+// Current published2D plans must remain tied to the same frozen runtime model.
+try {
+ const model=JSON.parse(await readFile(path.resolve("data/default-workspace.json"),"utf8"));
+ if(model.defaultWorkspaceRevision==="UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE"){
+  const plans=JSON.parse(await readFile(path.join(OUT_DIR,"model-plans/r09/manifest.json"),"utf8"));
+  const modelSha=createHash("sha256").update(await readFile(path.resolve("data/default-workspace.json"))).digest("hex");
+  if(plans.modelSha256!==modelSha||plans.revision!==model.defaultWorkspaceRevision)errors.push("Current2D plans model identity differs from runtime model");
+  if(JSON.stringify(plans.files.map(x=>x.floor).sort())!==JSON.stringify(["1F","2F","B1","B2"]))errors.push("Current four-floor plan inventory incomplete");
+  for(const f of plans.files){
+   const expected=model.furniture.filter(x=>x.floorId===f.floor&&x.visible!==false&&!x.hidden&&x.render3d?.visibleIn3d!==false).map(x=>x.id).sort();
+   if(JSON.stringify(f.furnitureSourceOwnersIncluded)!==JSON.stringify(expected))errors.push("Current2D plan omits visible furniture or child ownership: "+f.floor);
+   if(f.floor==="1F"&&JSON.stringify(f.contractChairIdsIncluded)!==JSON.stringify(["R1","R2","R3","R4","R5","R6"]))errors.push("1F current2D plan omits actual six-chair contract geometry");
+  }
+  for(const f of plans.files){const b=await readFile(path.join(OUT_DIR,f.file));if(createHash("sha256").update(b).digest("hex")!==f.sha256||!b.toString().includes(modelSha))errors.push("Current2D plan identity mismatch: "+f.file);}
+  if(!(await fileExists(path.join(OUT_DIR,"model-plans/index.html"))))errors.push("Current model plan gallery is missing");
+ }
+}catch(error){errors.push("Current model plan verification failed: "+error.message);}
+
 if (errors.length > 0) {
   console.error("GitHub Pages build check failed:");
   for (const error of errors) console.error(`- ${error}`);

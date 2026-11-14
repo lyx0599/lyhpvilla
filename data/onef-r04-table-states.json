@@ -1,0 +1,977 @@
+{
+  "revision": "1F-SOURCE-LAYOUT-R07-CANDIDATE",
+  "default": "closed",
+  "closed": {
+    "id": "module-1f-table-001",
+    "code": "TB-001",
+    "name": "1F唯一主餐桌｜1350收拢/1750展开候选｜保留原六椅",
+    "type": "table",
+    "catalogId": "living-dining-table",
+    "moduleCategory": "living",
+    "moduleType": "table",
+    "floorId": "1F",
+    "roomId": "ROOM-1F-005",
+    "dimensions": {
+      "width": 135,
+      "depth": 135,
+      "height": 75,
+      "unit": "cm"
+    },
+    "material": "小圆变大圆桌面与餐椅目标；传动机制/转盘/SKU未定",
+    "note": "恢复餐桌在沙发东北侧的原客餐厅相对区域，撤回中置TV布局。原根68.2/65只作识别，旧270套组不是桌面；保1350/1750候选与原六椅，未选产品。当前固定东柜/原生椅占用约束下提出7600/5350，属于注册后避让的作者候选，不称业主精确原位。展开另行5350→5400并重排原六椅；不新增早餐台/第二桌。",
+    "constructionNote": "新默认删除旧长桌宿主及其L1/L2合并椅；不得继续调用旧八席动作状态。收拢/展开模型分开，旧N1证据不转称新摆位通过；伸缩机构仅两态尺寸，不渲染虚构内部机械。",
+    "serviceRequirements": {
+      "water": false,
+      "drainage": false,
+      "power": false,
+      "exhaust": false
+    },
+    "position": {
+      "x": 63.333333333333336,
+      "y": 59.44444444444444,
+      "rotation": 0
+    },
+    "color": "#d6d9d7",
+    "render3d": {
+      "assetType": "diningTable",
+      "detailLevel": "presentation",
+      "stylePreset": "modernNatural",
+      "primaryMaterial": "warmOak",
+      "secondaryMaterial": "beigeFabric",
+      "accentMaterial": "blackTitanium",
+      "visibleIn3d": true,
+      "selectableIn3d": true,
+      "childrenMode": "merged",
+      "variantId": "roundPedestal",
+      "variationSeed": 4139729988,
+      "styleSource": "manual",
+      "seatCount": 6,
+      "closedDiameterCm": 135,
+      "expandedSizeCm": "175x175",
+      "expandedSeatCount": 6,
+      "primaryMaterialResourceId": "showroomWarmOakVertical",
+      "secondaryMaterialResourceId": "showroomWovenHeadboard",
+      "accentMaterialResourceId": "showroomDarkBronze",
+      "geometryContractId": "1F-SOURCE-LAYOUT-R07-CANDIDATE",
+      "authoredSeatLayoutsMm": {
+        "daily": [
+          {
+            "id": "R1",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8101.879381807165,
+              4633.241961247132
+            ],
+            "angleDeg": 305,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7754.521513851908,
+                4658.589773175928
+              ],
+              [
+                8038.441849845675,
+                4253.1095112528765
+              ],
+              [
+                8480.783953761731,
+                4562.8407868824415
+              ],
+              [
+                8196.863617767962,
+                4968.321048805493
+              ]
+            ]
+          },
+          {
+            "id": "R2",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8101.879381807165,
+              6066.758038752868
+            ],
+            "angleDeg": 55,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                8196.863617767964,
+                5731.678951194507
+              ],
+              [
+                8480.783953761731,
+                6137.159213117559
+              ],
+              [
+                8038.441849845674,
+                6446.8904887471235
+              ],
+              [
+                7754.521513851907,
+                6041.410226824072
+              ]
+            ]
+          },
+          {
+            "id": "R3",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7358.817313660125,
+              6191.103983946029
+            ],
+            "angleDeg": 106,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7678.998189843212,
+                6054.048496910188
+              ],
+              [
+                7542.5576987137965,
+                6529.8730363996565
+              ],
+              [
+                7023.476382907104,
+                6381.0288642584765
+              ],
+              [
+                7159.916874036519,
+                5905.204324769009
+              ]
+            ]
+          },
+          {
+            "id": "R4",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6777.7689568123305,
+              5649.267625409961
+            ],
+            "angleDeg": 160,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7076.84677208316,
+                5827.740201490509
+              ],
+              [
+                6611.698924794136,
+                5997.040172436715
+              ],
+              [
+                6427.008047398275,
+                5489.6061572123235
+              ],
+              [
+                6892.1558946873,
+                5320.306186266118
+              ]
+            ]
+          },
+          {
+            "id": "R5",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6827.420856248439,
+              4939.212382562346
+            ],
+            "angleDeg": 208,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6894.912004725212,
+                5280.891976447152
+              ],
+              [
+                6457.852946260044,
+                5048.5035528681365
+              ],
+              [
+                6711.367590164425,
+                4571.711852724316
+              ],
+              [
+                7148.426648629593,
+                4804.100276303332
+              ]
+            ]
+          },
+          {
+            "id": "R6",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7433.042129045523,
+              4491.076214483294
+            ],
+            "angleDeg": 259,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7209.980768497494,
+                4758.552623593448
+              ],
+              [
+                7115.530315786104,
+                4272.647167786853
+              ],
+              [
+                7645.608994847843,
+                4169.610310283519
+              ],
+              [
+                7740.0594475592325,
+                4655.515766090113
+              ]
+            ]
+          }
+        ],
+        "expanded": [
+          {
+            "id": "R1",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8137.5,
+              4469.022690931729
+            ],
+            "angleDeg": 300,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7793.673140978201,
+                4524.548279764305
+              ],
+              [
+                8041.173140978201,
+                4095.865704891008
+              ],
+              [
+                8508.826859021798,
+                4365.865704891008
+              ],
+              [
+                8261.326859021798,
+                4794.548279764305
+              ]
+            ]
+          },
+          {
+            "id": "R2",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8137.5,
+              6330.977309068271
+            ],
+            "angleDeg": 60,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                8261.3268590218,
+                6005.451720235695
+              ],
+              [
+                8508.8268590218,
+                6434.134295108993
+              ],
+              [
+                8041.173140978201,
+                6704.134295108993
+              ],
+              [
+                7793.673140978201,
+                6275.451720235695
+              ]
+            ]
+          },
+          {
+            "id": "R3",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7413.32820900805,
+              6458.668334488124
+            ],
+            "angleDeg": 100,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7717.428901408071,
+                6288.89563679551
+              ],
+              [
+                7631.473053462941,
+                6776.375474536552
+              ],
+              [
+                7099.6768668363475,
+                6682.60545859641
+              ],
+              [
+                7185.632714781478,
+                6195.125620855367
+              ]
+            ]
+          },
+          {
+            "id": "R4",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6561.629736739252,
+              5678.2304734852105
+            ],
+            "angleDeg": 165,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6844.014560700528,
+                5882.090256660704
+              ],
+              [
+                6365.881276687439,
+                6010.205683986452
+              ],
+              [
+                6226.118992332077,
+                5488.605737790355
+              ],
+              [
+                6704.252276345166,
+                5360.490310464607
+              ]
+            ]
+          },
+          {
+            "id": "R5",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6719.411552389334,
+              4783.405330922626
+            ],
+            "angleDeg": 215,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6744.75936431813,
+                5130.763198877884
+              ],
+              [
+                6339.279102395079,
+                4846.842862884116
+              ],
+              [
+                6649.0103780246445,
+                4404.50075896806
+              ],
+              [
+                7054.490639947695,
+                4688.421094961827
+              ]
+            ]
+          },
+          {
+            "id": "R6",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7413.32820900805,
+              4341.331665511876
+            ],
+            "angleDeg": 260,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7185.632714781478,
+                4604.874379144633
+              ],
+              [
+                7099.676866836348,
+                4117.39454140359
+              ],
+              [
+                7631.473053462941,
+                4023.6245254634473
+              ],
+              [
+                7717.428901408071,
+                4511.104363204491
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    "mepMeta": {
+      "needsSocket": false,
+      "socketCount": 0,
+      "socketHeight": 0,
+      "needsSwitch": false,
+      "switchControl": [],
+      "needsLighting": false,
+      "lightingType": "none",
+      "needsWaterSupply": false,
+      "waterSupplyType": "none",
+      "needsDrainage": false,
+      "drainageType": "none",
+      "needsNetwork": false,
+      "needsVentilation": false,
+      "needsSmartControl": false,
+      "notes": "桌椅研究外廓与400mm椅体扫掠分态校核；产品及是否需供电待定。"
+    },
+    "constructionMeta": {
+      "customMade": false,
+      "installType": "finishedFurniture",
+      "reserveSize": "日常直径1350/聚餐1750为设计目标；机制/SKU未定，非施工采购预留定尺",
+      "wallDependency": "",
+      "floorDependency": "按完成面标高校核落地尺寸",
+      "ceilingDependency": "",
+      "waterproofRequired": false,
+      "inspectionAccessRequired": false,
+      "purchaseCategory": "成品家具",
+      "supplierType": "成品家具供应商",
+      "notes": "圆变圆机制和桌椅成品未定；不得继续按旧圆变椭圆、电动转盘或180x180预留施工采购。"
+    }
+  },
+  "expanded": {
+    "id": "module-1f-table-001",
+    "code": "TB-001",
+    "name": "1F唯一主餐桌｜1350收拢/1750展开候选｜保留原六椅",
+    "type": "table",
+    "catalogId": "living-dining-table",
+    "moduleCategory": "living",
+    "moduleType": "table",
+    "floorId": "1F",
+    "roomId": "ROOM-1F-005",
+    "dimensions": {
+      "width": 175,
+      "depth": 175,
+      "height": 75,
+      "unit": "cm"
+    },
+    "material": "小圆变大圆桌面与餐椅目标；传动机制/转盘/SKU未定",
+    "note": "恢复餐桌在沙发东北侧的原客餐厅相对区域，撤回中置TV布局。原根68.2/65只作识别，旧270套组不是桌面；保1350/1750候选与原六椅，未选产品。当前固定东柜/原生椅占用约束下提出7600/5350，属于注册后避让的作者候选，不称业主精确原位。展开另行5350→5400并重排原六椅；不新增早餐台/第二桌。",
+    "constructionNote": "新默认删除旧长桌宿主及其L1/L2合并椅；不得继续调用旧八席动作状态。收拢/展开模型分开，旧N1证据不转称新摆位通过；伸缩机构仅两态尺寸，不渲染虚构内部机械。",
+    "serviceRequirements": {
+      "water": false,
+      "drainage": false,
+      "power": false,
+      "exhaust": false
+    },
+    "position": {
+      "x": 63.333333333333336,
+      "y": 60.0,
+      "rotation": 0
+    },
+    "color": "#d6d9d7",
+    "render3d": {
+      "assetType": "diningTable",
+      "detailLevel": "presentation",
+      "stylePreset": "modernNatural",
+      "primaryMaterial": "warmOak",
+      "secondaryMaterial": "beigeFabric",
+      "accentMaterial": "blackTitanium",
+      "visibleIn3d": true,
+      "selectableIn3d": true,
+      "childrenMode": "merged",
+      "variantId": "roundPedestal",
+      "variationSeed": 4139729988,
+      "styleSource": "manual",
+      "seatCount": 6,
+      "closedDiameterCm": 135,
+      "expandedSizeCm": "175x175",
+      "expandedSeatCount": 6,
+      "primaryMaterialResourceId": "showroomWarmOakVertical",
+      "secondaryMaterialResourceId": "showroomWovenHeadboard",
+      "accentMaterialResourceId": "showroomDarkBronze",
+      "geometryContractId": "1F-SOURCE-LAYOUT-R07-CANDIDATE",
+      "authoredSeatLayoutsMm": {
+        "daily": [
+          {
+            "id": "R1",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8137.5,
+              4469.022690931729
+            ],
+            "angleDeg": 300,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7793.673140978201,
+                4524.548279764305
+              ],
+              [
+                8041.173140978201,
+                4095.865704891008
+              ],
+              [
+                8508.826859021798,
+                4365.865704891008
+              ],
+              [
+                8261.326859021798,
+                4794.548279764305
+              ]
+            ]
+          },
+          {
+            "id": "R2",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8137.5,
+              6330.977309068271
+            ],
+            "angleDeg": 60,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                8261.3268590218,
+                6005.451720235695
+              ],
+              [
+                8508.8268590218,
+                6434.134295108993
+              ],
+              [
+                8041.173140978201,
+                6704.134295108993
+              ],
+              [
+                7793.673140978201,
+                6275.451720235695
+              ]
+            ]
+          },
+          {
+            "id": "R3",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7413.32820900805,
+              6458.668334488124
+            ],
+            "angleDeg": 100,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7717.428901408071,
+                6288.89563679551
+              ],
+              [
+                7631.473053462941,
+                6776.375474536552
+              ],
+              [
+                7099.6768668363475,
+                6682.60545859641
+              ],
+              [
+                7185.632714781478,
+                6195.125620855367
+              ]
+            ]
+          },
+          {
+            "id": "R4",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6561.629736739252,
+              5678.2304734852105
+            ],
+            "angleDeg": 165,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6844.014560700528,
+                5882.090256660704
+              ],
+              [
+                6365.881276687439,
+                6010.205683986452
+              ],
+              [
+                6226.118992332077,
+                5488.605737790355
+              ],
+              [
+                6704.252276345166,
+                5360.490310464607
+              ]
+            ]
+          },
+          {
+            "id": "R5",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6719.411552389334,
+              4783.405330922626
+            ],
+            "angleDeg": 215,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6744.75936431813,
+                5130.763198877884
+              ],
+              [
+                6339.279102395079,
+                4846.842862884116
+              ],
+              [
+                6649.0103780246445,
+                4404.50075896806
+              ],
+              [
+                7054.490639947695,
+                4688.421094961827
+              ]
+            ]
+          },
+          {
+            "id": "R6",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7413.32820900805,
+              4341.331665511876
+            ],
+            "angleDeg": 260,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7185.632714781478,
+                4604.874379144633
+              ],
+              [
+                7099.676866836348,
+                4117.39454140359
+              ],
+              [
+                7631.473053462941,
+                4023.6245254634473
+              ],
+              [
+                7717.428901408071,
+                4511.104363204491
+              ]
+            ]
+          }
+        ],
+        "expanded": [
+          {
+            "id": "R1",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8137.5,
+              4469.022690931729
+            ],
+            "angleDeg": 300,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7793.673140978201,
+                4524.548279764305
+              ],
+              [
+                8041.173140978201,
+                4095.865704891008
+              ],
+              [
+                8508.826859021798,
+                4365.865704891008
+              ],
+              [
+                8261.326859021798,
+                4794.548279764305
+              ]
+            ]
+          },
+          {
+            "id": "R2",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              8137.5,
+              6330.977309068271
+            ],
+            "angleDeg": 60,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                8261.3268590218,
+                6005.451720235695
+              ],
+              [
+                8508.8268590218,
+                6434.134295108993
+              ],
+              [
+                8041.173140978201,
+                6704.134295108993
+              ],
+              [
+                7793.673140978201,
+                6275.451720235695
+              ]
+            ]
+          },
+          {
+            "id": "R3",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7413.32820900805,
+              6458.668334488124
+            ],
+            "angleDeg": 100,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7717.428901408071,
+                6288.89563679551
+              ],
+              [
+                7631.473053462941,
+                6776.375474536552
+              ],
+              [
+                7099.6768668363475,
+                6682.60545859641
+              ],
+              [
+                7185.632714781478,
+                6195.125620855367
+              ]
+            ]
+          },
+          {
+            "id": "R4",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6561.629736739252,
+              5678.2304734852105
+            ],
+            "angleDeg": 165,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6844.014560700528,
+                5882.090256660704
+              ],
+              [
+                6365.881276687439,
+                6010.205683986452
+              ],
+              [
+                6226.118992332077,
+                5488.605737790355
+              ],
+              [
+                6704.252276345166,
+                5360.490310464607
+              ]
+            ]
+          },
+          {
+            "id": "R5",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              6719.411552389334,
+              4783.405330922626
+            ],
+            "angleDeg": 215,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                6744.75936431813,
+                5130.763198877884
+              ],
+              [
+                6339.279102395079,
+                4846.842862884116
+              ],
+              [
+                6649.0103780246445,
+                4404.50075896806
+              ],
+              [
+                7054.490639947695,
+                4688.421094961827
+              ]
+            ]
+          },
+          {
+            "id": "R6",
+            "kind": "chair",
+            "parent": "round-table",
+            "centerMm": [
+              7413.32820900805,
+              4341.331665511876
+            ],
+            "angleDeg": 260,
+            "dimensionsMm": [
+              495,
+              540
+            ],
+            "heightMm": 820,
+            "polygonMm": [
+              [
+                7185.632714781478,
+                4604.874379144633
+              ],
+              [
+                7099.676866836348,
+                4117.39454140359
+              ],
+              [
+                7631.473053462941,
+                4023.6245254634473
+              ],
+              [
+                7717.428901408071,
+                4511.104363204491
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    "mepMeta": {
+      "needsSocket": false,
+      "socketCount": 0,
+      "socketHeight": 0,
+      "needsSwitch": false,
+      "switchControl": [],
+      "needsLighting": false,
+      "lightingType": "none",
+      "needsWaterSupply": false,
+      "waterSupplyType": "none",
+      "needsDrainage": false,
+      "drainageType": "none",
+      "needsNetwork": false,
+      "needsVentilation": false,
+      "needsSmartControl": false,
+      "notes": "桌椅研究外廓与400mm椅体扫掠分态校核；产品及是否需供电待定。"
+    },
+    "constructionMeta": {
+      "customMade": false,
+      "installType": "finishedFurniture",
+      "reserveSize": "日常直径1350/聚餐1750为设计目标；机制/SKU未定，非施工采购预留定尺",
+      "wallDependency": "",
+      "floorDependency": "按完成面标高校核落地尺寸",
+      "ceilingDependency": "",
+      "waterproofRequired": false,
+      "inspectionAccessRequired": false,
+      "purchaseCategory": "成品家具",
+      "supplierType": "成品家具供应商",
+      "notes": "圆变圆机制和桌椅成品未定；不得继续按旧圆变椭圆、电动转盘或180x180预留施工采购。"
+    }
+  },
+  "scope": "Owner original-relative dining relationship restored on current shell;1350/1750 unselected product candidates; expanded separate50mm shift/rearrangement, not automatic mechanism acceptance. North-door/south-stair joint source correction pending."
+}

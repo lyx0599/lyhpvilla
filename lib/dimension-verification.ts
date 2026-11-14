@@ -19,6 +19,7 @@ export const verificationSources = [
   "visual-estimate",
   "manual-input",
   "site-measurement",
+  "design-assumption",
   "other"
 ] as const satisfies readonly VerificationSource[];
 
@@ -35,6 +36,7 @@ export const verificationSourceLabels: Record<VerificationSource, string> = {
   "visual-estimate": "视觉估算",
   "manual-input": "人工录入",
   "site-measurement": "现场测量",
+  "design-assumption": "设计假设",
   other: "其他"
 };
 

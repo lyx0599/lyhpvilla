@@ -1,0 +1,137 @@
+{
+  "revision": "B1-AREA6623-R06-TRUE-SIZE-REFLOW-R01-20261113",
+  "parentModelSha256": "ecd562992684907b4365a5b54cb627fd23c099f20d308c130ea015715c75cfd3",
+  "doors": [
+    {
+      "id": "D-B1-001",
+      "mode": "sliding",
+      "roughOpening": [
+        5006.842571616722,
+        1784.935364768358,
+        5856.842571616722,
+        1784.935364768358
+      ],
+      "hostId": "W-B1-016",
+      "frameWidth": 25,
+      "leafThickness": 40,
+      "leafHeight": 2020,
+      "bottom": 35,
+      "fieldOrOEMApproved": false,
+      "leafWidth": 880,
+      "closedCenter": [
+        5431.842571616722,
+        1684.935364768358
+      ],
+      "translationAtFull": [
+        -900,
+        0
+      ],
+      "clearWhenOpen": 800,
+      "track": [
+        4086.842571616722,
+        5876.842571616722,
+        2140
+      ]
+    },
+    {
+      "id": "D-B1-LAUNDRY-R01",
+      "mode": "swing",
+      "roughOpening": [
+        5152.144920991941,
+        2600.0,
+        6052.144920991941,
+        2600.0
+      ],
+      "hostId": "W-B1-L04",
+      "frameWidth": 25,
+      "leafThickness": 40,
+      "leafHeight": 2020,
+      "bottom": 35,
+      "fieldOrOEMApproved": false,
+      "leafLength": 826,
+      "hinge": [
+        5199.144920991941,
+        2600.0
+      ],
+      "closedVector": [
+        1,
+        0
+      ],
+      "fullVector": [
+        0,
+        1
+      ],
+      "handleProjection": 10,
+      "clearWhenOpen": 798
+    },
+    {
+      "id": "D-B1-GUEST-R01",
+      "mode": "swing",
+      "roughOpening": [
+        6343.015816920567,
+        2630.0,
+        6343.015816920567,
+        3530.0
+      ],
+      "hostId": "W-B1-L03",
+      "frameWidth": 25,
+      "leafThickness": 40,
+      "leafHeight": 2020,
+      "bottom": 35,
+      "fieldOrOEMApproved": false,
+      "leafLength": 826,
+      "hinge": [
+        6343.015816920567,
+        3483.0
+      ],
+      "closedVector": [
+        0,
+        -1
+      ],
+      "fullVector": [
+        1,
+        0
+      ],
+      "handleProjection": 10,
+      "clearWhenOpen": 798
+    }
+  ],
+  "bedFoldedRect": [
+    6410,
+    900,
+    8410,
+    1950
+  ],
+  "bedSleepingRect": [
+    6410,
+    900,
+    8410,
+    2400
+  ],
+  "bedMotionRect": [
+    6410,
+    900,
+    8410,
+    2600
+  ],
+  "bodyDiameter": 600,
+  "notSurveyed": true,
+  "states": [
+    "daily",
+    "entries-open",
+    "washer-open",
+    "dryer-open",
+    "cleaner-open",
+    "bed-entry"
+  ],
+  "guestRemainsSemiOpen": true,
+  "noRailSupport": true,
+  "noMainWrite": true,
+  "concurrency": "操作分次进行；不以三种柜／设备门全开加人体强穿为通过目标",
+  "unknowns": [
+    "OEM中间机构",
+    "上机检修承托转接",
+    "现场排水/机电路由",
+    "墙身份/支承/净高/施工可行性"
+  ]
+}

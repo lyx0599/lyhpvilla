@@ -8,6 +8,8 @@ const currentReport = validateWorkspaceReferences(workspace);
 assert.equal(currentReport.errors.length, 0, JSON.stringify(currentReport.errors, null, 2));
 assert.equal(currentReport.warnings.length, 0, JSON.stringify(currentReport.warnings, null, 2));
 
+const referencedB2WallId=workspace.houseStructuresByFloor.B2.walls.map(w=>({id:w.id,count:workspace.houseStructuresByFloor.B2.rooms.filter(r=>r.sourceWallIds?.includes(w.id)).length})).sort((a,b)=>b.count-a.count)[0].id;
+assert.ok(workspace.houseStructuresByFloor.B2.rooms.some(r=>r.sourceWallIds?.includes(referencedB2WallId)), 'Corruption scenario must remove an actually referenced wall');
 const broken = structuredClone(workspace);
 broken.drawingItems.push({
   id: "DI-TEST-001", floorId: "1F", roomId: "ROOM-MISSING", category: "socket", type: "five-hole",
@@ -18,7 +20,7 @@ broken.drawingItems.push({
 });
 broken.drawingPackage.drawingItemIds.push("DI-MISSING");
 broken.furniture.find((item) => item.id === "furn-plant-001").roomId = "room-yard";
-broken.houseStructuresByFloor.B2.walls = broken.houseStructuresByFloor.B2.walls.filter((wall) => wall.id !== "W-B2-STORAGE-002");
+broken.houseStructuresByFloor.B2.walls = broken.houseStructuresByFloor.B2.walls.filter((wall) => wall.id !== referencedB2WallId);
 broken.semanticObjects.find((item) => item.id === "R-B1-LAUNDRY").details.structureRoomId = "ROOM-MISSING";
 const brokenReport = validateWorkspaceReferences(broken);
 assert.ok(brokenReport.errors.some((issue) => issue.code === "ORPHAN_FURNITURE_ROOM"));
@@ -44,9 +46,9 @@ assert.equal(repaired.workspace.furniture.find((item) => item.id === "furn-plant
 assert.deepEqual(repaired.workspace.houseStructuresByFloor["1F"].walls[0].verificationMeta, verificationSnapshot, "Reference repair must preserve verification metadata.");
 assert.equal(repairWorkspaceReferences(repaired.workspace).repairs.length, 0, "repair must be idempotent");
 
-const renamed = renameWorkspaceObjectId(workspace, "W-B2-STORAGE-002", "W-B2-STORAGE-002-RENAMED");
+const renamed = renameWorkspaceObjectId(workspace, referencedB2WallId, referencedB2WallId+"-RENAMED");
 assert.ok(renamed.updatedPaths.length >= 3);
 assert.equal(validateWorkspaceReferences(renamed.workspace).errors.length, 0);
-assert.deepEqual(renamed.workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === "W-B2-STORAGE-002-RENAMED").verificationMeta, workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === "W-B2-STORAGE-002").verificationMeta, "ID rename must preserve verification metadata.");
+assert.deepEqual(renamed.workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === referencedB2WallId+"-RENAMED").verificationMeta, workspace.houseStructuresByFloor.B2.walls.find((wall) => wall.id === referencedB2WallId).verificationMeta, "ID rename must preserve verification metadata.");
 
 console.log("workspace reference validation tests passed");

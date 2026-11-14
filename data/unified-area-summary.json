@@ -1,0 +1,16 @@
+{
+  "modelSha256": "f79c15d6bf345ed5f35988db6958a808bebd0c6e9f07589cf52f3cb1b9e96a66",
+  "roomAxisUnionM2": {
+    "B2": 90.0337699133939,
+    "B1": 56.74115880165425,
+    "1F": 67.14237781595021,
+    "2F": 71.84728258972557
+  },
+  "currentUpperFloorAxisUnionM2": 138.98966040567578,
+  "baseUpperFloorAxisUnionM2": 137.8299396053123,
+  "authorizedSourceNorthAreaDeltaM2": 1.159720800363523,
+  "referencesValid": true,
+  "furnitureSpaceReferenceIncludesOutdoorZones": true,
+  "B1StructureAndFurnitureExactFromClosedBase": true,
+  "scope": "Reference/area and protected B1 invariant checks only; does not certify basic operation/actual staircase/headroom or new 1F/2F layout."
+}

@@ -259,7 +259,7 @@ export type SyncObjectState = {
 };
 
 export type VerificationStatus = "unverified" | "estimated" | "drawing-derived" | "site-measured" | "confirmed";
-export type VerificationSource = "developer-plan" | "visual-estimate" | "manual-input" | "site-measurement" | "other";
+export type VerificationSource = "developer-plan" | "visual-estimate" | "manual-input" | "site-measurement" | "design-assumption" | "other";
 
 export type VerificationMeta = {
   status: VerificationStatus;
@@ -1235,7 +1235,8 @@ export type HouseColumn = SyncObjectState & VerificationState & {
   center: MmPoint;
   radius: number;
   height: number;
-  material: "reinforcedConcrete" | "steel" | "masonry";
+  material: "reinforcedConcrete" | "steel" | "masonry" | "unknown";
+  geometryRole?: "structural-column" | "unverified-finish-proxy";
   supportsFloorId?: FloorId;
   /** Optional presentation finish; structural geometry remains center/radius/height. */
   visualStyle?: "structuralConcrete" | "showroomLightStone" | "concealedByFinish";
