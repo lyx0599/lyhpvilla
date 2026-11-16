@@ -1,14 +1,14 @@
 {
-  "revision": "UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE",
-  "modelFileSha256": "b8fe6999a7f9ab13555257950c236b091b3d0340fd181aaf56e6c35efc5878d1",
-  "sourceBundleSha256": "424e03d0f81c5c250159a6decc9f3b47f6367707a672aba83cae9ee5e24e4151",
-  "parentModelSha256": "14324ec9531264af3c11630639e754f12ce9b8cc7499e435e138175120c60f5d",
+  "revision": "UNIFIED-JOINT-20261115-R11-1F-B-2F-REANCHOR-CANDIDATE",
+  "modelFileSha256": "f499eea10c268abce76be40fc2212341615e4f646f92c6c5c442179f95b6a6c2",
+  "sourceBundleSha256": "9fca55a72258452313aa00740d72601b4870ed454907a4652dbba2f07991e16a",
+  "parentModelSha256": "c59607e97fe7a7b757962bd430f5eb5b815233fffb9c3a1ce6346456bd65081b",
   "sourceR06ModelSha256": "ecd562992684907b4365a5b54cb627fd23c099f20d308c130ea015715c75cfd3",
-  "sourceFileCount": 491,
+  "sourceFileCount": 494,
   "rootDataRevision": "2026-08-03-unified-pbr-material-language-v1",
-  "rootDefaultWorkspaceRevision": "UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE",
+  "rootDefaultWorkspaceRevision": "UNIFIED-JOINT-20261115-R11-1F-B-2F-REANCHOR-CANDIDATE",
   "floorBindingSha256": "15e75654745b49c770926dc205b10cc5a7a82f9db9ae31930519708609362cc6",
-  "scope": "Unified isolated working candidate: retained closed B1; R08 B2 actual assets and reviewed C02 concept join; unchanged B2-B1 plan/count20 with finished-grade correction35-to2818/20=139.15 and platform1426.5 relative B2 structure0; owner-restored1F R07 west-media/opposite west-facing sofa/original dining region and northW012 D003; source-restored2F north/fixtures and actual R02 stair. Ceiling surfaces follow existing stair voids. C1 joint north-entry/old-hole registration is a selected unverified source relation; South P17 and source313 now form selected source-constrained joint hypotheses, with fan winders instead of a fictitious flat landing. Three existing model-room frames inspected for morphology only; not proof of B1 count/height/wall axis. Actual north-door floor/door sweep and cross-floor headroom pending current native. D004 and two2F connections follow original narrow accepted adapters, combined native checks pending. Not accepted for publication.",
+  "scope": "R11 joint successor: exact accepted R10 OptionB1F retained;15 2F true-size position re-registrations and PMO adopted D007750mm travel with D008 closed plus950x2260 unselected glass height/datum fit, corrected track/support install. Concept track channel external30x30 retained; original carriage raised4mm to seat on channel lips, hanger6mm overlap and2mm top clearance declared, not OEM/load approval. Walls apertures stairs all other geometry retained. Actual native affected-domain review pending, not whole model acceptance. Publication model has only four schema/reference metadata repairs; reviewed model and source identities are preserved as provenance; publication source is bound separately.",
   "sourceIdentityExclusions": [
     "data/b1-reflow-identity.json",
     "public/release-manifest.json",
@@ -17,5 +17,7 @@
   ],
   "applyEnabled": false,
   "publishEnabled": false,
-  "allowedMergeScope": []
+  "allowedMergeScope": [],
+  "reviewedModelFileSha256": "5d30e26e861900bc1f31b92209aae70301cdb88ae397801959b8f12a66bbd75b",
+  "publicationMetadataAdapterRecord": "model-releases/2026-11-16-r11-metadata-adapter.json"
 }

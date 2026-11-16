@@ -782,7 +782,8 @@ function RoundedBoxMesh({
 function shouldUseFineAsset({ item, materialPreview, resolvedAsset, cabinetOpenAmount }: FurnitureAssetGroupProps) {
   const cabinetVisual = item.render3d?.cabinetVisual as (NonNullable<Furniture["render3d"]>["cabinetVisual"] & { accessPlanId?: string }) | undefined;
   const hasExplicitSlidingAccessPlan = item.render3d?.variantId === "slidingPanels" && Boolean(cabinetVisual?.accessPlanId);
-  return resolvedAsset.assetType === "desk"
+  return (item.render3d as {geometryContractId?:string})?.geometryContractId === "OPTION-B-20261114-CLOSEOUT"
+    || resolvedAsset.assetType === "desk"
     || cabinetOpenAmount !== undefined
     || hasExplicitSlidingAccessPlan
     || (materialPreview && resolvedAsset.detailLevel !== "draft");
@@ -4900,7 +4901,9 @@ function OpeningMeshContents({
               : designSwingAngle * ((opening as HouseDoor).defaultOpenAmount ?? 0);
             if (doorStyle === "doubleLeafWood" || doorVisual?.leafCount === 2) {
               const leafWidth = width / 2;
-              const openingAmount = explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0;
+              const openingAmount = opening.id==='D-2F-008' && operationQuery.has('d008')
+                ? Math.max(0,Math.min(72,Number(operationQuery.get('d008'))||0))/72
+                : explorationDoorState?.currentAngle ?? (opening as HouseDoor).defaultOpenAmount ?? 0;
               return (
                 <group>
                   {([-1, 1] as const).map((side) => (
@@ -9032,6 +9035,7 @@ function Piano3DGroup(props: FurnitureAssetGroupProps) {
 }
 
 function Generic3DGroup(props: FurnitureAssetGroupProps) {
+  if ((props.item.render3d as {geometryContractId?:string})?.geometryContractId === "OPTION-B-20261114-CLOSEOUT") return <FineVariantFurniture3DGroup {...props}/>;
   if (props.item.render3d?.variantId === "upholsteredWallPanel") {
     const metrics = useFineAssetMetrics(props);
     const { position, width, depth, height, rotation, groupY } = metrics;

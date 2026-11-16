@@ -73,6 +73,10 @@ export function buildModelInspectionCameras(floor:FloorId,structure:HouseStructu
   if(floor==='2F') {
     roomView('ROOM-2F-001','客卫与门口俯视｜当前布局');
     roomView('ROOM-2F-002','衣帽间与入口俯视｜当前布局');
+    roomView('ROOM-2F-003','主卫重注册与750限位｜实际模型');
+    views.push({id:'current-2F-entry-header-node',name:'D007高度纠错与轨吊节点｜实际模型',floor,scope:'floor',mode:'perspective',cameraPosition:{x:2.65,y:2.58,z:.25},target:{x:1.30,y:2.32,z:-.2164},fov:42,description:'真实整片玻璃、门横框与门洞上方墙芯节点检查；不是手绘示意或五金批准。'});
+    roomView('ROOM-2F-004','父母房真尺寸重注册｜实际模型');
+    roomView('ROOM-2F-005','儿童房真尺寸重注册｜实际模型');
     roomView('ROOM-2F-006','主卧与飘窗俯视｜当前布局');
     const doors=structure.doors.filter(d=>['D-2F-003','D-2F-004'].includes(d.id));
     const points=doors.flatMap(d=>{const host=structure.walls.find(w=>w.id===d.hostId);return host?.kind==='straight'?[host.start,host.end]:[];});

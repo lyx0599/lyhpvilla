@@ -29,11 +29,11 @@ export function Research1FContract(props:FurnitureFamily3DProps){
  const query=useSearchParams(),party=false,phase=query.get('phase')??'closed';
  const {item,width,depth,height}=props,floorY=-height/2,baseX=item.position.x*120,baseY=item.position.y*90;
  const worldRotation=(item.position.rotation||0)*Math.PI/180;
- const authored=(item.render3d as {authoredSeatLayoutsMm?:{daily?:Array<ChairPose&{kind:string;parent:string}>}}|undefined)?.authoredSeatLayoutsMm?.daily;
+ const authored=(item.render3d as {authoredSeatLayoutsMm?:{daily?:Array<ChairPose&{kind:string;parent:string}>;expanded?:Array<ChairPose&{kind:string;parent:string}>}}|undefined)?.authoredSeatLayoutsMm?.[query.get('dining')==='expanded'?'expanded':'daily'];
  const state=(party?contract.states.party:authored??contract.states.daily) as unknown as Array<ChairPose&{kind:string;parent:string}>;
  const selectedPullSeat=query.get('seat')??'R1';
  const offsetFor=(p:ChairPose):[number,number]=>{
-  if(['1F-FIXEDTV-R05-EXTENDABLE-CANDIDATE','1F-SOURCE-LAYOUT-R07-CANDIDATE'].includes((item.render3d as {geometryContractId?:string})?.geometryContractId??''))return [0,0];
+  if(['1F-FIXEDTV-R05-EXTENDABLE-CANDIDATE','1F-SOURCE-LAYOUT-R07-CANDIDATE','OPTION-B-20261114-CLOSEOUT'].includes((item.render3d as {geometryContractId?:string})?.geometryContractId??''))return [0,0];
   if(phase!=='chairs-pulled'||p.id!==selectedPullSeat)return [0,0];
   const a=p.angleDeg*Math.PI/180;
   const paths=(contract as unknown as {dailyActions?:Record<string,number[][]>}).dailyActions;

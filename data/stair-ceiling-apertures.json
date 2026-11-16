@@ -1,6 +1,6 @@
 {
   "revision": "EXISTING-STAIR-VOIDS-CEILING-CONTINUITY-R01",
-  "sourceModelSha256": "b8fe6999a7f9ab13555257950c236b091b3d0340fd181aaf56e6c35efc5878d1",
+  "sourceModelSha256": "5d30e26e861900bc1f31b92209aae70301cdb88ae397801959b8f12a66bbd75b",
   "scope": "Only automatic ceiling surfaces over existing declared stair openings are clipped; no opening/room/height/structure change or blanket removal of ceiling geometry. Authored closed-room ceiling surfaces untouched.",
   "records": [
     {

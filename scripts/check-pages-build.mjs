@@ -142,6 +142,19 @@ try {
   for(const f of plans.files){const b=await readFile(path.join(OUT_DIR,f.file));if(createHash("sha256").update(b).digest("hex")!==f.sha256||!b.toString().includes(modelSha))errors.push("Current2D plan identity mismatch: "+f.file);}
   if(!(await fileExists(path.join(OUT_DIR,"model-plans/index.html"))))errors.push("Current model plan gallery is missing");
  }
+ if(model.defaultWorkspaceRevision==="UNIFIED-JOINT-20261115-R11-1F-B-2F-REANCHOR-CANDIDATE"){
+  const plans=JSON.parse(await readFile(path.join(OUT_DIR,"model-plans/r11/manifest.json"),"utf8"));
+  const modelSha=createHash("sha256").update(await readFile(path.resolve("data/default-workspace.json"))).digest("hex");
+  if(plans.modelSha256!==modelSha||plans.revision!==model.defaultWorkspaceRevision)errors.push("R11 plans/runtime identity mismatch");
+  if(JSON.stringify(plans.files.map(x=>x.floor+":"+x.state).sort())!==JSON.stringify(["B2:default","B1:default","1F:closed","2F:closed-entry","1F:expanded"].sort()))errors.push("R11 four floors plus expanded state incomplete");
+  for(const f of plans.files){
+   const expected=model.furniture.filter(x=>x.floorId===f.floor&&x.visible!==false&&!x.hidden&&x.render3d?.visibleIn3d!==false).map(x=>x.id).sort();
+   if(JSON.stringify(f.metadata.furnitureOwners)!==JSON.stringify(expected))errors.push("R11 plan furniture coverage mismatch: "+f.file);
+   if(f.floor==="1F"&&JSON.stringify(f.metadata.chairIds)!==JSON.stringify(["R1","R2","R3","R4","R5","R6"]))errors.push("R11 six native chairs missing: "+f.file);
+   const b=await readFile(path.join(OUT_DIR,"model-plans/r11",f.file));if(createHash("sha256").update(b).digest("hex")!==f.sha256||!b.toString().includes(modelSha))errors.push("R11 plan asset mismatch: "+f.file);
+  }
+  if(!(await fileExists(path.join(OUT_DIR,"model-plans/index.html"))))errors.push("R11 gallery missing");
+ }
 }catch(error){errors.push("Current model plan verification failed: "+error.message);}
 
 if (errors.length > 0) {

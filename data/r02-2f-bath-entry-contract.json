@@ -1,0 +1,44 @@
+{
+  "revision": "R11-D007-HEIGHT-DATUM-FIT-20261116",
+  "doorId": "D-2F-007",
+  "maxTravelMm": 750,
+  "previousMaxTravelMm": 775,
+  "previousIsRetiredNegativeControl": true,
+  "travelQuery": "entryOpen",
+  "queryRange": [
+    0,
+    1
+  ],
+  "queryMeaning": "normalized fraction of maxTravelMm, not millimetres",
+  "requiredClosedDoorId": "D-2F-008",
+  "requiredClosedDoorQuery": {
+    "d008": 0
+  },
+  "d008QueryUnit": "degrees0..72, both leaves",
+  "leafWidthMmPreserved": 950,
+  "leafHeightMmPreserved": null,
+  "effectiveClearAtFullOpenMm": 715,
+  "selectionStatus": "PMO adopted isolated height/datum correction candidate; actual model and firstline limited review pending; not site hardware approval",
+  "sourceGeometryNotSurveyed": true,
+  "siteStopOrProductHardwareSelected": false,
+  "leafHeightMm": 2260,
+  "oldTemplateLeafHeightMm": 2300,
+  "heightCorrectionIsUnselectedDesignPanelNotSiteCut": true,
+  "actualNativeFinishedFloorMm": 18,
+  "leafBottomGapMm": 8,
+  "leafBottomWorldMm": 26,
+  "leafTopWorldMm": 2286,
+  "rendererRootElevationMm": 35,
+  "trackWestLocalMm": 155,
+  "trackEastLocalMm": 1810,
+  "trackEnvelopeMm": [
+    1655,
+    30,
+    30
+  ],
+  "trackModelProfile": "concept C channel within original30x30 external envelope; not selected OEM",
+  "firstCeilingSupportLocalXmm": 250,
+  "ceilingPlateSouthOffsetMm": 15,
+  "movingHangerHeightMm": 106.5,
+  "carriageSeatingRaiseMm": 4
+}

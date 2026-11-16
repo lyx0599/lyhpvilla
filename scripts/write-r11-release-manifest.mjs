@@ -1,0 +1,23 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),'utf8'));
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+const binding=read('public/model-releases/2026-11-16-r11-publication.json');
+const frozen=read('public/model-releases/2026-11-16-r11-frozen-source.json');
+const modelBytes=fs.readFileSync(path.join(root,'data/default-workspace.json'));const model=JSON.parse(modelBytes);
+if(sha(modelBytes)!==binding.modelSha256||model.defaultWorkspaceRevision!==binding.modelRevision)throw new Error('R11 frozen model identity mismatch');
+const adapters=new Map(binding.sourceAdapters.map(x=>[x.path,x]));
+for(const f of frozen.files){const actual=sha(fs.readFileSync(path.join(root,f.path)));const adapter=adapters.get(f.path);if(adapter){if(adapter.beforeSha256!==f.sha256||adapter.afterSha256!==actual)throw new Error('R11 publication adapter mismatch: '+f.path);}else if(actual!==f.sha256)throw new Error('R11 frozen source changed: '+f.path);}
+const publication=binding.publicationSourceFiles.map(f=>{const actual=sha(fs.readFileSync(path.join(root,f.path)));if(actual!==f.sha256)throw new Error('R11 publication source mismatch: '+f.path);return {path:f.path,sha256:actual};});
+const publicationSha256=sha(JSON.stringify(publication));if(publicationSha256!==binding.publicationSourceSha256)throw new Error('R11 publication source bundle identity mismatch');
+const adopted=binding.phase==='PMO_ADOPTED_R11_INFERRED_DESIGN_RELEASE';
+if(process.env.GITHUB_ACTIONS==='true'&&!adopted)throw new Error('R11 publication remains staging-only; no PMO final adoption bound');
+const commit=process.env.GITHUB_SHA||execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+const dirty=execFileSync('git',['status','--porcelain','--untracked-files=normal'],{cwd:root,encoding:'utf8'}).trim().length>0;
+const manifest={sourceCommit:commit,workingTreeDirty:dirty,modelRevision:model.defaultWorkspaceRevision,modelSha256:sha(modelBytes),productionModelSha256:sha(modelBytes),reviewedModelSha256:binding.reviewedModelSha256,metadataAdapterRecord:binding.metadataAdapterRecord,reviewedRenderSourceSha256:binding.reviewedRenderSourceSha256,publicationSourceSha256:publicationSha256,publicationIdentityExclusions:binding.publicationIdentityExclusions,publicationAdapters:binding.sourceAdapters,generatedAt:new Date().toISOString(),integrationStatus:adopted?'pmo-adopted-r11-inferred-design-model':'R11_PUBLICATION_STAGING_NOT_APPROVED_NOT_PUBLISHED',reviewQueue:binding.reviewQueue,reviewScopes:binding.reviewScopes,scope:binding.scope,openItems:binding.retainedLimits,floors:Object.fromEntries(['B2','B1','1F','2F','YARD'].map(id=>[id,{walls:model.houseStructuresByFloor[id].walls.length,furniture:model.furniture.filter(x=>x.floorId===id).length}])),publicationBindingRecord:'model-releases/2026-11-16-r11-publication.json'};
+if(process.env.R11_RELEASE_VALIDATE_ONLY!=='1')fs.writeFileSync(path.join(root,'public/release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
+console.log(`R11 release metadata: ${commit} / ${manifest.modelSha256} / publication source ${publicationSha256}; ${manifest.integrationStatus}`);

@@ -1,5 +1,6 @@
 'use client';
 import {useSearchParams} from 'next/navigation';
+import bathEntryContract from '@/data/r02-2f-bath-entry-contract.json';
 import type {FurnitureFamily3DProps} from './types';
 import {Box,Tub,Vanity} from '@/components/r11-integrated-primitives';
 import type {HouseStructure} from '@/types/space';
@@ -56,15 +57,24 @@ export function R11BathEntry({structure,door}:{structure:HouseStructure,door:Hou
  const cx=wall.start.x+(wall.end.x-wall.start.x)*door.positionOnWall;
  const cy=wall.start.y+(wall.end.y-wall.start.y)*door.positionOnWall;
  const origin={x:cx-1325,y:cy-2840},c=structure.coordinateSystem;
- const leaf=[850-775*travel,2975,1800-775*travel,2995];
- return <group name="D-2F-007-r11-host-bound-entry" userData={{auditEntityId:door.id,auditKind:'door',hostId:door.hostId,travelMm:775*travel}} position={[(origin.x-c.origin.x-c.width/2)/1000,.035,(origin.y-c.origin.y-c.height/2)/1000]}>
+ const appliedTravelMm=bathEntryContract.maxTravelMm*travel;
+ const leafBottomZ=bathEntryContract.leafBottomWorldMm-bathEntryContract.rendererRootElevationMm;
+ const leafTopZ=bathEntryContract.leafTopWorldMm-bathEntryContract.rendererRootElevationMm;
+ const leaf=[850-appliedTravelMm,2975,1800-appliedTravelMm,2995];
+ return <group name="D-2F-007-r11-host-bound-entry" userData={{auditEntityId:door.id,auditKind:'door',hostId:door.hostId,travelMm:appliedTravelMm,maxTravelMm:bathEntryContract.maxTravelMm,requiredClosedDoorId:bathEntryContract.requiredClosedDoorId,leafHeightMm:bathEntryContract.leafHeightMm,leafBottomWorldMm:bathEntryContract.leafBottomWorldMm,finishedFloorMm:bathEntryContract.actualNativeFinishedFloorMm,installationStatus:'model-candidate-not-selected-OEM-or-load-design'}} position={[(origin.x-c.origin.x-c.width/2)/1000,.035,(origin.y-c.origin.y-c.height/2)/1000]}>
   {[875,1775].map(x=><Box key={x} name={'entry-jamb-'+x} b={[x-10,2760,x+10,2920]} z={[0,2300]} color={metal}/>)}
   <Box name="entry-header" b={[865,2760,1785,2920]} z={[2300,2320]} color={metal}/>
-  <Box name="entry-slider-glass" b={leaf} z={[37.5,2337.5]} color="#a0c3c7" opacity={.23}/>
-  <Box name="entry-upper-track" b={[65,2970,1810,3000]} z={[2347.5,2377.5]} color={metal}/>
-  <Box name="entry-leading-graspable20mm-frame" b={[leaf[2]-20,2960,leaf[2],3000]} z={[37.5,2337.5]} color={metal}/>
+  <Box name="entry-slider-glass" b={leaf} z={[leafBottomZ,leafTopZ]} color="#a0c3c7" opacity={.23}/>
+  <group name="entry-upper-track-concept-channel" userData={{auditEntityId:door.id,auditKind:'door',trackExternalEnvelopeMm:[1655,30,30],internalSlotMm:18,modelOnlyNotOEM:true}}>
+   <Box name="entry-upper-track-cap" b={[155,2970,1810,3000]} z={[2373.5,2377.5]} color={metal}/>
+   <Box name="entry-upper-track-north-side" b={[155,2970,1810,2972]} z={[2347.5,2373.5]} color={metal}/>
+   <Box name="entry-upper-track-south-side" b={[155,2998,1810,3000]} z={[2347.5,2373.5]} color={metal}/>
+   <Box name="entry-upper-track-north-lip" b={[155,2972,1810,2976]} z={[2347.5,2351.5]} color={metal}/>
+   <Box name="entry-upper-track-south-lip" b={[155,2994,1810,2998]} z={[2347.5,2351.5]} color={metal}/>
+  </group>
+  <Box name="entry-leading-graspable20mm-frame" b={[leaf[2]-20,2960,leaf[2],3000]} z={[leafBottomZ,leafTopZ]} color={metal}/>
   <Box name="entry-outside-pull" b={[leaf[2]-85,2995,leaf[2]-65,3020]} z={[940,1160]} color={metal}/>
-  {[leaf[0]+120,leaf[2]-120].map((x,i)=><group key={'moving-hanger-'+i}><Box name={'entry-leaf-hanger-'+i} b={[x-10,2977,x+10,2993]} z={[2337.5,2357.5]} color={metal}/><Box name={'entry-track-carriage-'+i} b={[x-25,2973,x+25,2997]} z={[2347.5,2367.5]} color={metal}/></group>)}
-  {[150,650,1150,1700].map((x,i)=><group key={'ceiling-support-'+i} userData={{supportStatus:'declared-model2800-datum-not-engineered-anchor'}}><Box name={'entry-ceiling-hanger-'+i} b={[x-8,2977,x+8,2993]} z={[2377.5,2760]} color={metal}/><Box name={'entry-ceiling-plate-'+i} b={[x-40,2945,x+40,3025]} z={[2760,2765]} color={metal}/></group>)}
+  {[leaf[0]+120,leaf[2]-120].map((x,i)=><group key={'moving-hanger-'+i}><Box name={'entry-leaf-hanger-'+i} b={[x-10,2977,x+10,2993]} z={[leafTopZ,2357.5]} color={metal}/><Box name={'entry-track-carriage-'+i} b={[x-25,2973,x+25,2997]} z={[2351.5,2371.5]} color={metal}/></group>)}
+  {[250,650,1150,1700].map((x,i)=><group key={'ceiling-support-'+i} userData={{supportStatus:'declared-model2800-datum-not-engineered-anchor'}}><Box name={'entry-ceiling-hanger-'+i} b={[x-8,2977,x+8,2993]} z={[2377.5,2760]} color={metal}/><Box name={'entry-ceiling-plate-'+i} b={[x-40,2960,x+40,3040]} z={[2760,2765]} color={metal}/></group>)}
  </group>;
 }

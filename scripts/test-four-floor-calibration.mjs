@@ -10,6 +10,7 @@ import {getModelDisplayBounds,getDisplayPercentBounds} from '../lib/model-displa
 const read=p=>JSON.parse(fs.readFileSync(new URL(p,import.meta.url)));
 const bytes=fs.readFileSync(new URL('../data/default-workspace.json',import.meta.url)),m=JSON.parse(bytes);
 if(m.defaultWorkspaceRevision==='UNIFIED-JOINT-20261114-R09-GUARD-FOOT-FIT-CANDIDATE'){await import('./test-r09-publication.mjs');process.exit(0);}
+if(m.defaultWorkspaceRevision==='UNIFIED-JOINT-20261115-R11-1F-B-2F-REANCHOR-CANDIDATE'){await import('./test-r11-publication.mjs');process.exit(0);}
 assert.match(m.defaultWorkspaceRevision,/four-floor/);
 const binding=read('../public/model-releases/2026-11-11-four-floor-candidate.json');
 assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),binding.modelSha256);

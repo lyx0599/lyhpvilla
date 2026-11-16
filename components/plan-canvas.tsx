@@ -71,6 +71,7 @@ import {
   toPlanObject
 } from "@/lib/object-sync-adapter";
 import type { WallSyncOverrides, WallSyncRuleId } from "@/lib/villa-structure-sync";
+import { CurrentFurniturePlanOutline, getCurrentFurniturePlanOutline } from "@/components/current-furniture-plan-outline";
 import { FurnitureTopView } from "@/components/furniture-top-view";
 import { Floor3DView, type LightingObjectControlRequest, type LightingRuntimeState, type Shared3DSceneSettings } from "@/components/floor-3d-view";
 import type { LightingDesign } from "@/types/workspace";
@@ -1232,9 +1233,10 @@ export function PlanCanvas({
 
   function getFurnitureDisplaySize(item: Furniture) {
     const planObject = toPlanObject(normalizeObjectForSync(item, houseStructure.coordinateSystem, houseStructure, interactionState), houseStructure.coordinateSystem);
+    const nativeOutline = getCurrentFurniturePlanOutline(item);
     return {
-      width: Math.max(5, planObject.dimensionsPercent.width * houseStructure.coordinateSystem.width / planBounds.width),
-      height: Math.max(4, planObject.dimensionsPercent.depth * houseStructure.coordinateSystem.height / planBounds.height)
+      width: Math.max(nativeOutline ? 0 : 5, planObject.dimensionsPercent.width * houseStructure.coordinateSystem.width / planBounds.width),
+      height: Math.max(nativeOutline ? 0 : 4, planObject.dimensionsPercent.depth * houseStructure.coordinateSystem.height / planBounds.height)
     };
   }
 
@@ -6659,6 +6661,7 @@ export function PlanCanvas({
 	                const demandMuted = demandModeActive && !demandHint;
 	                const displayPosition = getFurnitureDisplayPosition(item);
                 const displaySize = getFurnitureDisplaySize(item);
+                const currentNativeOutline = getCurrentFurniturePlanOutline(item);
                 const renderAsset = resolve3DAsset(item);
                 const placementWarnings = furniturePlacementWarnings.filter((warning) => warning.furnitureId === item.id);
                 const clearance = item.clearanceMeta;
@@ -6676,8 +6679,8 @@ export function PlanCanvas({
                       top: `${displayPosition.y}%`,
                       width: `${displaySize.width}%`,
                       height: `${displaySize.height}%`,
-	                      minWidth: isFurnitureSheetMode ? "0" : "48px",
-	                      minHeight: isFurnitureSheetMode ? "0" : "40px",
+	                      minWidth: isFurnitureSheetMode || currentNativeOutline ? "0" : "48px",
+	                      minHeight: isFurnitureSheetMode || currentNativeOutline ? "0" : "40px",
 	                      opacity: demandMuted ? 0.18 : locked ? 0.6 : 1,
 	                      boxShadow: demandHint ? `0 0 0 4px ${demandHint.background}, 0 0 0 7px ${demandHint.color}` : undefined,
 	                      transform: `translate(-50%, -50%) rotate(${item.position.rotation}deg)`
@@ -6762,10 +6765,10 @@ export function PlanCanvas({
                       />
                     )}
                     <div
-                      className="relative z-10 h-full w-full"
-                      style={{ transform: `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
+                      className={currentNativeOutline ? "absolute inset-0 z-10 h-full w-full min-h-0 min-w-0" : "relative z-10 h-full w-full"}
+                      style={{ transform: currentNativeOutline ? undefined : `scale(${item.position.flipX ? -1 : 1}, ${item.position.flipY ? -1 : 1})` }}
                     >
-	                      <FurnitureTopView assetType={renderAsset.assetType} variantId={renderAsset.variantId} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : developerMode ? item.code : undefined} showLabel={locked || (developerMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && sheetMode !== "furniturePlan")} stretchToFill type={item.type} />
+	                      {currentNativeOutline ? <CurrentFurniturePlanOutline item={item} outline={currentNativeOutline} /> : <FurnitureTopView assetType={renderAsset.assetType} variantId={renderAsset.variantId} className="h-full w-full drop-shadow-[0_4px_10px_rgba(15,23,42,0.18)]" color={item.color} footprint={item.dimensions} frameless imageSrc={item.referenceImageDataUrl} label={locked ? "LOCK" : developerMode ? item.code : undefined} showLabel={locked || (developerMode && (!furnitureImmersiveMode || furnitureLabelsVisible) && sheetMode !== "furniturePlan")} stretchToFill type={item.type} />}
 	                    </div>
 	                    {placementWarnings.length > 0 && (
 	                      <span className="pointer-events-none absolute -left-2 -top-2 z-20 grid min-h-6 min-w-6 place-items-center rounded-full border-2 border-white bg-amber-600 px-1 text-[10px] font-black text-white shadow-md" title={placementWarnings.map((warning) => warning.message).join("\n")}>{placementWarnings.length}</span>

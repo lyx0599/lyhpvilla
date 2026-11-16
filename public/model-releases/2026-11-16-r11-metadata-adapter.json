@@ -1,0 +1,38 @@
+{
+  "reviewedModelSha256": "5d30e26e861900bc1f31b92209aae70301cdb88ae397801959b8f12a66bbd75b",
+  "productionModelSha256": "f499eea10c268abce76be40fc2212341615e4f646f92c6c5c442179f95b6a6c2",
+  "reviewedRenderSourceSha256": "9fca55a72258452313aa00740d72601b4870ed454907a4652dbba2f07991e16a",
+  "canonicalReviewedModelSha256": "ea31ec5a3da67581aacff374cdba425fe3c64cac152d255daef240a0873542f0",
+  "resolvedTvBeforeAndAfterExactlyEqual": true,
+  "changes": [
+    {
+      "path": "/furniture/110/render3d/variantId",
+      "before": {
+        "absent": true
+      },
+      "after": "proceduralDefault"
+    },
+    {
+      "path": "/furniture/110/render3d/variationSeed",
+      "before": {
+        "absent": true
+      },
+      "after": 2679770156
+    },
+    {
+      "path": "/drawingItems/70/relatedFurnitureId",
+      "before": "furn-living-fireplace-south-001",
+      "after": {
+        "absent": true
+      }
+    },
+    {
+      "path": "/drawingItems/169/relatedFurnitureId",
+      "before": "furn-living-fireplace-south-001",
+      "after": {
+        "absent": true
+      }
+    }
+  ],
+  "scope": "Only missing schema metadata defaults and removed furniture optional references repaired. All other parsed fields exactly equal. Geometry/cameras/material resolution and action states unchanged. Reviewed artifact preserved separately."
+}

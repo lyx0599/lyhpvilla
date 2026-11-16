@@ -1,5 +1,6 @@
 "use client";
 
+import {hasOptionBGeometry,OptionBGeometry} from "./option-b-geometry";
 import { resolveFurnitureVariant } from "@/lib/furniture-variants";
 import { Research1FContract, hasResearch1FContract } from "./research-1f-contract";
 import { approvedR14Role, R14ApprovedSubset } from './r14-approved-subset';
@@ -23,6 +24,7 @@ import {hasCal5900Bath,Cal5900Bath} from './cal5900-bath';
 import {hasCal5900Media,Cal5900Media} from './cal5900-media';
 
 export function FurnitureFamily3D(props: FurnitureFamily3DProps) {
+  if(hasOptionBGeometry(props.item))return <OptionBGeometry {...props}/>;
   if(hasCal5900Media(props))return <Cal5900Media {...props}/>;
   if(hasCal5900Bath(props))return <Cal5900Bath {...props}/>;
   if (isR16Cloak(props.item)) return <R16FourDoorCloset {...props}/>;

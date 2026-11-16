@@ -1,0 +1,2517 @@
+{
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "c2771869fcf95af70f80ebcee5bfda7d03224da62a652a3396a9dcadb5b87d50",
+      "bytes": 968
+    },
+    {
+      "path": "app/2f-preview/page.tsx",
+      "sha256": "13260bca616966db72f5aa26932da7cca3d438d309cb40d04ce10b9bec2327db",
+      "bytes": 507
+    },
+    {
+      "path": "app/b1-preview/page.tsx",
+      "sha256": "2f32407271c4a9a2f04af7056546f5eb2ce6da7350e0e0b46a22d61c9fc08890",
+      "bytes": 478
+    },
+    {
+      "path": "app/b2-preview/page.tsx",
+      "sha256": "4e7f7e206c1c3865578060168d2570f140fecd7769d09f726775f93de6316fda",
+      "bytes": 467
+    },
+    {
+      "path": "app/b2-south-layout/page.tsx",
+      "sha256": "0d13023dd3f217a238ae54bb6a403881efa8f755d0c6bdd1dfef9d2c8e283f38",
+      "bytes": 311
+    },
+    {
+      "path": "app/closet-candidate/page.tsx",
+      "sha256": "64dc48d7adb0770e183d3bfd35cb06ae51bd4b4f6c244dfa1ba4b3130d7b6f1c",
+      "bytes": 308
+    },
+    {
+      "path": "app/globals.css",
+      "sha256": "4b54e78af7e8c46d78ce1f08fb0c7883e27a989a7809cbaf853d9e2a63c61089",
+      "bytes": 288
+    },
+    {
+      "path": "app/icon.svg",
+      "sha256": "31ebc0a53ba913660964202cd7db9ce729d71ba7d93fd23b49a67bdf2d2d38c9",
+      "bytes": 432
+    },
+    {
+      "path": "app/layout.tsx",
+      "sha256": "b89d6317e8fd2c66ffb3690632143fef766489e5dcdea1e77405271a84f50cf7",
+      "bytes": 412
+    },
+    {
+      "path": "app/model-preview/page.tsx",
+      "sha256": "acdb76dc5ca4ce34c2aeeed64dda04d2c6844805e6d8a88d846959f572af9392",
+      "bytes": 512
+    },
+    {
+      "path": "app/not-found.tsx",
+      "sha256": "da1557e50f50d7db3cdcdebff2a5c61cae1b470fb072b22398472e7afb1d3eb1",
+      "bytes": 485
+    },
+    {
+      "path": "app/owner-communication/decisions/page.tsx",
+      "sha256": "1491d75fc0452a192596f6fee6ff2f82a227b3b3ff23a4a884a406d41779e884",
+      "bytes": 331
+    },
+    {
+      "path": "app/owner-communication/page.tsx",
+      "sha256": "a164eb320d04c8acd691d32cc3a9a76c021b9b8e6ad8659eb31dea7cee326db5",
+      "bytes": 344
+    },
+    {
+      "path": "app/page.tsx",
+      "sha256": "e4dfd9ade09b670c19909a8ab42b3b573eb0b2d75a0ef6bdf9013617bf5db25e",
+      "bytes": 221
+    },
+    {
+      "path": "app/pbr-audit/page.tsx",
+      "sha256": "d1f9df70c57fd6dcdea00c87a482ad9a25f3b7894652e057e3cbb70d1d92e584",
+      "bytes": 47588
+    },
+    {
+      "path": "app/preview/page.tsx",
+      "sha256": "28845b64a21e44dc5e4b77b773a900a9457e2fb430503a9bee415266cd28c6cd",
+      "bytes": 11750
+    },
+    {
+      "path": "app/r15/page.tsx",
+      "sha256": "4b435b85990077d436e8e4eaedbd9eca70ccb14e9d0cca18124107c18d086c1b",
+      "bytes": 275
+    },
+    {
+      "path": "app/unified-r12/page.tsx",
+      "sha256": "0f66c3e68d95d92ba1ced023b6ce4f0c28bf7a367743ca44bf099712fa218776",
+      "bytes": 305
+    },
+    {
+      "path": "app/yard-preview/page.tsx",
+      "sha256": "49d3d53f365f664941a5c6036c902e7eef00e99547fc0dd52b2f2cb4ab612676",
+      "bytes": 513
+    },
+    {
+      "path": "components/area6623-architecture.tsx",
+      "sha256": "e8dfe1da7975c2d350f48da09f6d1be6ae8eef3333ac192138199ed96f1b6e99",
+      "bytes": 2017
+    },
+    {
+      "path": "components/b1-d01-ceiling.tsx",
+      "sha256": "6340fa525d905fbd719b554f8e389789dad91ba68ac49cde644c447125803d78",
+      "bytes": 966
+    },
+    {
+      "path": "components/b1-d01-floor-seams.tsx",
+      "sha256": "fca02235a9c652f2183e2e2064e13b74f3f42a24f410b8d8a0387ede440d5e8a",
+      "bytes": 2093
+    },
+    {
+      "path": "components/b1-joined-railing.tsx",
+      "sha256": "847d2e884398beb2e13c949526b7d1947cf12b48c4d8829e6040b7c9b1dea09d",
+      "bytes": 4695
+    },
+    {
+      "path": "components/b1-layout-r01.tsx",
+      "sha256": "5a4b5ffdebc69f4a29b03f4837d447f2dbe8efac296331c1430226c8a29d43ea",
+      "bytes": 5136
+    },
+    {
+      "path": "components/b1-preview.tsx",
+      "sha256": "7bdc46f496756877109a5d18ea0ad56c0eeb60dfcd990ed2887bc8e1933e7bb3",
+      "bytes": 5255
+    },
+    {
+      "path": "components/b1-r03-functional.tsx",
+      "sha256": "12ddb528b6db70f036323974f89d481930e000029462160cfc4de7a9b9401327",
+      "bytes": 12455
+    },
+    {
+      "path": "components/b1-r06-cabinets.tsx",
+      "sha256": "d148ed6626547ea0e2292deed1c2f90541eba0aa8f54a3e89822a99724b7c158",
+      "bytes": 3401
+    },
+    {
+      "path": "components/b1-reflow-operation.tsx",
+      "sha256": "d2fde28e32181e086c8571e015b325c0001c658281c005df12af9149bf0161dc",
+      "bytes": 4107
+    },
+    {
+      "path": "components/b2-finished-floor-seams.tsx",
+      "sha256": "b7f557529894f947423739a277f8f9ea1aa50035f8deafcfeb548e2113351b22",
+      "bytes": 2109
+    },
+    {
+      "path": "components/b2-floor-fitted-door.tsx",
+      "sha256": "ee3ff623b9aa6097a502c7f449f4206c87c9c9284c09d3ed855b51fdd51fe338",
+      "bytes": 2648
+    },
+    {
+      "path": "components/b2-full-design-layer.tsx",
+      "sha256": "6185f52b9dd092eb72838db42f8693c2454ee97605ec23fdb1ab080b52496f00",
+      "bytes": 4787
+    },
+    {
+      "path": "components/b2-lowdoor-study.tsx",
+      "sha256": "ad646ca9f37f8ac1f21561e27383d54b859141641dfe450964841d4e4f772408",
+      "bytes": 1935
+    },
+    {
+      "path": "components/b2-preview.tsx",
+      "sha256": "d809f779f3163754bb1860f633272b4cebebf5cb33294258677d0eb786acbced",
+      "bytes": 9458
+    },
+    {
+      "path": "components/b2-r08/B2SpaceFurniture.tsx",
+      "sha256": "81c229fc9bde374f85710b156b95b23e58f48265eba1d1a4d78f13f3d42a8d24",
+      "bytes": 7207
+    },
+    {
+      "path": "components/b2-r08/B2_EXPLICIT_ASSETS.json",
+      "sha256": "b2907643a4c0674eace0260f06746d2c8c939a16c710af43cbe64c478fbd0555",
+      "bytes": 506910
+    },
+    {
+      "path": "components/b2-r08/bridge.tsx",
+      "sha256": "3e185248089066903b76159323857e100ba22232028b5aecfd9825a4e5d0dbdd",
+      "bytes": 1407
+    },
+    {
+      "path": "components/b2-r7-design.tsx",
+      "sha256": "25ee27df2aa47d459c2c89a6f9ff3d1dd32f1dd6e82dd9ef9115b6ee99996b06",
+      "bytes": 11466
+    },
+    {
+      "path": "components/b2-west-layout-parts.tsx",
+      "sha256": "9bdd13885906521c36ba255f542f650265079b8b3d09747d70fa30ec54b472b5",
+      "bytes": 7694
+    },
+    {
+      "path": "components/b2-west-layout-preview.tsx",
+      "sha256": "7a8455cfb1e1f5a52a64e6e58d5ee62e8590dc23ce17b1990135ec3a35e3f22f",
+      "bytes": 6563
+    },
+    {
+      "path": "components/cal5900-r15-proxies.tsx",
+      "sha256": "6ec93275d997b546be5374a73db01b189665b6e07851cbbf9a9378efcce7c6eb",
+      "bytes": 2759
+    },
+    {
+      "path": "components/design-evidence-audit.tsx",
+      "sha256": "13b1003b68fbf9f565c9cd6fb2b63f7a80a9c5538b7923322773d263a4346bfe",
+      "bytes": 8793
+    },
+    {
+      "path": "components/dimension-verification-editor.tsx",
+      "sha256": "b96eb5913758ead74c2d54414eb56841fde4dd390a1971d85fe3936a95625ddb",
+      "bytes": 5783
+    },
+    {
+      "path": "components/editor/bottom-status-bar.tsx",
+      "sha256": "6cf58af2d093862188e7018578e50fee6db79531a8e577d3202f7725a483d253",
+      "bytes": 1403
+    },
+    {
+      "path": "components/editor/context-toolbar.tsx",
+      "sha256": "54dc021830c5392b86ffc75e392c267899ec8139c913de433aa1cb242146b058",
+      "bytes": 4149
+    },
+    {
+      "path": "components/editor/drawing-directory.tsx",
+      "sha256": "a2d772fad8dd901ad4fd39fe4bbee61f7060c378fce8f90d6c7c3b245b615fa5",
+      "bytes": 3467
+    },
+    {
+      "path": "components/editor/drawing-package-manager.tsx",
+      "sha256": "db59ae57f20a05e106711a389327d250121768acdb579388f312dc094c2f58ab",
+      "bytes": 2743
+    },
+    {
+      "path": "components/editor/editor-utility-dialog.tsx",
+      "sha256": "652e8564303c4221c79cefba4e5cd36f5c15e83d06f5e7a829c98eda28f54d33",
+      "bytes": 1332
+    },
+    {
+      "path": "components/editor/material-swatch-picker.tsx",
+      "sha256": "63f7899d69dde673ef75af1b1ce634986cfda4c071fa08de01a0b7381f74be48",
+      "bytes": 3496
+    },
+    {
+      "path": "components/editor/module-library-drawer.tsx",
+      "sha256": "3ce426c9ad6a97857e71705f1cd33bfa5c11be0003ca76eb6393fe16367a0e7d",
+      "bytes": 4838
+    },
+    {
+      "path": "components/editor/more-menu.tsx",
+      "sha256": "ddc57225a2fc2afa198b996e9d7e6eb8b0c0b31fec94d7d52fd141a509cd0efb",
+      "bytes": 2067
+    },
+    {
+      "path": "components/editor/right-panel-frame.tsx",
+      "sha256": "48fdc2b8cae959728accadefdb1386afd855ff19830cfa326cb0d9d9fed25c1d",
+      "bytes": 2791
+    },
+    {
+      "path": "components/editor/top-navigation.tsx",
+      "sha256": "0943a25df3e3dbf73dc2be743f39c8f8f9f319d0f336f7ff52feae2b0575bc8d",
+      "bytes": 5450
+    },
+    {
+      "path": "components/editor/unified-object-list.tsx",
+      "sha256": "21d5fae5236f764d8718d8667f210a8b8db672bb0ad0074036b82cae4b5620b7",
+      "bytes": 7689
+    },
+    {
+      "path": "components/editor/workspace-tabs.tsx",
+      "sha256": "f0c8d4ef4128edb534f3889633e265905cddf6e24c20be8196e392c38e613492",
+      "bytes": 822
+    },
+    {
+      "path": "components/exploration-mode.tsx",
+      "sha256": "0df68e09e66a85aab71fe46e95f3f4f561bd350e4ece674630394a728fe6fa56",
+      "bytes": 13928
+    },
+    {
+      "path": "components/floor-3d-view.tsx",
+      "sha256": "f471da1e892625baff24a4079f44f4a116458b207bfb20087e5b2ebf2a5a0f52",
+      "bytes": 810188
+    },
+    {
+      "path": "components/floor-sidebar.tsx",
+      "sha256": "76020c669218017ab7767026246a8d8fcf803b80f38fe997fb7181b1a4e2fd28",
+      "bytes": 4164
+    },
+    {
+      "path": "components/furniture-3d/bed-family-3d.tsx",
+      "sha256": "3a2491e0923d0820dd8edd31e902c99370e74b0a452b8417b3ac9fdd666ac169",
+      "bytes": 10003
+    },
+    {
+      "path": "components/furniture-3d/cabinet-family-3d.tsx",
+      "sha256": "b3b26ae32078f0ff02c9fd52fa6531d7db0a90716381e57b14dcca72751b3026",
+      "bytes": 55490
+    },
+    {
+      "path": "components/furniture-3d/cabinet-interior-3d.tsx",
+      "sha256": "fe53a9979cc58ef824e113fd95cfc37f7e24b1b0ea92e7f42ee094b9f68f9dba",
+      "bytes": 5518
+    },
+    {
+      "path": "components/furniture-3d/cal5900-bath.tsx",
+      "sha256": "dd410b2bee14207e0117b09a1926bb24c15b61b7083dc58aceaf573b4f788e4b",
+      "bytes": 3140
+    },
+    {
+      "path": "components/furniture-3d/cal5900-media.tsx",
+      "sha256": "c6364ced732bc4e6559943d1167cb01eb8be10851fc5ab6b1bd704dfe8170b80",
+      "bytes": 3164
+    },
+    {
+      "path": "components/furniture-3d/chair-family-3d.tsx",
+      "sha256": "9f04f7c639af77aabd3a44a99b2fec41dc08ed1c7d883e67f8b11e623ce9e3f0",
+      "bytes": 6019
+    },
+    {
+      "path": "components/furniture-3d/construction-anchor-layer.tsx",
+      "sha256": "23de81b41185875113198c85974ad094467be432b417894cf3e729f2e5998842",
+      "bytes": 3172
+    },
+    {
+      "path": "components/furniture-3d/index.tsx",
+      "sha256": "643a9c9975e09b2feed61f5e94b2843244b50a25846bf0d190a106fdc87deec5",
+      "bytes": 3523
+    },
+    {
+      "path": "components/furniture-3d/kitchen-family-3d.tsx",
+      "sha256": "9cb08cec9dd0d0720a348078e3cbd6bee89f990afe833c765f8fba88eebfe415",
+      "bytes": 39344
+    },
+    {
+      "path": "components/furniture-3d/materials.tsx",
+      "sha256": "09085faaef91757e79d54ae298482a76bf04fb014d357c1221a3a44ffe7ab923",
+      "bytes": 2243
+    },
+    {
+      "path": "components/furniture-3d/media-wall-3d.tsx",
+      "sha256": "a31222ff935e12390652845d16f84f53fdba4178acc8856e22be55c09ce159ff",
+      "bytes": 15415
+    },
+    {
+      "path": "components/furniture-3d/option-b-geometry.tsx",
+      "sha256": "b430c4b04853c8fb4cbd217d9d15d8fa8eab2dd50988265de5a592c4b43168af",
+      "bytes": 3354
+    },
+    {
+      "path": "components/furniture-3d/primitives.tsx",
+      "sha256": "d691d78b741409ab3069fb9d04c5e3c61b5bbb680d68ef77a5b2989187a132ef",
+      "bytes": 4082
+    },
+    {
+      "path": "components/furniture-3d/r09-three-door-closet.tsx",
+      "sha256": "3f038f57e013f243bc31981ffa946c4f10a30f5e3fe166b94654cb4c2b92d85b",
+      "bytes": 6517
+    },
+    {
+      "path": "components/furniture-3d/r11-bath-fixtures.tsx",
+      "sha256": "9fa1e3672752c6e3dea2242bd9f31d4384a773f24f3b157f6d9e0e30ef2b8956",
+      "bytes": 6867
+    },
+    {
+      "path": "components/furniture-3d/r11-bay-bench.tsx",
+      "sha256": "154487faf9363e606e5d610994ada773ea23e64d583e29a52dac64ce1faafd7c",
+      "bytes": 2428
+    },
+    {
+      "path": "components/furniture-3d/r12-guest-shower.tsx",
+      "sha256": "329c1445ecba6b45f5a6bac2c591274d2597ff8074f58dba958ecc4d2c83e1e0",
+      "bytes": 2602
+    },
+    {
+      "path": "components/furniture-3d/r14-approved-subset.tsx",
+      "sha256": "79b737fff65c40cbbd7c964d173414c22782dbd1cc47c14342f67de3fd61bac0",
+      "bytes": 3987
+    },
+    {
+      "path": "components/furniture-3d/r16-four-door-closet.tsx",
+      "sha256": "b95b9af115900419ef4b8e6c7f1e72051e7c22c288712a378130e78a6747ef12",
+      "bytes": 8789
+    },
+    {
+      "path": "components/furniture-3d/research-1f-contract.tsx",
+      "sha256": "91bc71389fc62c49fc208989cef6dde1807ca78e71996fb17674a6788cc9a3ca",
+      "bytes": 7641
+    },
+    {
+      "path": "components/furniture-3d/sofa-family-3d.tsx",
+      "sha256": "e547273a791fa8ca1690970fc6e6ff5d8c7e510b0b0694b9f2edad5d64384715",
+      "bytes": 13398
+    },
+    {
+      "path": "components/furniture-3d/soft-decor-3d.tsx",
+      "sha256": "da3353086dbe278d0bf0c8408b86d57ba59cea7f4e6e63261fd54cd3ab7352ec",
+      "bytes": 3415
+    },
+    {
+      "path": "components/furniture-3d/table-family-3d.tsx",
+      "sha256": "90b53b299cf9864e65e9281df3b1c2beb8d5b7abd3b34d0c41ef3a92e55344ad",
+      "bytes": 15944
+    },
+    {
+      "path": "components/furniture-3d/types.ts",
+      "sha256": "35686ed8482858e34c79860a3dd0b886108d069fa317548db76eb5e4bde92340",
+      "bytes": 397
+    },
+    {
+      "path": "components/furniture-3d/wet-area-family-3d.tsx",
+      "sha256": "4ab52e6b672532ec21971fb116fcda3183263d53d148cc009fefca562af5751d",
+      "bytes": 18798
+    },
+    {
+      "path": "components/furniture-details.tsx",
+      "sha256": "3b9e03a501d545534d6492278c6d6107a7bb0cee85b9a74cb50c6bcca9854bdc",
+      "bytes": 10844
+    },
+    {
+      "path": "components/furniture-family-3d.tsx",
+      "sha256": "5f4271ac1b658493622d1d8bf509f66798a8110a877739e53e3266b1f99e21a7",
+      "bytes": 151
+    },
+    {
+      "path": "components/furniture-metadata-editor.tsx",
+      "sha256": "99d624652b23fddce1f5e7e18d972ae15363d151103138ca5a2c213e0acb270a",
+      "bytes": 30122
+    },
+    {
+      "path": "components/furniture-top-view.tsx",
+      "sha256": "bfde64192a2fae273ca3e77412c13ae4b0a8b26056ef0d7a12befc48b525ca13",
+      "bytes": 43331
+    },
+    {
+      "path": "components/master-native-dimensions-overlay.tsx",
+      "sha256": "ad1a9c6a546547381dff28c10839cdb10947a7ef5d610d03e3ddc5942b857d4a",
+      "bytes": 2148
+    },
+    {
+      "path": "components/mobile-details-drawer.tsx",
+      "sha256": "78646971e1244b7db43fb04a04d6e71ee5e11b4e2420fafdb74f8177a221fee9",
+      "bytes": 15320
+    },
+    {
+      "path": "components/model-preview.tsx",
+      "sha256": "7584a75dc9b440b1761b2185318f0fa81c77050b2f92cfb5e60d377cbb10166f",
+      "bytes": 36917
+    },
+    {
+      "path": "components/native-stair-section.tsx",
+      "sha256": "ec595a8e5487f665a7533f60cb8ab437ebd6f5768ea0bb512ff9d88927b0e9e3",
+      "bytes": 1269
+    },
+    {
+      "path": "components/one-f-operation-actor.tsx",
+      "sha256": "80ca642b4e3853f56dcc73e0f0a5cab9e3d2a4920c0ad4744a9850be91191a8e",
+      "bytes": 967
+    },
+    {
+      "path": "components/onef-d003-fit.tsx",
+      "sha256": "6b1d8415e9fc47e9d8edc9435412e5fedd347da66abbf1bda72bb2eda2332480",
+      "bytes": 4316
+    },
+    {
+      "path": "components/owner-communication-model.tsx",
+      "sha256": "f877665657e35d9f28f12fe8d04ea4a409d1c396dd4b65076461d256d7c9c265",
+      "bytes": 12133
+    },
+    {
+      "path": "components/owner-decision-package-r1.tsx",
+      "sha256": "a8e67681c28ab5d3c251a2a0b66b8d18f2de5bd328e78ee77a43917c276a98af",
+      "bytes": 8024
+    },
+    {
+      "path": "components/plan-canvas.tsx",
+      "sha256": "dbf9f53700a72f9616a80a40bf5901a709f3ccf0b01239da54b8d0b1042c755f",
+      "bytes": 406528
+    },
+    {
+      "path": "components/r02-continuous-stair.tsx",
+      "sha256": "46654f5449d9208dd7dd451486e7764d672ecd9f1741c84a7e9bf44c56f2bdfe",
+      "bytes": 5925
+    },
+    {
+      "path": "components/r02-guard-side-supports.tsx",
+      "sha256": "83bc4d75f73efb79bb13f28cbebfa2d800e72e3004729eed958fd2fec381bbcf",
+      "bytes": 2519
+    },
+    {
+      "path": "components/r02-north-bath.tsx",
+      "sha256": "ce2580beffe5ad6eebaebea4ad51e815bfb2e6efccc7d984a3150899e13aed28",
+      "bytes": 3818
+    },
+    {
+      "path": "components/r11-cycle-controls.tsx",
+      "sha256": "babeca9079ecc81233d5f528311f01b85490947e14ca9edf310851d1c1057162",
+      "bytes": 1584
+    },
+    {
+      "path": "components/r11-integrated-primitives.tsx",
+      "sha256": "62b9bd737fa24b1abd78a33eff88a348ca0857256d2dcfbdd49cd48d1c895db8",
+      "bytes": 3621
+    },
+    {
+      "path": "components/r15-preview.tsx",
+      "sha256": "63b13c5a74bb92ab373699f17a27f4a3b8d1760b2c55bd35face3c8f1c053981",
+      "bytes": 6331
+    },
+    {
+      "path": "components/r15-proxies.tsx",
+      "sha256": "05d02517bc737a86cb8c183e8218e701cc252f1b248d0a4aaa9afef64216932a",
+      "bytes": 2260
+    },
+    {
+      "path": "components/r16-cloak-candidate.tsx",
+      "sha256": "cd51763507154a73b1ec268ea018efe2dc87dd82e6670e061cb2d146ab95966a",
+      "bytes": 8513
+    },
+    {
+      "path": "components/scene-3d/pbr-material.tsx",
+      "sha256": "de2b7d05889cba15ca7e0967d119c65764d466703900ceacad1da99a295fd4a9",
+      "bytes": 12904
+    },
+    {
+      "path": "components/scene-3d/performance-monitor.tsx",
+      "sha256": "4e9da25a06d0f7b9c8102d564fd4f9726db6d347924b2208890f8e6d963e1acf",
+      "bytes": 8110
+    },
+    {
+      "path": "components/scene-3d/procedural-pbr.ts",
+      "sha256": "1257abc347fdc6d2505cb3e4d69dc5b33f86306c9f99c870260991e5e0be7db2",
+      "bytes": 31492
+    },
+    {
+      "path": "components/scene-3d/reflection-environment.tsx",
+      "sha256": "8b82df6f9f10413024b34ed726579f70f4491e004e7f231d48e9254a50aa1a11",
+      "bytes": 2599
+    },
+    {
+      "path": "components/scene-3d/selection-bounds.tsx",
+      "sha256": "7bc0313828715bf5c66cf6a164fe6c549776e2f3296ea0d0d9bfc108d2dd4c79",
+      "bytes": 698
+    },
+    {
+      "path": "components/second-floor-door-corrections.tsx",
+      "sha256": "b632c76cf3f225ca8e0652ed43d4d96ebbd3ea8dc4c4f4ea830e4781b4ead0be",
+      "bytes": 7275
+    },
+    {
+      "path": "components/second-floor-preview.tsx",
+      "sha256": "7d329fd9a2006a29c3e9e1cc6e3e50b730ab5da7550719d15f3649ad59bf17fc",
+      "bytes": 3606
+    },
+    {
+      "path": "components/semantic-map-panel.tsx",
+      "sha256": "c820d9a83ac3689e432fed94112784aec24545b7b1968688723615b107761be2",
+      "bytes": 20240
+    },
+    {
+      "path": "components/space-planner.tsx",
+      "sha256": "407e0c84327d59a7adcb0d35da5ae32c686b81b0c4f8d63cc1e0d68311e1006f",
+      "bytes": 462945
+    },
+    {
+      "path": "components/unified-r12-review.tsx",
+      "sha256": "f3ca90c7fb7798b40d6b3e70ca5b1f189dabf415c90339a2de74be6eb23eac4e",
+      "bytes": 12651
+    },
+    {
+      "path": "components/view-toggle.tsx",
+      "sha256": "6102c9b7f3e316b0d40f021c92660a0117ebabc487f00238fcb62e3f679fad11",
+      "bytes": 686
+    },
+    {
+      "path": "components/yard-c03a-study.tsx",
+      "sha256": "c55c4cb05a49d55e43eb203fa98c841b80206ec90f40e9bf11e753a8d058c552",
+      "bytes": 3524
+    },
+    {
+      "path": "components/yard-preview.tsx",
+      "sha256": "20026a38ba7d7b47c1f582497af5dc71c0c08fef5649427708e09964dad5f562",
+      "bytes": 17557
+    },
+    {
+      "path": "data/area2f-exact-floor.json",
+      "sha256": "4c1c2177c49a5dfaa4932b43b23e90bd32a34bcbcbdfc5f38b2cd804f4a94b8e",
+      "bytes": 11874
+    },
+    {
+      "path": "data/area6623-architecture-checks.json",
+      "sha256": "2a02fcc3ba8b4f9a8cdaf7ad14dc7a0b22e31b8385e71fc2ba09231ad5f37168",
+      "bytes": 59452
+    },
+    {
+      "path": "data/b1-layout-r01.json",
+      "sha256": "e8ec9d4c3af7b9186e8bd9fb606ee328b9ffd6f7ed45f0b2f38463aaa1afa4de",
+      "bytes": 2736
+    },
+    {
+      "path": "data/b1-migration.json",
+      "sha256": "c745938a710d521d48db6536f5501f781fcc698874eef672e618d3971c987d10",
+      "bytes": 847
+    },
+    {
+      "path": "data/b1-r03-functional.json",
+      "sha256": "8d394a55a7ee2879c00d2ee6fb4bea145d8c372d58e94917fc87f2fc8741de21",
+      "bytes": 32148
+    },
+    {
+      "path": "data/b1-r06.json",
+      "sha256": "15d8b81d813950010ea2584f833c03b415b33312ff86e35c1325724d9bb03475",
+      "bytes": 14571
+    },
+    {
+      "path": "data/b1-reflow-floor.json",
+      "sha256": "15e75654745b49c770926dc205b10cc5a7a82f9db9ae31930519708609362cc6",
+      "bytes": 12056
+    },
+    {
+      "path": "data/b2-finished-floor-contract.json",
+      "sha256": "8a15e0393fcbbdfa6626f9b2647fc4e43182aeb3d2fa5af165662129c159ef2d",
+      "bytes": 897
+    },
+    {
+      "path": "data/b2-full-design.json",
+      "sha256": "85c46c98c4f520fbe2e114dbde7db967023adeb54db2f3effe62258ee6512e83",
+      "bytes": 9517
+    },
+    {
+      "path": "data/b2-native-custom-parts.json",
+      "sha256": "77f1de0b7a0ab86a523ca4eeddaf609d1b62164a6bffbe3c0e0f2e89e8941136",
+      "bytes": 38198
+    },
+    {
+      "path": "data/b2-r2-action-frames.json",
+      "sha256": "b68485fd4a363ab917c6dbab273018bf87f432ddb0d730c634646f5a8041e753",
+      "bytes": 120611
+    },
+    {
+      "path": "data/b2-r2-retired-interface-ids.json",
+      "sha256": "dfd563f65c6cea5355712dcd4ae05102a059e192a798d80cd58799fedb948b9d",
+      "bytes": 176
+    },
+    {
+      "path": "data/b2-r3-viewer-frames.json",
+      "sha256": "12fa17d3b8d080d8c3c6aeb91fb30e5208b9c3eb4693207816908ec97e271032",
+      "bytes": 252895
+    },
+    {
+      "path": "data/b2-r7-design-cameras.json",
+      "sha256": "c06b99aea4737db41e26b170cba88a906cd210692b185a27f011b9f00369c168",
+      "bytes": 2990
+    },
+    {
+      "path": "data/b2-r7-design-contract.json",
+      "sha256": "1a21ffd55faf57cafc70338e83b24ed6b2d29c3a065b6392e520bdd30306bac1",
+      "bytes": 18957
+    },
+    {
+      "path": "data/b2-south-scene.json",
+      "sha256": "fc819298488df8d3c27cc72ba1dbef340fbee50537f229d2d39f830d630346da",
+      "bytes": 1356
+    },
+    {
+      "path": "data/b2-west-layout-contract.json",
+      "sha256": "97ee7c74993336ffade5afbc4d258a2e47f5c402adeea7fef63e46853a58c86f",
+      "bytes": 600
+    },
+    {
+      "path": "data/d005-interface.json",
+      "sha256": "355e1a2604437eaa11ce9c3b0e23a11fcc1e8d0da0af7c3cd9e201f1b7544a63",
+      "bytes": 236
+    },
+    {
+      "path": "data/default-workspace.json",
+      "sha256": "5d30e26e861900bc1f31b92209aae70301cdb88ae397801959b8f12a66bbd75b",
+      "bytes": 2051839
+    },
+    {
+      "path": "data/interior-module-catalog.ts",
+      "sha256": "0d54c8a19144e4394cfe664a1d405439855013359fcbc7cc64c8dca3e20d1d55",
+      "bytes": 33222
+    },
+    {
+      "path": "data/joint-1f-exact-floor.json",
+      "sha256": "bba17c7da949847097e77629e126e60a27851b2ab1ef1f965d70062f26840035",
+      "bytes": 8280
+    },
+    {
+      "path": "data/mock-house-structure.ts",
+      "sha256": "cfd86d2a5db35056744f8654fd11f17ec7c7ca20d5820e6baad07c9f98d37553",
+      "bytes": 22138
+    },
+    {
+      "path": "data/mock-semantic-map.ts",
+      "sha256": "1e5ea5aa9b3b0dd77c6030a9b4c28b28602528eb3d25a7c4827e41eb531ede9a",
+      "bytes": 5937
+    },
+    {
+      "path": "data/mock-space.ts",
+      "sha256": "a93e35f9adb26c4c702bb953a8e81f14d7b99ed7fee212000f6540f1876bf599",
+      "bytes": 1767
+    },
+    {
+      "path": "data/north-bath-geometry.json",
+      "sha256": "bdffe663f81be0fdcfa2275be3a526590181a67c807b4a2115efd6fab8c218aa",
+      "bytes": 2514
+    },
+    {
+      "path": "data/onef-r04-table-states.json",
+      "sha256": "9701d37f246f0555bf3ee7338daf32f6caf8bcdff038dfe19342f5708b4a0471",
+      "bytes": 25461
+    },
+    {
+      "path": "data/option-b-geometry.json",
+      "sha256": "4a978582189ef529b2b2a07f1b39ff3dc1b76f1227b65b6be03fc13433898be3",
+      "bytes": 13195
+    },
+    {
+      "path": "data/r02-2f-bath-entry-contract.json",
+      "sha256": "1271f021b8cdfd9f972cb7d334687f6a0bcbc05bd17392a78dff2d712114a8a9",
+      "bytes": 1405
+    },
+    {
+      "path": "data/r02-continuous-stair.json",
+      "sha256": "5e1641544344000d9872a64201a2353e2036f7a1261045eb779780a2e0366f4d",
+      "bytes": 19924
+    },
+    {
+      "path": "data/r11-c1-binding.json",
+      "sha256": "c3d5e509d3dd30ba6db744da00a74d02f997045db944ee741ca521a2abefeb41",
+      "bytes": 1938
+    },
+    {
+      "path": "data/r11-c1-cycles.json",
+      "sha256": "ad722f4317ea481a4987951b3171f4b5565e0eea2f17f92329c5cbfb2b34875d",
+      "bytes": 314708
+    },
+    {
+      "path": "data/r14-approved-subset.json",
+      "sha256": "cdd0af209b1ddea5379db831ea5c10be9c130fa5da1b74e0b8129abb4ef8dd9d",
+      "bytes": 20312
+    },
+    {
+      "path": "data/r14-geometry.json",
+      "sha256": "d8ebac2668fd9594b8da3a01b18a2b4e0d1bd9f1b2a5fa08683c93d2ddc0704b",
+      "bytes": 102648
+    },
+    {
+      "path": "data/r16-cloak-contract.json",
+      "sha256": "bd1c84a311b43b1694b93473fcc6c3782e139dd40ac553f5ae42f82cdb159bd1",
+      "bytes": 1991
+    },
+    {
+      "path": "data/r16-cloak-cycles.json",
+      "sha256": "29bd364bc9a0c4cc4dbcd2522df63f92511da1e7c52064310c3774467f703e3b",
+      "bytes": 1418707
+    },
+    {
+      "path": "data/research-1f-contract.json",
+      "sha256": "a220e460353bac26d2241b065de8aae8e7d25138519337bd87f32b9b41a49314",
+      "bytes": 6373
+    },
+    {
+      "path": "data/south-registered-stair.json",
+      "sha256": "b4106c935e71176d7074639caef2564c87294e0ffd4a98a1792f1fd25d4a08b0",
+      "bytes": 15970
+    },
+    {
+      "path": "data/stair-ceiling-apertures.json",
+      "sha256": "bce0720b1d1f0089912d160dcdd1959be9b4c752c97d38a134cbbb0a54f855a5",
+      "bytes": 9002
+    },
+    {
+      "path": "data/underground-column-trim-r01.json",
+      "sha256": "aca801081636054ee618745b73f9dce6914f8d036e28946913ba4842b18a0590",
+      "bytes": 41636
+    },
+    {
+      "path": "data/unified-area-summary.json",
+      "sha256": "50929b55030219951977d5703e77f269d4560828160ec8edaa8308360fe1abab",
+      "bytes": 676
+    },
+    {
+      "path": "lib/b1-bed-profile.ts",
+      "sha256": "3166ef713a0058feadce2e9118bd3d815004c58a9d56a14d770b897ad6562704",
+      "bytes": 757
+    },
+    {
+      "path": "lib/b1-boundary-profile.ts",
+      "sha256": "f6e0a83352e21287f007d6945e8ecb3e9c0b0194f5a55fec25e2adbd94c285ce",
+      "bytes": 4382
+    },
+    {
+      "path": "lib/b1-cabinet-operation.ts",
+      "sha256": "b143fe43569514a0d6e04b6601da485a12501a65ef1c0ee821abf842dfcd3fca",
+      "bytes": 1229
+    },
+    {
+      "path": "lib/b1-r03-fix1-state.ts",
+      "sha256": "ef6acd1422001f5fc95a1c63c96599408d7ba69d2b8d449b6c7ab5716da8e39b",
+      "bytes": 2418
+    },
+    {
+      "path": "lib/b1-r06-state.ts",
+      "sha256": "6d4dfb0b5404e904a1912bd7efe0675cc1e7770be9d44a248f27a4685527439e",
+      "bytes": 693
+    },
+    {
+      "path": "lib/b2-door-operation.ts",
+      "sha256": "0401fbb424ccb041dc346e8fadbf0a8064ebb600a33da3dce9365a3f2087e27c",
+      "bytes": 673
+    },
+    {
+      "path": "lib/c03a-design-contract.ts",
+      "sha256": "d4b02c37202a9508300f6f3ed8f3ed318a6019c55b4b63e384a35371313f0d71",
+      "bytes": 1644
+    },
+    {
+      "path": "lib/cabinet-interior.ts",
+      "sha256": "1ad4182e68a09edbeeae65d352d391696dbb03d6e05cf2060f079ce6567aa249",
+      "bytes": 18918
+    },
+    {
+      "path": "lib/camera-adjustment.ts",
+      "sha256": "6bfdaf227e751c79884c08219d21d81cdcbd8b3564df58f9da0f6ffaa24e0a9d",
+      "bytes": 3560
+    },
+    {
+      "path": "lib/camera-composition.ts",
+      "sha256": "49ae6b41f6c55853943f6b2c48bf448e19ab429e9609985e0fbaaa59f2cf2736",
+      "bytes": 34990
+    },
+    {
+      "path": "lib/camera-pose-report.ts",
+      "sha256": "48d669dd5fd93b8aa880fc5fbe3d90a1cf4a04df1a9864997b3e4e9ef8cc5ed0",
+      "bytes": 716
+    },
+    {
+      "path": "lib/construction-anchors.ts",
+      "sha256": "146dc0fc4472fe1856f5b6244e97ed3c8f4512db85a08e813ed7432aa78a0ecf",
+      "bytes": 1509
+    },
+    {
+      "path": "lib/construction-package-export.ts",
+      "sha256": "483c4c870911051090059cb08a0755e0314cfe03651ae8b1fe8507224677af18",
+      "bytes": 70599
+    },
+    {
+      "path": "lib/courtyard-model.ts",
+      "sha256": "76afa7f92067f292e9abb2c1b0acdeb823ff34d9f1ee39a9805a1234311005c7",
+      "bytes": 2443
+    },
+    {
+      "path": "lib/d006-room-side.test.ts",
+      "sha256": "57448ed5c246cb6c23c59eb42ec75dcf7dc60499a01d5b3984b50a9df9ccd008",
+      "bytes": 891
+    },
+    {
+      "path": "lib/d006-room-side.ts",
+      "sha256": "e80b3b8c47c5763ffd9b328b0877e8444eb6ab4ea410c4609e5449a78dcc5fb9",
+      "bytes": 964
+    },
+    {
+      "path": "lib/dimension-verification.ts",
+      "sha256": "8c50e15f5f33cdb926632f4d76c21c22f42389a1b90b5d927d047fb11dc2b002",
+      "bytes": 6143
+    },
+    {
+      "path": "lib/drawing-3d-profiles.ts",
+      "sha256": "749df42472e875ce785820fb1b15adee7ced00332f15193f976f07d08aeb07ed",
+      "bytes": 9710
+    },
+    {
+      "path": "lib/drawing-items.ts",
+      "sha256": "c66f7a33602ec9b1df8d3b89eb1cad9cbad7fa4680d3d22ca2cef8cf27548f20",
+      "bytes": 12641
+    },
+    {
+      "path": "lib/drawing-sheets.ts",
+      "sha256": "4f21a1dde54e4c308d8b6153589f5105580d7d318c12ab92b9da88513c85f0a6",
+      "bytes": 5857
+    },
+    {
+      "path": "lib/drawing-workspaces.ts",
+      "sha256": "087cc351693f046eb87653571ddf6e792a87fe28b2fa85e421dc3d6ca8759cea",
+      "bytes": 20338
+    },
+    {
+      "path": "lib/exploration-mode.ts",
+      "sha256": "b2d6e22b250f5a22e0a49d83bc8d13e09f0d48d725962f3a142713509a11a396",
+      "bytes": 25818
+    },
+    {
+      "path": "lib/external-asset-manifest.ts",
+      "sha256": "ec154107b5c94c623c10865d939a4a8e9066a6711eb0ede4a759e1d927a70d76",
+      "bytes": 9569
+    },
+    {
+      "path": "lib/floor-camera-views.ts",
+      "sha256": "41b2e4b5b678f4e121feba65f9e05f05d232d1cec4a406ff83266c75cb5dc1ed",
+      "bytes": 13011
+    },
+    {
+      "path": "lib/floor-plan-cleanup.ts",
+      "sha256": "ea2b23cbd9acf9d706cafb73b7e191d0c8937b7de99911d118f6ae7dba7d7056",
+      "bytes": 4330
+    },
+    {
+      "path": "lib/format.ts",
+      "sha256": "e002246b71b7dfd5776255a9e6ab7c7eef8ac0254fc55828d38009a74f30c946",
+      "bytes": 365
+    },
+    {
+      "path": "lib/furniture-placement.ts",
+      "sha256": "2da695d33cf59e2de53fac4ca13b06eab41b781a51ea336e2514d776961a5529",
+      "bytes": 39532
+    },
+    {
+      "path": "lib/furniture-surface-geometry.ts",
+      "sha256": "871f034d3a11e5cdb682f2eb5306d9b6e58ea5edc11cc7943180ada0f362a4e9",
+      "bytes": 924
+    },
+    {
+      "path": "lib/furniture-variants.ts",
+      "sha256": "b096bea1d4f679841151f9273884b9f853e4b680520bbdb25f4aeef7d89867de",
+      "bytes": 23127
+    },
+    {
+      "path": "lib/herringbone-layout.ts",
+      "sha256": "5e1c6875e901a178603814d43841e4ac6997e15f3a7d43908ffb9308469672d8",
+      "bytes": 2048
+    },
+    {
+      "path": "lib/house-geometry.ts",
+      "sha256": "3e9ba837205785fb7b255b199fd94264419bc43f41ddd62ea6fc104c0968071d",
+      "bytes": 19610
+    },
+    {
+      "path": "lib/lighting-design.ts",
+      "sha256": "b308ea8eb1441f433834b0d6c703ef6cc9c8f1073e2e88b118158d95ad6f3eb4",
+      "bytes": 62998
+    },
+    {
+      "path": "lib/master-native-dimensions.ts",
+      "sha256": "102c1f396a870c1dcf9f6afca8401a2a9b5846bedca0f6d9f82cf714aba2b05c",
+      "bytes": 2617
+    },
+    {
+      "path": "lib/material-inspector.ts",
+      "sha256": "977f1ccce132042e69c5c6ff0f2464b0d433dfe9cdb228f97b541272913b4793",
+      "bytes": 11157
+    },
+    {
+      "path": "lib/material-system.ts",
+      "sha256": "c5000281ec4055f56fe632d9805d72173ebb54d3ce81cb36b9d3f7c2d53e5742",
+      "bytes": 32447
+    },
+    {
+      "path": "lib/model-display-bounds.ts",
+      "sha256": "3446931f430ca16ce6e5d39918ceb8e7dd80883020aaf8e7ce57ba97c970d992",
+      "bytes": 2035
+    },
+    {
+      "path": "lib/model-inspection-cameras.ts",
+      "sha256": "fc88dcd246abd5e856f1f09f283d3c38abe960e17c21c786fc6a2cb31f39842e",
+      "bytes": 8239
+    },
+    {
+      "path": "lib/model-preview.ts",
+      "sha256": "b45c04756d679331492e67796354dc97f34509336f5a6cd8bc0214fe80b8f177",
+      "bytes": 4212
+    },
+    {
+      "path": "lib/modern-warm-natural-system.ts",
+      "sha256": "16bb033e6ad9569a129fb44a054e8a3446699be325c66d7e52eaaadfeea50334",
+      "bytes": 8033
+    },
+    {
+      "path": "lib/object-sync-adapter.ts",
+      "sha256": "be0d5b57018601c4c0049ce50df0b007edb79fefa5e3a1c564cebf8ffa5f6faf",
+      "bytes": 18475
+    },
+    {
+      "path": "lib/one-f-chair-motion.test.ts",
+      "sha256": "58e053e9240a3333406f53b8d56c107103edee768929005353032eee2edb0b9b",
+      "bytes": 789
+    },
+    {
+      "path": "lib/one-f-chair-motion.ts",
+      "sha256": "917036d2c88b37b48f23a1ba40c5bea8eaf83b206e37ba8141ede2395bf88b7f",
+      "bytes": 903
+    },
+    {
+      "path": "lib/one-f-dining-evidence.ts",
+      "sha256": "1e053de4c9371fd6b46d553fa82c18c4fed14bdf6541b96d0417f1bb09bcdcff",
+      "bytes": 2194
+    },
+    {
+      "path": "lib/opening-render-policy.ts",
+      "sha256": "a7a2f738f5af404561709c7c7d380297fefb77b72b88ca220026206ed74c3003",
+      "bytes": 1305
+    },
+    {
+      "path": "lib/outdoor-living-system.ts",
+      "sha256": "1a85c61f3d225708f11eed8942a03e879a31140b75dcb1ae4664b2904362131d",
+      "bytes": 12904
+    },
+    {
+      "path": "lib/output-drawings.ts",
+      "sha256": "f82b8011b6af50f0961cfaeb271370c4344f47b49a6249caa70ee3c662dcf868",
+      "bytes": 12792
+    },
+    {
+      "path": "lib/owner-decision-package-r1.ts",
+      "sha256": "2f886854cff95ad40e89f64c030fbe05f0c85eb5464ad0e830f3c6c68f810427",
+      "bytes": 17714
+    },
+    {
+      "path": "lib/r09-closet-mapping.ts",
+      "sha256": "0b18af9eb723111c2bf201f59dd151b845aa9136c8708daca0119602579ea5d6",
+      "bytes": 1375
+    },
+    {
+      "path": "lib/r11-cycle-binding.ts",
+      "sha256": "65379fef2fb5662fc6e69d377ca98cfc07b493d5e29d910f9d27c856d6e7241c",
+      "bytes": 1092
+    },
+    {
+      "path": "lib/r16-cloak-binding.ts",
+      "sha256": "ef1ee1a09b29df029fec7fe200e36b65596aa5f7dd9f1fdfca8229b4cd2d0652",
+      "bytes": 1993
+    },
+    {
+      "path": "lib/render-cache-budget.ts",
+      "sha256": "e02b6ceaea534c7b92437b735ab4b61b2c90c23084121bb4e6178f5559df6d38",
+      "bytes": 714
+    },
+    {
+      "path": "lib/render-camera-storage.ts",
+      "sha256": "b01ec9e70df13d26742fd467dcfecea5d9cb82a2717f06e62873aca92acd4a59",
+      "bytes": 8504
+    },
+    {
+      "path": "lib/render-material-calibration.ts",
+      "sha256": "37f6c794bfa0062f8b4c7fd64eb114321649b799a64be0ce90dbe4f3d85b84c4",
+      "bytes": 1419
+    },
+    {
+      "path": "lib/render-preflight.ts",
+      "sha256": "2dabc771914ea453496521dada77a1aa14ed87b0586d9c28041754867e4ca02a",
+      "bytes": 26013
+    },
+    {
+      "path": "lib/render3d-assets.ts",
+      "sha256": "0b423f67168c58f4405a6d6080de51aa0fb5cfaa890dab42572382b860ec430c",
+      "bytes": 46224
+    },
+    {
+      "path": "lib/room-tour.ts",
+      "sha256": "13935ea04a33ab6f42b215c641e77e2855bf26127521523cecff037df7d5318e",
+      "bytes": 11199
+    },
+    {
+      "path": "lib/scene-height-system.ts",
+      "sha256": "a826cae246d4181f20e619df658682b19e7182b9bd4c8699c2320018803cfdf3",
+      "bytes": 8072
+    },
+    {
+      "path": "lib/scene-presentation.ts",
+      "sha256": "c6dc2a2c70323caa89143291db423a7c215c8b6dfd9f9f4b1fe7d62ac4c9c97d",
+      "bytes": 826
+    },
+    {
+      "path": "lib/second-floor-door-operation.ts",
+      "sha256": "34805392010db4e0454340d234cfd51f28db87f5eacb26ad1623bf2fa0ceb9cf",
+      "bytes": 665
+    },
+    {
+      "path": "lib/semantic-map.ts",
+      "sha256": "baeaf6e49f929dd4903ac4bd89d45b54c3570b3e0ec025321ad3bc4b5b2c71ae",
+      "bytes": 5119
+    },
+    {
+      "path": "lib/showroom-material-resources.ts",
+      "sha256": "7719122b78cd42a7b0ec75e6120cb0c81a2d66b6af5331b13d0dbd0554fe8bd1",
+      "bytes": 11281
+    },
+    {
+      "path": "lib/stair-render-geometry.ts",
+      "sha256": "51f129ed2da85a977410838ff9c9cd987f071465c0fdd35802b7c29de0db71de",
+      "bytes": 13098
+    },
+    {
+      "path": "lib/stair-systems.ts",
+      "sha256": "b839416ce6256d1c0595beb52af280a1b4385a2b37c5b82ef633d869e25d8e1c",
+      "bytes": 22643
+    },
+    {
+      "path": "lib/structure-3d-geometry.ts",
+      "sha256": "ccf07d22260f097c82de6970925cdef802416ccbea70b244c67083d8f64f304d",
+      "bytes": 5465
+    },
+    {
+      "path": "lib/unified-scene-graph.ts",
+      "sha256": "90dcef2b0fb35c8328b1c99ae8a90d40155fbd478ba385508e1083c723367c11",
+      "bytes": 8466
+    },
+    {
+      "path": "lib/validation-rules.ts",
+      "sha256": "00377fe46abf7f0cd4c79d99d259b608018516835603519ff9d3aec8f135c313",
+      "bytes": 7393
+    },
+    {
+      "path": "lib/villa-structure-sync.ts",
+      "sha256": "e0e695c8af28206d5f9809e76ae62d9a3ca838810731f255dbce72f77bcd61b6",
+      "bytes": 7276
+    },
+    {
+      "path": "lib/wall-finish-trim.test.ts",
+      "sha256": "4d7ff698eff0f1efc9dcb9d547339e40a95a5c50a45f506648824ed8016f8a68",
+      "bytes": 1081
+    },
+    {
+      "path": "lib/wall-finish-trim.ts",
+      "sha256": "411cdd3acada1050892cdc049b0e0f06d67b9916d72e9ddc73dadc47bd2a9f7c",
+      "bytes": 1894
+    },
+    {
+      "path": "lib/whole-house-design-system.ts",
+      "sha256": "6248eff6770115f15942c64ce0e088ef398e08b4ca9ded6601dc9b0e776b412b",
+      "bytes": 10940
+    },
+    {
+      "path": "lib/workspace-access.ts",
+      "sha256": "bc3f32cf2b3e1d9c9e71dadfa20539332f99c35322d27a01552e7b7598acce15",
+      "bytes": 2238
+    },
+    {
+      "path": "lib/workspace-migrations.ts",
+      "sha256": "be566a3f18be33f3b017e330c76fdc31a1ca7d4e5e1118c447a81a45c1f97cc3",
+      "bytes": 48035
+    },
+    {
+      "path": "lib/workspace-persistence.ts",
+      "sha256": "3df360960dd771513a5ee4279908f48c56e834890af0da934929a38c6382bf6f",
+      "bytes": 20450
+    },
+    {
+      "path": "lib/workspace-reference-validator.ts",
+      "sha256": "8a9684f98b0a599305e7e30463170d1ff6d19d262e217dcfb76943181f42ec4f",
+      "bytes": 30211
+    },
+    {
+      "path": "next-env.d.ts",
+      "sha256": "9dd9d642cdb87d4d5b3173217e0c45429b3e47a6f5cf5fb0ead6c644ec5fed01",
+      "bytes": 228
+    },
+    {
+      "path": "next.config.mjs",
+      "sha256": "5e63fa94dddadbfda385b9fc35b0bfe8b379d810fee170653627c437e0dcfdd3",
+      "bytes": 389
+    },
+    {
+      "path": "package.json",
+      "sha256": "9b59f2998c98f7f89fc7dee45fc63937e1b265423c43bc874cfa6f09d048b157",
+      "bytes": 8812
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha256": "aac3fd8f298372286797f581d5e1d6441c81b089b03c363956ce35be29d93f33",
+      "bytes": 1151
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "ddd5258e8d727ff591aa0919043d990987e2d1dd4600742a55cceb4100c6a3c7",
+      "bytes": 132920
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "sha256": "2b6e91c5ba53abcb24fe30aaf344575f3c759f58173639afe5edb907d17e6619",
+      "bytes": 35
+    },
+    {
+      "path": "postcss.config.mjs",
+      "sha256": "2147573f4053310e348ad9d722882426c884376f42a354daea89bcd663b33b25",
+      "bytes": 103
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/beige_wall_001/2k/beige_wall_001_ao_2k.jpg",
+      "sha256": "371d80c90b63a478093581d4f61ab9b439f233ae6fe970cb62a71d95d64e2ccf",
+      "bytes": 514646
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/beige_wall_001/2k/beige_wall_001_diff_2k.jpg",
+      "sha256": "222d4d2e7d5c425c97e5a66790852388cec7706714d773f769fba6bfe08cea4e",
+      "bytes": 235868
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/beige_wall_001/2k/beige_wall_001_nor_gl_2k.jpg",
+      "sha256": "7f5cbecd6766f44034f3b78b4addb1559e12bdd5a77501bd418a736609e7cedc",
+      "bytes": 815507
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/beige_wall_001/2k/beige_wall_001_rough_2k.jpg",
+      "sha256": "a76e2307d8ec47d1be1d4710851fc4545db7aecfa176333738a6756358b64767",
+      "bytes": 656368
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/floor_tiles_08/2k/floor_tiles_08_ao_2k.jpg",
+      "sha256": "215e8722465fc19a486d5f809e7943a8f5e81b47c6bb2ef842452c9be2aa184b",
+      "bytes": 1216015
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/floor_tiles_08/2k/floor_tiles_08_diff_2k.jpg",
+      "sha256": "a5b2236265c8714ab243e70c624eb0db1231cb11795e50da9781e69556e04312",
+      "bytes": 1781345
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/floor_tiles_08/2k/floor_tiles_08_nor_gl_2k.jpg",
+      "sha256": "67f3502751728a0c486bf1f6c0ad27226a0e14a8b23cea54fb427491b9ee827a",
+      "bytes": 1606014
+    },
+    {
+      "path": "public/assets/external/polyhaven/materials/floor_tiles_08/2k/floor_tiles_08_rough_2k.jpg",
+      "sha256": "212810ad2050d05704219c95f81c7da5d3b197ad6a0d3992a43d1e929b6f6491",
+      "bytes": 775045
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/coffee_table_round_01/2k/coffee_table_round_01.bin",
+      "sha256": "9605a0c156bff4ec87e8717a79978d85d4e750d21b3193a3d08bed16e8666035",
+      "bytes": 131112
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/coffee_table_round_01/2k/coffee_table_round_01.gltf",
+      "sha256": "6b9dbd17317c9289ab8e008b05abd146dbe0831c975871732def694de4ad407d",
+      "bytes": 2776
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/coffee_table_round_01/2k/textures/coffee_table_round_01_arm_2k.jpg",
+      "sha256": "fa00d2026a24f65cd825f565e010d498206d68ede792fcc5f058f20a3d94aa88",
+      "bytes": 2631627
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/coffee_table_round_01/2k/textures/coffee_table_round_01_diff_2k.jpg",
+      "sha256": "d63b809f381622925f852f6d1b0f712428cbe75837298073ad0424069d60870d",
+      "bytes": 1721075
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/coffee_table_round_01/2k/textures/coffee_table_round_01_nor_gl_2k.jpg",
+      "sha256": "b8e4f0780ee2008e33a3049656fcf3168d1036ad8d5cf368e925374123a5c553",
+      "bytes": 1177563
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/modern_arm_chair_01.bin",
+      "sha256": "8755f2f498c0bb165660379d1b045465751c16bbeaf553c8dd76bb14c16d1ff6",
+      "bytes": 240728
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/modern_arm_chair_01.gltf",
+      "sha256": "eb971ed98af1ce3d4cc93a058ceee5c31dbd185f99aa3d86938d366820943414",
+      "bytes": 5121
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/textures/modern_arm_chair_01_legs_arm_2k.jpg",
+      "sha256": "38a2b11cdfb18aeed9804fee38de93d8fd856f53ad9448ee877833ba25643f15",
+      "bytes": 2144468
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/textures/modern_arm_chair_01_legs_diff_2k.jpg",
+      "sha256": "a3a289f3265d77e120e81aebdd9107b612609b077190e842389b5cd32bbf9a3d",
+      "bytes": 1660925
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/textures/modern_arm_chair_01_legs_nor_gl_2k.jpg",
+      "sha256": "5a57c6b8de10b79d7d2b5540bcb864f4c3c0b4f81c6ef2c5f61470e88620c4a7",
+      "bytes": 2076117
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/textures/modern_arm_chair_01_pillow_arm_2k.jpg",
+      "sha256": "3c98a68f8d4d9045082d1af97994ff564dc4f8378814bea717d9862edf5dae22",
+      "bytes": 1176399
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/textures/modern_arm_chair_01_pillow_diff_2k.jpg",
+      "sha256": "20a8b41bd14552643c1355587ec1198cb8c5f1f7dea50dc71dbb0f6a826adfc1",
+      "bytes": 843013
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_arm_chair_01/2k/textures/modern_arm_chair_01_pillow_nor_gl_2k.jpg",
+      "sha256": "dfd11d444ba0a6c1a16304f91c10ef2a2a525180f6a46ca57c2d55c196ff39de",
+      "bytes": 1074878
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_coffee_table_01/2k/modern_coffee_table_01.bin",
+      "sha256": "b8fe0d49041b879a5d5962685a39e3daf009679f7b6a88ced1347e6dc6c0851e",
+      "bytes": 154864
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_coffee_table_01/2k/modern_coffee_table_01.gltf",
+      "sha256": "0934d355e65fc5d1b2056fa913813384246572839af464d741f443462cc8e955",
+      "bytes": 2771
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_coffee_table_01/2k/textures/modern_coffee_table_01_diff_2k.jpg",
+      "sha256": "527c9cbe6162b5ba84c5427407148d45a051f38c8475b32b5cd3fc02534a7090",
+      "bytes": 1571631
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_coffee_table_01/2k/textures/modern_coffee_table_01_nor_gl_2k.jpg",
+      "sha256": "ce0fbc0e6e900480edafbeaab4e4593882c8f3f46dea43b897ccef07093b8caa",
+      "bytes": 1495294
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/modern_coffee_table_01/2k/textures/modern_coffee_table_01_rough_2k.jpg",
+      "sha256": "48575f42cab1b40558a4f5957ccaf304651460d6caad2de23d86aec3a6bcd6ff",
+      "bytes": 1476681
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/outdoor_table_chair_set_01.bin",
+      "sha256": "d62458c79c6c902d1195bff875e42bf7579c6b309c6b96f9cd7543af43170220",
+      "bytes": 456856
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/outdoor_table_chair_set_01.gltf",
+      "sha256": "2e2376efc210d849a22bd352b40442d38985c74953fc8020bb01ca94c66c68ca",
+      "bytes": 6826
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/textures/outdoor_table_chair_set_01_chair_arm_2k.jpg",
+      "sha256": "646ed8503d7e1d1806506a38c3b2d31b616e0720538e7df054c3d982b9bfa5ae",
+      "bytes": 583486
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/textures/outdoor_table_chair_set_01_chair_diff_2k.jpg",
+      "sha256": "5f6ce1dcd8dbfc0293ae62f01f0cef0a8a07862bd6d744eefa459206e9206eb1",
+      "bytes": 506077
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/textures/outdoor_table_chair_set_01_chair_nor_gl_2k.jpg",
+      "sha256": "02723a5d2275e357d07e41a71a87dc46b89e11fec9711b84a7c1d082ada8144a",
+      "bytes": 227267
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/textures/outdoor_table_chair_set_01_table_arm_2k.jpg",
+      "sha256": "64b584f6cf5993b9b78c7ec51ad471ad010a90455ee4bb45a3c9be1263db4d97",
+      "bytes": 695054
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/textures/outdoor_table_chair_set_01_table_diff_2k.jpg",
+      "sha256": "8259d7200a753037516e153d0989bd5812d50874be7631c34794abdeb2796384",
+      "bytes": 520192
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/outdoor_table_chair_set_01/2k/textures/outdoor_table_chair_set_01_table_nor_gl_2k.jpg",
+      "sha256": "8ab2e82a262da2912cb64b3439377f943dd29f344b8d4b8b25eb389efdceabc8",
+      "bytes": 205693
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/side_table_01/2k/side_table_01.bin",
+      "sha256": "b1f2a0519fc61cded1fdeac8169ac5b077836052671cd39a35cb56576c9aa11e",
+      "bytes": 117784
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/side_table_01/2k/side_table_01.gltf",
+      "sha256": "9ba10e46bb29f1739fc8cd22063a72bb321b30f0551a81db0eeda1da14b8c580",
+      "bytes": 2700
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/side_table_01/2k/textures/side_table_01_arm_2k.jpg",
+      "sha256": "135641036b9b436467f757510112362ddd7bf82b79bc6750345fde4be2d4bf81",
+      "bytes": 494152
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/side_table_01/2k/textures/side_table_01_diff_2k.jpg",
+      "sha256": "a7db54db8c6a08629136d7422cf8029912b75cad56fb26173bd20c77027a4e1a",
+      "bytes": 703996
+    },
+    {
+      "path": "public/assets/external/polyhaven/models/side_table_01/2k/textures/side_table_01_nor_gl_2k.jpg",
+      "sha256": "bc368d03f7b16194560919669e6e671c627d91c98068a562395469f950203b2b",
+      "bytes": 236052
+    },
+    {
+      "path": "public/design-progress/2026-11-06/index.html",
+      "sha256": "26868234d758cdcfff6f2499b7d905fcef32cf0713f4eb7ef575e9ffb8c52fae",
+      "bytes": 10319
+    },
+    {
+      "path": "public/design-progress/2026-11-06/stair-storage-diagnostic.png",
+      "sha256": "52a10b2487c5cccf48dd81e0f1d5f74745d0cd4af18ebb70b7dd2231c1e2a316",
+      "bytes": 162583
+    },
+    {
+      "path": "public/design-progress/2026-11-08/index.html",
+      "sha256": "c86c992a771f943d8e85b3894849218cb678867d3d6af36dcf83a1236934e655",
+      "bytes": 7734
+    },
+    {
+      "path": "public/floor-plans/1f.png",
+      "sha256": "60be99100f9d9e973113e864da70230cf860cc0074f0994049df356e5dd5d134",
+      "bytes": 1269203
+    },
+    {
+      "path": "public/floor-plans/2f.png",
+      "sha256": "b33d0fddec137ca11ff9e337c1c60d2560a18a5c8fe4a339b8f78a63484d704b",
+      "bytes": 1112635
+    },
+    {
+      "path": "public/floor-plans/aligned/1f-aligned-clean.png",
+      "sha256": "43c5ba112b734b0ddcfbe67c46351991c7b94c37a8dd3ab5c64201c1655096a1",
+      "bytes": 1007865
+    },
+    {
+      "path": "public/floor-plans/aligned/1f-aligned.png",
+      "sha256": "995b75557b271ed00053d5dbb244504dc2dc3656934e4f7d5fe3f46c1f2bfaa5",
+      "bytes": 929257
+    },
+    {
+      "path": "public/floor-plans/aligned/2f-aligned.png",
+      "sha256": "40375ca4f9c5c7de1fa249e4d80edf45a0afd9a94e0f6f19064e4a064c207cdc",
+      "bytes": 1019125
+    },
+    {
+      "path": "public/floor-plans/aligned/b1-aligned.png",
+      "sha256": "5abcf2da9e4eb63780e934d25143d5f1470a8eaca7445d5fbd9d0ff6475baf9c",
+      "bytes": 772860
+    },
+    {
+      "path": "public/floor-plans/aligned/b2-aligned.png",
+      "sha256": "1452cccaa6707a3a634c174aa82c93407d8d5eb91ccb21f96c64997279a6b157",
+      "bytes": 783560
+    },
+    {
+      "path": "public/floor-plans/b1.png",
+      "sha256": "e7a94d733d5d74a4a638eeae854eae9da2b19b499f075ab4b0f1bac6c7baa743",
+      "bytes": 933549
+    },
+    {
+      "path": "public/floor-plans/b2.png",
+      "sha256": "e3d35d03a31bde4a12a07b70503a64329cc582a6c646feec153474e4577d66c6",
+      "bytes": 918124
+    },
+    {
+      "path": "public/floor-plans/base-clean/1f-base-clean.png",
+      "sha256": "12363fbd89066a241644e3775c6aae8d6549b9d44aabb9e35e68d0f7ebe39c7f",
+      "bytes": 831010
+    },
+    {
+      "path": "public/floor-plans/base-clean/2f-base-clean.png",
+      "sha256": "e1e4a2205cc83d0e0da291ec93095e901df0c183fcec93473a4ef266767b2321",
+      "bytes": 576068
+    },
+    {
+      "path": "public/floor-plans/base-clean/b1-base-clean.png",
+      "sha256": "c693e7619a0208c72897278651ec3386d62d9d26193e1d87b53393d14ae034a5",
+      "bytes": 570764
+    },
+    {
+      "path": "public/floor-plans/base-clean/b2-base-clean.png",
+      "sha256": "e4cac430fa1fb2fd660ff41a8726d0735d3a95f597f0dcc2eb5be97f073760ef",
+      "bytes": 453491
+    },
+    {
+      "path": "public/floor-plans/hd-clean/1f-hd-clean.png",
+      "sha256": "51c4791395e41a83e2a44e2f89eb7433022a24de96957b708268c91526950c6c",
+      "bytes": 8220
+    },
+    {
+      "path": "public/floor-plans/hd-clean/2f-hd-clean.png",
+      "sha256": "fb23b8253d65c9cda48d1287549f715bd6bdc8e8bd18765e09becd57649fa795",
+      "bytes": 8664
+    },
+    {
+      "path": "public/floor-plans/hd-clean/b1-hd-clean.png",
+      "sha256": "97ddd32ad1460ad735fe634c9f039645e6d7cb6e8d4054b16202f02c16bb70ea",
+      "bytes": 8598
+    },
+    {
+      "path": "public/floor-plans/hd-clean/b2-hd-clean.png",
+      "sha256": "1cee7fb600bb75392a85e5e9650e89c7b5134a889d9a4b1343d08bb2cd556889",
+      "bytes": 7890
+    },
+    {
+      "path": "public/floor-plans/no-furniture-source/1f.png",
+      "sha256": "e266df17130271b15ed6c4c4651ad7a672546f03df7dfaf954d024e76c7508a3",
+      "bytes": 1100054
+    },
+    {
+      "path": "public/floor-plans/no-furniture-source/2f.png",
+      "sha256": "bc929dec062a340e9c996e9109b5a111a5715d6006c985227890f8186023878e",
+      "bytes": 721525
+    },
+    {
+      "path": "public/floor-plans/no-furniture-source/b1.png",
+      "sha256": "e0d17bca2e492a7f3458f66d095958385a5354842893dde7deb736091d2e22a8",
+      "bytes": 722253
+    },
+    {
+      "path": "public/floor-plans/no-furniture-source/b2.png",
+      "sha256": "9b453c63033b464c03ec12fba2e6ecad89c4dfd6fa093589b6eb69414e68e442",
+      "bytes": 597056
+    },
+    {
+      "path": "public/floor-plans/semantic-clean/1f-semantic-clean.png",
+      "sha256": "fef1dedce248da67a3d4b0711da0efe4a2d92e61723d1b193b4499628b6d486d",
+      "bytes": 958887
+    },
+    {
+      "path": "public/floor-plans/semantic-clean/2f-semantic-clean.png",
+      "sha256": "73637d6a4a601da61aee77dccc4e11e228d45f046ce525ad6c092546554852fc",
+      "bytes": 886271
+    },
+    {
+      "path": "public/floor-plans/semantic-clean/b1-semantic-clean.png",
+      "sha256": "b2dff7fb588c17a5de9abe1637d3b2fdf9a99fd2056f76257997f476af2c679d",
+      "bytes": 744013
+    },
+    {
+      "path": "public/floor-plans/semantic-clean/b2-semantic-clean.png",
+      "sha256": "de352d52a955bb6153cf8b5e4272b88e74e29ea4bc5ed0b69aa985a17ff6aed2",
+      "bytes": 764146
+    },
+    {
+      "path": "public/model-releases/2026-11-08-r15-r16.json",
+      "sha256": "9834204f069e4baff6379688be125f8b71fa3bd1eb262f7b48395e19083942aa",
+      "bytes": 2889
+    },
+    {
+      "path": "public/model-releases/2026-11-11-b1-renderer-integration.json",
+      "sha256": "f9642ad2627db1f6f0ba2409d8129bf76558d87f8b5774eea3f47d87dd1b3d5d",
+      "bytes": 1473
+    },
+    {
+      "path": "public/model-releases/2026-11-11-four-floor-candidate.json",
+      "sha256": "f164bf88e765b2e7ef343d0d664c0d426c8f03727f8285021a95821d6aa9eeda",
+      "bytes": 30315
+    },
+    {
+      "path": "public/model-releases/2026-11-11-four-floor-review-scopes.json",
+      "sha256": "dc2dd6928aa521f4a7bf513cfcb4bbe881694f3bc0aad12f6e966066fa12bf26",
+      "bytes": 6951
+    },
+    {
+      "path": "public/model-releases/2026-11-11-historical-camera-scopes.json",
+      "sha256": "87fd8dc53671e7dc6e80eb70436d7438950b8b74809f864940ab5f1bcff75aaf",
+      "bytes": 51974
+    },
+    {
+      "path": "public/render-releases/2026-11-08-b1-r03.json",
+      "sha256": "904d4572d7f7c0a96eb645d2e0b49042126ea1aef719c0676e94a9bc6e080b9c",
+      "bytes": 2521
+    },
+    {
+      "path": "public/renders/four-level-villa-3d-cover.png",
+      "sha256": "b842885ddd86f331d1dd7914e6d9698c80fa3c965a229b735308a2bed9f48efc",
+      "bytes": 3051227
+    },
+    {
+      "path": "public/renders/four-level-villa-3d-cover.previous.png",
+      "sha256": "ad8185ab42df4ab11f7706de88fbd95552cf010f9d6db20c296aee69147429dd",
+      "bytes": 2597068
+    },
+    {
+      "path": "scripts/apply-1f-bedroom-ledge-bay-storage-20260810.mjs",
+      "sha256": "eaef85cbee0ba7742aeecaabfe050d14ef57b68bd23cafbe113b8881d7f91137",
+      "bytes": 14857
+    },
+    {
+      "path": "scripts/apply-1f-bedroom-light-valet-cabinet-20260810.mjs",
+      "sha256": "eb7762572e44a61a4448e7b7f5d34cb390013fe36a4341dccf7749751e5d1dc9",
+      "bytes": 5972
+    },
+    {
+      "path": "scripts/apply-1f-bedroom-open-valet-rack-20260810.mjs",
+      "sha256": "ce0fc6b5072cab5fed257c6382a47b6dd8934317ef1e133d97e42bccb84a9a87",
+      "bytes": 4183
+    },
+    {
+      "path": "scripts/apply-1f-bedroom-refined-boutique-armoire-20260810.mjs",
+      "sha256": "dd6a6da1ed459a2de610f6a184a573087ffaa1ff93a9bdd523a7cbd3a90133c0",
+      "bytes": 6736
+    },
+    {
+      "path": "scripts/apply-1f-bedroom-showroom-parallel-layout-20260810.mjs",
+      "sha256": "7c7971538a49d4c83c5e8dec14bf4d45895afd80245fc1f13da898742d9e14fe",
+      "bytes": 13606
+    },
+    {
+      "path": "scripts/apply-1f-bedroom-small-guest-wardrobe-20260810.mjs",
+      "sha256": "4c54a01e0bed1086f036b02819e6666548896cf11004354ae37dc67814b5b890",
+      "bytes": 7767
+    },
+    {
+      "path": "scripts/apply-1f-coordinated-render-corrections-20260809.mjs",
+      "sha256": "cff69697e7fc58059945a490debdd63b06cd369937d8be3652a52b7c7cf250db",
+      "bytes": 14254
+    },
+    {
+      "path": "scripts/apply-1f-expression-upgrade-20260802.mjs",
+      "sha256": "129b07a64934decf2130bdb5571a17e4e6c3e10f1ce4cc35b71ae3a08788af13",
+      "bytes": 16306
+    },
+    {
+      "path": "scripts/apply-1f-final-ten-view-sync-20260810.mjs",
+      "sha256": "e23232fa1ef0ad4a8268d52384e55c3ef72583d78a460e322f41ee474c6bc6da",
+      "bytes": 8226
+    },
+    {
+      "path": "scripts/apply-1f-flexible-gathering-layout-20260809.mjs",
+      "sha256": "576f103bd4acf18271678f008abf91103b90289e2da2462d944f3580b1c8522e",
+      "bytes": 7431
+    },
+    {
+      "path": "scripts/apply-1f-hard-finish-refinement-20260802.mjs",
+      "sha256": "bbd96cd11d232c92cd688eeae285f7c6a0465c7d2dfda708aa876b2eaf9b9f50",
+      "bytes": 10838
+    },
+    {
+      "path": "scripts/apply-1f-modern-warm-natural-v1-20260811.mjs",
+      "sha256": "5c02e221b015e62100dc28a0c978b29750034a0e44d2f77ddbe9ba9d54aa5d51",
+      "bytes": 10723
+    },
+    {
+      "path": "scripts/apply-1f-proportion-adjustment-20260802.mjs",
+      "sha256": "0db3621a2f47b18ca3067f82bf6d7c2951975e6b0811579c1002a389e394b347",
+      "bytes": 8356
+    },
+    {
+      "path": "scripts/apply-1f-showroom-refinement-20260802.mjs",
+      "sha256": "f726a96779459a8dde6ac6d517f1640c16e687de4a9e7a4fec324f2166bc58a9",
+      "bytes": 31290
+    },
+    {
+      "path": "scripts/apply-2f-approved-layout-20260810.mjs",
+      "sha256": "81630b7fa4995b4584825b962325ef3ae2921f7171a09ecbee02794a5703336d",
+      "bytes": 16143
+    },
+    {
+      "path": "scripts/apply-2f-approved-layout-v2-20260810.mjs",
+      "sha256": "951c7d4eeb4ffab39531c0f99152073d131039ae9bbfa3f4b498c49e50a7533d",
+      "bytes": 14317
+    },
+    {
+      "path": "scripts/apply-2f-bay-bench-and-strict-camera-v12-20260810.mjs",
+      "sha256": "b6860a61705f471623c029120f5a607edf61e260d494db514f6ae88f6cf10954",
+      "bytes": 2596
+    },
+    {
+      "path": "scripts/apply-2f-camera05-baywindow-v10-20260810.mjs",
+      "sha256": "b61a03285466315fa78bea4a73cee2d46adca8eb78668a31371400b437948883",
+      "bytes": 1602
+    },
+    {
+      "path": "scripts/apply-2f-circulation-balcony-v3-20260810.mjs",
+      "sha256": "a406ee7d21d86e5aaa9b3e46e2df7cded57fbf31d6d26be35564257256ec41d1",
+      "bytes": 7573
+    },
+    {
+      "path": "scripts/apply-2f-current-ten-camera-audit-v15-20260811.mjs",
+      "sha256": "03fb71a95ec00f61b462844648d9fcfb4f70d08249936d66a712a0254062bd50",
+      "bytes": 4721
+    },
+    {
+      "path": "scripts/apply-2f-door-view-corrections-v6-20260810.mjs",
+      "sha256": "a39844d35c97c6e1beee1326f5741b1e06885d2a7f36819ca4857f5401458624",
+      "bytes": 2396
+    },
+    {
+      "path": "scripts/apply-2f-expression-upgrade-20260803.mjs",
+      "sha256": "552e7c7ebbaf7e44a60e7a2c9da75fb246a1a07e1e46a5a8c3b498641af1d508",
+      "bytes": 27146
+    },
+    {
+      "path": "scripts/apply-2f-luxury-sitstand-desk-v4-20260810.mjs",
+      "sha256": "56d1d68a63be63710290dbd8863616348695afb92e402e20e6bc0caf550efcd1",
+      "bytes": 1581
+    },
+    {
+      "path": "scripts/apply-2f-master-door-clearance-v14-20260810.mjs",
+      "sha256": "ab7e486382566de2edf015630856b567daec1a77ed2ebd26f9e1e5fbbf7c3222",
+      "bytes": 3522
+    },
+    {
+      "path": "scripts/apply-2f-master-footwall-storage-v5-20260810.mjs",
+      "sha256": "ddc6d6804c636aca0cbd080387fd752820b6eab742fdd6340617705ba52a8d4a",
+      "bytes": 2714
+    },
+    {
+      "path": "scripts/apply-2f-master-shallow-sliding-storage-v11-20260810.mjs",
+      "sha256": "d8047add2f27e5f39f76b6ca9816e37cddfaa9700410bdcbf7b302247e6b4249",
+      "bytes": 5552
+    },
+    {
+      "path": "scripts/apply-2f-master-true-entry-camera-v13-20260810.mjs",
+      "sha256": "1d7d4f9f89c10e27daa865e104e4de57f4412205aa98a8fe2b4c525755a54738",
+      "bytes": 1445
+    },
+    {
+      "path": "scripts/apply-2f-master-wardrobe-v8-20260810.mjs",
+      "sha256": "fec6ac82344546bc893a7b4f3af0222c83447ac400dc077f4fc74e01c1759414",
+      "bytes": 3514
+    },
+    {
+      "path": "scripts/apply-2f-master-wardrobe-v9-20260810.mjs",
+      "sha256": "458c49e3b0497a6c5d3a2ea48e113e29b4c5b06ecb3fd5593ff0abd5c3ce8b14",
+      "bytes": 3390
+    },
+    {
+      "path": "scripts/apply-2f-open-dressing-and-dual-axis-v7-20260810.mjs",
+      "sha256": "5387e13a57463374892ebb9531051321497b79c21453917a1b34c41e066946da",
+      "bytes": 4150
+    },
+    {
+      "path": "scripts/apply-2f-shared-visual-contract-v16-20260811.mjs",
+      "sha256": "0a9b50e7ca6950d415121954c82c9e31928851ecf5ee7249db19938bdeb226a7",
+      "bytes": 8289
+    },
+    {
+      "path": "scripts/apply-2f-showroom-plan-d-20260802.mjs",
+      "sha256": "7125a72f88b320035588e10d72c22a08300cbe709721555436845eda1b1e9ed7",
+      "bytes": 44951
+    },
+    {
+      "path": "scripts/apply-b1-laundry-showroom-plan-a-20260802.mjs",
+      "sha256": "153a4c6be85d51edd7d718202fb92f308a103c31dffb98063e37538379b998fb",
+      "bytes": 21461
+    },
+    {
+      "path": "scripts/apply-b1-showroom-hard-finish-plan-a-20260802.mjs",
+      "sha256": "9a5fa95a3d2a804fe8b8629dae6f256439d5bb929b67722667ff6d6ea82bdec5",
+      "bytes": 16475
+    },
+    {
+      "path": "scripts/apply-b2-lounge-wine-wall-refinement-20260718.mjs",
+      "sha256": "3f6fbe447114a14876ce6ef8a34522bc0b9621ba85c38e829b8d64289dc2aeaf",
+      "bytes": 11970
+    },
+    {
+      "path": "scripts/apply-b2-modern-warm-natural-v1-20260811.mjs",
+      "sha256": "854d102f66eda59b8461407078fb3754b198680dbb28549a6b1eccda3a6ff8f7",
+      "bytes": 9818
+    },
+    {
+      "path": "scripts/apply-b2-showroom-plan-b-20260802.mjs",
+      "sha256": "49fcc9415fb9e02899c8bc3c53044132378b08d5fc8c894a0eb925afab540001",
+      "bytes": 19262
+    },
+    {
+      "path": "scripts/apply-b2-tv-wall-refinement-20260718.mjs",
+      "sha256": "34d6b8249f156acad2d6a149efaa78a857ae3eb91554431b72d41d21084a3a0f",
+      "bytes": 5784
+    },
+    {
+      "path": "scripts/apply-confirmed-whole-house-layout.mjs",
+      "sha256": "346daed79eb5c9dd27d20f5eb059ec9298f5ac9924bce9893d25e75367afb547",
+      "bytes": 22991
+    },
+    {
+      "path": "scripts/apply-furniture-visual-showcases.mjs",
+      "sha256": "4937d6a2a6da86373ede9826639d24338ac7f0e9848fe1bcb0a13187b7e24d21",
+      "bytes": 10350
+    },
+    {
+      "path": "scripts/apply-lighting-design-v1.mjs",
+      "sha256": "c490d3fe39ba6ef7a6657b2ffd9e70ae36273cb2e036fb94b5d035aa2eaa149d",
+      "bytes": 1623
+    },
+    {
+      "path": "scripts/apply-lighting-semantics-20260718.mjs",
+      "sha256": "5c904063bf59b35f6ff1fb1ecd6aaf619f144d9e6af1995fa27201edff4fcaad",
+      "bytes": 3709
+    },
+    {
+      "path": "scripts/apply-lighting-showroom-standard-20260809.mjs",
+      "sha256": "3359b6c583e1c9474488d79f763cff48f6cf254b3ac284123c0aaf254cf857bb",
+      "bytes": 37642
+    },
+    {
+      "path": "scripts/apply-model-refinement-20260717-round2.mjs",
+      "sha256": "0d10eb8ac867bbf1734c0705d1e0777e111eede50817080e38419bebde5bc85d",
+      "bytes": 27237
+    },
+    {
+      "path": "scripts/apply-model-refinement-20260717-round3.mjs",
+      "sha256": "a02614c38071eaa17c32f8794560cdbf056606f472c4b5c5ebf5fb936536d86b",
+      "bytes": 20409
+    },
+    {
+      "path": "scripts/apply-model-refinement-20260717-round4.mjs",
+      "sha256": "b0d75c33302a3e0440e18bd6d5a67df3d3cd0808c5ff3287ce85833cb129f987",
+      "bytes": 13080
+    },
+    {
+      "path": "scripts/apply-model-refinement-20260717.mjs",
+      "sha256": "3517ace4de7e51e0525cd65a622de94095743a052823ef1bf25f19490698d245",
+      "bytes": 13353
+    },
+    {
+      "path": "scripts/apply-modern-natural-furniture.mjs",
+      "sha256": "536ec2e93a3137224205f6812979022e85ccb1c7b699b2bcc609d11a05c03084",
+      "bytes": 1264
+    },
+    {
+      "path": "scripts/apply-outdoor-living-system-v1.mjs",
+      "sha256": "4ba2255cd84fdcc924f53755cfb80891c99feb606d633d86a50bc15f175aa6e7",
+      "bytes": 17456
+    },
+    {
+      "path": "scripts/apply-reusable-room-visuals.mjs",
+      "sha256": "e24220efc5a6934e1f906f819fe5e650a957565ce9c3949b89e5f60d624a221e",
+      "bytes": 6264
+    },
+    {
+      "path": "scripts/apply-tuscan-wabi-sabi-interior.mjs",
+      "sha256": "9e41400042d70e2fd86569f458b2c140a0ca8c03fcdb3c02c8cebd4ea92b1bf5",
+      "bytes": 10526
+    },
+    {
+      "path": "scripts/apply-workspace-to-default.mjs",
+      "sha256": "c4bc764247ec19f8d9c20d2801924b90c2484d870bdb7892766f932d121fb3e8",
+      "bytes": 709
+    },
+    {
+      "path": "scripts/apply-yard-realism-v1.mjs",
+      "sha256": "847c4e019c8aef525fdeabfa04216845635ad3abbcee14aeee460c97de6b9cc3",
+      "bytes": 2955
+    },
+    {
+      "path": "scripts/audit-exploration-walkability.mjs",
+      "sha256": "b641fd6a833e6caa9ef7985c005cc0d14380b95fdd1b1592609a2927ac3f38ee",
+      "bytes": 18742
+    },
+    {
+      "path": "scripts/audit-validation-confidence.mjs",
+      "sha256": "1f5175edbabbd1b649bca7b94aa3e5e7906c90951ffd3b901956f93b11930773",
+      "bytes": 2469
+    },
+    {
+      "path": "scripts/capture-2f-current-ten-cameras-20260811.mjs",
+      "sha256": "1c8aeb7b55e1f7197a1005a74bf065499303e9e8f744b684ec8918454e5d5e5d",
+      "bytes": 2902
+    },
+    {
+      "path": "scripts/capture-2f-ten-cameras.mjs",
+      "sha256": "a3a5e2f0ad9e39ad2c15f927fcca91010c1cd95ba1ac0e9705e67fe8f295ee33",
+      "bytes": 4573
+    },
+    {
+      "path": "scripts/capture-b2-current-plan.mjs",
+      "sha256": "301e1132ef6b05b7292bf87337acc31380a5e6125306acd8275125b6bd77733b",
+      "bytes": 1684
+    },
+    {
+      "path": "scripts/capture-b2-ten-cameras.mjs",
+      "sha256": "72786a5b0d5cc9574d3eee9a1906ae8949f37d49567d6fa97d5e649806382da3",
+      "bytes": 4623
+    },
+    {
+      "path": "scripts/capture-furniture-visual-qa.mjs",
+      "sha256": "7ed8d83e56a4ee3fe626f1e455335ae2573dc8f2a8b779e716bfef01e47a9605",
+      "bytes": 7505
+    },
+    {
+      "path": "scripts/capture-material-furniture.mjs",
+      "sha256": "982f3545569e5af93c7d3ebbd75b86c2448a0a648e7726163728d0eb054f7057",
+      "bytes": 2551
+    },
+    {
+      "path": "scripts/capture-material-inspector-qa.mjs",
+      "sha256": "b1e4287578114b5b224584ecfbb6910f540bfe7cb5062c3f562e2d0dbbc5ae9d",
+      "bytes": 4148
+    },
+    {
+      "path": "scripts/capture-material-mobile.mjs",
+      "sha256": "228a8c97d7b8dad19480b8daf5c05be41953615cd1df538c019edbf8477f6f2f",
+      "bytes": 2022
+    },
+    {
+      "path": "scripts/capture-pbr-audit.mjs",
+      "sha256": "0e8f6c8ab4807d98e90b88a10449d7147957affcdd997bcd280e475253650440",
+      "bytes": 3912
+    },
+    {
+      "path": "scripts/capture-stair-acceptance.mjs",
+      "sha256": "6a60da912fbec3b5e1c746e8b921104b2dc1a4986bda8b4c7a2b881aa6c79f2d",
+      "bytes": 3478
+    },
+    {
+      "path": "scripts/capture-svg-artifact.mjs",
+      "sha256": "aabeadf0493708d32db808ef3273e2fe9acb65a607e9d2d6269d7cc6506b98d1",
+      "bytes": 792
+    },
+    {
+      "path": "scripts/check-pages-build.mjs",
+      "sha256": "89097a9b5303418d1d5582b76b1de826eb51a302224ec1bdfc852d71e040537b",
+      "bytes": 6069
+    },
+    {
+      "path": "scripts/create-1f-bedroom-showroom-plan-20260810.py",
+      "sha256": "b898e2bfa0e3f5e2b5dcdc2335ef84e87f74dab0dcfa0f40870e2299b02b3ce1",
+      "bytes": 8600
+    },
+    {
+      "path": "scripts/create-1f-contact-sheet-v10-20260810.py",
+      "sha256": "e8d1dcdb8558ae272257ffc94f3b16cd0fba3dc81882f175fdaddca854110e41",
+      "bytes": 2328
+    },
+    {
+      "path": "scripts/create-1f-contact-sheet-v11-20260810.py",
+      "sha256": "f0add6d920eaf5c0c0911ecbad4e9a1dc05169ad0528e7d665136219756f2070",
+      "bytes": 2191
+    },
+    {
+      "path": "scripts/create-1f-contact-sheet-v12-20260811.py",
+      "sha256": "e3f10d9fb14516b74be55d4ac4ac7eb715e90909387660cb55ed1df679e92fa2",
+      "bytes": 2242
+    },
+    {
+      "path": "scripts/create-1f-contact-sheet-v13-20260811.py",
+      "sha256": "1a158b599c1e954e88b6c45b6390a94a572eeb3f38ad2b24aec29900c58da29a",
+      "bytes": 2222
+    },
+    {
+      "path": "scripts/create-1f-current-model-audit-v14-20260811.py",
+      "sha256": "ff68b678483ea7a3a04ce799944ba36aaafa3d94c742d24c385a9caa15153188",
+      "bytes": 2654
+    },
+    {
+      "path": "scripts/create-1f-final-camera-map-20260810.py",
+      "sha256": "e7929338be433f29d9aa02f7b628491af4a10d216a62e352960e2dbf499a6f5a",
+      "bytes": 4006
+    },
+    {
+      "path": "scripts/create-1f-final-camera-map-v10-20260810.py",
+      "sha256": "be6df8c4cfc89bf104f11295dc104eb8a4e924cff003427631cb20dc1e0762c4",
+      "bytes": 4095
+    },
+    {
+      "path": "scripts/create-1f-final-camera-map-v11-20260810.py",
+      "sha256": "cdb2d2c427bbf893204805bf872821e457cbda950a39ca5d580e3ee1adfda99b",
+      "bytes": 4094
+    },
+    {
+      "path": "scripts/create-1f-final-camera-map-v12-20260811.py",
+      "sha256": "bda285706b6a75470ce582e1999e12a263323eefa3d95ff333e88b7414a51c98",
+      "bytes": 4088
+    },
+    {
+      "path": "scripts/create-1f-final-camera-map-v13-20260811.py",
+      "sha256": "65b674532664a22e5acb1df1123351c96f5073279c87014363995a483230d707",
+      "bytes": 4100
+    },
+    {
+      "path": "scripts/create-1f-final-contact-sheet-v14-20260811.py",
+      "sha256": "5e6a4faa73f066207ca0d403bfbb7212c8144b79854d3be3c3c90fdd2e0a450c",
+      "bytes": 3361
+    },
+    {
+      "path": "scripts/create-1f-furniture-plan-20260809.py",
+      "sha256": "5abaf1af43fbd54cb56b268c39f6d4b9871a2cba21af71ae587884eec6c8bdee",
+      "bytes": 6140
+    },
+    {
+      "path": "scripts/create-1f-viewpoint-plan-20260809.py",
+      "sha256": "c8819a71e9d248fe1eddfbdc33c6305645c920e8eddf31d7e24f2d60bf89b5ef",
+      "bytes": 3254
+    },
+    {
+      "path": "scripts/enrich-render3d-metadata.mjs",
+      "sha256": "5d069db353031734b569882218d6a9e4a021e217184e997620e9595115833dba",
+      "bytes": 11822
+    },
+    {
+      "path": "scripts/extract-video-frames.m",
+      "sha256": "f51e778149fde9d264cefe999b06bd68ea146be93ff0258f8d5807c637521b83",
+      "bytes": 2395
+    },
+    {
+      "path": "scripts/extract-video-frames.swift",
+      "sha256": "de059661079212918ae141cbe6d3d0945d5a605399f057ebb684229ece829bcd",
+      "bytes": 1585
+    },
+    {
+      "path": "scripts/fixtures/public377-workspace.json",
+      "sha256": "5e977e465599e84839a104aa33bf7a2f8d66991e2ba02c01c4a41e98157a662a",
+      "bytes": 1888609
+    },
+    {
+      "path": "scripts/generate-2f-approved-plan.mjs",
+      "sha256": "078af0239f7dbe742a474c6052138a1b8347b445bd1f238f181f98058aaabf68",
+      "bytes": 9849
+    },
+    {
+      "path": "scripts/generate-2f-axonometric.mjs",
+      "sha256": "0d62ff84df8ecbc2104e68c7dbb78935643b5883de1a9e7c73a0b13c0e652583",
+      "bytes": 30030
+    },
+    {
+      "path": "scripts/generate-2f-final-v4-board.mjs",
+      "sha256": "374da5f8ea88097d3aad5e302b897439fd070261fe62ffd5d1e05317bb0c22fc",
+      "bytes": 3336
+    },
+    {
+      "path": "scripts/generate-2f-master-current-plan.mjs",
+      "sha256": "0d86996ff324c9b649001bf8d35caa8c4a6cc51242d688cf6c49b7e530d61cf3",
+      "bytes": 8678
+    },
+    {
+      "path": "scripts/generate-2f-photoreal-board.mjs",
+      "sha256": "dcaf295f709ef06d6cce7700cc0fc780996953809465158b26aebbcf5b627c23",
+      "bytes": 2493
+    },
+    {
+      "path": "scripts/generate-2f-render-board.mjs",
+      "sha256": "dcc0be891102f38d17ef8c86ed4fd7b7bbdb8baf536cf846f3f54277eaa21c92",
+      "bytes": 2427
+    },
+    {
+      "path": "scripts/generate-2f-showroom-v2-board.mjs",
+      "sha256": "40dabc4374e4db4ae7b663636183a56e2a1bbc78c234ff8d21c93107491a7bbb",
+      "bytes": 5773
+    },
+    {
+      "path": "scripts/generate-2f-showroom-v3-board.mjs",
+      "sha256": "c7ac3f617b00285ee09a4d13f1c69569b29f4d34ce36ec53478614f1d023cfbe",
+      "bytes": 4320
+    },
+    {
+      "path": "scripts/generate-hd-clean-floor-plans.py",
+      "sha256": "3ac121471a1cf1f4cfd4cdbc19a2fe500b12aca9772b7ca1fb4bdc9319914e4e",
+      "bytes": 13188
+    },
+    {
+      "path": "scripts/generate-stair-rebuild-audit-board-20260810.mjs",
+      "sha256": "cc1e4735ea759d3842e82d5368ff965d9e1f4ed0edf9a861964448982d9733d9",
+      "bytes": 8942
+    },
+    {
+      "path": "scripts/local-code-sync-server.mjs",
+      "sha256": "f5321010fb05c9a784e4ed1fc24788dcde9d6f0260f6c83a46e32f7146041eae",
+      "bytes": 16043
+    },
+    {
+      "path": "scripts/make-image-contact-sheet.py",
+      "sha256": "b89c17957c5f2aed47ea200db04733c0cf42925d577d43384455f24669a43321",
+      "bytes": 1133
+    },
+    {
+      "path": "scripts/measure-pbr-audit.mjs",
+      "sha256": "f3b0033c14255fbe8eff950fccdb052d60e2d7ee8ff9a187913380786f13b623",
+      "bytes": 3839
+    },
+    {
+      "path": "scripts/prune-pages-renders.mjs",
+      "sha256": "8712b7f42c0a89940ed01c37780f101483718ba9cee13041596c586c1221fee5",
+      "bytes": 792
+    },
+    {
+      "path": "scripts/read-historical-workspace.mjs",
+      "sha256": "fc400467161a79e1571e0df8fafaef4abb25220adacd44606145f6873e09ed82",
+      "bytes": 574
+    },
+    {
+      "path": "scripts/rebuild-source-aligned-stair-core-20260810.mjs",
+      "sha256": "9db3dde8403b44a92b69a316d74d2c5b8464c12b09ce02eebaa1bd2a623f0561",
+      "bytes": 5556
+    },
+    {
+      "path": "scripts/runtime-infra-r1-healthcheck.mjs",
+      "sha256": "64b70fec1caf7d6ea8e45fcb3ae49b0e4c36d77794134ee56e018f690fc69c87",
+      "bytes": 523
+    },
+    {
+      "path": "scripts/schema-coverage-report.py",
+      "sha256": "dc6862484b315e604c32ceb5d805249ddffa8907564ab8d520f09f49f12c9a8f",
+      "bytes": 4936
+    },
+    {
+      "path": "scripts/serve-local-preview.mjs",
+      "sha256": "20fe5a028f6ee923973928d779f07d2119166b2329b7f57f9d67a6631ff32d0f",
+      "bytes": 2813
+    },
+    {
+      "path": "scripts/test-1f-expression-upgrade.mjs",
+      "sha256": "74851aba99535b30d19b3b37a25a8eef4368381b5d2141ad47978a6a1e0a3655",
+      "bytes": 6480
+    },
+    {
+      "path": "scripts/test-1f-showroom-refinement.mjs",
+      "sha256": "764629214e282773667cee37789b5d7eded4f48fd6d6f3b551c32df7c6466b41",
+      "bytes": 8164
+    },
+    {
+      "path": "scripts/test-2f-approved-v2.mjs",
+      "sha256": "61de6d294b60d4475739c558325cd51c35665f23c1ea8d13201b2dd36f0cfed2",
+      "bytes": 2078
+    },
+    {
+      "path": "scripts/test-2f-corrected-layout.mjs",
+      "sha256": "a9536fae1d2e4e2ca88251bcd5b82b765b3d92a8d563c38393daeddb358e793b",
+      "bytes": 7858
+    },
+    {
+      "path": "scripts/test-2f-shared-visual-contract-v16.mjs",
+      "sha256": "2438397798d03106db941f6dbcbdc45abac231d2dc058521ddc3ea735f8a32e8",
+      "bytes": 5229
+    },
+    {
+      "path": "scripts/test-2f-showroom-plan-d.mjs",
+      "sha256": "0a5284b57163b3551df1ec6beb552d72d46062e4f95abde931be8cdf7fe6c191",
+      "bytes": 5620
+    },
+    {
+      "path": "scripts/test-3d-structure-rendering.mjs",
+      "sha256": "5add47b1eade1f2285c9365a7bd43e4c9ff13d1175dc0a982c20ee243aed18c3",
+      "bytes": 4459
+    },
+    {
+      "path": "scripts/test-b1-laundry-showroom-plan-a.mjs",
+      "sha256": "dcc8d6d9d8d931b2b40ae3143dfbc84bd3093c1c22c3f215e6cf2a846469feb7",
+      "bytes": 3617
+    },
+    {
+      "path": "scripts/test-b1-showroom-hard-finish-plan-a.mjs",
+      "sha256": "9e3d763d56598456662cee4b8f730b446f3045cb4014983b07582b3d919c8321",
+      "bytes": 6204
+    },
+    {
+      "path": "scripts/test-b2-lounge-wine-wall.mjs",
+      "sha256": "6538010af321358e698eca68944374d00e3046a1b00580cfbafb65ed9c214979",
+      "bytes": 4341
+    },
+    {
+      "path": "scripts/test-b2-modern-warm-natural-system.mjs",
+      "sha256": "83a6ac9aa2e53266fc96a5c689371eb923c573db35bbb59fe976cf5f4d316a18",
+      "bytes": 6345
+    },
+    {
+      "path": "scripts/test-b2-r7-adopted-layout.mjs",
+      "sha256": "e5b1c01125a4e9e0feac9acb55990c85d9d20b2b87877a68772974c20cee0e79",
+      "bytes": 4065
+    },
+    {
+      "path": "scripts/test-b2-showroom-plan-b.mjs",
+      "sha256": "6ccd58299609047a3b7f393c776a4bdfbbb4f35202e536442062525139038d37",
+      "bytes": 7004
+    },
+    {
+      "path": "scripts/test-c03a-adopted-layout.mjs",
+      "sha256": "a555449b72deee0a6b2834f9b0e46a2c129065d6eb9d3744e29346d14fca0f8d",
+      "bytes": 4599
+    },
+    {
+      "path": "scripts/test-cabinet-interior.mjs",
+      "sha256": "94a657761d15f6e8707ba46fa5f421f4db63bd0c1501638ad56871e3262122c4",
+      "bytes": 2990
+    },
+    {
+      "path": "scripts/test-cabinet-material-overrides.mjs",
+      "sha256": "ae7e89ca279914895744dfe1a352659de815fe3107055331b54c0115db01b862",
+      "bytes": 3325
+    },
+    {
+      "path": "scripts/test-camera-composition.mjs",
+      "sha256": "fbc78b0d5cd0a1caebac8b604ad10e4209b7869e333a103dc25fe177e7367fff",
+      "bytes": 7857
+    },
+    {
+      "path": "scripts/test-construction-anchors.mjs",
+      "sha256": "d67c9556f1177e769183fda849c52fc11145a0b8214f118deaf735623fe5062a",
+      "bytes": 1400
+    },
+    {
+      "path": "scripts/test-construction-package-export.mjs",
+      "sha256": "e8863352a1b541f448e49b9e5d05c16b853a99ec764018fcf4c3ebd8ed25e108",
+      "bytes": 10106
+    },
+    {
+      "path": "scripts/test-dimension-verification.mjs",
+      "sha256": "77961797fc8894ba01416f6b67fb1d6e44391137e7927dbcb6dcdcf4cabd16f5",
+      "bytes": 4333
+    },
+    {
+      "path": "scripts/test-drawing-3d-profiles.mjs",
+      "sha256": "5ac32f3a613c0c9e37ed85f505fe50bfb3b62afee0b3fe66deb2346874c3e58f",
+      "bytes": 5695
+    },
+    {
+      "path": "scripts/test-drawing-items.mjs",
+      "sha256": "54e634826f65020f77bc952c05c009b698e7822e522e9bb40c9bb24627137a4d",
+      "bytes": 4802
+    },
+    {
+      "path": "scripts/test-drawing-sheets.mjs",
+      "sha256": "80bcf09d9d856244a33657b882dc530e86b18e35bd959233042dd5013dd21a62",
+      "bytes": 2357
+    },
+    {
+      "path": "scripts/test-drawing-workspace-system.mjs",
+      "sha256": "4b70c3930516486399512fb06a3f06515ced92e918f72a949ae4f63d0d8d947b",
+      "bytes": 2862
+    },
+    {
+      "path": "scripts/test-exploration-mode.mjs",
+      "sha256": "c6e313a16bdf8ff0ce3fa87affca413aa196bdac9897a8ce87d1cc0758263392",
+      "bytes": 12729
+    },
+    {
+      "path": "scripts/test-external-assets.mjs",
+      "sha256": "f4dd147c2eaf6a77e586132fcfb77b4515b15783cde9574e5fab58c2a76b38a6",
+      "bytes": 2893
+    },
+    {
+      "path": "scripts/test-floor-camera-views.mjs",
+      "sha256": "424b7102a19f8da713d7038f164aefba2ffea2c69d3327814c46cc700c22a51f",
+      "bytes": 4918
+    },
+    {
+      "path": "scripts/test-four-floor-calibration.mjs",
+      "sha256": "3a9f36aa4e7ea38dbde00c38cec578fecbcdaa68ee6b21ad4903750aa61ba001",
+      "bytes": 5711
+    },
+    {
+      "path": "scripts/test-four-items-mechanical.mjs",
+      "sha256": "2431c09564413a8217f6ea75e1326de719e7cde4aa670d94f0c3eac92d2a664a",
+      "bytes": 1773
+    },
+    {
+      "path": "scripts/test-furniture-height-consistency.mjs",
+      "sha256": "1fb5e685f9cf413d24d9eeb7939961a970911bbdfa721d10e27d4a956d832db2",
+      "bytes": 3776
+    },
+    {
+      "path": "scripts/test-furniture-placement.mjs",
+      "sha256": "d3f0886bec1072ba43518921c366312e107610642fcb19cbc24806396f073da1",
+      "bytes": 10698
+    },
+    {
+      "path": "scripts/test-furniture-variants.mjs",
+      "sha256": "60c8a4905824f1a7ca9203521008ccb9d1f12d1355a32beafc6d83055d26ccb4",
+      "bytes": 16878
+    },
+    {
+      "path": "scripts/test-lighting-design.mjs",
+      "sha256": "a117eee409197632d47027af6ce538080a6ab9f6fa26e462dec77deac78c9c88",
+      "bytes": 6985
+    },
+    {
+      "path": "scripts/test-local-code-sync-server.mjs",
+      "sha256": "6de4377bf21cde6737ecb73660cb76a6f17ed973c9405dd4c128f348a1a06346",
+      "bytes": 7436
+    },
+    {
+      "path": "scripts/test-main-lighting-top-bar-hotfix.mjs",
+      "sha256": "29e0b4037de657d51262dafffd02f74b966706d61694dd44be348ad8712af18c",
+      "bytes": 1560
+    },
+    {
+      "path": "scripts/test-material-system.mjs",
+      "sha256": "7eb1e0fbd547830fcc1814e5cbfabdc4d5b154d5b122f380a1a4a659c5c6b8c3",
+      "bytes": 3352
+    },
+    {
+      "path": "scripts/test-model-detail-calibration.mjs",
+      "sha256": "8f7211b50e5970317b4cfc41be12cfbfab4415b584d0c5782ff1fca68754f4a3",
+      "bytes": 6509
+    },
+    {
+      "path": "scripts/test-model-preview.mjs",
+      "sha256": "118de1f294bd36412346cdc510180fff2102ff863a3866b63fd6fc2f65e1b7b9",
+      "bytes": 3113
+    },
+    {
+      "path": "scripts/test-model-refinement-round3.mjs",
+      "sha256": "2f910bc7b4582f89cb1a38b26cc6b40bebecaafb26c51e5249dd67f254f95b8b",
+      "bytes": 3879
+    },
+    {
+      "path": "scripts/test-model-refinement-round4.mjs",
+      "sha256": "7d3bfe5bbe21cf64a8c25f04a894d73839b07b9ce9223fb7d2bcf162836d562a",
+      "bytes": 5146
+    },
+    {
+      "path": "scripts/test-modern-warm-natural-system.mjs",
+      "sha256": "a2a684304514e477700a2d3ad488ab1f29f833730cc4e90a0c35f0365da2e7c8",
+      "bytes": 5773
+    },
+    {
+      "path": "scripts/test-navigation-render-quality-regression.mjs",
+      "sha256": "cfa656a3c51efd22e93721f2540174942b220ff5454d1c6938b0720398cdd220",
+      "bytes": 3699
+    },
+    {
+      "path": "scripts/test-object-sync.mjs",
+      "sha256": "d514eb4dd1dc5fa5bfd94d80fbf58cde9aa8f3304e7b577ebbefd795704914ba",
+      "bytes": 2818
+    },
+    {
+      "path": "scripts/test-open-passage.mjs",
+      "sha256": "1ad84c338ebed68b73aef0708fb460d718e033a842c31acc3a6b51481bc8ec4d",
+      "bytes": 3213
+    },
+    {
+      "path": "scripts/test-outdoor-living-system.mjs",
+      "sha256": "be35080ed0adebc083bd7c9e32f41209db637016c508a36da7051b198a066fac",
+      "bytes": 2729
+    },
+    {
+      "path": "scripts/test-output-drawing-logic-luna.mjs",
+      "sha256": "795f8f070e06056424bd43017c5f9b4db9068b7117f34e42db2f0117e238620c",
+      "bytes": 3769
+    },
+    {
+      "path": "scripts/test-owner-communication-model.mjs",
+      "sha256": "5dd598afdf452fd1b7d8aa393bb6bc0ea8fd74c9331076a1850021cc31b25aa4",
+      "bytes": 1090
+    },
+    {
+      "path": "scripts/test-owner-decision-package-r1.mjs",
+      "sha256": "b98f3e50d3a5c92c3f425d943ae83a86f00d276e85f66106203721f89c47a75f",
+      "bytes": 2368
+    },
+    {
+      "path": "scripts/test-phase2-visual-system.mjs",
+      "sha256": "765509f1dba5f666a4f0fe864cda12fb150013f0ee150459335572b055bb2caa",
+      "bytes": 3320
+    },
+    {
+      "path": "scripts/test-piano-routing.mjs",
+      "sha256": "a74d2487f5ea2c44a934d54977207e31766286cd125bd9acb4b34b5ffbf24438",
+      "bytes": 1188
+    },
+    {
+      "path": "scripts/test-preview-performance.mjs",
+      "sha256": "f3c404da31f681d48fa35d39c83171471552cd1ca10fc65b3628e23bd322ad32",
+      "bytes": 2168
+    },
+    {
+      "path": "scripts/test-r14-approved-subset.mjs",
+      "sha256": "e6ff8a8da508b44b836cd7b727b1454b751c1849905b9c30f4f5ecda43c61424",
+      "bytes": 5586
+    },
+    {
+      "path": "scripts/test-render-camera-storage.mjs",
+      "sha256": "1950a9797609b002ddf05301ced3e72ffd5bddb08752e1e84311e761504688ab",
+      "bytes": 2862
+    },
+    {
+      "path": "scripts/test-render-preflight.mjs",
+      "sha256": "1f6b03f03663f995c5449f149c6de68b6ef4c86f1cae5581360a76badc89d710",
+      "bytes": 5980
+    },
+    {
+      "path": "scripts/test-reusable-room-visuals.mjs",
+      "sha256": "92a4c7ff9743df662b993b10992a357a76d46a4f76033e3e6cdb7d4a0869b6c1",
+      "bytes": 3965
+    },
+    {
+      "path": "scripts/test-room-tour.mjs",
+      "sha256": "38751df27d9de58b3bff0c405d54176a9949ad6da5af30dbd998727d49b2be29",
+      "bytes": 4220
+    },
+    {
+      "path": "scripts/test-scene-height-system.mjs",
+      "sha256": "69818e7f3cbdd555ce2cae6831d38596addfe6acb30c152b8873c31de908d1b3",
+      "bytes": 4514
+    },
+    {
+      "path": "scripts/test-stair-systems.mjs",
+      "sha256": "3e56c34b0382da5cfa46464ae233db7e288aeefb6be3cdf19768e84905c01467",
+      "bytes": 12203
+    },
+    {
+      "path": "scripts/test-tuscan-surface-finishes.mjs",
+      "sha256": "1d54b4ecb0e875f192c8923646a3a2c20ca1bc5ed7dfb4f5b119fda531390257",
+      "bytes": 3039
+    },
+    {
+      "path": "scripts/test-unified-scene-graph.mjs",
+      "sha256": "5b258ef6762b9689fac765e969f1376c56c8e748b41f1b1b07bad97b083bb99d",
+      "bytes": 5860
+    },
+    {
+      "path": "scripts/test-wet-area-orientation.mjs",
+      "sha256": "9998b9b28ea983d7b2499aef1953e2726c5d6949400674b51455c887f3a571ab",
+      "bytes": 3236
+    },
+    {
+      "path": "scripts/test-whole-house-p0-integration-audit-current.mjs",
+      "sha256": "18fc115b31bc4efc07ebdc4ea3cbeb510efe753addb720ce7d68a04fb8f80b6c",
+      "bytes": 1630
+    },
+    {
+      "path": "scripts/test-workspace-access.mjs",
+      "sha256": "7430694ff0d9862da91a9a7cb6da3eb6adc2615483b530b8195d1cf6247243a4",
+      "bytes": 2121
+    },
+    {
+      "path": "scripts/test-workspace-migrations.mjs",
+      "sha256": "70852b6b3e1ef737bbd13ceccdc2433ef019a48df79caf6a81f8170be99756ad",
+      "bytes": 24607
+    },
+    {
+      "path": "scripts/test-workspace-reference-validator.mjs",
+      "sha256": "8812e79f8d02390ed1107e2ae24a19e47b085463e927d9954b9cb1a48f10cd17",
+      "bytes": 4142
+    },
+    {
+      "path": "scripts/test-yard-preview.mjs",
+      "sha256": "eb6039cabf02c4d564e4e2e33be4e1b51aa4f63ef15474c1a7acaa8f73b42bdb",
+      "bytes": 4077
+    },
+    {
+      "path": "scripts/upgrade-five-level-presentation.mjs",
+      "sha256": "45f531037d3b8a8580a6ff0f0c1c7e33e7dc05c6fbc9782f664a02d6d9929558",
+      "bytes": 16947
+    },
+    {
+      "path": "scripts/validate-default-workspace.mjs",
+      "sha256": "d0856ff72ac23f4f4da0ac0c7f5b85a59baabd0bd1f8b975292bd6e5b0492ce7",
+      "bytes": 4700
+    },
+    {
+      "path": "scripts/workspace-schema-validator.mjs",
+      "sha256": "ed2638737375288d0c3983aa8cdf2a4368b66f7129527e554d59eabcc341431f",
+      "bytes": 20891
+    },
+    {
+      "path": "scripts/write-release-manifest.mjs",
+      "sha256": "0a743a848e3c5ffcec9eccffba0b0202ba2fc81874a48e53f4aaf6c2f2f61089",
+      "bytes": 25234
+    },
+    {
+      "path": "src/core/houseValidator.ts",
+      "sha256": "275eb46e7646e5e3d5337a87968297c9f748e21fdd9a70e2b800c381cb91cda5",
+      "bytes": 62910
+    },
+    {
+      "path": "src/core/interactionEngine.ts",
+      "sha256": "32d42a73901177b23a53fce06f7ef6baeaa923acfe897d739b8d0419c3ea9478",
+      "bytes": 13469
+    },
+    {
+      "path": "tailwind.config.ts",
+      "sha256": "4635af394ec089d77c8f157fc13b6e33818194997e639c2b35c679455b21c1e7",
+      "bytes": 436
+    },
+    {
+      "path": "tests/mobile-presentation.spec.ts",
+      "sha256": "4e24de47ed605272b5762285b54489411ccdb13972653a75ae904b431afdb7b5",
+      "bytes": 6495
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "f476017453ae9cb1acaf5e0e76d570319884c278ae131513239973632b7c6e3e",
+      "bytes": 743
+    },
+    {
+      "path": "types/semantic-map.ts",
+      "sha256": "d2a32b4aea95bf26cdb0abcf5a3d55e2940cf1cf2781fbbdda4004f2c1cda1b9",
+      "bytes": 2828
+    },
+    {
+      "path": "types/space.ts",
+      "sha256": "b43da2cc449e457388ced5da3f3c7c82be07e5332f57c9b733a4478986b0d89c",
+      "bytes": 38823
+    },
+    {
+      "path": "types/workspace.ts",
+      "sha256": "0683d5af41e6d2ac403f4af470f6c5a0775e1f516a50f5baba56f739d7d9a1ed",
+      "bytes": 2814
+    }
+  ],
+  "buildEnvironment": {
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_BASE_PATH": "",
+    "output": "export",
+    "distDir": ".next-unified-r01",
+    "nodeVersion": "v22.23.5",
+    "nodeOfficialArchiveSha256": "e7131995759b61a0170b646010d2ad35a5d37b4cb0d471f3e8317eac6f742f3d",
+    "packageVersions": {
+      "next": "14.2.35",
+      "react": "18.3.1",
+      "react-dom": "18.3.1",
+      "three": "0.171.0",
+      "typescript": "5.9.3",
+      "@react-three/fiber": "8.18.0"
+    },
+    "nativeCompiler": {
+      "package": "@next/swc-darwin-arm64",
+      "version": "14.2.33",
+      "binarySha256": "0ed6f0d94be3b2a57df34563d60b814c1a00906afcbaa98d8f23a876d516cb69",
+      "loadedBy": "NEXT_TEST_NATIVE_DIR, existing matching package; no shared dependency mutation"
+    }
+  },
+  "identity": {
+    "revision": "UNIFIED-JOINT-20261115-R11-1F-B-2F-REANCHOR-CANDIDATE",
+    "modelFileSha256": "5d30e26e861900bc1f31b92209aae70301cdb88ae397801959b8f12a66bbd75b",
+    "sourceBundleSha256": "9fca55a72258452313aa00740d72601b4870ed454907a4652dbba2f07991e16a",
+    "parentModelSha256": "c59607e97fe7a7b757962bd430f5eb5b815233fffb9c3a1ce6346456bd65081b",
+    "sourceR06ModelSha256": "ecd562992684907b4365a5b54cb627fd23c099f20d308c130ea015715c75cfd3",
+    "sourceFileCount": 494,
+    "rootDataRevision": "2026-08-03-unified-pbr-material-language-v1",
+    "rootDefaultWorkspaceRevision": "UNIFIED-JOINT-20261115-R11-1F-B-2F-REANCHOR-CANDIDATE",
+    "floorBindingSha256": "15e75654745b49c770926dc205b10cc5a7a82f9db9ae31930519708609362cc6",
+    "scope": "R11 joint successor: exact accepted R10 OptionB1F retained;15 2F true-size position re-registrations and PMO adopted D007750mm travel with D008 closed plus950x2260 unselected glass height/datum fit, corrected track/support install. Concept track channel external30x30 retained; original carriage raised4mm to seat on channel lips, hanger6mm overlap and2mm top clearance declared, not OEM/load approval. Walls apertures stairs all other geometry retained. Actual native affected-domain review pending, not whole model acceptance.",
+    "sourceIdentityExclusions": [
+      "data/b1-reflow-identity.json",
+      "public/release-manifest.json",
+      "generated build caches",
+      "environment-only node_modules"
+    ],
+    "applyEnabled": false,
+    "publishEnabled": false,
+    "allowedMergeScope": []
+  }
+}

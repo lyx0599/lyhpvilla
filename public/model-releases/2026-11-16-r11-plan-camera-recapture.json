@@ -1,0 +1,13 @@
+{
+  "modelSha256": "5d30e26e861900bc1f31b92209aae70301cdb88ae397801959b8f12a66bbd75b",
+  "sourceBundleSha256": "9fca55a72258452313aa00740d72601b4870ed454907a4652dbba2f07991e16a",
+  "records": [
+    {
+      "plan": "2f.svg",
+      "originalProjectionInputSha256": "fab8243898d2eff747453e5d0209b535f709407a4dbba8b334eb4fa329a8664e",
+      "retainedRecapturedNative": "R11-2F-entry0.native.json",
+      "retainedRecapturedSha256": "fe142056b8ac5a38dce1fc29046ab3cff97f8a734c0ac49b275dabccbdbb373b",
+      "recaptureReason": "Final settled camera export after the projection was computed; frozen source and loaded model are identical. Original plan input SHA is retained as historical provenance, not relabeled as the recaptured file. Plan geometry was not recomputed."
+    }
+  ]
+}
