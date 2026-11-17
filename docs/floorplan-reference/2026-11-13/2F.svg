@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="420mm" viewBox="0 0 1782 2520" role="img" aria-label="2F architecture floor plan"><title>2F R06 model-derived architecture reference</title><rect width="1782" height="2520" fill="white"/>
+<text x="100.00" y="95.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="43" text-anchor="start" dominant-baseline="central" fill="#253f50">供 GPT 空间沟通 · 四层户型底图</text>
+<text x="100.00" y="158.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="34" text-anchor="start" dominant-baseline="central" fill="#253f50">2F  /  R06 共同建筑基底</text>
+<text x="100.00" y="215.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="25" text-anchor="start" dominant-baseline="central" fill="#253f50">模型轴界参考 · 无家具层 · 不是施工图或现场实测</text>
+<text x="100.00" y="260.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="start" dominant-baseline="central" fill="#253f50">地下 66.23㎡参照  /  地上 137.83㎡采用  /  北向上  /  单位 mm</text>
+<text x="100.00" y="304.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#61737e">R01  ·  2026-11-13  ·  source ecd562992684…  ·  A3 原尺寸打印 1:50</text>
+<polygon points="340.000,1689.883 677.736,1689.883 677.736,1928.285 340.000,1928.285 340.000,1689.883" fill="#f4f6f2" stroke="#aebcaf" stroke-width="1"/>
+<text x="508.87" y="1809.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="middle" dominant-baseline="central" fill="#71826e">阳台参照 · 待核</text>
+<text x="508.87" y="1840.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="middle" dominant-baseline="central" fill="#71826e">5.59㎡ / 非新增室内</text>
+<polygon points="677.736,1689.883 1023.420,1689.883 1023.420,1928.285 677.736,1928.285 677.736,1689.883" fill="#f4f6f2" stroke="#aebcaf" stroke-width="1"/>
+<text x="850.58" y="1809.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="middle" dominant-baseline="central" fill="#71826e">阳台参照 · 待核</text>
+<text x="850.58" y="1840.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="middle" dominant-baseline="central" fill="#71826e">5.72㎡ / 非新增室内</text>
+<polygon points="1094.940,659.084 735.350,659.084 735.350,770.338 487.015,770.338 487.015,1027.608 340.000,1027.608 340.000,1324.591 340.000,1689.883 677.736,1689.883 1023.420,1689.883 1406.850,1689.883 1406.850,1096.155 1406.850,659.084 1094.940,659.084" fill="#f0f3f5" stroke="#a6b4bb" stroke-width="1"/>
+<polygon points="681.734,1047.472 681.734,1304.727 359.983,1304.727 359.983,1047.472 681.734,1047.472" fill="#ffffff" stroke="#a6b4bb" stroke-width="1"/>
+<polygon points="359.983,1047.472 681.734,1047.472 681.734,1304.727 359.983,1304.727 359.983,1047.472" fill="#ffffff" stroke="#438296" stroke-width="2"/>
+<polygon points="355.600,1043.208 355.600,1308.991 487.093,1308.991 487.093,1043.208 355.600,1043.208" fill="#e1eaee" stroke="#819aa5" stroke-width="1"/>
+<polygon points="733.291,1181.074 487.093,1181.074 487.093,1308.991 733.291,1308.991 733.291,1181.074" fill="#f9fbfc" stroke="#8096a2" stroke-width="1"/>
+<polyline points="733.291,1308.991 733.291,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="708.672,1308.991 708.672,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="684.052,1308.991 684.052,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="659.432,1308.991 659.432,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="634.812,1308.991 634.812,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="610.192,1308.991 610.192,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="585.572,1308.991 585.572,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="560.952,1308.991 560.952,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="536.332,1308.991 536.332,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="511.712,1308.991 511.712,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<polyline points="487.093,1308.991 487.093,1181.074" fill="none" stroke="#91a4ad" stroke-width="1"/>
+<text x="610.19" y="1245.03" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#395b6a">下 → 10级</text>
+<polygon points="735.350,757.138 683.183,757.138 683.183,783.538 735.350,783.538 735.350,757.138" fill="#344c58"/>
+<polygon points="487.015,757.138 487.015,783.538 539.183,783.538 539.183,757.138 487.015,757.138" fill="#344c58"/>
+<polygon points="1307.607,672.284 1406.850,672.284 1406.850,645.884 1307.607,645.884 1307.607,672.284" fill="#344c58"/>
+<polygon points="827.857,672.284 827.857,645.884 735.350,645.884 735.350,672.284 827.857,672.284" fill="#344c58"/>
+<polygon points="1163.607,645.884 971.857,645.884 971.857,672.284 1163.607,672.284 1163.607,645.884" fill="#344c58"/>
+<polygon points="473.815,1027.608 500.215,1027.608 500.215,770.338 473.815,770.338 473.815,1027.608" fill="#344c58"/>
+<polygon points="744.950,1096.155 744.950,1016.620 725.750,1016.620 725.750,1096.155 744.950,1096.155" fill="#344c58"/>
+<polygon points="744.950,659.084 725.750,659.084 725.750,908.620 744.950,908.620 744.950,659.084" fill="#344c58"/>
+<polygon points="1085.340,1096.155 1104.540,1096.155 1104.540,659.084 1085.340,659.084 1085.340,1096.155" fill="#344c58"/>
+<polygon points="1393.650,1096.155 1420.050,1096.155 1420.050,659.084 1393.650,659.084 1393.650,1096.155" fill="#344c58"/>
+<polygon points="487.015,1040.808 487.015,1014.408 340.000,1014.408 340.000,1040.808 487.015,1040.808" fill="#344c58"/>
+<polygon points="735.350,1040.808 735.350,1014.408 487.015,1014.408 487.015,1040.808 735.350,1040.808" fill="#344c58"/>
+<polygon points="1300.359,1105.755 1406.850,1105.755 1406.850,1086.555 1300.359,1086.555 1300.359,1105.755" fill="#344c58"/>
+<polygon points="1048.526,1105.755 1192.359,1105.755 1192.359,1086.555 1048.526,1086.555 1048.526,1105.755" fill="#344c58"/>
+<polygon points="745.313,1105.755 745.313,1086.555 735.350,1086.555 735.350,1105.755 745.313,1105.755" fill="#344c58"/>
+<polygon points="868.526,1105.755 868.526,1086.555 853.313,1086.555 853.313,1105.755 868.526,1105.755" fill="#344c58"/>
+<polygon points="326.800,1689.883 353.200,1689.883 353.200,1027.608 326.800,1027.608 326.800,1689.883" fill="#344c58"/>
+<polygon points="1393.650,1689.883 1420.050,1689.883 1420.050,1096.155 1393.650,1096.155 1393.650,1689.883" fill="#344c58"/>
+<polygon points="574.649,1337.791 574.649,1311.391 340.000,1311.391 340.000,1337.791 574.649,1337.791" fill="#344c58"/>
+<polygon points="1023.420,1337.791 1023.420,1311.391 780.824,1311.391 780.824,1337.791 1023.420,1337.791" fill="#344c58"/>
+<polygon points="1094.940,1334.191 1094.940,1314.991 1023.420,1314.991 1023.420,1334.191 1094.940,1334.191" fill="#344c58"/>
+<polygon points="664.536,1689.883 690.936,1689.883 690.936,1438.467 664.536,1438.467 664.536,1689.883" fill="#344c58"/>
+<polygon points="1010.220,1689.883 1036.620,1689.883 1036.620,1324.591 1010.220,1324.591 1010.220,1689.883" fill="#344c58"/>
+<polygon points="1104.540,1324.591 1104.540,1294.373 1085.340,1294.373 1085.340,1324.591 1104.540,1324.591" fill="#344c58"/>
+<polygon points="1104.540,1096.155 1085.340,1096.155 1085.340,1126.373 1104.540,1126.373 1104.540,1096.155" fill="#344c58"/>
+<polygon points="677.736,1676.683 673.170,1676.683 673.170,1703.083 677.736,1703.083 677.736,1676.683" fill="#344c58"/>
+<polygon points="340.000,1676.683 340.000,1703.083 493.170,1703.083 493.170,1676.683 340.000,1676.683" fill="#344c58"/>
+<polygon points="1023.420,1676.683 858.874,1676.683 858.874,1703.083 1023.420,1703.083 1023.420,1676.683" fill="#344c58"/>
+<polygon points="677.736,1676.683 677.736,1703.083 690.874,1703.083 690.874,1676.683 677.736,1676.683" fill="#344c58"/>
+<polygon points="1406.850,1676.683 1288.512,1676.683 1288.512,1703.083 1406.850,1703.083 1406.850,1676.683" fill="#344c58"/>
+<polygon points="1023.420,1676.683 1023.420,1703.083 1096.512,1703.083 1096.512,1676.683 1023.420,1676.683" fill="#344c58"/>
+<polygon points="584.249,1438.467 584.249,1435.529 565.049,1435.529 565.049,1438.467 584.249,1438.467" fill="#344c58"/>
+<polygon points="584.249,1324.591 565.049,1324.591 565.049,1327.529 584.249,1327.529 584.249,1324.591" fill="#344c58"/>
+<polygon points="677.736,1448.067 677.736,1428.867 574.649,1428.867 574.649,1448.067 677.736,1448.067" fill="#344c58"/>
+<polygon points="790.424,1438.467 790.424,1432.529 771.224,1432.529 771.224,1438.467 790.424,1438.467" fill="#344c58"/>
+<polygon points="790.424,1324.591 771.224,1324.591 771.224,1330.529 790.424,1330.529 790.424,1324.591" fill="#344c58"/>
+<polygon points="780.824,1448.067 780.824,1428.867 677.736,1428.867 677.736,1448.067 780.824,1448.067" fill="#344c58"/>
+<polygon points="854.256,1096.155 863.856,1096.155 863.856,887.022 854.256,887.022 854.256,1096.155" fill="#344c58"/>
+<polygon points="859.056,891.822 859.056,882.222 735.350,882.222 735.350,891.822 859.056,891.822" fill="#344c58"/>
+<polyline points="539.183,770.338 683.183,770.338" fill="none" stroke="#168f9e" stroke-width="4"/>
+<text x="611.18" y="748.34" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#168f9e">WIN 1200</text>
+<polyline points="1163.607,659.084 1307.607,659.084" fill="none" stroke="#168f9e" stroke-width="4"/>
+<text x="1235.61" y="637.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#168f9e">WIN 1200</text>
+<polyline points="827.857,659.084 971.857,659.084" fill="none" stroke="#168f9e" stroke-width="4"/>
+<text x="899.86" y="637.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#168f9e">WIN 1200</text>
+<polyline points="1096.512,1689.883 1288.512,1689.883" fill="none" stroke="#168f9e" stroke-width="4"/>
+<polygon points="1096.512,1703.083 1288.512,1703.083 1288.512,1769.083 1096.512,1769.083 1096.512,1703.083" fill="#dff3f5" stroke="#168f9e" stroke-width="2"/>
+<text x="1192.51" y="1667.88" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#168f9e">BW 1600</text>
+<polyline points="827.857,659.084 971.857,659.084" fill="none" stroke="#168f9e" stroke-width="4"/>
+<polygon points="827.857,645.884 971.857,645.884 971.857,617.084 827.857,617.084 827.857,645.884" fill="#dff3f5" stroke="#168f9e" stroke-width="2"/>
+<text x="899.86" y="637.08" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#168f9e">BW 1200</text>
+<polyline points="868.526,1096.155 1048.526,1096.155" fill="none" stroke="#b17b39" stroke-width="4"/>
+<text x="958.53" y="1072.15" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#b17b39">D002</text>
+<polyline points="574.649,1327.529 574.649,1435.529" fill="none" stroke="#bc3e4b" stroke-width="4"/>
+<text x="508.65" y="1381.53" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#bc3e4b">待修 D003</text>
+<polyline points="780.824,1330.529 780.824,1432.529" fill="none" stroke="#bc3e4b" stroke-width="4"/>
+<text x="846.82" y="1381.53" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#bc3e4b">待修 D004</text>
+<polyline points="735.350,908.620 735.350,1016.620" fill="none" stroke="#bc3e4b" stroke-width="4"/>
+<text x="805.35" y="962.62" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#bc3e4b">待修 D006</text>
+<polyline points="1192.359,1096.155 1300.359,1096.155" fill="none" stroke="#b17b39" stroke-width="4"/>
+<text x="1246.36" y="1072.15" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#b17b39">D007</text>
+<polyline points="1094.940,1126.373 1094.940,1294.373" fill="none" stroke="#b17b39" stroke-width="4"/>
+<text x="1094.94" y="1186.37" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#b17b39">D008</text>
+<polyline points="493.170,1689.883 673.170,1689.883" fill="none" stroke="#bc3e4b" stroke-width="4"/>
+<text x="543.17" y="1729.88" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#bc3e4b">待修 D009</text>
+<polyline points="690.874,1689.883 858.874,1689.883" fill="none" stroke="#bc3e4b" stroke-width="4"/>
+<text x="829.87" y="1766.88" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#bc3e4b">待修 D010</text>
+<polyline points="745.313,1096.155 853.313,1096.155" fill="none" stroke="#b17b39" stroke-width="4"/>
+<text x="799.31" y="1072.15" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#b17b39">通口</text>
+<text x="611.18" y="898.97" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">客卫</text>
+<text x="611.18" y="930.97" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">4.44㎡  /  R001</text>
+<text x="915.15" y="773.05" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">衣帽间</text>
+<text x="915.15" y="805.05" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">9.12㎡  /  R002</text>
+<text x="1250.90" y="877.62" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">主卫</text>
+<text x="1250.90" y="909.62" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">9.47㎡  /  R003</text>
+<text x="508.87" y="1564.17" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">客房1</text>
+<text x="508.87" y="1596.17" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">7.75㎡  /  R004</text>
+<text x="850.58" y="1564.17" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">客房2</text>
+<text x="850.58" y="1596.17" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">7.95㎡  /  R005</text>
+<text x="1215.13" y="1507.24" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">主卧</text>
+<text x="1215.13" y="1539.24" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">14.67㎡  /  R006</text>
+<text x="921.92" y="1210.37" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">走廊</text>
+<text x="921.92" y="1242.37" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="24" text-anchor="middle" dominant-baseline="central" fill="#253f50">8.85㎡  /  R007</text>
+<polyline points="1555.000,530.000 1555.000,410.000" fill="none" stroke="#253f50" stroke-width="4"/>
+<polygon points="1555.000,386.000 1543.000,418.000 1567.000,418.000" fill="#253f50"/>
+<text x="1555.00" y="350.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="25" text-anchor="middle" dominant-baseline="central" fill="#253f50">N / 北</text>
+<polygon points="118.000,2080.000 238.000,2080.000 238.000,2096.000 118.000,2096.000" fill="#344c58" stroke="#344c58" stroke-width="1"/>
+<polygon points="238.000,2080.000 358.000,2080.000 358.000,2096.000 238.000,2096.000" fill="#ffffff" stroke="#344c58" stroke-width="1"/>
+<polygon points="358.000,2080.000 478.000,2080.000 478.000,2096.000 358.000,2096.000" fill="#344c58" stroke="#344c58" stroke-width="1"/>
+<polygon points="478.000,2080.000 598.000,2080.000 598.000,2096.000 478.000,2096.000" fill="#ffffff" stroke="#344c58" stroke-width="1"/>
+<text x="118.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">0</text>
+<text x="238.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">1000</text>
+<text x="358.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">2000</text>
+<text x="478.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">3000</text>
+<text x="598.00" y="2120.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="18" text-anchor="middle" dominant-baseline="central" fill="#253f50">4000</text>
+<text x="358.00" y="2155.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="19" text-anchor="middle" dominant-baseline="central" fill="#253f50">mm · 屏幕缩放请以标尺为准</text>
+<text x="1100.00" y="2140.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="middle" dominant-baseline="central" fill="#438296">蓝框：梯洞；浅蓝：半层平台投影</text>
+<polyline points="1515.000,659.084 1515.000,1689.883" fill="none" stroke="#7d929d" stroke-width="1"/>
+<polyline points="1506.000,659.084 1524.000,659.084" fill="none" stroke="#7d929d" stroke-width="2"/>
+<polyline points="1506.000,1689.883 1524.000,1689.883" fill="none" stroke="#7d929d" stroke-width="2"/>
+<text x="1540.00" y="1174.48" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="start" dominant-baseline="central" fill="#253f50">8590</text>
+<text x="890.00" y="355.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="23" text-anchor="middle" dominant-baseline="central" fill="#253f50">室内房界并集 70.69㎡（轴界，非净面积）</text>
+<polyline points="100.000,2200.000 1682.000,2200.000" fill="none" stroke="#bdc9cf" stroke-width="2"/>
+<text x="100.00" y="2240.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">墙体：真实模型厚度；剖切高1200。青色：窗/低护栏；棕色：名义门洞；红色：待修门区。</text>
+<text x="100.00" y="2281.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">门窗仅名义宽高；邻墙侵入保留，不代表完成面净洞、开门扫掠或施工验收。</text>
+<text x="100.00" y="2322.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">共同梯核、踏步与洞口来自同一模型；楼层高/墙厚及室外边界均须图纸和现场核实。</text>
+<text x="100.00" y="2363.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="21" text-anchor="start" dominant-baseline="central" fill="#253f50">待修 / 推定门区：D-2F-003、D-2F-004、D-2F-006、D-2F-009、D-2F-010；详见 README 与 JSON。</text>
+<text x="100.00" y="2440.00" font-family="Hiragino Sans GB,Noto Sans CJK SC,Microsoft YaHei,sans-serif" font-size="20" text-anchor="start" dominant-baseline="central" fill="#61737e">同源数据：space-layout.json   |   来源与未知项：source-index.json   |   无家具 / 无未批方案</text>
+</svg>

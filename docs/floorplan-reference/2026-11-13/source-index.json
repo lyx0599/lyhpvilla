@@ -1,0 +1,470 @@
+{
+  "revision": "FLOORPLAN-REFERENCE-20261113-R01",
+  "sourceRevision": "AREA6623-FOUR-FLOOR-ARCHITECTURE-20261113-R06",
+  "sourceModelSha256": "ecd562992684907b4365a5b54cb627fd23c099f20d308c130ea015715c75cfd3",
+  "productionBaseCommit": "14d1cce3677094104248c668be959a44fd749633",
+  "sourceStatus": "R06 shared architecture; 7 doors / 9 corner intrusions unresolved, furniture owner candidates excluded",
+  "projection": {
+    "method": "XY orthographic from source architecture arrays, x=east, y=south; no tracing or generative imagery",
+    "pageMm": [
+      297,
+      420
+    ],
+    "pixelSize": [
+      1782,
+      2520
+    ],
+    "printScale": "1:50",
+    "pixelsPerModelMm": 0.12,
+    "northUp": true,
+    "cutHeightMm": 1200,
+    "wallCuts": "Each aperture subtracts only its own host wall at cut height. All neighbour walls remain.",
+    "stairs": "Actual source flight endpoints; landing-depth inset retained; tread count/width/rise unchanged. Half-level landing is a projection, not a new slab.",
+    "B1Void": "Eastern component of bounding-box minus room union, explicitly unverified no-room-coverage reference. Northwestern external indentation excluded.",
+    "bayWindows": "Same native host normal/projectionDirection rule, legacy unspecified direction retained.",
+    "raster": "Same drawing primitives and coordinates as SVG; platform CJK font, not packaged."
+  },
+  "sourceObjects": {
+    "B2": {
+      "walls": [
+        "W-B2-001",
+        "W-B2-003",
+        "W-B2-004",
+        "W-B2-007",
+        "W-B2-008",
+        "W-B2-010",
+        "W-B2-011",
+        "W-B2-STORAGE-001",
+        "W-B2-STORAGE-002",
+        "W-B2-LW-N-WEST",
+        "W-B2-LW-N-OUTER"
+      ],
+      "rooms": [
+        "ROOM-B2-001",
+        "ROOM-B2-002",
+        "ROOM-B2-004",
+        "ROOM-B2-005",
+        "ROOM-B2-003",
+        "ROOM-B2-NORTH-INT",
+        "ROOM-B2-SOUTH-INT"
+      ],
+      "doors": [
+        "D-B2-001",
+        "D-B2-STORAGE-001"
+      ],
+      "windows": [],
+      "bayWindows": [],
+      "stairs": [
+        "ST-B2-001"
+      ],
+      "columns": [
+        "COL-B2-001",
+        "COL-B2-002"
+      ],
+      "outdoors": []
+    },
+    "B1": {
+      "walls": [
+        "W-B1-001",
+        "W-B1-002",
+        "W-B1-003",
+        "W-B1-004",
+        "W-B1-005",
+        "W-B1-007",
+        "W-B1-009",
+        "W-B1-010",
+        "W-B1-012",
+        "W-B1-013",
+        "W-B1-014",
+        "AW-B1-014",
+        "W-B1-015",
+        "W-B1-016",
+        "W-B1-R01-E",
+        "W-B1-R01-S",
+        "W-B1-L01",
+        "W-B1-L02",
+        "W-B1-L03",
+        "W-B1-L04",
+        "W-B1-L05",
+        "W-B1-L06"
+      ],
+      "rooms": [
+        "ROOM-B1-001",
+        "ROOM-B1-002",
+        "ROOM-B1-003",
+        "ROOM-B1-004",
+        "ROOM-B1-005",
+        "ROOM-B1-006",
+        "ROOM-B1-007"
+      ],
+      "doors": [
+        "D-B1-001",
+        "D-B1-LAUNDRY-R01",
+        "D-B1-GUEST-R01"
+      ],
+      "windows": [],
+      "bayWindows": [],
+      "stairs": [
+        "ST-B1-001",
+        "ST-B1-002"
+      ],
+      "columns": [],
+      "outdoors": []
+    },
+    "1F": {
+      "walls": [
+        "W-1F-001",
+        "W-1F-002",
+        "W-1F-003",
+        "W-1F-004",
+        "W-1F-005",
+        "W-1F-006",
+        "W-1F-009",
+        "W-1F-010",
+        "W-1F-011",
+        "W-1F-012",
+        "W-1F-013",
+        "W-1F-014",
+        "W-1F-015",
+        "W-1F-016"
+      ],
+      "rooms": [
+        "ROOM-1F-001",
+        "ROOM-1F-002",
+        "ROOM-1F-003",
+        "ROOM-1F-004",
+        "ROOM-1F-005",
+        "ROOM-1F-006"
+      ],
+      "doors": [
+        "D-1F-002",
+        "D-1F-003",
+        "D-1F-004",
+        "D-1F-005",
+        "D-1F-006",
+        "D-1F-007"
+      ],
+      "windows": [
+        "WIN-1F-002",
+        "WIN-1F-004",
+        "WIN-1F-006"
+      ],
+      "bayWindows": [
+        "BW-1F-003"
+      ],
+      "stairs": [
+        "ST-1F-001",
+        "ST-1F-002"
+      ],
+      "columns": [],
+      "outdoors": [
+        "OD-1F-NORTH-001",
+        "OD-1F-SOUTH-001"
+      ]
+    },
+    "2F": {
+      "walls": [
+        "W-2F-001",
+        "W-2F-002",
+        "W-2F-003",
+        "W-2F-004",
+        "W-2F-005",
+        "W-2F-006",
+        "W-2F-007",
+        "W-2F-008",
+        "W-2F-009",
+        "W-2F-010",
+        "W-2F-011",
+        "W-2F-012",
+        "W-2F-013",
+        "W-2F-014",
+        "W-2F-015",
+        "W-2F-016",
+        "W-2F-017",
+        "W-2F-018",
+        "W-2F-019",
+        "W-2F-020",
+        "W-2F-021",
+        "W-2F-022",
+        "W-2F-023",
+        "W-2F-024",
+        "W-2F-025",
+        "W-2F-026"
+      ],
+      "rooms": [
+        "ROOM-2F-001",
+        "ROOM-2F-002",
+        "ROOM-2F-003",
+        "ROOM-2F-004",
+        "ROOM-2F-005",
+        "ROOM-2F-006",
+        "ROOM-2F-007",
+        "ROOM-2F-008"
+      ],
+      "doors": [
+        "D-2F-002",
+        "D-2F-003",
+        "D-2F-004",
+        "D-2F-006",
+        "D-2F-007",
+        "D-2F-008",
+        "D-2F-009",
+        "D-2F-010",
+        "D-2F-B-PUBLIC-OPENING"
+      ],
+      "windows": [
+        "WIN-2F-001",
+        "WIN-2F-002",
+        "WIN-2F-003"
+      ],
+      "bayWindows": [
+        "BW-2F-002",
+        "BW-2F-CLOAK-001"
+      ],
+      "stairs": [
+        "ST-2F-001"
+      ],
+      "columns": [],
+      "outdoors": [
+        "OD-2F-BALCONY-01",
+        "OD-2F-BALCONY-02"
+      ]
+    }
+  },
+  "knownDoorCornerIntrusions": [
+    {
+      "floor": "1F",
+      "door": "D-1F-003",
+      "hostId": "W-1F-013",
+      "neighbor": "W-1F-012",
+      "blockedCenterlineLengthMm": 5.299258271355029,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "1F",
+      "door": "D-1F-004",
+      "hostId": "W-1F-009",
+      "neighbor": "W-1F-004",
+      "blockedCenterlineLengthMm": 38.43692863093838,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-003",
+      "hostId": "W-2F-021",
+      "neighbor": "W-2F-012",
+      "blockedCenterlineLengthMm": 85.51730762238822,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-003",
+      "hostId": "W-2F-021",
+      "neighbor": "W-2F-022",
+      "blockedCenterlineLengthMm": 55.51730762238731,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-004",
+      "hostId": "W-2F-023",
+      "neighbor": "W-2F-013",
+      "blockedCenterlineLengthMm": 60.517307622388216,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-004",
+      "hostId": "W-2F-023",
+      "neighbor": "W-2F-024",
+      "blockedCenterlineLengthMm": 30.517307622387307,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-006",
+      "hostId": "W-2F-004",
+      "neighbor": "W-2F-008",
+      "blockedCenterlineLengthMm": 18.435260696984642,
+      "verticalOverlapMm": [
+        0,
+        2100
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-009",
+      "hostId": "W-2F-018",
+      "neighbor": "W-2F-015",
+      "blockedCenterlineLengthMm": 71.9481695813638,
+      "verticalOverlapMm": [
+        0,
+        2300
+      ]
+    },
+    {
+      "floor": "2F",
+      "door": "D-2F-010",
+      "hostId": "W-2F-019",
+      "neighbor": "W-2F-015",
+      "blockedCenterlineLengthMm": 0.5249315963583285,
+      "verticalOverlapMm": [
+        0,
+        2300
+      ]
+    }
+  ],
+  "knownUnknowns": [
+    "All coordinates are model-derived; estimated wall thickness, apertures and heights require original drawings and field verification.",
+    "Shared stair group is a model registration with preserved dimensions; no permission to move existing concrete.",
+    "Nominal apertures do not establish clear opening, door swing, accessibility or fire compliance.",
+    "B1 eastern no-room-coverage hatch is derived from room polygons inside a bounding envelope, not a verified slab/void survey.",
+    "B2 historical stair-under partitions and both columns remain conditional; 7 stair/conditional-obstacle intersections remain unresolved.",
+    "B2 roof polygons are proposed zero-thickness planes at local 2800 mm; support, thickness and weatherproofing are unknown.",
+    "Outdoor and balcony polygons are historical estimated references, not ownership or enclosed-area acceptance.",
+    "Furniture and new owner layout candidates are omitted."
+  ],
+  "publicSanitization": "Only whitelisted architecture geometry, model revision/hash and limitations. No raw workspace, private contract text, household inventory, identity, finance, absolute home paths or task messages.",
+  "checks": [
+    {
+      "floor": "B2",
+      "roomCount": 7,
+      "wallCount": 11,
+      "axisRoomUnionM2": 90.0337699133939,
+      "floorOpeningCount": 0,
+      "scalePixelsPerModelMm": 0.12,
+      "northUp": true,
+      "nominalCutHeightMm": 1200,
+      "hostSpecificCuts": true,
+      "drawPrimitiveCount": 165,
+      "pngSize": [
+        1782,
+        2520
+      ],
+      "physicalPageMm": [
+        297,
+        420
+      ]
+    },
+    {
+      "floor": "B1",
+      "roomCount": 7,
+      "wallCount": 22,
+      "axisRoomUnionM2": 56.74115880165425,
+      "floorOpeningCount": 1,
+      "scalePixelsPerModelMm": 0.12,
+      "northUp": true,
+      "nominalCutHeightMm": 1200,
+      "hostSpecificCuts": true,
+      "drawPrimitiveCount": 125,
+      "pngSize": [
+        1782,
+        2520
+      ],
+      "physicalPageMm": [
+        297,
+        420
+      ]
+    },
+    {
+      "floor": "1F",
+      "roomCount": 6,
+      "wallCount": 14,
+      "axisRoomUnionM2": 67.14237781595021,
+      "floorOpeningCount": 1,
+      "scalePixelsPerModelMm": 0.12,
+      "northUp": true,
+      "nominalCutHeightMm": 1200,
+      "hostSpecificCuts": true,
+      "drawPrimitiveCount": 75,
+      "pngSize": [
+        1782,
+        2520
+      ],
+      "physicalPageMm": [
+        297,
+        420
+      ]
+    },
+    {
+      "floor": "2F",
+      "roomCount": 8,
+      "wallCount": 26,
+      "axisRoomUnionM2": 70.68756178936208,
+      "floorOpeningCount": 1,
+      "scalePixelsPerModelMm": 0.12,
+      "northUp": true,
+      "nominalCutHeightMm": 1200,
+      "hostSpecificCuts": true,
+      "drawPrimitiveCount": 83,
+      "pngSize": [
+        1782,
+        2520
+      ],
+      "physicalPageMm": [
+        297,
+        420
+      ]
+    }
+  ],
+  "files": {
+    "1F.png": {
+      "sha256": "36c8bbeb82ed54d4b019c759068e82089753f9c75481d787b09c27f3e28034eb",
+      "bytes": 243315
+    },
+    "1F.svg": {
+      "sha256": "984380d5772690aa8bc313887bc3d80f2b49cf0d67749c26ffb8f062078c3afc",
+      "bytes": 19057
+    },
+    "2F.png": {
+      "sha256": "e592d8168ee9e96022d9b6c187527704c63f3c4b92f8544e8e32c2975a227a11",
+      "bytes": 251729
+    },
+    "2F.svg": {
+      "sha256": "eb0ecba718f584216debc306493d5bf00a87e37dc2eda98395cb7bd0d85385d5",
+      "bytes": 21656
+    },
+    "B1.png": {
+      "sha256": "fec839d79773a331fb8a4e86d4bdb05d32b0c422fcc58f7d2ddfbe39792b74be",
+      "bytes": 272616
+    },
+    "B1.svg": {
+      "sha256": "7a95d92bed52a596af6a5653674513ac587bfb6cdcaa23f1e67180a80fb01456",
+      "bytes": 30149
+    },
+    "B2.png": {
+      "sha256": "cfb0a96e2d56293d8d5b61c75fa0e888e8445c3c0983a4a321256f85d6e1a2dc",
+      "bytes": 270951
+    },
+    "B2.svg": {
+      "sha256": "565f015b191241170c988ffd192a8880bc539d5fafba98ee5ec1bfa34e084560",
+      "bytes": 32410
+    },
+    "space-layout.json": {
+      "sha256": "e3eb0a747ba663261c22266bed637c22b9eed5273c805ae533f20764aa59fb18",
+      "bytes": 97468
+    },
+    "README.md": {
+      "sha256": "fb1aca81edb2aef2e5bd347bf1434c471e9885ebeaa40c2d30a3577f29a3b3a5",
+      "bytes": 6982
+    }
+  }
+}
